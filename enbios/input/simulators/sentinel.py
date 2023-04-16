@@ -12,6 +12,7 @@ from enbios.common.helper import list_to_dataframe, get_scenario_name, isfloat
 from enbios.input import Simulation
 from enbios.input.simulators import create_register_or_update_processor_and_attributes, find_column_idx_name
 from enbios.model import SimStructuralProcessorAttributes, g_default_subtech
+# todo-ra: remove
 from friendly_data.dpkg import read_pkg
 from friendly_data.converters import to_df
 

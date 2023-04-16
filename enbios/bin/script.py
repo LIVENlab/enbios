@@ -3,7 +3,6 @@ import os
 from typing import List
 
 import fire
-import webbrowser
 
 from nexinfosys.bin.cli_script import set_log_level_from_cli_param, prepare_base_state, print_issues
 from nexinfosys.command_generators.parser_ast_evaluators import get_nis_name
@@ -14,9 +13,7 @@ from enbios.input.data_preparation.lci_to_nis import SpoldToNIS
 from enbios.input.data_preparation.lcia_implementation_to_nis import convert_lcia_implementation_to_nis
 from enbios.input.data_preparation.recipe_to_nis import convert_recipe_to_nis
 from enbios.input.data_preparation.sentinel_to_nis_prep import sentinel_to_prep_file
-from enbios.processing import read_parse_configuration
 from enbios.processing.main import Enviro
-from enbios.visualize import create_dashboard_app
 
 """
 DEVELOPMENT CLI EXECUTION:
@@ -254,6 +251,7 @@ class Enbios:
         s2n.spold2nis("generic_energy_production",
                       spold_files_folder,
                       correspondence_path,
+                      None,
                       nis_base_url,
                       nis_structurals_output)
 
@@ -347,43 +345,6 @@ class Enbios:
                                                       max_lci_interfaces,
                                                       n_cpus,
                                                       just_prepare_base)
-
-    @staticmethod
-    def visualize(cfg_file_path, open_browser=False, log: str = None):
-        """
-        Prepare a Dash server enabling basic visualization of results
-            - scenario
-            - region
-            - year
-            - processor
-            - [carrier]
-            - indicator
-
-        :param cfg_file_path:
-        :param open_browser: If True, open the link in the browser
-        :param log:
-        :return:
-        """
-        # Read data
-        print("Starting visualization server")
-        cfg_file_path = os.path.realpath(cfg_file_path)
-        print("Parsing configuration")
-        cfg = read_parse_configuration(cfg_file_path)
-        base_dir = cfg["output_directory"]
-        if not os.path.isabs(base_dir):
-            base_dir = os.path.join(os.path.dirname(cfg_file_path), base_dir)
-
-        print("Creating Dash app")
-        app = create_dashboard_app(base_dir)
-
-        # Launch Dash dashboard server
-        host = "localhost"
-        port = 8050
-        address = f"http://{host}:{port}"
-        print(f"Launching server. Please, open {address}. Ctrl+C to Stop.")
-        if open_browser:
-            webbrowser.open(address)
-        app.run_server(host=host, port=port, use_reloader=False)
 
 
 def main():

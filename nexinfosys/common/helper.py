@@ -16,21 +16,20 @@ import uuid
 from enum import Enum
 from functools import partial, reduce
 from operator import add, mul, sub, truediv
-from typing import IO, List, Tuple, Dict, Any, Optional, Iterable, Callable, TypeVar, Type, Union, SupportsFloat
+from typing import List, Tuple, Dict, Any, Optional, Iterable, Callable, TypeVar, Type, Union, SupportsFloat
 from urllib.parse import urlparse
 from uuid import UUID
 
 import jsonpickle
 import numpy as np
 import pandas as pd
-import pycurl
+import requests
 from multidict import MultiDict, CIMultiDict
 from pandas import DataFrame
 
 import nexinfosys
 from nexinfosys import case_sensitive, SDMXConcept, get_global_configuration_variable
 from nexinfosys.common.decorators import deprecated
-from nexinfosys.ie_imports.google_drive import download_xlsx_file_id
 from nexinfosys.models import log_level
 
 logger = logging.getLogger(__name__)
@@ -1187,17 +1186,10 @@ def download_with_pycurl(location):
         headers[name] = value
 
     data = io.BytesIO()
-    c = pycurl.Curl()
-    c.setopt(c.URL, location)
-    c.setopt(c.FOLLOWLOCATION, True)
-    c.setopt(c.HEADERFUNCTION, header_function)
-    c.setopt(c.WRITEDATA, data)
-    c.setopt(pycurl.SSL_VERIFYPEER, 0)
-    c.setopt(pycurl.SSL_VERIFYHOST, 0)
-    c.perform()
-    status = c.getinfo(c.RESPONSE_CODE)
-    c.close()
-
+    response = requests.get(location)
+    status = response.status_code
+    headers = response.headers
+    data = response.content
     return status, headers, data
 
 
@@ -1255,12 +1247,13 @@ def download_file(location, wv_user=None, wv_password=None, wv_host_name=None):
                 credentials_file = get_global_configuration_variable("GAPI_CREDENTIALS_FILE")
                 token_file = get_global_configuration_variable("GAPI_TOKEN_FILE")
                 if os.path.exists(credentials_file) and os.path.exists(token_file):
-                    try:
-                        data = download_xlsx_file_id(credentials_file, token_file, file_id)
-                    except:
-                        print(f"Google Drive file download failed, please check credentials "
-                              f"files: {credentials_file} and {token_file}")
-                        data = None
+                    print("RA:Google Drive file download not possible, removed")
+                    # try:
+                    #     data = download_xlsx_file_id(credentials_file, token_file, file_id)
+                    # except:
+                    #     print(f"Google Drive file download failed, please check credentials "
+                    #           f"files: {credentials_file} and {token_file}")
+                    #     data = None
                 else:
                     print("Google Drive file download not possible, please check permissions, "
                           "it should be public (can be read only)")
