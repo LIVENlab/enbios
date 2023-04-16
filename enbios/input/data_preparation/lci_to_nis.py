@@ -13,6 +13,7 @@ import sys
 import traceback
 from os import listdir
 from os.path import isfile, join
+from typing import Optional
 
 from nexinfosys.bin.cli_script import print_issues, PrintColors
 from nexinfosys.command_generators import Issue, IType
@@ -83,11 +84,13 @@ def read_ecospold_file(f):
                 lci = lci[0]
                 break
         except:
-            issues.append(Issue(itype=IType.ERROR, description=f"Exception reading file '{f}': {traceback.format_exc()}"))
+            issues.append(
+                Issue(itype=IType.ERROR, description=f"Exception reading file '{f}': {traceback.format_exc()}"))
             # traceback.print_exc()
 
     if not found_name:
-        issues.append(Issue(itype=IType.ERROR, description=f"File '{f}' (or {f}.spold) not found. Please check '@EcoinventFilename' column in the NIS base file or if the file has not been downloaded into the LCI files folder"))
+        issues.append(Issue(itype=IType.ERROR,
+                            description=f"File '{f}' (or {f}.spold) not found. Please check '@EcoinventFilename' column in the NIS base file or if the file has not been downloaded into the LCI files folder"))
 
     return lci, found_name, issues
 
@@ -97,6 +100,7 @@ def lci_to_interfaces_csv(lci_file, csv_file):
     s = generate_csv(lci_tmp["exchanges"])
     with open(csv_file, "wt") as f:
         f.write(s)
+
 
 """
 lci_tmp = read_ecospold_file("/home/rnebot/Downloads/Electricity, PV, 3kWp, multi-Si.spold")
@@ -142,7 +146,39 @@ class SpoldToNIS:
         return spolds
 
     @staticmethod
-    def _get_spold_files_from_nis_file(nis_url):
+    def _get_spold_files_from_nis_file(nis_file_path: str):
+        xl = pd.ExcelFile(nis_file_path, engine='openpyxl')
+        spolds = []
+        for sheet_name in xl.sheet_names:
+            if not sheet_name.lower().startswith("bareprocessors"):
+                continue
+            df = xl.parse(sheet_name, header=0)
+            ecoinvent_filename_idx = None
+            ecoinvent_carrier_name_idx = None
+            name_idx = None
+            for idx, col in enumerate(df.columns):
+                if col.lower() == "@ecoinventfilename":
+                    ecoinvent_filename_idx = idx
+                elif col.lower() == "@ecoinventcarriername":
+                    ecoinvent_carrier_name_idx = idx
+                elif col.lower() == "processor":
+                    name_idx = idx
+            if ecoinvent_filename_idx is not None and name_idx is not None:
+                for idx, r in df.iterrows():
+                    ecoinvent_filename = r[df.columns[ecoinvent_filename_idx]]
+                    if ecoinvent_carrier_name_idx is not None:
+                        ecoinvent_carrier_name = r[df.columns[ecoinvent_carrier_name_idx]]
+                    else:
+                        ecoinvent_carrier_name = None
+                    name = r[df.columns[name_idx]]
+                    if ecoinvent_filename != "" and not isinstance(ecoinvent_filename, float) and name != "":
+                        spolds.append(dict(name=name,
+                                           ecoinvent_filename=ecoinvent_filename,
+                                           ecoinvent_carrier_name=ecoinvent_carrier_name))
+        return spolds
+
+    @staticmethod
+    def _get_spold_files_from_nis_file_url(nis_url):
         """
         Elaborate a list of Spold files (to be later processed) coming from a NIS formatted XLSX file (nis_url).
 
@@ -184,13 +220,19 @@ class SpoldToNIS:
                                            ecoinvent_carrier_name=ecoinvent_carrier_name))
         return spolds
 
-    def spold2nis(self, default_output_interface: str, lci_base: str, correspondence, nis_base_url: str, output_file: str):
+    def spold2nis(self,
+                  default_output_interface: str,
+                  lci_base: str, correspondence,
+                  nis_base_path: Optional[str],
+                  nis_base_url: Optional[str],
+                  output_file: str):
         """
         A method to transform Spold files into a NIS Workbook with InterfacesTypes, BareProcessors and Interfaces
 
         :param default_output_interface: Name of the interface to use when no clear output interface is found in the .spold file
         :param lci_base: Local path where .spold files are located
         :param correspondence: Location of the correspondence file (open "sim_correspondence_example.csv" file)
+        :param nis_base_path: NIS BAse file location
         :param nis_base_url: Location of the NIS Base file, which can also have processors with LCI location
         :param output_file: Path of the resulting Workbook
         :return: None
@@ -302,8 +344,10 @@ class SpoldToNIS:
         if correspondence:
             _ = self._get_spold_files_from_correspondence_file(correspondence)
             spolds.extend(_)
+        if nis_base_path:
+            spolds.extend(self._get_spold_files_from_nis_file(nis_base_path))
         if nis_base_url:
-            _ = self._get_spold_files_from_nis_file(nis_base_url)
+            _ = self._get_spold_files_from_nis_file_url(nis_base_url)
             spolds.extend(_)
 
         interface_types = {}
@@ -326,7 +370,8 @@ class SpoldToNIS:
             if lci is None:
                 continue
             if found_name:
-                issues.append(Issue(itype=IType.INFO, description=f"LCI file '{os.path.basename(found_name)}' read correctly"))
+                issues.append(
+                    Issue(itype=IType.INFO, description=f"LCI file '{os.path.basename(found_name)}' read correctly"))
                 files_in_lci_base.remove(found_name)
 
             # Bring compartment and subcompartment to exchange properties level
