@@ -9,7 +9,7 @@ from nexinfosys.command_generators.parser_ast_evaluators import get_nis_name
 from nexinfosys.common.helper import PartialRetrievalDictionary
 
 from enbios.common.helper import list_to_dataframe, generate_workbook
-from enbios.input.data_preparation.lci_to_nis import SpoldToNIS
+from enbios.input.data_preparation.lci_to_nis import spold2nis
 from enbios.input.data_preparation.lcia_implementation_to_nis import convert_lcia_implementation_to_nis
 from enbios.input.data_preparation.recipe_to_nis import convert_recipe_to_nis
 from enbios.input.data_preparation.sentinel_to_nis_prep import sentinel_to_prep_file
@@ -233,7 +233,6 @@ class Enbios:
         #    - Interfaces
 
         set_log_level_from_cli_param(log)
-        s2n = SpoldToNIS()
 
 
         # TODO CORRESPONDENCE_PATH not USED (NIS base file contains all the information)
@@ -248,7 +247,7 @@ class Enbios:
         #     wind_onshore_competing,musiasem,Energy_system.Electricity_supply.Electricity_generation.Electricity_renewables.Electricity_wind.Electricity_wind_onshore,,
 
         correspondence_path = ""
-        s2n.spold2nis("generic_energy_production",
+        spold2nis("generic_energy_production",
                       spold_files_folder,
                       correspondence_path,
                       None,

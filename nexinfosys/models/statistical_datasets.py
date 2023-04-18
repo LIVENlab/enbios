@@ -1,8 +1,6 @@
 import json
-from collections import namedtuple
 from typing import List
 
-from attr import attrs, attrib
 from sqlalchemy import Column, Integer, String, Unicode, Boolean, ForeignKey
 from sqlalchemy import orm, event
 from sqlalchemy.orm import relationship, backref

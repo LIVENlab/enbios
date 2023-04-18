@@ -1,4 +1,4 @@
-import regex as re
+# import regex as re
 from openpyxl.worksheet.worksheet import Worksheet
 from pint.errors import UndefinedUnitError
 

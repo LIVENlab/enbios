@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import pandasdmx
 import requests
+# todo:ra kickout
 import requests_cache
 
 from nexinfosys import get_global_configuration_variable

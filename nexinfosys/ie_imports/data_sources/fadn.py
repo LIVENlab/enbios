@@ -8,8 +8,10 @@ import pandas as pd
 
 from nexinfosys import get_global_configuration_variable
 
-pd.core.common.is_list_like = pd.api.types.is_list_like
-import pandas_datareader.data as web
+# todo: ra missing. kickout
+# pd.core.common.is_list_like = pd.api.types.is_list_like
+# import pandas_datareader.data as web
+
 import numpy as np
 import requests
 import datetime
@@ -292,8 +294,6 @@ class FADN(IDataSourceManager):
         """
         Download a FADN bulk file
 
-        :param url:
-        :param local_filename:
         :param update:
         :return: String with full file name
         """

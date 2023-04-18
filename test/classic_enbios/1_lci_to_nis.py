@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from enbios.input.data_preparation.lci_to_nis import SpoldToNIS
+from enbios.input.data_preparation.lci_to_nis import spold2nis
 
 base_folder = Path("/home/ra/PycharmProjects/enbios2/data/enbios/_1_")
 base_in_folder = base_folder / "input"
@@ -11,10 +11,9 @@ nis_base_path = (base_in_folder / "BASELINE_UPDATE_APOS.xlsx").as_posix()
 correspondence_path = ""
 
 if __name__ == "__main__":
-    s2n = SpoldToNIS()
-    s2n.spold2nis("generic_energy_production",
-                  spold_files_folder,
-                  correspondence_path,
-                  nis_base_path,
-                  None,
-                  output_file)
+    spold2nis("generic_energy_production",
+              spold_files_folder,
+              correspondence_path,
+              nis_base_path,
+              None,
+              output_file)
