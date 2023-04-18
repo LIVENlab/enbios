@@ -2,8 +2,11 @@ import os
 import tempfile
 from typing import List
 import pandas as pd
-import sdmx
-import pandas_datareader.data as web
+
+# todo:ra kickout
+# import sdmx
+# import pandas_datareader.data as web
+
 import requests
 import requests_cache
 

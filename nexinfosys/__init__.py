@@ -4,11 +4,11 @@ import logging
 import traceback
 from enum import Enum
 import os
-import regex as re
 from typing import Optional, Any, List, Tuple, Callable, Dict, Union, Type
 
 import pint
 from collections import namedtuple
+# todo:ra kick out
 from attr import attrs, attrib
 
 # GLOBAL VARIABLES
