@@ -1,6 +1,8 @@
 from typing import Tuple
 
 import pandas as pd
+
+from enbios.const import TECHNOLOGY, REGION, CARRIER, SCENARIO, SUBSCENARIO, TIME, UNIT, SUBTECHNOLOGY
 from nexinfosys.command_generators.parser_ast_evaluators import get_nis_name
 from nexinfosys.common.helper import PartialRetrievalDictionary
 
@@ -46,14 +48,14 @@ s1, r1, 2020, tech3, carrier1, 1.5, 2.8
         df.columns = [c.strip().lower() for c in df.columns]
         prd = PartialRetrievalDictionary()
         col_types.update(df.columns)
-        region_idx, _ = find_column_idx_name(df.columns, ["region", "regions", "loc", "locs"])
-        carrier_idx, _ = find_column_idx_name(df.columns, ["carrier", "carriers"])
-        tech_idx, _ = find_column_idx_name(df.columns, ["technology", "technologies", "tech", "techs", "sector", "sectors"])
-        subtech_idx, _ = find_column_idx_name(df.columns, ["subtechnology", "subtechnologies", "subtech", "subtechs", "subsector", "subsectors"])
-        scenario_idx, _ = find_column_idx_name(df.columns, ["scenario", "scenarios", "storyline", "storylines"])
-        subscenario_idx, _ = find_column_idx_name(df.columns, ["subscenario", "subscenarios", "substoryline", "substorylines", "spore", "spores"])
-        time_idx, _ = find_column_idx_name(df.columns, ["time", "year", "years"])
-        unit_idx, _ = find_column_idx_name(df.columns, ["unit", "units"])
+        region_idx, _ = find_column_idx_name(df.columns, [REGION, "regions", "loc", "locs"])
+        carrier_idx, _ = find_column_idx_name(df.columns, [CARRIER, "carriers"])
+        tech_idx, _ = find_column_idx_name(df.columns, [TECHNOLOGY, "technologies", "tech", "techs", "sector", "sectors"])
+        subtech_idx, _ = find_column_idx_name(df.columns, [SUBTECHNOLOGY, "subtechnologies", "subtech", "subtechs", "subsector", "subsectors"])
+        scenario_idx, _ = find_column_idx_name(df.columns, [SCENARIO, "scenarios", "storyline", "storylines"])
+        subscenario_idx, _ = find_column_idx_name(df.columns, [SUBSCENARIO, "subscenarios", "substoryline", "substorylines", "spore", "spores"])
+        time_idx, _ = find_column_idx_name(df.columns, [TIME, "year", "years"])
+        unit_idx, _ = find_column_idx_name(df.columns, [UNIT, "units"])
         idxs = set([region_idx, carrier_idx, tech_idx, subtech_idx, scenario_idx, subscenario_idx, time_idx, unit_idx])
         for idx in idxs:
             if idx >= 0:
@@ -114,17 +116,17 @@ s1, r1, 2020, tech3, carrier1, 1.5, 2.8
 
         cmds = []
         # Not NIS
-        lst = [["technology", "calliope_technology_type"]]
+        lst = [[TECHNOLOGY, "calliope_technology_type"]]
         for t in techs:
             lst.append([t, ""])
         cmds.append(("Simulation Technology Types", list_to_dataframe(lst)))
 
-        lst = [["region"]]
+        lst = [[REGION]]
         for r in regions:
             lst.append([r])
         cmds.append(("Simulation Regions", list_to_dataframe(lst)))
 
-        lst = [["carrier"]]
+        lst = [[CARRIER]]
         for r in carriers:
             lst.append([r])
         cmds.append(("Simulation Carriers", list_to_dataframe(lst)))
@@ -134,12 +136,12 @@ s1, r1, 2020, tech3, carrier1, 1.5, 2.8
             lst.append([r])
         cmds.append(("Simulation Times", list_to_dataframe(lst)))
 
-        lst = [["unit"]]
+        lst = [[UNIT]]
         for r in units:
             lst.append([r])
         cmds.append(("Simulation Units", list_to_dataframe(lst)))
 
-        lst = [["name", "region", "match_target_type", "match_target", "weight", "match_conditions"]]
+        lst = [["name", REGION, "match_target_type", "match_target", "weight", "match_conditions"]]
         for t in techs:
             lst.append([t, "", "musiasem", "<musiasem parent>", 1, ""])
         for t in techs:
@@ -197,7 +199,7 @@ s1, r1, 2020, tech3, carrier1, 1.5, 2.8
                     if name not in country_level_procs_already_added:
                         processors.append(["", name, "", "", system, "Functional", "Yes", "",
                                            f"Country level processor, {t[1]}", "", "", "", "", t[1], t[1]])
-                        # Clone (clone dendrogram inside "region" processor)
+                        # Clone (clone dendrogram inside REGION processor)
                         # TODO InvokingInterface, RequestedInterface, Scale are mandatory; specify something here
                         cloners.append((name, "EnergySector", "Clone", "", "", ""))
                         country_level_procs_already_added.add(name)
@@ -227,19 +229,19 @@ s1, r1, 2020, tech3, carrier1, 1.5, 2.8
                     if "scenario" in p.attrs:
                         observer = get_scenario_name("o", p.attrs["scenario"])
                         del _["scenario"]
-                    if "technology" in p.attrs:
-                        name_ = p.attrs["technology"]
-                        del _["technology"]
-                    if "region" in p.attrs:
-                        region = p.attrs["region"]
-                        del _["region"]
-                    if "year" in p.attrs or "time" in p.attrs:
+                    if TECHNOLOGY in p.attrs:
+                        name_ = p.attrs[TECHNOLOGY]
+                        del _[TECHNOLOGY]
+                    if REGION in p.attrs:
+                        region = p.attrs[REGION]
+                        del _[REGION]
+                    if "year" in p.attrs or TIME in p.attrs:
                         if "year" in p.attrs:
                             time_ = p.attrs["year"]
                             del _["year"]
                         else:
-                            time_ = p.attrs["time"]
-                            del _["time"]
+                            time_ = p.attrs[TIME]
+                            del _[TIME]
                     for k, v in _.items():
                         interfaces.append([full_name, k, "", "Technosphere", "Flow", "<orientation>", "", "", "", "", v,
                                            "", "<relative_to>", "", "", "", "", time_, observer, "", ""])

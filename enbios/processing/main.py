@@ -11,6 +11,8 @@ import pandas as pd
 from typing import Tuple, Dict, Set, List, Optional
 from NamedAtomicLock import NamedAtomicLock
 from friendly_data.converters import from_df
+
+from enbios.const import CARRIER, TECHNOLOGY, REGION, TIME, SCENARIO, SUBTECHNOLOGY, SUBSCENARIO, UNIT
 from nexinfosys.bin.cli_script import get_valid_name, get_file_url, prepare_base_state, print_issues
 from nexinfosys.command_generators import IType, Issue
 from nexinfosys.command_generators.parser_ast_evaluators import ast_evaluator
@@ -35,8 +37,8 @@ from enbios.processing import read_parse_configuration, read_submit_solve_nis_fi
 #####################################################
 # MAIN ENTRY POINT  #################################
 #####################################################
-_idx_cols = ["region", "scenario", "subscenario", "technology", "subtechnology", "model", "carrier",
-             "year", "time", "timestep", "unit", "variable", "description"]
+_idx_cols = [REGION, SCENARIO, SUBSCENARIO, TECHNOLOGY, SUBTECHNOLOGY, "model", CARRIER,
+             "year", TIME, "timestep", UNIT, "variable", "description"]
 
 
 def parallelizable_process_fragment(param: Tuple[str,  # Fragment label
@@ -236,17 +238,17 @@ class Enviro:
         prd, scenarios, regions, times, techs, carriers, units, col_types, ctc = simulation.read("", default_time)
 
         partition_lists = []
-        mandatory_attributes = ["carrier", "technology"]
+        mandatory_attributes = [CARRIER, TECHNOLOGY]
         if split_by_region and len(regions) > 0:
             partition_lists.append([("_g", r) for r in regions])
-            mandatory_attributes.append("region")
+            mandatory_attributes.append(REGION)
         if split_by_period and len(times) > 0:
             partition_lists.append([("_d", t) for t in times])
-            mandatory_attributes.append("time")
+            mandatory_attributes.append(TIME)
         # TODO Spores
         if split_by_scenario and len(scenarios) > 0:
             partition_lists.append([("_s", s) for s in scenarios])
-            mandatory_attributes.append("scenario")
+            mandatory_attributes.append(SCENARIO)
 
         for i, partition in enumerate(sorted(list(itertools.product(*partition_lists)))):
             partial_key = {t[0]: t[1] for t in partition}

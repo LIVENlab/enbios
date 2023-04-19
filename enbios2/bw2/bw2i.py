@@ -31,6 +31,8 @@ def setup_bw_db(db: BWDatabase):
     if db.name in bd.databases:
         print(f"Database {db.name} already exists, skipping")
         return
+    if not Path(db.source).exists:
+        raise Exception(f"Source {db.source} does not exist")
     bw_importer = get_bw_importer(db)
     print(f"Importing {db.name} from '{db.source}' using {bw_importer.__name__}")
     # return bw_importer

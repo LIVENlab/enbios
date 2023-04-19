@@ -1,3 +1,4 @@
+from enbios.const import TECHNOLOGY, SUBTECHNOLOGY, REGION, CARRIER, SCENARIO, SUBSCENARIO, TIME
 
 g_default_subtech = "_"  # Constant for default subtech
 
@@ -12,19 +13,19 @@ class SimStructuralProcessorAttributes:
                  subtechnology=None, subscenario=None):
         self.attrs = {}
         if technology:
-            self.attrs["technology"] = technology
+            self.attrs[TECHNOLOGY] = technology
         if subtechnology:
-            self.attrs["subtechnology"] = subtechnology
+            self.attrs[SUBTECHNOLOGY] = subtechnology
         if region:
-            self.attrs["region"] = region
+            self.attrs[REGION] = region
         if carrier:
-            self.attrs["carrier"] = carrier
+            self.attrs[CARRIER] = carrier
         if scenario:
-            self.attrs["scenario"] = scenario
+            self.attrs[SCENARIO] = scenario
         if subscenario:
-            self.attrs["subscenario"] = subscenario
+            self.attrs[SUBSCENARIO] = subscenario
         if time_:
-            self.attrs["time"] = time_
+            self.attrs[TIME] = time_
 
     @staticmethod
     def partial_key(technology=None, region=None, carrier=None, scenario=None, time=None,
@@ -47,11 +48,11 @@ class SimStructuralProcessorAttributes:
         return d
 
     def key(self):
-        return self.partial_key(self.attrs.get("technology"),
-                                self.attrs.get("region"),
-                                self.attrs.get("carrier"),
-                                self.attrs.get("scenario"),
-                                self.attrs.get("time"),
-                                self.attrs.get("subtechnology"),
-                                self.attrs.get("subscenario"))
+        return self.partial_key(self.attrs.get(TECHNOLOGY),
+                                self.attrs.get(REGION),
+                                self.attrs.get(CARRIER),
+                                self.attrs.get(SCENARIO),
+                                self.attrs.get(TIME),
+                                self.attrs.get(SUBTECHNOLOGY),
+                                self.attrs.get(SUBSCENARIO))
 
