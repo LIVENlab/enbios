@@ -5,6 +5,8 @@ obtain either a MuSIASEM or LCA structure
 
 """
 import pandas as pd
+
+from enbios.const import TECHNOLOGY, REGION, TIME, SUBSCENARIO, SCENARIO, CARRIER, SUBTECHNOLOGY, UNIT
 from nexinfosys.command_generators.parser_ast_evaluators import get_nis_name
 from nexinfosys.common.helper import PartialRetrievalDictionary
 
@@ -56,14 +58,14 @@ class SentinelSimulation(Simulation):
             df = to_df(res)
             # print(f"INDEX: {df.index.names}; COLUMNS: {df.columns}")
             col_types.update(df.columns)
-            region_idx, _ = find_column_idx_name(pd.Index(df.index.names), ["region", "regions", "loc", "locs"])
-            carrier_idx, _ = find_column_idx_name(pd.Index(df.index.names), ["carrier", "carriers"])
-            tech_idx, _ = find_column_idx_name(pd.Index(df.index.names), ["technology", "technologies", "tech", "techs", "sector", "sectors"])
-            subtech_idx, _ = find_column_idx_name(pd.Index(df.index.names), ["subtechnology", "subtechnologies", "subtech", "subtechs", "subsector", "subsectors"])
-            scenario_idx, _ = find_column_idx_name(pd.Index(df.index.names), ["scenario", "scenarios", "storyline", "storylines"])
-            subscenario_idx, _ = find_column_idx_name(pd.Index(df.index.names), ["subscenario", "subscenarios", "substoryline", "substorylines", "spore", "spores"])
-            time_idx, time_name = find_column_idx_name(pd.Index(df.index.names), ["time", "year", "years"])
-            unit_idx, unit_name = find_column_idx_name(pd.Index(df.index.names), ["unit", "units"])
+            region_idx, _ = find_column_idx_name(pd.Index(df.index.names), [REGION, "regions", "loc", "locs"])
+            carrier_idx, _ = find_column_idx_name(pd.Index(df.index.names), [CARRIER, "carriers"])
+            tech_idx, _ = find_column_idx_name(pd.Index(df.index.names), [TECHNOLOGY, "technologies", "tech", "techs", "sector", "sectors"])
+            subtech_idx, _ = find_column_idx_name(pd.Index(df.index.names), [SUBTECHNOLOGY, "subtechnologies", "subtech", "subtechs", "subsector", "subsectors"])
+            scenario_idx, _ = find_column_idx_name(pd.Index(df.index.names), [SCENARIO, "scenarios", "storyline", "storylines"])
+            subscenario_idx, _ = find_column_idx_name(pd.Index(df.index.names), [SUBSCENARIO, "subscenarios", "substoryline", "substorylines", "spore", "spores"])
+            time_idx, time_name = find_column_idx_name(pd.Index(df.index.names), [TIME, "year", "years"])
+            unit_idx, unit_name = find_column_idx_name(pd.Index(df.index.names), [UNIT, "units"])
             # TODO Ignore variable. Not prepared for "timesteps" (monthly values)
             if time_name is None and "timesteps" in df.index.names:
                 continue
@@ -132,7 +134,7 @@ class SentinelSimulation(Simulation):
 
         cmds = []
         # Not NIS
-        lst = [["technology", "calliope_technology_type"]]
+        lst = [[TECHNOLOGY, "calliope_technology_type"]]
         for t in techs:
             lst.append([t, ""])
         cmds.append(("Simulation Technology Types", list_to_dataframe(lst)))
@@ -242,22 +244,22 @@ class SentinelSimulation(Simulation):
                     # name = ""
                     region = ""
                     _ = p.attrs.copy()
-                    if "scenario" in p.attrs:
-                        observer = get_scenario_name("o", p.attrs["scenario"])
-                        del _["scenario"]
-                    if "technology" in p.attrs:
-                        name_ = p.attrs["technology"]
-                        del _["technology"]
-                    if "region" in p.attrs:
-                        region = p.attrs["region"]
-                        del _["region"]
-                    if "year" in p.attrs or "time" in p.attrs:
+                    if SCENARIO in p.attrs:
+                        observer = get_scenario_name("o", p.attrs[SCENARIO])
+                        del _[SCENARIO]
+                    if TECHNOLOGY in p.attrs:
+                        name_ = p.attrs[TECHNOLOGY]
+                        del _[TECHNOLOGY]
+                    if REGION in p.attrs:
+                        region = p.attrs[REGION]
+                        del _[REGION]
+                    if "year" in p.attrs or TIME in p.attrs:
                         if "year" in p.attrs:
                             time_ = p.attrs["year"]
                             del _["year"]
                         else:
-                            time_ = p.attrs["time"]
-                            del _["time"]
+                            time_ = p.attrs[TIME]
+                            del _[TIME]
                     for k, v in _.items():
                         interfaces.append([full_name, k, "", "Technosphere", "Flow", "<orientation>", "", "", "", "", v,
                                            "", "<relative_to>", "", "", "", "", time_, observer, "", ""])
