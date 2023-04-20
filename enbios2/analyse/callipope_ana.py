@@ -55,7 +55,7 @@ def add_normalized_col(df: DataFrame, groups: list[str] = ("Level", "Indicator")
         group['norm_value'] = scaled_values
         return group
 
-    return df.groupby(groups).apply(apply_min_max_scaler).reset_index(drop=True)
+    return df.groupby(list(groups)).apply(apply_min_max_scaler).reset_index(drop=True)
 
 
 def cluster_on_processor(df: DataFrame, processor: str, n_clusters=3) -> DataFrame:

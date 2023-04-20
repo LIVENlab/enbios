@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Agricultural Land Occupation",
+    "description": "The occupation of agricultural land by human activities",
+    "abbre": "ALOP",
+    "unit": "m² year"
+  },
+  {
+    "name": "Climate Change",
+    "description": "The potential impact on global warming due to greenhouse gas emissions",
+    "abbre": "GWP100",
+    "unit": "kg CO2 eq"
+  },
+  {
+    "name": "Fossil Depletion",
+    "description": "The consumption of non-renewable fossil fuel resources",
+    "abbre": "FDP",
+    "unit": "kg oil eq"
+  },
+  {
+    "name": "Human Toxicity",
+    "description": "The potential impact on human health due to exposure to toxic substances",
+    "abbre": "HTPinf",
+    "unit": "CTUh"
+  },
+  {
+    "name": "Marine Ecotoxicity",
+    "description": "The potential impact on marine ecosystems due to the release of toxic substances",
+    "abbre": "METPinf",
+    "unit": "CTUe"
+  },
+  {
+    "name": "Metal Depletion",
+    "description": "The consumption of non-renewable metal resources",
+    "abbre": "MDP",
+    "unit": "kg Fe eq"
+  },
+  {
+    "name": "Terrestrial Acidification",
+    "description": "The potential impact on terrestrial ecosystems due to acidifying substances",
+    "abbre": "TAP100",
+    "unit": "kg SO2 eq"
+  },
+  {
+    "name": "Water Depletion",
+    "description": "The consumption of freshwater resources",
+    "abbre": "WDP",
+    "unit": "m³"
+  }
+]
