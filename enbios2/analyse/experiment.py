@@ -3,20 +3,29 @@ Plot Enbios results
 """
 import json
 import logging
-import shutil
 from csv import DictReader
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union, List, Dict, Tuple, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-# from sklearn import decomposition
+from pandas import DataFrame
 
-from const import scenario_col, processor_col, value_col, level_col, ABSOLUTE, RELATIVE, INDICATOR, PROCESSOR, SCENARIO, \
-    indicator_col
+from .const import scenario_col, processor_col, value_col, level_col, ABSOLUTE, RELATIVE, INDICATOR, PROCESSOR, \
+    SCENARIO, \
+    indicator_col, indicator_map_file
 from experiment_exporter import ExperimentExporter
+from .util import generate_indicator_map
+
+
+@dataclass
+class ColumnMapper:
+    scenario: str
+    processor: str
+    indicator: str
+    value: str
 
 
 class Experiment:
@@ -24,8 +33,10 @@ class Experiment:
     Enbios experiment result-plotter class
     """
 
-    def __init__(self, experiment_file: str, indicator_map_file: str = "indicator_info.json",
-                 force_redo_split: bool = False):
+    def __init__(self, experiment_file: str,
+                 column_mapper: ColumnMapper,
+                 force_redo_split: bool = False,
+                 auto_indicator_map: bool = True):
         """
         Initiate a ENBIOS experiment result analysis with a result file (duplicates should be removed)
         It will create a folder with the same name as the experiment-result file (and in the same folder)
@@ -33,8 +44,10 @@ class Experiment:
         (which are used for plotting)
         :param experiment_file: (filtered) enbios result file
         :param force_redo_split: remove and redo splitting
+        :param auto_indicator_map: try to create indicator map automatically using 
         """
         self.file_path = Path(experiment_file)
+        self.column_mapper = column_mapper
 
         self.experiment_path = self.file_path.parent.joinpath(self.file_path.stem)
 
@@ -46,24 +59,31 @@ class Experiment:
             self.file_path = clean_file
             self.use_clean = True
 
-        self.complete_df = None
+        self.complete_df = pd.read_csv(self.file_path, encoding="utf-8")
         self.exporter = ExperimentExporter(self)
 
-        indicator_map_path = self.experiment_path.joinpath(indicator_map_file)
-        if not indicator_map_path.exists():
-            self.indicator_info = self.create_indicator_map(indicator_map_path)
+        if auto_indicator_map:
+            df_indicators: list[str] = list(self.complete_df[self.column_mapper.indicator].unique())
+            self.indicator_map = generate_indicator_map(df_indicators)
+        else:
+            self.indicator_map: dict[str, dict] = {}
+
+        # self.indicator_info = self.create_indicator_map(indicator_map_file)
 
         self.indicator_info: Dict[str, Dict[str, str]] = json.load(
             self.experiment_path.joinpath(indicator_map_file).open(encoding="utf-8"))
 
-        self.abbreviationReverseMap = {v["abbre"]: k for k, v in self.indicator_info.items()}
+        # self.abbreviationReverseMap = {v["abbre"]: k for k, v in self.indicator_info.items()}
 
-        if force_redo_split:
-            shutil.rmtree(self.experiment_path.joinpath("split-scenario"), ignore_errors=True)
-            shutil.rmtree(self.experiment_path.joinpath("split-scenario-indicator"), ignore_errors=True)
+        # if force_redo_split:
+        #     shutil.rmtree(self.experiment_path.joinpath("split-scenario"), ignore_errors=True)
+        #     shutil.rmtree(self.experiment_path.joinpath("split-scenario-indicator"), ignore_errors=True)
         if self.setup_folder() or force_redo_split:
             self.remove_duplicates()
-            self._split_experiment()
+            # self._split_experiment()
+
+    def col(self, col: Literal["scenario", "processor", "indicator", "value"]) -> str:
+        return getattr(self.column_mapper, col)
 
     def setup_folder(self) -> bool:
         """
@@ -134,14 +154,17 @@ class Experiment:
 
         return path
 
-    def get_data(self, scenario: str, indicator: Optional[str] = None) -> List[Dict[str, any]]:
+    def get_data(self, df: DataFrame, filters: dict[str, any]) -> DataFrame:
         """
-        Get the data of scenario or scenario-indicator file
-        :param scenario: scenario
-        :param indicator: optional
+
         :return: a list of dictionaries, with the columns as keys
         """
-        return list(DictReader(self._select_file(scenario, indicator).open(encoding="utf-8")))
+        if not filters:
+            return df
+        mask = True
+        for column, value in filters.items():
+            mask &= (df[column] == value)
+        return df[mask]
 
     def get_complete_df(self):
         """
@@ -153,37 +176,37 @@ class Experiment:
             self.complete_df = pd.DataFrame(data)
         return self.complete_df
 
-    def _split_experiment(self):
-        """
-        Split the experiment into scenario and scenario-indicator files (alls csvs)
-        within the experiment directory
-        """
-        complete_df = self.get_complete_df()
-
-        # group by scenario
-        scenarios = complete_df.groupby(scenario_col)
-        # get the name of each group
-        scenarios.groups.keys()
-        # write each group into its own csv file with the name of the group
-        for scenario, group in scenarios:
-            scenario_fp = self.experiment_path.joinpath("split-scenario", f"{scenario}.csv")
-            group.to_csv(str(scenario_fp), index=False)
-            # split each group further by the "Indicator" column
-            indicators = group.groupby("Indicator")
-            # write each indicator group into a file in "split-scenario-indicator" folder
-            for indicator_name, indicator_group in indicators:
-                indicator_abbreviation = self.indicator_info[str(indicator_name)]["abbre"]
-                sce_ind_fp = self.experiment_path.joinpath("split-scenario-indicator",
-                                                           f"{scenario}_{indicator_abbreviation}.csv")
-                indicator_group.to_csv(str(sce_ind_fp), index=False)
-
-        def dumpToExp(filename, data_: any):
-            with self.experiment_path.joinpath(filename).open("w", encoding="utf-8") as fout:
-                json.dump(data_, fout, indent=2)
-
-        dumpToExp("scenarios.json", complete_df[scenario_col].unique().tolist())
-        dumpToExp("indicators.json", complete_df["Indicator"].unique().tolist())
-        dumpToExp("processor.json", complete_df[processor_col].unique().tolist())
+    # def _split_experiment(self):
+    #     """
+    #     Split the experiment into scenario and scenario-indicator files (alls csvs)
+    #     within the experiment directory
+    #     """
+    #     complete_df = self.get_complete_df()
+    #
+    #     # group by scenario
+    #     scenarios = complete_df.groupby(scenario_col)
+    #     # get the name of each group
+    #     scenarios.groups.keys()
+    #     # write each group into its own csv file with the name of the group
+    #     for scenario, group in scenarios:
+    #         scenario_fp = self.experiment_path.joinpath("split-scenario", f"{scenario}.csv")
+    #         group.to_csv(str(scenario_fp), index=False)
+    #         # split each group further by the "Indicator" column
+    #         indicators = group.groupby("Indicator")
+    #         # write each indicator group into a file in "split-scenario-indicator" folder
+    #         for indicator_name, indicator_group in indicators:
+    #             indicator_abbreviation = self.indicator_info[str(indicator_name)]["abbre"]
+    #             sce_ind_fp = self.experiment_path.joinpath("split-scenario-indicator",
+    #                                                        f"{scenario}_{indicator_abbreviation}.csv")
+    #             indicator_group.to_csv(str(sce_ind_fp), index=False)
+    #
+    #     def dumpToExp(filename, data_: any):
+    #         with self.experiment_path.joinpath(filename).open("w", encoding="utf-8") as fout:
+    #             json.dump(data_, fout, indent=2)
+    #
+    #     dumpToExp("scenarios.json", complete_df[scenario_col].unique().tolist())
+    #     dumpToExp("indicators.json", complete_df["Indicator"].unique().tolist())
+    #     dumpToExp("processor.json", complete_df[processor_col].unique().tolist())
 
     def get_scenario_indicator_data(self,
                                     scenario: str,
@@ -348,53 +371,53 @@ class Experiment:
         return fig, ax, self.indicator_info[indicator]["abbre"]
         return fig_abs, fig_rel
 
-    def prepare_pca(self, processor_name: Union[str, tuple, List], scenarios: Optional[List[str]] = None):
-        # get all indicators
-        # load the data from the scenarios
-        if scenarios is None:
-            df = self.get_complete_df()
-        else:
-            dfs = {scenario: pd.DataFrame(self.get_data(scenario)) for scenario in scenarios}
-            # filter all dfs in the processor_col column for the processor_name
-            df = pd.concat(dfs)
-
-        df_min = df.drop(['System', "Period", 'Scope', 'Unit'], axis=1)
-        min_max_df = df_min.groupby('Indicator').agg(Min=('Value', 'min'), Max=('Value', 'max')).reset_index()
-        merged_df = df_min.merge(min_max_df, on='Indicator', how='left')
-
-        # create a df, with all unique indicators as columns, and all scenarios as rows
-        # df = pd.DataFrame()
-        indicators = df_min["Indicator"].unique().tolist()
-        print(indicators)
-
-        return merged_df
-        # processor_name = ".".join(processor_name) if isinstance(processor_name, list) else processor_name
-        #
-        # # Pivot the table to have scenarios as columns, keeping only the 'Indicator' and 'Value' columns
-        # pivot_df = df.pivot_table(index='Indicator', columns='Scenario', values='Value')
-        #
-        # # Calculate the 'min' and 'max' values for each indicator across all scenarios
-        # pivot_df['min'] = pivot_df.min(axis=1)
-        # pivot_df['max'] = pivot_df.max(axis=1)
-        #
-        # # Reset the index to move 'Indicator' back to a column
-        # final_df = pivot_df.reset_index()
-        #
-        # # print(final_df)
-        # return final_df
-
-        # merge
-        # concat_df = pd.concat(dfs, axis=0)
-        # min_max_df = concat_df.groupby(indicator_col).agg(MIN=('Value', 'min'), MAX=('Value', 'max')).reset_index()
-        #
-        # result_dfs = []
-        # for scneario, df in dfs.items():
-        #     merged_df = df.merge(min_max_df, on=indicator_col, how='left')
-        #     result_dfs.append(merged_df)
-        #
-        # final_df = pd.concat(result_dfs, axis=0).drop_duplicates(subset=[indicator_col])
-        #
-        # return final_df
+    # def prepare_pca(self, processor_name: Union[str, tuple, List], scenarios: Optional[List[str]] = None):
+    #     # get all indicators
+    #     # load the data from the scenarios
+    #     if scenarios is None:
+    #         df = self.get_complete_df()
+    #     else:
+    #         dfs = {scenario: pd.DataFrame(self.get_data(scenario)) for scenario in scenarios}
+    #         # filter all dfs in the processor_col column for the processor_name
+    #         df = pd.concat(dfs)
+    #
+    #     df_min = df.drop(['System', "Period", 'Scope', 'Unit'], axis=1)
+    #     min_max_df = df_min.groupby('Indicator').agg(Min=('Value', 'min'), Max=('Value', 'max')).reset_index()
+    #     merged_df = df_min.merge(min_max_df, on='Indicator', how='left')
+    #
+    #     # create a df, with all unique indicators as columns, and all scenarios as rows
+    #     # df = pd.DataFrame()
+    #     indicators = df_min["Indicator"].unique().tolist()
+    #     print(indicators)
+    #
+    #     return merged_df
+    #     # processor_name = ".".join(processor_name) if isinstance(processor_name, list) else processor_name
+    #     #
+    #     # # Pivot the table to have scenarios as columns, keeping only the 'Indicator' and 'Value' columns
+    #     # pivot_df = df.pivot_table(index='Indicator', columns='Scenario', values='Value')
+    #     #
+    #     # # Calculate the 'min' and 'max' values for each indicator across all scenarios
+    #     # pivot_df['min'] = pivot_df.min(axis=1)
+    #     # pivot_df['max'] = pivot_df.max(axis=1)
+    #     #
+    #     # # Reset the index to move 'Indicator' back to a column
+    #     # final_df = pivot_df.reset_index()
+    #     #
+    #     # # print(final_df)
+    #     # return final_df
+    #
+    #     # merge
+    #     # concat_df = pd.concat(dfs, axis=0)
+    #     # min_max_df = concat_df.groupby(indicator_col).agg(MIN=('Value', 'min'), MAX=('Value', 'max')).reset_index()
+    #     #
+    #     # result_dfs = []
+    #     # for scneario, df in dfs.items():
+    #     #     merged_df = df.merge(min_max_df, on=indicator_col, how='left')
+    #     #     result_dfs.append(merged_df)
+    #     #
+    #     # final_df = pd.concat(result_dfs, axis=0).drop_duplicates(subset=[indicator_col])
+    #     #
+    #     # return final_df
 
     # def prepare_pca_python(self, processor_name: Union[str, tuple, List], scenarios: Optional[List[str]] = None):
     #     if scenarios is None:

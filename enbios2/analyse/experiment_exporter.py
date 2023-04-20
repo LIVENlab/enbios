@@ -1,9 +1,11 @@
 import json
-import re
 from csv import DictWriter
 from typing import Dict, Union, List
 
-from const import processor_col, value_col
+from pandas import DataFrame
+
+
+# from const import processor_col, value_col
 
 
 class ExperimentExporter:
@@ -54,7 +56,11 @@ class ExperimentExporter:
         :param save: save to file
         :return: result data
         """
-        data = self.experiment.get_data(scenario, indicator)
+        col_sce = self.experiment.col("scenario")
+        col_ind = self.experiment.col("indicator")
+        col_pro = self.experiment.col("processor")
+        col_val = self.experiment.col("value")
+        data: DataFrame = self.experiment.get_data(self.experiment.complete_df, {col_sce: scenario, col_ind: indicator})
         # data = [
         #     {"Processor": "A", "Value": 5},
         #     {"Processor": "A.A", "Value": 4},
@@ -66,15 +72,16 @@ class ExperimentExporter:
 
         # print(data)
         result_data = []
-        for row in data:
-            proc = row[processor_col]
+        for row in data.iterrows():
+            row = row[1].to_dict()
+            proc = row[col_pro]
             proc_tuple = proc.split(".")
             if len(proc_tuple) > 1:
                 result_node = {
                     "source": proc_tuple[-2],
                     "target": proc_tuple[-1],
                     "target_level": len(proc_tuple) - 1,
-                    "value": float(row[value_col])
+                    "value": float(row[col_val])
                 }
                 result_data.append(result_node)
         # print(json.dumps(result_data, indent=2))
@@ -82,7 +89,12 @@ class ExperimentExporter:
             dir = self.experiment.experiment_path.joinpath("results", "d3sanki")
             dir.mkdir(exist_ok=True)
 
-            indicator_abbre = indicator[1:] if indicator.startswith("_") else  self.experiment.indicator_info[indicator]["abbre"]
+            # indicator_abbre = indicator[1:] if indicator.startswith("_") else self.experiment.indicator_info[indicator][
+            #     "abbre"]
+            if self.experiment.indicator_map:
+                indicator_abbre = self.experiment.indicator_map[indicator]["abbre"]
+            else:
+                indicator_abbre = indicator
             writer = DictWriter(dir.joinpath(f"{scenario}_{indicator_abbre}.csv").open("w", encoding="utf-8"),
                                 fieldnames=["source", "target", "value", "target_level"])
             writer.writeheader()
