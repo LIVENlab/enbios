@@ -1,17 +1,22 @@
+import json
 import logging
 import sys
 from copy import copy
-from dataclasses import dataclass
+from dataclasses import asdict
 from typing import Optional, Union
 
 import bw2data as bd
 from bw2data.backends import Activity
 from pint import UnitRegistry, Quantity
+from pydantic.dataclasses import dataclass
 
 logger = logging.Logger(__name__)
 # add console.stream handler
 logger.addHandler(logging.StreamHandler(sys.stdout))
+logger.setLevel("INFO")
 
+class Config:
+    arbitrary_types_allowed = True
 
 @dataclass
 class ExperimentActivitiesGlobalConf:
@@ -31,44 +36,13 @@ class ExperimentActivityId:
     alias: Optional[str] = None
 
 
-@dataclass
-class ExperimentActivityOutput:
-    unit: str
-    magnitude: float = 1.0
-    #
-    pint_quantity: Optional[Quantity] = None
-
-
-@dataclass
-class ExperimentActivity:
+@dataclass(config=Config)
+class ExtendedExperimentActivity:
     id: ExperimentActivityId
-    output: Optional[ExperimentActivityOutput] = None
+    output: Optional[Union["ExperimentActivityOutput", "ExtendedExperimentActivityOutput"]] = None
     #
     orig_id: Optional[ExperimentActivityId] = None
     bw_activity: Optional[Activity] = None
-
-    def check_exist(self, required_output: bool = False) -> Activity:
-        assert self.id.database in bd.databases, f"activity database does not exist: '{self.id.database}'"
-        self.orig_id = copy(self.id)
-        if self.id.code:
-            self.bw_activity = bd.Database(self.id.database).get(self.id.code)
-        elif self.id.name:
-            filters = {}
-            if self.id.location:
-                filters["location"] = self.id.location
-                search_results = bd.Database(self.id.database).search(self.id.name, filter=filters)
-            else:
-                search_results = bd.Database(self.id.database).search(self.id.name)
-            # print(len(search_results))
-            # print(search_results)
-            if self.id.unit:
-                search_results = list(filter(lambda a: a._data["unit"] == self.id.unit, search_results))
-            assert len(search_results) == 1, f"results : {len(search_results)}"
-            self.bw_activity = search_results[0]
-
-        if required_output:
-            assert self.output is not None, f"Since there is no scenario, activity output is required: {self.orig_id}"
-        return self.bw_activity
 
     def fill_empty_fields(self):
         if not self.id.alias:
@@ -81,6 +55,52 @@ class ExperimentActivity:
             self.id.location = self.bw_activity["location"]
         if not self.id.unit:
             self.id.unit = self.bw_activity["unit"]
+
+
+@dataclass
+class ExperimentActivityOutput:
+    unit: str
+    magnitude: float = 1.0
+
+
+@dataclass(config=Config)
+class ExtendedExperimentActivityOutput:
+    unit: str
+    magnitude: float = 1.0
+    pint_quantity: Optional[Quantity] = None
+
+
+@dataclass
+class ExperimentActivity:
+    id: ExperimentActivityId
+    output: Optional[ExperimentActivityOutput] = None
+    #
+    orig_id: Optional[ExperimentActivityId] = None
+
+    def check_exist(self, required_output: bool = False) -> ExtendedExperimentActivity:
+        assert self.id.database in bd.databases, f"activity database does not exist: '{self.id.database}'"
+        self.orig_id = copy(self.id)
+        result = ExtendedExperimentActivity(asdict(self))
+        if self.id.code:
+            result.bw_activity = bd.Database(self.id.database).get(self.id.code)
+        elif self.id.name:
+            filters = {}
+            if self.id.location:
+                filters["location"] = self.id.location
+                search_results = bd.Database(self.id.database).search(self.id.name, filter=filters)
+            else:
+                search_results = bd.Database(self.id.database).search(self.id.name)
+            # print(len(search_results))
+            # print(search_results)
+            if self.id.unit:
+                search_results = list(filter(lambda a: a._data["unit"] == self.id.unit, search_results))
+            assert len(search_results) == 1, f"results : {len(search_results)}"
+            result.bw_activity = search_results[0]
+
+        if required_output:
+            assert self.output is not None, f"Since there is no scenario, activity output is required: {self.orig_id}"
+        return result
+
 
 
 @dataclass
@@ -98,28 +118,28 @@ class ExperimentMethod:
     id: Union[list[str], tuple[str, ...]]
     alias: Optional[str] = None
     #
-    bw_method = None
-
-
-@dataclass
-class ExperimentHierarchy:
-    name: Optional[str]
-    root: "ExperimentHierarchyNode"
+    bw_method: Optional[BWMethod] = None
 
 
 @dataclass
 class ExperimentHierarchyNode:
     children: Optional[
         Union[
-            dict["ExperimentHierarchyNode"],  # use activity alias
+            dict[str, "ExperimentHierarchyNode"],
             list[ExperimentActivityId]]]  # any activityId type
+
+
+@dataclass
+class ExperimentHierarchy:
+    name: Optional[str]
+    root: ExperimentHierarchyNode
 
 
 @dataclass
 class Scenario:
     activities: Union[
-        list[Union[tuple[
-            ExperimentActivityId, ExperimentActivityOutput], ExperimentActivity]],  # id to output (# new activities allowed)
+        list[
+            tuple[ExperimentActivityId, ExperimentActivityOutput]],  # id to output
         dict[str, ExperimentActivityOutput]]  # alias to output
 
     methods: list[Union[str, ExperimentMethod]]
@@ -131,7 +151,7 @@ class ExperimentData:
     activities: Union[list[ExperimentActivity], dict[str, Union[ExperimentActivitiesGlobalConf, ExperimentActivity]]]
     methods: Union[list[ExperimentMethod], dict[str, ExperimentMethod]]
     hierarchy: Optional[Union[ExperimentHierarchy, list[ExperimentHierarchy]]] = None
-    scenarios: Optional[Union[list[Scenario], dict[Scenario]]] = None
+    scenarios: Optional[Union[list[Scenario], dict[str, Scenario]]] = None
 
 
 class Experiment:
@@ -142,51 +162,59 @@ class Experiment:
         self.raw_data = raw_data
         self.ureg = UnitRegistry()
 
-        self.activitiesMap: dict[str, ExperimentActivity] = {}
+        self.activitiesMap: dict[str, ExtendedExperimentActivity] = {}
+
         output_required = not raw_data.scenarios
         self.validate_activities(output_required)
 
         self.methods: dict[str, ExperimentMethod] = self.prepare_methods()
         self.validate_methods(self.methods)
 
-        self.validate_hierarchies()
+        orig_activities_ids: list[tuple[ExperimentActivityId, ExperimentActivity]] = self.collect_orig_ids()
+
+        self.validate_hierarchies(orig_activities_ids)
+        self.validate_scenarios()
 
     def validate_activities(self, required_output: bool = False):
         # check if all activities exist
         activities = self.raw_data.activities
+        # if activities is a list, convert validate and convert to dict
         if isinstance(activities, list):
             logger.debug("activity list")
             for activity in activities:
-                activity.check_exist(required_output)
+                ext_activity = activity.check_exist(required_output)
                 assert activity.id.alias not in self.activitiesMap, f"Duplicate activity. {activity.id.alias} exists already. Try giving it a specific alias"
-                self.activitiesMap[activity.id.alias] = activity
+                self.activitiesMap[activity.id.alias] = ext_activity
         elif isinstance(activities, dict):
             logger.debug("activity dict")
             if "_all" in activities:
-                conf = ExperimentActivitiesGlobalConf(**activities["_all"])
+                conf: ExperimentActivitiesGlobalConf = activities["_all"]
                 logger.debug(f"activity-configuration, {conf}")
                 del activities["_all"]
                 if conf.database:
                     for activity in activities.values():
                         activity.id.database = conf.database
-            self.activitiesMap = activities
 
             for activity in activities.values():
-                activity.check_exist(required_output)
+                ext_activity = activity.check_exist(required_output)
+                self.activitiesMap[activity.id.alias] = ext_activity
 
         for activity in self.activitiesMap.values():
             activity.fill_empty_fields()
 
         # all codes should only appear once
-        unique_activities = set([(a.id.database, a.id.code) for a in activities])
+        unique_activities = set([(a.id.database, a.id.code) for a in self.activitiesMap.values()])
         assert len(unique_activities) == len(activities), "Not all activities are unique"
 
         for activity in self.activitiesMap.values():
-            activity: ExperimentActivity = activity
+            activity: ExtendedExperimentActivity = activity
             if activity.output:
                 self.validate_output(activity.output, activity)
 
-    def validate_output(self, target_output: ExperimentActivityOutput, activity: ExperimentActivity):
+    def collect_orig_ids(self) -> list[tuple[ExperimentActivityId, ExperimentActivity]]:
+        return [(activity.orig_id, activity) for activity in self.activitiesMap.values()]
+
+    def validate_output(self, target_output: ExperimentActivityOutput, activity: ExtendedExperimentActivity):
         try:
             pint_target_unit = self.ureg[target_output.unit]
             pint_target_quantity = target_output.magnitude * pint_target_unit
@@ -199,7 +227,7 @@ class Experiment:
 
     def prepare_methods(self) -> dict[str, ExperimentMethod]:
         """
-        give all methods their some alias
+        give all methods some alias and turn them into a dict
         :return:
         """
         if isinstance(self.raw_data.methods, dict):
@@ -223,6 +251,7 @@ class Experiment:
         method_tree: dict[str, dict] = {}
 
         def build_method_tree():
+            """make a tree search (tuple-part=level)"""
             if not method_tree:
                 for bw_method in all_methods.keys():
                     # iter through tuple
@@ -231,6 +260,7 @@ class Experiment:
                         current = current.setdefault(part, {})
 
         def tree_search(search_method_tuple: tuple[str]) -> dict:
+            """search for a method in the tree. Is used when not all parts of a method are given"""
             build_method_tree()
             current = method_tree
             # print(method_tree)
@@ -262,8 +292,46 @@ class Experiment:
             assert bw_method, f"Method with id: {method_tuple} does not exist"
             method.bw_method = BWMethod(**bw_method)
 
-    def validate_hierarchies(self):
+    def validate_hierarchies(self, orig_activities_ids: list[tuple[ExperimentActivityId, ExperimentActivity]]):
         hierarchies = self.raw_data.hierarchy
+
+        def check_hierarchy(hierarchy: ExperimentHierarchy):
+            def rec_find_leaf(node: ExperimentHierarchyNode) -> list[ExperimentActivityId]:
+                # print(node)
+                if isinstance(node.children, dict):
+                    # merge all leafs of children
+                    leafs = []
+                    for child in node.children:
+                        leafs.extend(rec_find_leaf(child))
+                    return leafs
+                elif isinstance(node.children, list):
+                    return node.children
+
+            if not hierarchies:
+                return
+
+            leafs = rec_find_leaf(hierarchy.root)
+            all_aliases = []
+            for leaf in leafs:
+                if isinstance(leaf, str):
+                    assert leaf in self.activitiesMap, f"Hierarchy {hierarchy.name}, activity: {leaf} does not exist"
+                    all_aliases.append(leaf)
+                elif isinstance(leaf, dict):
+                    # find the leaf dict in orig_activities_ids
+                    for orig_id, activity in orig_activities_ids:
+                        if orig_id == leaf:
+                            all_aliases.append(activity.id.alias)
+                            break
+                    else:
+                        assert False, f"Hierarchy {hierarchy.name}, activity: {leaf} does not exist"
+
+        if isinstance(hierarchies, list):
+            assert len(set(h.name for h in hierarchies)) == len(hierarchies), "Hierarchy names must be unique"
+            for hierarchy in hierarchies:
+                check_hierarchy(hierarchy)
+        else:
+            check_hierarchy(hierarchies)
+
         # check on the last level
         # all activities must be in the hierarchy
         pass
@@ -275,26 +343,33 @@ class Experiment:
         pass
 
 
+# ExperimentHierarchy.update_forward_refs()
+
 if __name__ == "__main__":
-    # Experiment(
-    #     ExperimentData(
-    #         bw_project="ecoi_dbs",
-    #         activities={
-    #             "_all": {
-    #                 "database": "cutoff39"
-    #             },
-    #             "a": ExperimentActivity(
-    #                 id=ExperimentActivityId(
-    #                     name="heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-    #                     location="DK",
-    #                     unit='kilowatt hour'
-    #                 )
-    #             )
-    #         },
-    #         methods=[ExperimentMethod(
-    #             id=["s", "s"]
-    #         )]
-    #     ))
+    ed = ExperimentData(
+        bw_project="ecoi_dbs",
+        activities={
+            "_all": ExperimentActivitiesGlobalConf(database="cutoff39"),
+            "a": ExperimentActivity(
+                id=ExperimentActivityId(
+                    name="heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    location="DK",
+                    unit='kilowatt hour'
+                ),
+                output=ExperimentActivityOutput("MWh", 30)
+            )
+        },
+        methods=[ExperimentMethod(
+            id=["Crustal Scarcity Indicator 2020", "material resources: metals/minerals"]
+        )]
+    )
+
+    data = asdict(ed)
+
+    print(data)
+
+    edR = ExperimentData(**data)
+    Experiment(edR)
 
     e2 = Experiment(
         ExperimentData(
@@ -316,7 +391,19 @@ if __name__ == "__main__":
                 ExperimentMethod(
                     id=('CML v4.8 2016 no LT', 'acidification no LT')
                 )
-            ]
+            ],
+            hierarchy=ExperimentHierarchy(**{
+                "name": "h1",
+                "root": ExperimentHierarchyNode(**{
+                    "children": [
+                        ExperimentActivityId(
+                            **{"name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                               "location": "DK",
+                               "database": "cutoff39",
+                               "unit": 'kilowatt hour'})
+                    ]
+                })
+            })
         ))
 
     # e3 = Experiment(
@@ -334,3 +421,8 @@ if __name__ == "__main__":
     #     ))
 
     # print(e2.raw_data.activities[0])
+
+
+print(json.dumps(
+    ExperimentData.__pydantic_model__.schema()
+))
