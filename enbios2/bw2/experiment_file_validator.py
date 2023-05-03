@@ -15,8 +15,10 @@ logger = logging.Logger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel("INFO")
 
+
 class Config:
     arbitrary_types_allowed = True
+
 
 @dataclass
 class ExperimentActivitiesGlobalConf:
@@ -93,14 +95,13 @@ class ExperimentActivity:
             # print(len(search_results))
             # print(search_results)
             if self.id.unit:
-                search_results = list(filter(lambda a: a._data["unit"] == self.id.unit, search_results))
+                search_results = list(filter(lambda a: a["unit"] == self.id.unit, search_results))
             assert len(search_results) == 1, f"results : {len(search_results)}"
             result.bw_activity = search_results[0]
 
         if required_output:
             assert self.output is not None, f"Since there is no scenario, activity output is required: {self.orig_id}"
         return result
-
 
 
 @dataclass
@@ -136,13 +137,18 @@ class ExperimentHierarchy:
 
 
 @dataclass
-class Scenario:
+class ExperimentScenario:
     activities: Union[
         list[
             tuple[ExperimentActivityId, ExperimentActivityOutput]],  # id to output
         dict[str, ExperimentActivityOutput]]  # alias to output
 
     methods: list[Union[str, ExperimentMethod]]
+    alias: Optional[str] = None
+
+    @staticmethod
+    def alias_factory(index: int):
+        return f"Scenario {index}"
 
 
 @dataclass
@@ -151,10 +157,11 @@ class ExperimentData:
     activities: Union[list[ExperimentActivity], dict[str, Union[ExperimentActivitiesGlobalConf, ExperimentActivity]]]
     methods: Union[list[ExperimentMethod], dict[str, ExperimentMethod]]
     hierarchy: Optional[Union[ExperimentHierarchy, list[ExperimentHierarchy]]] = None
-    scenarios: Optional[Union[list[Scenario], dict[str, Scenario]]] = None
+    scenarios: Optional[Union[list[ExperimentScenario], dict[str, ExperimentScenario]]] = None
 
 
 class Experiment:
+    ureg = UnitRegistry()
 
     def __init__(self, raw_data: ExperimentData):
         if raw_data.bw_project in bd.projects:
@@ -170,10 +177,10 @@ class Experiment:
         self.methods: dict[str, ExperimentMethod] = self.prepare_methods()
         self.validate_methods(self.methods)
 
-        orig_activities_ids: list[tuple[ExperimentActivityId, ExperimentActivity]] = self.collect_orig_ids()
+        orig_activities_ids: list[tuple[ExperimentActivityId, ExtendedExperimentActivity]] = self.collect_orig_ids()
 
         self.validate_hierarchies(orig_activities_ids)
-        self.validate_scenarios()
+        self.validate_scenarios(list(self.activitiesMap.values()))
 
     def validate_activities(self, required_output: bool = False):
         # check if all activities exist
@@ -209,17 +216,18 @@ class Experiment:
         for activity in self.activitiesMap.values():
             activity: ExtendedExperimentActivity = activity
             if activity.output:
-                self.validate_output(activity.output, activity)
+                Experiment.validate_output(activity.output, activity)
 
-    def collect_orig_ids(self) -> list[tuple[ExperimentActivityId, ExperimentActivity]]:
+    def collect_orig_ids(self) -> list[tuple[ExperimentActivityId, ExtendedExperimentActivity]]:
         return [(activity.orig_id, activity) for activity in self.activitiesMap.values()]
 
-    def validate_output(self, target_output: ExperimentActivityOutput, activity: ExtendedExperimentActivity):
+    @staticmethod
+    def validate_output(target_output: ExperimentActivityOutput, activity: ExtendedExperimentActivity):
         try:
-            pint_target_unit = self.ureg[target_output.unit]
+            pint_target_unit = Experiment.ureg[target_output.unit]
             pint_target_quantity = target_output.magnitude * pint_target_unit
             #
-            pint_activity_unit = self.ureg[activity.id.unit]
+            pint_activity_unit = Experiment.ureg[activity.id.unit]
             #
             target_output.pint_quantity = pint_target_quantity.to(pint_activity_unit)
         except Exception as err:
@@ -228,7 +236,7 @@ class Experiment:
     def prepare_methods(self) -> dict[str, ExperimentMethod]:
         """
         give all methods some alias and turn them into a dict
-        :return:
+        :return: map of alias -> method
         """
         if isinstance(self.raw_data.methods, dict):
             method_dict: dict[str, ExperimentMethod] = self.raw_data.methods
@@ -267,9 +275,9 @@ class Experiment:
 
             result = list(search_method_tuple)
             for index, part in enumerate(search_method_tuple):
-                next = current.get(part)
-                assert next, f"Method not found. Part: '{part}' does not exist for {list(search_method_tuple)[index - 1]}"
-                current = next
+                _next = current.get(part)
+                assert _next, f"Method not found. Part: '{part}' does not exist for {list(search_method_tuple)[index - 1]}"
+                current = _next
 
             while True:
                 assert len(
@@ -277,9 +285,9 @@ class Experiment:
                 if len(current) == 0:
                     break
                 elif len(current) == 1:
-                    next = list(current.keys())[0]
-                    result.append(next)
-                    current = current[next]
+                    _next = list(current.keys())[0]
+                    result.append(_next)
+                    current = current[_next]
 
             return all_methods.get(tuple(result))
 
@@ -293,7 +301,6 @@ class Experiment:
             method.bw_method = BWMethod(**bw_method)
 
     def validate_hierarchies(self, orig_activities_ids: list[tuple[ExperimentActivityId, ExperimentActivity]]):
-        hierarchies = self.raw_data.hierarchy
 
         def check_hierarchy(hierarchy: ExperimentHierarchy):
             def rec_find_leaf(node: ExperimentHierarchyNode) -> list[ExperimentActivityId]:
@@ -306,9 +313,6 @@ class Experiment:
                     return leafs
                 elif isinstance(node.children, list):
                     return node.children
-
-            if not hierarchies:
-                return
 
             leafs = rec_find_leaf(hierarchy.root)
             all_aliases = []
@@ -325,25 +329,63 @@ class Experiment:
                     else:
                         assert False, f"Hierarchy {hierarchy.name}, activity: {leaf} does not exist"
 
+        hierarchies = self.raw_data.hierarchy
+
+        if not hierarchies:
+            return
+
         if isinstance(hierarchies, list):
+            # all activities must be in the hierarchy
             assert len(set(h.name for h in hierarchies)) == len(hierarchies), "Hierarchy names must be unique"
             for hierarchy in hierarchies:
                 check_hierarchy(hierarchy)
         else:
             check_hierarchy(hierarchies)
 
-        # check on the last level
-        # all activities must be in the hierarchy
-        pass
+    def validate_scenarios(self, defined_activities: list[ExtendedExperimentActivity]):
+        """
 
-    def validate_scenarios(self):
+        :param defined_activities:
+        :return:
+        """
+        scenarios = self.raw_data.scenarios
+
+        def validate_activities(scenario: ExperimentScenario):
+            activities = scenario.activities
+            # turn to alias dict
+            if isinstance(activities, list):
+                for activity in activities:
+                    activity_id, activity_output = activity
+                    for defined_activity in defined_activities:
+                        if activity_id == defined_activity.orig_id:  # compare with id
+                            activity_alias = defined_activity.id.alias  # assign alias
+                            Experiment.validate_output(activity_output, defined_activity)
+                pass  # todo
+
+        def validate_scenario(scenario: ExperimentScenario, generate_name_index: Optional[int] = None):
+            if generate_name_index:
+                if not scenario.alias:
+                    scenario.name = ExperimentScenario.alias_factory(generate_name_index)
+            validate_activities(scenario)
+
+        if isinstance(scenarios, list):
+            scenarios: list[ExperimentScenario] = self.raw_data.scenarios
+            for index, _scenario in enumerate(scenarios):
+                validate_scenario(_scenario, index)
+            pass
+        elif isinstance(self.raw_data.scenarios, dict):
+            scenarios: dict[str, ExperimentScenario] = self.raw_data.scenarios
+            for alias, _scenario in scenarios.items():
+                if _scenario.alias is not None and _scenario.alias != alias:
+                    assert (False,
+                            f"Scenario defines alias as dict-key: {alias} but also in the scenario object: {_scenario.alias}")
+        else:
+            assert False, "Scenario of wrong type. should be list or dict"
         # check activities
         # check outputs, units, unit match
         # check methods
         pass
 
-
-# ExperimentHierarchy.update_forward_refs()
 
 if __name__ == "__main__":
     ed = ExperimentData(
@@ -366,7 +408,7 @@ if __name__ == "__main__":
 
     data = asdict(ed)
 
-    print(data)
+    # print(data)
 
     edR = ExperimentData(**data)
     Experiment(edR)
@@ -421,7 +463,6 @@ if __name__ == "__main__":
     #     ))
 
     # print(e2.raw_data.activities[0])
-
 
 print(json.dumps(
     ExperimentData.__pydantic_model__.schema()
