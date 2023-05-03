@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 from pathlib import Path
 
+import openpyxl
 import pandas as pd
 from bw2data.backends import Activity
 import bw2data as bd
@@ -10,7 +12,7 @@ base_data_path = Path("/mnt/SSD/projects/LIVENLab/enbios2/data")
 output_path = base_data_path / "/enbios/bw2nis"
 
 
-def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_path: str):
+def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_path: str) -> pd.DataFrame:
     """
     All credits to Ben Portner.
     :param activity:
@@ -19,6 +21,7 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_pat
     :return:
     """
     lca = activity.lca(method, 1)
+    print("calculating lci")
     lca.lci()
     cutoff = None
     array = lca.inventory.sum(axis=1)
@@ -47,6 +50,7 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_pat
     } for flow, row, amount in data
     ])
     df.to_excel(out_path)
+    return df
 
 
 def create_nis_rows(data):
@@ -110,10 +114,31 @@ def create_nis_rows(data):
     }
 
 
+@dataclass
+class NisSheetDfs:
+    interface_types_df: pd.DataFrame
+    bare_processors_df: pd.DataFrame
+    interfaces_df: pd.DataFrame
+
+
+def read_exising_nis_file(file_path) -> NisSheetDfs:
+    # read Excel sheet
+    workbook = openpyxl.load_workbook(file_path)
+    return NisSheetDfs(pd.DataFrame(workbook["InterfaceTypes"].values),
+                       pd.DataFrame(workbook["BareProcessors"].values),
+                       pd.DataFrame(workbook["Interfaces"].values))
+
+
+def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, lci_result: pd.DataFrame):
+    # insert new interface_types
+    nis_dataframes.interface_types_df
+    pass
+
+
 if __name__ == "__main__":
     projects = bd.projects
 
-    if True:
+    if False:
 
         bd.projects.set_current("uab_bw_ei39")
         print(bd.databases)
@@ -122,24 +147,34 @@ if __name__ == "__main__":
         eis = [
             {
                 "folder": "ecoinvent 3.9.1_cutoff_ecoSpold02",
-                "db_name": "ei391",
-                "not_working_bwio": [(0, 9, "dev10"), (0, 9, "dev12"), (0, 9, "dev14"), (0, 9, "dev17")]
+                "db_name": "ei391"
             },
             {
                 "folder": "ecoinvent 3.9_cutoff_ecoSpold02",
-                "db_name": "ei39",
-                "not_working_bwio": [(0, 9, "dev10"), (0, 9, "dev12"), (0, 9, "dev14"), (0, 9, "dev17")]
+                "db_name": "ei39"
             }
         ]
         for ei in eis:
             if ei["db_name"] not in bd.databases:
+                print(f"importing {ei['db_name']}")
                 im = SingleOutputEcospold2Importer(
                     (base_data_path / f"ecoinvent/{ei['folder']}/datasets").as_posix(),
                     ei["db_name"])
                 im.apply_strategies()
-                if im.unlinked:
-                    print("unlinked exchanges")
-                else:
+                if im.statistics()[2] == 0:
                     im.write_database()
+                else:
+                    print("unlinked exchanges")
 
-    # activity = bd.Database("ei39").random()
+    activity = bd.Database("ei391").random()
+
+    nis_file = "/mnt/SSD/projects/LIVENLab/enbios2/data/enbios/_1_/output/output.xlsx"
+
+    dataframes = read_exising_nis_file(nis_file)
+
+    lci_result = export_solved_inventory(activity,
+                                         ('CML v4.8 2016', 'acidification',
+                                          'acidification (incl. fate, average Europe total, A&B)'),
+                                         "test.xlsx")
+
+    insert_activity_processor(activity, dataframes, lci_result)
