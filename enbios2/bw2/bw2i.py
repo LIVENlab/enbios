@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from enbios2.bw2.bw_autoimporter import get_bw_importer
-from enbios2.const import base_data_path
+from enbios2.const import BASE_DATA_PATH
 from enbios2.models.multi_scale_bw import BWSetup, BWDatabase
 
 # import bw2analyzer as ba
@@ -10,7 +12,7 @@ import bw2io as bi
 # import bw_processing as bp
 
 
-def bw_setup(setup: BWSetup, force_db_setup: bool = False):
+def bw_setup(setup: BWSetup, force_db_setup: bool = False) -> None:
     print(f"Setup {setup.project_name}")
     if setup.project_name in bd.projects:
         print(f"project {setup.project_name} already exists.")
@@ -33,13 +35,15 @@ def setup_bw_db(db: BWDatabase):
         return
     if not Path(db.source).exists:
         raise Exception(f"Source {db.source} does not exist")
+    print(f"Importing database ")
     bw_importer = get_bw_importer(db)
-    print(f"Importing {db.name} from '{db.source}' using {bw_importer.__name__}")
+    print(f"Importing {db.name} from '{db.source}' using '{bw_importer.__name__}'")
     # return bw_importer
-    imported = bw_importer(str(db.source), db.name, use_mp=False)
+    imported = bw_importer(str(db.source), db.name)
     imported.apply_strategies()
-    imported.write_database()
+    print(type(imported))
+    if imported.all_linked:
+        imported.write_database()
 
 
-ecoinvent_db_path = base_data_path / "ecoinvent 3.9.1_cutoff_ecoSpold02/datasets"
-bw_setup(BWSetup("test", [BWDatabase("cutoff391", format="Ecospold2", source=ecoinvent_db_path)]))
+#
