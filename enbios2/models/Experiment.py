@@ -1,6 +1,6 @@
 from copy import copy
 from dataclasses import asdict
-from typing import Optional, Union, Type, Any
+from typing import Optional, Union, Type
 
 import bw2data as bd
 from bw2data.backends import Activity
@@ -30,6 +30,26 @@ class ExperimentActivityId:
     unit: Optional[str] = None
     # internal-name
     alias: Optional[str] = None
+
+    def get_bw_activity(self, allow_multiple: bool = False) -> Union[Activity, list[Activity]]:
+        if self.code:
+            return bd.Database(self.database).get(self.code)
+        elif self.name:
+            filters = {}
+            if self.location:
+                filters["location"] = self.location
+                assert self.database in bd.databases, f"database {self.database} not found"
+                search_results = bd.Database(self.database).search(self.name, filter=filters)
+            else:
+                search_results = bd.Database(self.database).search(self.name)
+            if self.unit:
+                search_results = list(filter(lambda a: a["unit"] == self.unit, search_results))
+            assert len(search_results) == 0, f"No results for brightway activity-search: {(self.name, self.location, self.unit)}"
+            if len(search_results) > 1:
+                if allow_multiple:
+                    return search_results
+                assert False, f"results : {len(search_results)} for brightway activity-search: {(self.name, self.location, self.unit)}. Results are: {search_results}"
+            return search_results[0]
 
     def fill_empty_fields(self, fields: list[Union[str, tuple[str, str]]] = (), **kwargs):
         for field in fields:
