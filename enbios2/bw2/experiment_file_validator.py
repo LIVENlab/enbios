@@ -5,7 +5,7 @@ from typing import Optional, Union
 import bw2data as bd
 from pint import UnitRegistry
 
-from enbios2.models.Experiment import ExperimentActivitiesGlobalConf, ExperimentActivityId, ExtendedExperimentActivity, \
+from enbios2.models.experiment import ExperimentActivitiesGlobalConf, ExperimentActivityId, ExtendedExperimentActivity, \
     ExperimentActivity, BWMethod, ExperimentMethod, ExperimentHierarchyNode, \
     ExperimentHierarchy, ExperimentScenario, ExperimentData, ExtendedExperimentActivityOutput
 
@@ -55,6 +55,7 @@ class Experiment:
                 # self.activitiesMap[activity.id.alias] = ext_activity
         elif isinstance(activities, dict):
             logger.debug("activity dict")
+            # activities: dict[str, ExperimentActivity] = activities
             for activity_alias, activity in activities.items():
                 default_id_data.alias = activity_alias
                 ext_activity = activity.check_exist(default_id_data, required_output)
