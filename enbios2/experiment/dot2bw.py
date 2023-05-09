@@ -1,19 +1,21 @@
 from copy import copy
-from dataclasses import dataclass
-from logging import getLogger
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Union
+
 import pydot
 import bw2data as bd
-from bw2data import ProcessedDataStore
 from bw2data.backends import Activity
 from bw2data.errors import DuplicateNode
+from voluptuous import default_factory
 
-from enbios2.const import BASE_DATA_PATH
+from enbios2.generic.enbios2_logging import get_logger
+from enbios2.generic.util import get_file_path
 
-logger = getLogger(__name__)
+logger = get_logger(__name__)
 
 
-def read_dot_file(file_path: Path):
+def read_dot_file(file_path: Path) -> pydot.Dot:
     dot_text = file_path.read_text(encoding="utf-8")
     graph, = pydot.graph_from_dot_data(dot_text)
     return graph
@@ -59,7 +61,7 @@ def activity2node(activity: Activity):
 
 def parse_node_attributes(node: pydot.Node):
     attributes: dict[str, str] = copy(node.get_attributes())
-    for k,v in attributes.items():
+    for k, v in attributes.items():
 
         if v.startswith('"') and v.endswith('"'):
             v = v[1:-1]
@@ -81,8 +83,8 @@ def get_external_activities(graph: pydot.Dot):
         if "database" in attributes:
             # more attributes, like code, location
             activity = bd.Database(attributes["database"]).get(name=attributes["name_"],
-                                                    categories=tuple(attributes["categories"]),
-                                                    type=attributes["type"])
+                                                               categories=tuple(attributes["categories"]),
+                                                               type=attributes["type"])
             logger.debug(f"external activity : %s", attributes["name_"])
             external_activity_map[node.get_name()] = activity
         else:
@@ -91,66 +93,124 @@ def get_external_activities(graph: pydot.Dot):
     return external_activity_map
 
 
-def define_db_with_graph(db: ProcessedDataStore, graph: pydot.Dot):
-    """
-    Define a database with the activities based on the dot graph.
-    :param db:
-    :param graph:
-    :return:
-    """
-    # get all activities in the graphDB
-    act_map = {activity2node(act): act for act in db}
-
-    # get all implicit nodes in the graph
-    node_names: set[str] = collect_graph_node_names(graph)
-    # get all external activities in the graph (defines explicitly in the graph)
-    get_external_activities(graph)
-    nodes_to_add = node_names.copy()
-    # delete all activities that are not in the graph
-    for act in act_map.keys():
-        if act not in node_names:
-            act_map[act].delete()
-        else:
-            nodes_to_add.discard(act)
-    # todo there needs to be some deletion of exchanges that are not in the graph
-    # print(nodes_to_add)
-    for node in nodes_to_add:
-        add_activity(node)
-
-    act_map_exchanges = {key: [ex.get("sign") for ex in act.exchanges()] for key, act in act_map.items()}
-
-    for edge in graph.get_edges():
-        # print(edge.get_source(), edge.get_destination())
-        from_act: Activity = act_map.get(edge.get_source())
-        to_act = act_map.get(edge.get_destination())
-        # print(from_act, to_act)
-        attributes = edge.get_attributes()
-        amount = float(attributes.get("amount", 1))
-        type_ = attributes.get("type", "technology")
-
-        sign = f"_{from_act['name']}>{to_act['name']}_"
-        if sign in act_map_exchanges[from_act["name"]]:
-            print(f"skipping {sign}")
-            continue
-        from_act.new_exchange(input=to_act, type=type_, amount=amount,
-                              sign=sign).save()
-        print(f"new exchange: {from_act['name']}>{to_act['name']}")
+@dataclass
+class GraphData:
+    activities: list[Activity]
+    edges: list[ExchangeData]
 
 
-def add_activity(name: str):
-    try:
-        act = mydb.new_activity(name=name, code=f"_{name}_")
-        act.save()
-        print(f"activity saved: {name}")
-    except DuplicateNode:
-        pass
+@dataclass
+class GraphDiffData:
+    removed_activities: list[Activity] = field(default_factory=list)
+    added_activities: list[Activity] = field(default_factory=list)
+    removed_edges: list[ExchangeData] = field(default_factory=list)
+    added_edges: list[ExchangeData] = field(default_factory=list)
 
 
-bd.projects.set_current("ecoinvent_test")
-# bd.projects.migrate_project_25()
-mydb = bd.Database("graphDB")  # Crear una database nova
-# mydb.register()  # Perquè aparegui a la llista de databases
+class Dot2BW:
 
-graph = read_dot_file(BASE_DATA_PATH / "dot/dot_example.dot")
+    def __init__(self, database_name: str = "graphDB", dot_file_path: Union[str, Path] = None):
+        self.database_name = database_name
+        if self.database_name not in bd.databases:
+            bd.Database(database_name).register()
+        self.database = bd.Database(database_name)
 
-define_db_with_graph(mydb, graph)
+        self.graph_diff = GraphDiffData()
+
+        if dot_file_path:
+            dot_file_path = get_file_path(dot_file_path)
+            graph = read_dot_file(dot_file_path)
+            self.define_db_with_graph(graph)
+
+    @staticmethod
+    def edge_sign(edge: pydot.Edge) -> str:
+        return f"_{edge.get_source()}>{edge.get_destination()}_"
+
+    @staticmethod
+    def resolve_edge_sign(edge_sign: str) -> tuple[str, str]:
+        return tuple(edge_sign[1:-1].split(">"))
+
+    # def edge_sign
+
+    def define_db_with_graph(self, graph: pydot.Dot) -> GraphDiffData:
+        """
+        Define a database with the activities based on the dot graph.
+        Returns new newly defined activities and edges.
+        :param graph:
+        :return:
+        """
+
+        # get all activities in the graphDB
+        internal_act_map = {activity2node(act): act for act in self.database}
+        # logger.debug(act_map.keys())
+
+        # get all implicit nodes in the graph
+        node_names: set[str] = collect_graph_node_names(graph)
+        # print("node_names", node_names)
+        activities_to_remove = set(internal_act_map.keys()) - node_names
+        # print("activities_to_remove", activities_to_remove)
+        # delete all activities that are not in the graph
+        for act in activities_to_remove:
+            internal_act_map[act].delete()
+            self.graph_diff.removed_activities.append(internal_act_map[act])
+
+        # get all external activities in the graph (defines explicitly in the graph)
+        all_act_map = copy(internal_act_map)
+        all_act_map.update(get_external_activities(graph))
+        activities_to_add = node_names - set(all_act_map.keys())
+        # print("activities_to_add", activities_to_add)
+
+        for node in activities_to_add:
+            activity = self.add_activity(node)
+            internal_act_map[node] = activity
+            all_act_map[node] = activity
+            self.graph_diff.added_activities.append(activity)
+
+        node_out_edges = {}
+        for edge in graph.get_edges():
+            node_out_edges.setdefault(edge.get_source(), []).append((edge.get_destination(), edge))
+
+        for node_name, activity in internal_act_map.items():
+            node_edges = node_out_edges.get(node_name, [])
+            destination_nodes, edges = zip(*node_edges)
+
+            exchanges = list(activity.exchanges())
+
+            # print(node_edges, exchanges)
+            # delete all exchanges that are not defined in the graph
+            for ex in exchanges:
+                if self.resolve_edge_sign(ex.get("sign"))[1] not in destination_nodes:
+                    ex.delete()
+                    self.graph_diff.removed_edges.append(ex)
+            # add all edges that are not defined in the database
+            edge_signs = [ex.get("sign") for ex in exchanges]
+            for edge in edges:
+                if self.edge_sign(edge) not in edge_signs:
+                    from_act: Activity = all_act_map.get(edge.get_source())
+                    to_act: Activity = all_act_map.get(edge.get_destination())
+                    # print(from_act, to_act)
+                    attributes = edge.get_attributes()
+                    amount = float(attributes.get("amount", 1))
+                    type_ = attributes.get("type", "technology")
+                    unit = attributes.get("unit")
+
+                    # print(from_act, to_act)
+                    sign = self.edge_sign(edge)
+
+                    print(f"adding exchange: {from_act['name']}, {to_act['name']}, {type_}, {amount}, {unit}, {sign}")
+                    ex = from_act.new_exchange(input=to_act, type=type_, amount=amount, unit=unit,
+                                               sign=sign)
+                    ex.save()
+                    self.graph_diff.added_edges.append(ex)
+
+        return self.graph_diff
+
+    def add_activity(self, name: str) -> Activity:
+        try:
+            act = self.database.new_activity(name=name, code=f"_{name}_")
+            act.save()
+            print(f"activity saved: {name}")
+            return act
+        except DuplicateNode:
+            logger.debug(f"Duplicate node not added {name}")
+            pass
