@@ -113,11 +113,11 @@ class NIS:
 
     def _generate_in_memory_excel(self):
         output = io.BytesIO()
-        writer = pd.ExcelWriter(output, engine="xlsxwriter")
-        for idx, sheet_name in enumerate(self._dataframe_names):
-            header = sheet_name.lower() != "metadata"
-            self._dataframes[idx].to_excel(writer, sheet_name=sheet_name, index=False)
-        writer.save()
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            for idx, sheet_name in enumerate(self._dataframe_names):
+                header = sheet_name.lower() != "metadata"
+                self._dataframes[idx].to_excel(writer, sheet_name=sheet_name, index=False)
+        # writer.save()
         return output.getvalue()
 
     def append_command(self, name: str, df: pd.DataFrame):
