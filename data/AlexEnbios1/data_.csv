@@ -1,0 +1,14 @@
+Spore;Techs;Locs;Carriers;unit;flow_out_sum
+BASELINE;chp_biofuel_extraction;PRT_CONT;electricity;Twh;3.79
+BASELINE;solar_pv;PRT_CONT;electricity;Twh;1.346
+BASELINE;solar_rooftop;PRT_CONT;electricity;Twh;0.3378
+BASELINE;Wind_onshore;PRT_CONT;electricity;Twh;11.8972
+BASELINE;Wind_offshore;PRT_CONT;electricity;Twh;0.181179
+BASELINE;Hydro_reservoir;PRT_CONT;electricity;Twh;11.38805
+BASELINE;Hydro_run_of_river;PRT_CONT;electricity;Twh;0.4745
+BASELINE;chp_oil;PRT_CONT;electricity;Twh;1.3748
+BASELINE;chp_methane;PRT_CONT;electricity;Twh;17.2832
+BASELINE;coal;PRT_CONT;electricity;Twh;1.33552
+BASELINE;waste_supply;PRT_CONT;electricity;Twh;0.56
+BASELINE;imports_ES;PRT_CONT;electricity;Twh;7.75
+
