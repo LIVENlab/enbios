@@ -16,6 +16,7 @@ from nexinfosys.common.helper import create_dictionary, first, download_file
 from nexinfosys.command_definitions import valid_v2_command_names, commands
 from nexinfosys.command_generators.spreadsheet_command_parsers_v2 import parse_command_in_worksheet
 from nexinfosys.command_generators import IType
+from nexinfosys.globalConfig import GlobalConfig
 
 
 def handle_import_commands(r):
@@ -52,7 +53,14 @@ def handle_import_commands(r):
     worksheets = r.get("worksheets", None)
     sublist2 = [w.strip() for w in worksheets.split(",")] if worksheets else None  # Convert to list of worksheets
     # Read file in memory
-    generator_type, file2 = load_file(workbook)
+    data = GlobalConfig.config
+    # print(data)
+    nis_table_loc = data.get("nis_table")
+    if nis_table_loc:
+        # print(f"Loading NIS table from {nis_table_loc} instead of online resource")
+        generator_type, file2 = load_file(f"file:{nis_table_loc}")
+    else:
+        generator_type, file2 = load_file(workbook)
     return generator_type, file2, sublist2
 
 
