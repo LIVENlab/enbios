@@ -1,6 +1,7 @@
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import openpyxl
 import pandas as pd
@@ -25,7 +26,7 @@ def long_to_short_unit(long_unit):
     return short_unit
 
 
-def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_path: str) -> pd.DataFrame:
+def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_path: Optional[str] = None) -> pd.DataFrame:
     """
     All credits to Ben Portner.
     :param activity:
@@ -33,17 +34,10 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_pat
     :param out_path:
     :return:
     """
+    # print("calculating lci")
     lca = activity.lca(method, 1)
-    print("calculating lci")
     lca.lci()
-    cutoff = None
     array = lca.inventory.sum(axis=1)
-    if cutoff is not None and not (0 < cutoff < 1):
-        print(f"Ignoring invalid cutoff value {cutoff}")
-        cutoff = None
-
-    total = array.sum()
-    include = lambda x: abs(x / total) >= cutoff if cutoff is not None else True
     if hasattr(lca, 'dicts'):
         mapping = lca.dicts.biosphere
     else:
@@ -51,8 +45,7 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_pat
     data = []
     for key, row in mapping.items():
         amount = array[row, 0]
-        if include(amount):
-            data.append((bd.get_activity(key), row, amount))
+        data.append((bd.get_activity(key), row, amount))
     data.sort(key=lambda x: abs(x[2]))
     df = pd.DataFrame([{
         'row_index': row,
@@ -60,9 +53,9 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_pat
         'name': flow.get('name'),
         'unit': flow.get('unit'),
         'categories': str(flow.get('categories'))
-    } for flow, row, amount in data
-    ])
-    df.to_excel(out_path)
+    } for flow, row, amount in data])
+    if out_path:
+        df.to_excel(out_path)
     return df
 
 
@@ -158,9 +151,11 @@ class NisSheetDfs:
 
 
 def read_exising_nis_file(file_path) -> NisSheetDfs:
-    # read Excel sheet
-    workbook = openpyxl.load_workbook(file_path)
-    # read sheets and convert to dataframes keeping the headers
+    """
+    read sheets and convert to dataframes
+    :param file_path:
+    :return:
+    """
     with pd.ExcelFile(file_path) as xls:
         interface_types_df = pd.read_excel(xls, "InterfaceTypes", header=0)
         bare_processors_df = pd.read_excel(xls, "BareProcessors", header=0)
@@ -190,7 +185,6 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
             "@EcoinventName": row["name"]
         }}
         interface_type_new_rows.append(new_row)
-
 
     unique_bareprocessors = set(nis_dataframes.bare_processors_df["Processor"].unique())
     activity
