@@ -5,7 +5,7 @@ from typing import Union
 
 import pydot
 import bw2data as bd
-from bw2data.backends import Activity
+from bw2data.backends import Activity, Exchange
 from bw2data.errors import DuplicateNode
 from voluptuous import default_factory
 
@@ -128,9 +128,8 @@ class Dot2BW:
 
     @staticmethod
     def resolve_edge_sign(edge_sign: str) -> tuple[str, str]:
-        return tuple(edge_sign[1:-1].split(">"))
-
-    # def edge_sign
+        from_act, to_act, _ = edge_sign[1:-1].split(">")
+        return from_act, to_act
 
     def define_db_with_graph(self, graph: pydot.Dot) -> GraphDiffData:
         """
@@ -172,6 +171,7 @@ class Dot2BW:
 
         for node_name, activity in internal_act_map.items():
             node_edges = node_out_edges.get(node_name, [])
+
             destination_nodes, edges = zip(*node_edges)
 
             exchanges = list(activity.exchanges())
@@ -190,7 +190,7 @@ class Dot2BW:
                     to_act: Activity = all_act_map.get(edge.get_destination())
                     # print(from_act, to_act)
                     attributes = edge.get_attributes()
-                    amount = float(attributes.get("amount", 1))
+                    amount = attributes.get("amount", 1)
                     type_ = attributes.get("type", "technology")
                     unit = attributes.get("unit")
 
@@ -198,7 +198,7 @@ class Dot2BW:
                     sign = self.edge_sign(edge)
 
                     print(f"adding exchange: {from_act['name']}, {to_act['name']}, {type_}, {amount}, {unit}, {sign}")
-                    ex = from_act.new_exchange(input=to_act, type=type_, amount=amount, unit=unit,
+                    ex:Exchange = from_act.new_exchange(input=to_act, type=type_, amount=amount, unit=unit,
                                                sign=sign)
                     ex.save()
                     self.graph_diff.added_edges.append(ex)

@@ -20,6 +20,7 @@ from nexinfosys.command_generators.parser_field_parsers import string_to_ast, ar
 
 from nexinfosys.common.helper import PartialRetrievalDictionary, any_error_issue, create_dictionary
 from nexinfosys.embedded_nis import NIS
+from nexinfosys.globalConfig import GlobalConfig
 from nexinfosys.model_services import State
 from nexinfosys.models.musiasem_concepts import Processor, ProcessorsRelationPartOfObservation, Indicator, \
     FactorQuantitativeObservation

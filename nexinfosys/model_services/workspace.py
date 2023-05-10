@@ -621,11 +621,11 @@ class InteractiveSession:
 
     # --------------------------------------------------------------
 
-    def execute_executable_command(self, cmd: IExecutableCommand):
-        return execute_command(self._state, cmd)
+    # def execute_executable_command(self, cmd: IExecutableCommand):
+    #     return execute_command(self._state, cmd)
 
-    def register_executable_command(self, cmd: IExecutableCommand):
-        self._reproducible_session.register_executable_command(cmd)
+    # def register_executable_command(self, cmd: IExecutableCommand):
+    #     self._reproducible_session.register_executable_command(cmd)
 
     def register_andor_execute_command_generator1(self, c: CommandsContainer, register=True, execute=False, ignore_imports=False):
         """
