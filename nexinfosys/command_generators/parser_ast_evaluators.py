@@ -97,6 +97,8 @@ def get_nis_name(original_name):
     :param original_name:
     :return:
     """
+    if not isinstance(original_name, str):
+        original_name = str(original_name)
     if original_name.strip() == "":
         return ""
     else:
