@@ -210,7 +210,6 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
         bareprocessor_new_rows.append(new_row)
 
 
-
 if __name__ == "__main__":
     projects = bd.projects
 
