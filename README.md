@@ -1,9 +1,12 @@
-# Enbios2
-Merge and refactor enbios nexinfosys 
+# enbios2
+Merge and refactor enbios and nexinfosys.
 
+## Installation
 
+Create a new virtual environment (with pip or conda) and install dependencies with 
 
-There is nothing to see on the main branch...
+`python3 -m pip install -r requirements`
 
-[checkout/clone the develop branch...](https://github.com/ENVIRO-Module/enbios2/tree/develop)
+## Running Enbios
 
+Currently the classical enbios can not be started from the command line as before. Check the `test/classic_enbios` directory on how to run the commands.
