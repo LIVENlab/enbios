@@ -7,7 +7,6 @@ import pydot
 import bw2data as bd
 from bw2data.backends import Activity, Exchange
 from bw2data.errors import DuplicateNode
-from voluptuous import default_factory
 
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.util import get_file_path
@@ -103,8 +102,8 @@ class GraphData:
 class GraphDiffData:
     removed_activities: list[Activity] = field(default_factory=list)
     added_activities: list[Activity] = field(default_factory=list)
-    removed_edges: list[ExchangeData] = field(default_factory=list)
-    added_edges: list[ExchangeData] = field(default_factory=list)
+    removed_edges: list[Exchange] = field(default_factory=list)
+    added_edges: list[Exchange] = field(default_factory=list)
 
 
 class Dot2BW:
