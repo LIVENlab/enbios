@@ -117,6 +117,7 @@ def initialize_databases():
         echo_sql = nexinfosys.get_global_configuration_variable("SHOW_SQL", False)
         if isinstance(echo_sql, str):
             echo_sql = True if echo_sql.lower() == "true" else False
+        echo_sql = False
         logging.debug("Connecting to metadata server")
         logging.debug(db_connection_string)
         logging.debug("-----------------------------")
@@ -759,8 +760,8 @@ def comm_help(command_content_to_validate):
 
 def prepare_and_reset_database_for_tests(prepare=False, metadata_string="sqlite://", data_string="sqlite://"):
     if prepare:
-        nexinfosys.engine = sqlalchemy.create_engine(metadata_string, echo=True)
-        nexinfosys.data_engine = sqlalchemy.create_engine(data_string, echo=True)
+        nexinfosys.engine = sqlalchemy.create_engine(metadata_string, echo=False)
+        nexinfosys.data_engine = sqlalchemy.create_engine(data_string, echo=False)
 
         # global DBSession # global DBSession registry to get the scoped_session
         DBSession.configure(bind=nexinfosys.engine)  # reconfigure the sessionmaker used by this scoped_session
