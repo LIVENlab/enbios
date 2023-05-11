@@ -117,7 +117,6 @@ class NIS:
             for idx, sheet_name in enumerate(self._dataframe_names):
                 header = sheet_name.lower() != "metadata"
                 self._dataframes[idx].to_excel(writer, sheet_name=sheet_name, index=False)
-        # writer.save()
         return output.getvalue()
 
     def append_command(self, name: str, df: pd.DataFrame):

@@ -14,7 +14,7 @@ def test_load_ecoinvent():
         BWProjectDatabase(name="eco-invent", source=ecoinvent_db_path, format="Ecospold2")
     ])
     setup_bw_project(project=project_data)
-    
+
     assert bd.projects.current == "py_test"
     for db in project_data.databases:
         assert db.name in bd.databases
