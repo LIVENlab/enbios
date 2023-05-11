@@ -1,7 +1,8 @@
-from processing.main import Enviro
+from enbios.processing.main import Enviro
+from enbios2.const import BASE_DATA_PATH
 
+cfg_file_path = BASE_DATA_PATH / "AlexEnbios1/base.yaml"
 
-cfg_file_path = "/home/ra/PycharmProjects/enbios2/data/AlexEnbios1/base.yaml"
 just_prepare_base: bool = False
 fragments_list_file: bool = False
 first_fragment: int = 0

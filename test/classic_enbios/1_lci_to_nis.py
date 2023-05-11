@@ -1,8 +1,9 @@
 from pathlib import Path
 
 from enbios.input.data_preparation.lci_to_nis import spold2nis
+from enbios2.const import BASE_DATA_PATH
 
-base_folder = Path("/home/ra/PycharmProjects/enbios2/data/enbios/_1_")
+base_folder = BASE_DATA_PATH / "enbios/_1_"
 base_in_folder = base_folder / "input"
 output_file = (base_folder / "output/output.xlsx").as_posix()
 
