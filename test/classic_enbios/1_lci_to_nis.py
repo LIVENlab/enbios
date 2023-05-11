@@ -5,7 +5,8 @@ from enbios2.const import BASE_DATA_PATH
 
 base_folder = BASE_DATA_PATH / "enbios/_1_"
 base_in_folder = base_folder / "input"
-output_file = (base_folder / "output/output.xlsx").as_posix()
+output_file = (base_folder / "output/output.xlsx")
+output_file.parent.mkdir(exist_ok=True, parents=True)
 
 spold_files_folder = (base_in_folder / "SPOLDS").as_posix()
 nis_base_path = (base_in_folder / "BASELINE_UPDATE_APOS.xlsx").as_posix()
@@ -17,4 +18,4 @@ if __name__ == "__main__":
               correspondence_path,
               nis_base_path,
               None,
-              output_file)
+              output_file.as_posix())
