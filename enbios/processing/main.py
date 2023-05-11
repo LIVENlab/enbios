@@ -325,7 +325,7 @@ class Enviro:
         if not os.path.isabs(output_dir):
             output_dir = os.path.join(os.path.dirname(self._cfg_file_path), output_dir)
 
-        print(f"output_dir: {output_dir}")
+        # print(f"output_dir: {output_dir}")
         os.makedirs(output_dir, exist_ok=True)
 
         # Prepare Base
