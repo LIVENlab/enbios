@@ -32,6 +32,8 @@ def read_parse_configuration(file_name) -> Dict:
             cfg = read_yaml_configuration(contents)
         elif file_name.endswith("json"):
             cfg = read_json_configuration(contents)
+        else:
+            raise Exception(f"Unknown configuration file format: {file_name}")
     elif isinstance(file_name, dict):
         cfg = file_name
 
