@@ -45,14 +45,21 @@ class EnbiosLogger:
 
     @classmethod
     def init_logger(cls):
-        cls._config_file = Path(appdirs.user_config_dir("enbios2")) / "logging.json"
+        cls.log_config_file = Path(appdirs.user_config_dir("enbios2")) / "logging.json"
         # check if  exists
         if not cls.log_config_file.exists():
+            print(f"Creating logging config file at: {cls.log_config_file}")
             # if not, create it
             cls.log_config_file.parent.mkdir(parents=True, exist_ok=True)
             cls.log_config_file.write_text(json.dumps(default_log_config, ensure_ascii=False, indent=2),
                                            encoding="utf-8")
+
+        cls.reload_config()
+
+    @classmethod
+    def reload_config(cls):
         cls.config_data = json.loads(cls.log_config_file.read_text(encoding="utf-8"))
+        logging.config.dictConfig(cls.config_data)
 
     @classmethod
     def add_logger(cls, name):

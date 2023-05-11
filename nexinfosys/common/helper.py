@@ -1185,11 +1185,11 @@ def download_with_pycurl(location):
         # Note: this only works when headers are not duplicated, see below.
         headers[name] = value
 
-    data = io.BytesIO()
+    # data = io.BytesIO()
     response = requests.get(location)
     status = response.status_code
     headers = response.headers
-    data = response.content
+    data = io.BytesIO(response.content)
     return status, headers, data
 
 
@@ -1338,7 +1338,7 @@ def prepare_dataframe_after_external_read(ds, df, cmd_name):
                 cols.append(d.code)  # Exact case
                 if not d.is_measure:
                     dims.add(d.code)
-                    num_column = df.dtypes[c] in [np.int64, np.float]
+                    num_column = df.dtypes[c] in [np.int64, float]
                     # NaN values in dimensions replaced by ""
                     df[c] = df[c].fillna('')
                     # Convert to string if it is numeric

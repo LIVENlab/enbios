@@ -1,0 +1,30 @@
+{
+  "bw_project": "ecoi_dbs",
+  "config": {
+    "debug_test_is_valid": false
+  },
+  "activities_config": {
+    "default_database": "cutoff39"
+  },
+  "activities": {
+    "single_activity": {
+      "id": {
+        "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+        "location": "DK",
+        "unit": "kilowatt hour"
+      },
+      "output": [
+        "Mwh",
+        30
+      ]
+    }
+  },
+  "methods": [
+    {
+      "id": [
+        "Crustal Scarcity Indicator 2020",
+        "material resources: metals/minerals"
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-from enbios2.const import base_data_path
+from enbios2.const import BASE_DATA_PATH
 
 scenario_col = "Scenario"
 value_col = "Value"
@@ -15,4 +15,4 @@ PROCESSOR = "processor"
 SCENARIO = "scenario"
 
 # the filee which includes the information about the indicators
-indicator_map_file = base_data_path / "generic/indicator_info.json"
+indicator_map_file = BASE_DATA_PATH / "generic/indicator_info.json"

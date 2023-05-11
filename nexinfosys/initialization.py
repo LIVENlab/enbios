@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 
+import numpy as np
 import pandas as pd
 import sqlalchemy
 from sqlalchemy.pool import StaticPool
@@ -340,7 +341,7 @@ def get_dataset_from_state(state: State, name: str, extension: str, labels_enabl
             logging.debug("Preparing Dataset labels")
             ds2 = add_label_columns_to_dataframe(name, ds2, glb_idx)
 
-        if isinstance(ds2.index, (pd.Int64Index, pd.core.indexes.range.RangeIndex)):
+        if isinstance(ds2.index, (np.int64, pd.RangeIndex)):
             export_index = False
         else:
             export_index = True

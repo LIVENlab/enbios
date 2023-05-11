@@ -1,6 +1,6 @@
 from typing import Any, TypeVar, Union
 
-from enbios2.models.multi_scale_bw import BWDatabase
+from enbios2.models.project import BWProjectDatabase
 
 import importlib
 import inspect
@@ -21,10 +21,11 @@ def list_importers() -> dict[str, Union[dict[str, list[TypeVar]], dict[str, Type
             if format_value is not None:
                 format2importer.setdefault(format_value, []).append(obj)
                 name2importer[name] = obj
+                # print(format_value, name)
     return {"formats": format2importer, "importers": name2importer}
 
 
-def get_bw_importer(bw_database: BWDatabase) -> Any:
+def get_bw_importer(bw_database: BWProjectDatabase) -> Any:
     if bw_database.importer:
         return list_importers()["importers"][bw_database.importer]
     else:

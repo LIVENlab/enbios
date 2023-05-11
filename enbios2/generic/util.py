@@ -1,3 +1,9 @@
+from pathlib import Path
+from typing import Union
+
+from enbios2.const import BASE_DATA_PATH
+
+
 def generate_levensthein_name_map(names_a: list[str], names_b: list[str]) -> dict[str, str]:
     try:
         from Levenshtein import ratio
@@ -29,3 +35,11 @@ def generate_levensthein_dict_map(names_a: list[str,dict], dicts: list[dict], di
         names_map[term] = closest_match
         remaning_dicts.remove(closest_match)
     return names_map
+
+
+def get_file_path(path: Union[str, Path]) -> Path:
+    path = Path(path)
+    if path.is_absolute():
+        return path
+    else:
+        return BASE_DATA_PATH / path
