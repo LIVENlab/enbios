@@ -1,6 +1,8 @@
 from pathlib import Path
 
-PROJECT_PATH = Path("/home/ra/PycharmProjects/enbios2")
+
+# enbios2/enbios2/const.py
+PROJECT_PATH = Path(__file__).parent.parent.absolute()
 BASE_DATA_PATH = PROJECT_PATH / "data"
 BASE_SCHEMA_PATH = BASE_DATA_PATH / "schema"
 

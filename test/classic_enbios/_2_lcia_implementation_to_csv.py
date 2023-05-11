@@ -2,8 +2,9 @@ from pathlib import Path
 from typing import List
 
 from enbios.input.data_preparation.lcia_implementation_to_nis import convert_lcia_implementation_to_nis
+from enbios2.const import BASE_DATA_PATH
 
-base_folder = Path("/home/ra/PycharmProjects/enbios2/data/enbios/_2_")
+base_folder = BASE_DATA_PATH / "enbios/_2_"
 lcia_implementation_file: str = (base_folder / "LCIA_Implementation_v3_8.xlsx").as_posix()
 lcia_file: str = (base_folder / "output/lcia_method_out.csv").as_posix()
 
