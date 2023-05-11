@@ -161,6 +161,7 @@ class Enviro:
 
     def set_cfg_file_path(self, cfg_file_path):
         self._cfg = read_parse_configuration(cfg_file_path)
+        GlobalConfig.config = self._cfg
         self._cfg_file_path = os.path.realpath(cfg_file_path) if isinstance(cfg_file_path, str) else None
         if "simulation_files_path" in self._cfg:
             self._simulation_files_path = self._cfg["simulation_files_path"]
