@@ -1,3 +1,5 @@
+from typing import Optional
+
 from enbios.processing.main import Enviro
 from enbios2.const import BASE_DATA_PATH
 
@@ -14,7 +16,7 @@ generate_full_fragment_files: bool = False
 generate_interface_results: bool = False
 generate_indicators: bool = False
 n_cpus: int = 1
-log: str = None
+log: Optional[str] = None
 
 
 t = Enviro()

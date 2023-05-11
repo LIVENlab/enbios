@@ -3,9 +3,15 @@ Merge and refactor enbios and nexinfosys.
 
 ## Installation
 
-Create a new virtual environment (with pip or conda) and install dependencies with 
+Go into the enbios2 directory and create a new virtual environment (with pip or conda) of **python 3.9** or higher.
 
-`python3 -m pip install -r requirements`
+`conda create --name enbios2 python=3.9` or `python3.9 -m venv venv`
+
+Activate the environment with `conda activate enbios2` or `source venv/bin/activate`
+
+
+ Then install the dependencies with 
+`python3 -m pip install -r requirements.txt`
 
 
 ## Running Enbios
