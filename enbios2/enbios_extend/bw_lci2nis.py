@@ -26,7 +26,8 @@ def long_to_short_unit(long_unit):
     return short_unit
 
 
-def export_solved_inventory(activity: Activity, method: tuple[str, ...], out_path: Optional[str] = None) -> pd.DataFrame:
+def export_solved_inventory(activity: Activity, method: tuple[str, ...],
+                            out_path: Optional[str] = None) -> pd.DataFrame:
     """
     All credits to Ben Portner.
     :param activity:
@@ -97,7 +98,7 @@ def base_processors_template():
     }
 
 
-def interfaces():
+def interfaces_template():
     return {
         "Processor": None,
         "InterfaceType": None,
@@ -111,7 +112,7 @@ def interfaces():
         "I@compartment": None,
         "I@subcompartment": None,
         "Value": None,
-        "Unit": None,
+        "Unit": "",
         "RelativeTo": None,
         "Uncertainty": "",
         "Assessment": "",
@@ -187,7 +188,6 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
         interface_type_new_rows.append(new_row)
 
     unique_bareprocessors = set(nis_dataframes.bare_processors_df["Processor"].unique())
-    activity
     # # difference between the two sets
     # missing_interface_types = lci_interface_types - unique_interface_types
     # # get the rows, where the interface type is missing
@@ -203,53 +203,77 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
         }}
         bareprocessor_new_rows.append(new_row)
 
+    new_interface_rows = []
+    print(lci_result)
+
+    # TODO
+    # find the main_name...
+    # and add the first row for it
+    main_row = {
+        "Orientation": "Output",
+    }
+    for row in lci_result.iterrows():
+        new_interface_rows.append({**interfaces_template(),
+                                   "Processor": get_nis_name(activity["name"]),
+                                   "InterfaceType": row["name"],
+                                   "Interface": None,
+                                   "Orientation": "Input",
+                                   "I@compartment": None,
+                                   "I@subcompartment": None,
+                                   "Value": None,
+                                   "Unit": None,
+                                   "RelativeTo": None, #
+                                   "Source": "BW",
+                                   })
+
+    # interface_type_new_rows
+    # bareprocessor_new_rows
+
 
 if __name__ == "__main__":
     projects = bd.projects
 
     bd.projects.set_current("uab_bw_ei39")
-
-    if False:
-
-        print(bd.databases)
-        bi.bw2setup()
-
-        eis = [
-            {
-                "folder": "ecoinvent 3.9.1_cutoff_ecoSpold02",
-                "db_name": "ei391"
-            },
-            {
-                "folder": "ecoinvent 3.9_cutoff_ecoSpold02",
-                "db_name": "ei39"
-            }
-        ]
-        for ei in eis:
-            if ei["db_name"] not in bd.databases:
-                print(f"importing {ei['db_name']}")
-                im = SingleOutputEcospold2Importer(
-                    (base_data_path / f"ecoinvent/{ei['folder']}/datasets").as_posix(),
-                    ei["db_name"])
-                im.apply_strategies()
-                if im.statistics()[2] == 0:
-                    im.write_database()
-                else:
-                    print("unlinked exchanges")
-
+    #
+    # if False:
+    #
+    #     print(bd.databases)
+    #     bi.bw2setup()
+    #
+    #     eis = [
+    #         {
+    #             "folder": "ecoinvent 3.9.1_cutoff_ecoSpold02",
+    #             "db_name": "ei391"
+    #         },
+    #         {
+    #             "folder": "ecoinvent 3.9_cutoff_ecoSpold02",
+    #             "db_name": "ei39"
+    #         }
+    #     ]
+    #     for ei in eis:
+    #         if ei["db_name"] not in bd.databases:
+    #             print(f"importing {ei['db_name']}")
+    #             im = SingleOutputEcospold2Importer(
+    #                 (base_data_path / f"ecoinvent/{ei['folder']}/datasets").as_posix(),
+    #                 ei["db_name"])
+    #             im.apply_strategies()
+    #             if im.statistics()[2] == 0:
+    #                 im.write_database()
+    #             else:
+    #                 print("unlinked exchanges")
+    #
     activities = bd.Database("ei39").search("heat and power co-generation, oil", filter={"location": "PT"})
     activity = activities[0]
 
-    print(f"random activity: {activity}")
-    nis_file = "/mnt/SSD/projects/LIVENLab/enbios2/data/enbios/_1_/output/output.xlsx"
+    nis_file = base_data_path / "enbios/_1_/output/output.xlsx"
 
     dataframes = read_exising_nis_file(nis_file)
-    print("")
 
     lci_result = export_solved_inventory(activity,
                                          ('CML v4.8 2016', 'acidification',
                                           'acidification (incl. fate, average Europe total, A&B)'),
                                          "test.xlsx")
-
-    lci_result = pd.read_excel("test.xlsx")
-
+    #
+    # lci_result = pd.read_excel("test.xlsx")
+    #
     insert_activity_processor(activity, dataframes, lci_result)

@@ -1,4 +1,3 @@
-from pathlib import Path
 
 from enbios.input.data_preparation.lci_to_nis import spold2nis
 from enbios2.const import BASE_DATA_PATH
