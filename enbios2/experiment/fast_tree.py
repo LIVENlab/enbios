@@ -2,8 +2,6 @@ from bw2data.backends import ActivityDataset, ExchangeDataset, Activity
 from bw2data import Database, databases, methods, config, projects
 
 
-
-
 print(projects)
 projects.set_current("uab_bw_ei39")
 db = Database("ei391")
@@ -12,17 +10,20 @@ random_act = db.random()
 
 def check_unique_codes():
     activity_codes = [a.code for a in ActivityDataset.select(ActivityDataset.code)]
-    print(len(activity_codes), len(set(activity_codes)))
     assert len(activity_codes) == len(set(activity_codes))
 
 
-def get_tree(code: str, keep_exchange_type: list[str] = None):
+def get_tree(code: str, keep_exchange_type: list[str] = None, check_unique_code: bool = True):
     """
     Get all nodes that are connected to the given node. (as inputs)
     :param code: root code
     :param keep_exchange_type: keep the exchanges of the given type
+    :param check_unique_code: check if the codes are unique
     :return:
     """
+    if check_unique_code:
+        check_unique_codes()
+
     visited = set()
 
     to_visit = {code}
@@ -45,6 +46,8 @@ def get_tree(code: str, keep_exchange_type: list[str] = None):
         print(len(visited), len(to_visit), len(all_exchanges))
     return visited, all_exchanges
 
+
 print(random_act)
+
 
 visited, exchanges = get_tree(random_act.key[1], ["technosphere"])
