@@ -35,7 +35,6 @@ from enbios.input.simulators.single_csv import AllInACSV
 from enbios.model import SimStructuralProcessorAttributes, g_default_subtech
 from enbios.processing import read_parse_configuration, read_submit_solve_nis_file
 
-
 #####################################################
 # MAIN ENTRY POINT  #################################
 #####################################################
@@ -44,9 +43,9 @@ _idx_cols = [REGION, SCENARIO, SUBSCENARIO, TECHNOLOGY, SUBTECHNOLOGY, "model", 
 
 
 def parallelizable_process_fragment(param: Tuple[str,  # Fragment label
-                                                 Dict[str, str],  # Fragment dict
-                                                 Dict[str, Set[str]],  #
-                                                 List[SimStructuralProcessorAttributes]],
+Dict[str, str],  # Fragment dict
+Dict[str, Set[str]],  #
+List[SimStructuralProcessorAttributes]],
                                     s_state: bytes,
                                     output_dir: str,
                                     development_nis_file: str,
@@ -151,7 +150,7 @@ def parallelizable_process_fragment(param: Tuple[str,  # Fragment label
     print(f"Fragment processed in {end - start} seconds ---------------------------------------")
     write_outputs(outputs)
     start = time.time()  # Time also output writing
-    print(f"Fragment outputs written in {start-end} seconds to output dir: {output_dir}")
+    print(f"Fragment outputs written in {start - end} seconds to output dir: {output_dir}")
 
 
 class Enviro:
@@ -189,7 +188,8 @@ class Enviro:
 
         return nis, lci_data_index, simulation
 
-    def generate_matcher_templates(self, combine_countries=False) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def generate_matcher_templates(self, combine_countries=False) -> Tuple[
+        pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Generate auxiliary DataFrames to help in the elaboration of:
           - correspondence file
@@ -217,7 +217,8 @@ class Enviro:
         block_types_df = pd.DataFrame()
         return lci_df, nis_df, correspondence_df, block_types_df
 
-    def _read_simulation_fragments(self, split_by_region=True, split_by_scenario=True, split_by_period=True, default_time=None):
+    def _read_simulation_fragments(self, split_by_region=True, split_by_scenario=True, split_by_period=True,
+                                   default_time=None):
 
         """
         Read simulation. Find fragments and then start an iteration on them
@@ -257,7 +258,8 @@ class Enviro:
             partial_key = {t[0]: t[1] for t in partition}
             procs = prd.get(partial_key)
             # Sweep "procs" and update periods, regions, scenarios, models and carriers
-            md = dict(periods=set(), regions=set(), scenarios=set(), models=set(), carriers=set(), techs=set(), flows=set())
+            md = dict(periods=set(), regions=set(), scenarios=set(), models=set(), carriers=set(), techs=set(),
+                      flows=set())
             accountable_procs = []
             for p in procs:
                 any_mandatory_not_found = False
@@ -397,12 +399,13 @@ class Enviro:
                 fragments = fragments[first_fragment:]
             else:
                 fragments = fragments[first_fragment:first_fragment + n_fragments]
-            logging.debug(f"{n_fragments} fragment{'s' if n_fragments > 1 else ''} will be processed, starting from fragment {first_fragment}")
+            logging.debug(
+                f"{n_fragments} fragment{'s' if n_fragments > 1 else ''} will be processed, starting from fragment {first_fragment}")
 
         # PROCESS FRAGMENTS - Sequential or embarrassingly parallel
         # If 0 -> find an appropriate number of CPUs to use. int(80% of # CPUs) if more than 4; 2 for 4; 1 for < 4
         if n_cpus == 0:
-            n_cpus = int(0.8*cpu_count()) if cpu_count() > 4 else 2 if cpu_count() == 4 else 1
+            n_cpus = int(0.8 * cpu_count()) if cpu_count() > 4 else 2 if cpu_count() == 4 else 1
 
         if n_cpus == 1:
             for i, (frag_label, partial_key, frag_metadata, frag_processors) in enumerate(fragments):
@@ -426,7 +429,8 @@ class Enviro:
                                     max_lci_interfaces=max_lci_interfaces, keep_fragment_file=keep_fragment_file),
                   fragments)
         # print time difference to start_time in minutes
-        print(f"Total time: {(time.time() - start_time) / 60} minutes")
+        diff = datetime.now() - start_time
+        print(f"minutes: {int(diff.seconds / 60)}:{(diff.seconds % 60)}")
 
 
 def run_nis_for_results(nis_file_name: Optional[str],
@@ -602,7 +606,8 @@ def process_fragment(base_serial_state: bytes,
         # SimProc(tech, carrier) ->(child-of)-> FunctMuSProc(ParentProc)
         # SimProc(tech, carrier) as StrucMuSProc(tech, carrier2)
 
-    def _find_lci_and_tech_processors(reg: PartialRetrievalDictionary, structural_procs, base_procs, p) -> Dict[Processor, List]:
+    def _find_lci_and_tech_processors(reg: PartialRetrievalDictionary, structural_procs, base_procs, p) -> Dict[
+        Processor, List]:
         """
         Find LCI Processor(s) which are assimilated to "p"
           - Processor "p" should exist, as Structural/not-Accounted, with a Parent, [with no Interfaces?]
@@ -617,6 +622,7 @@ def process_fragment(base_serial_state: bytes,
         :param p: Name of the target processor
         :return: List of matching LCI processors, None if "p" is not found; tech processor tech output variable name, desired output name (carrier name)
         """
+
         def _find_reference_lci_processor(target: Processor, lci_procs: Dict[str, Processor]):
             lci_proc = None
             ecospold_file = target.attributes.get("EcoinventFilename", "")
@@ -625,8 +631,8 @@ def process_fragment(base_serial_state: bytes,
                     if "." not in proc_name:
                         ecospold_file_2 = proc.attributes.get("EcoinventFilename", "")
                         if len(ecospold_file) > 10 and len(ecospold_file_2) > 10 and \
-                           (ecospold_file.lower() in ecospold_file_2.lower() or
-                           ecospold_file_2.lower() in ecospold_file.lower()):
+                                (ecospold_file.lower() in ecospold_file_2.lower() or
+                                 ecospold_file_2.lower() in ecospold_file.lower()):
                             lci_proc = proc
                             break
             return lci_proc
@@ -746,7 +752,7 @@ def process_fragment(base_serial_state: bytes,
         # Processors in the dendrogram into the region processor
         for reg in regions:
             clone_processors_list.append(["", reg, "", "", reg, "Functional", "Yes", "",
-                                         f"Country level processor, region '{reg}'", "", "", "", "", reg, reg])
+                                          f"Country level processor, region '{reg}'", "", "", "", "", reg, reg])
             considered = set()
             for p_name, proc in base_musiasem_procs.items():
                 if len(p_name.split(".")) > 1 and p_sim not in considered:
@@ -776,7 +782,7 @@ def process_fragment(base_serial_state: bytes,
             for c in carriers:
                 if r_[-1].endswith(c):
                     nc = len(c)
-                    return f"{'.'.join(r_[:-1])}.{r_[-1][:-nc-1]}", r_[-1][-nc:]
+                    return f"{'.'.join(r_[:-1])}.{r_[-1][:-nc - 1]}", r_[-1][-nc:]
         else:
             return p, ""
 
@@ -1078,7 +1084,8 @@ def process_fragment(base_serial_state: bytes,
                 "iamccode", matching_not_accounted_reference_tech.full_hierarchy_name.replace(".", "|"))
 
             # Add PROCESSOR(S)
-            name, parent = _add_processor(p_sim, musiasem_matches, processors, already_added_processors, techs_used_in_regions, context)
+            name, parent = _add_processor(p_sim, musiasem_matches, processors, already_added_processors,
+                                          techs_used_in_regions, context)
 
             # Add INTERFACES (FROM Simulation AND FROM LCI), if we had a processor added (a name)
             if name:  # At least a match? -> add Interfaces, combining
@@ -1106,7 +1113,8 @@ def process_fragment(base_serial_state: bytes,
             issues, new_state, ds = run_nis_for_results(nis_file_name, development_nis_file, state, _)
             if ds:
                 outputs["indicators"] = ds[0]
-                outputs["iamc_indicators"] = _prepare_iamc_dataframe_fragment(state, ds[0], iamc_codes_techs, fragment_metadata)
+                outputs["iamc_indicators"] = _prepare_iamc_dataframe_fragment(state, ds[0], iamc_codes_techs,
+                                                                              fragment_metadata)
                 print(f"File processing done, shape of 'Indicators' dataset: {ds[0].shape}, "
                       f"shape of IAMC dataset: {outputs['iamc_indicators'].shape}")
                 if generate_interface_results:
@@ -1116,7 +1124,8 @@ def process_fragment(base_serial_state: bytes,
                 outputs["global_indicators"] = ds[-1]
             else:
                 print(f"There were issues processing fragment file: {nis_file_name}")
-                print_issues("Solving fragment", nis_file_name, issues, f"Please check the issues resulting from solving fragment '{nis_file_name}'")
+                print_issues("Solving fragment", nis_file_name, issues,
+                             f"Please check the issues resulting from solving fragment '{nis_file_name}'")
 
         finally:
             if not keep_fragment_file:
