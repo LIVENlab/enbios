@@ -4,6 +4,7 @@ import operator
 import os
 import sys
 import time
+from datetime import datetime
 from multiprocessing import Pool, cpu_count
 import itertools
 
@@ -320,6 +321,9 @@ class Enviro:
         :param keep_fragment_file: If True, do not remove the minimal NIS file generated and submitted to NIS
         :return:
         """
+        #  print time just hour, minute and seconds
+        start_time = datetime.now()
+        print(f"Starting ENVIRO at {start_time.strftime('%H:%M:%S')}")
 
         output_dir = self._cfg["output_directory"]
         if not os.path.isabs(output_dir):
@@ -421,6 +425,8 @@ class Enviro:
                                     generate_indicators=generate_indicators,
                                     max_lci_interfaces=max_lci_interfaces, keep_fragment_file=keep_fragment_file),
                   fragments)
+        # print time difference to start_time in minutes
+        print(f"Total time: {(time.time() - start_time) / 60} minutes")
 
 
 def run_nis_for_results(nis_file_name: Optional[str],
