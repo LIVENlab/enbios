@@ -16,7 +16,6 @@ output_path = base_data_path / "/enbios/bw2nis"
 
 ureg = pint.UnitRegistry()
 
-
 def long_to_short_unit(long_unit):
     try:
         unit = ureg[long_unit]
@@ -59,6 +58,38 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...],
         df.to_excel(out_path)
     return df
 
+def export_solved_inventory(activity: Activity, method: tuple[str, ...],
+                            out_path: Optional[str] = None) -> pd.DataFrame:
+    """
+    All credits to Ben Portner.
+    :param activity:
+    :param method:
+    :param out_path:
+    :return:
+    """
+    # print("calculating lci")
+    lca = activity.lca(method, 1)
+    lca.lci()
+    array = lca.inventory.sum(axis=1)
+    if hasattr(lca, 'dicts'):
+        mapping = lca.dicts.technosphere
+    else:
+        mapping = lca.technosphere_mm
+    data = []
+    for key, row in mapping.items():
+        amount = array[row, 0]
+        data.append((bd.get_activity(key), row, amount))
+    data.sort(key=lambda x: abs(x[2]))
+    df = pd.DataFrame([{
+        'row_index': row,
+        'amount': amount,
+        'name': flow.get('name'),
+        'unit': flow.get('unit'),
+        'categories': str(flow.get('categories'))
+    } for flow, row, amount in data])
+    if out_path:
+        df.to_excel(out_path)
+    return df
 
 def interface_type_template():
     return {
@@ -238,31 +269,20 @@ if __name__ == "__main__":
     # if False:
     #
     #     print(bd.databases)
-    #     bi.bw2setup()
-    #
-    #     eis = [
-    #         {
-    #             "folder": "ecoinvent 3.9.1_cutoff_ecoSpold02",
-    #             "db_name": "ei391"
-    #         },
-    #         {
-    #             "folder": "ecoinvent 3.9_cutoff_ecoSpold02",
-    #             "db_name": "ei39"
-    #         }
-    #     ]
-    #     for ei in eis:
-    #         if ei["db_name"] not in bd.databases:
-    #             print(f"importing {ei['db_name']}")
-    #             im = SingleOutputEcospold2Importer(
-    #                 (base_data_path / f"ecoinvent/{ei['folder']}/datasets").as_posix(),
-    #                 ei["db_name"])
-    #             im.apply_strategies()
-    #             if im.statistics()[2] == 0:
-    #                 im.write_database()
-    #             else:
-    #                 print("unlinked exchanges")
-    #
-    activities = bd.Database("ei39").search("heat and power co-generation, oil", filter={"location": "PT"})
+    bi.bw2setup()
+
+    if "ei39" not in bd.databases:
+        im = SingleOutputEcospold2Importer(
+                        (base_data_path / f"ecoinvent/ecoinvent 3.9_cutoff_ecoSpold02/datasets").as_posix(),
+                        "ei39")
+
+        im.apply_strategies()
+        if im.statistics()[2] == 0:
+            im.write_database()
+        else:
+            print("unlinked exchanges")
+
+    activities = bd.Database("ei39",).search("heat and power co-generation, oil", filter={"location": "PT"})
     activity = activities[0]
 
     nis_file = base_data_path / "enbios/_1_/output/output.xlsx"
