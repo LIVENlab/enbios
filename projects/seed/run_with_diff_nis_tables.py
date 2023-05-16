@@ -34,10 +34,11 @@ def update_nis_table(nis_file_path: Path) -> None:
     assert sheet["C1"].value == "Interface"
 
     # row 2 cuz, 1 are the header and 2. is the reference interface, which is always 1
-    for row in sheet.iter_rows(values_only=True, min_row=3):
-        interface = row[2]
-        value = row[11]
+    for row in sheet.iter_rows(min_row=3):
+        interface = row[2].value
+        # value = row[11]
         # make a lookup in the nis file
+        # value.value =
     workbook.save(filename=config_data["nis_table"])
 
 
