@@ -29,6 +29,7 @@ def update_nis_table(nis_file_path: Path) -> None:
 def get_sorted_nis_update_files() -> list[Path]:
     # todo: implement
     pass
+    return [Path("/")]
 
 
 def update_config_field(field, value):
