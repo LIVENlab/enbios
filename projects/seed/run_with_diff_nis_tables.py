@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-import pandas as pd
 
 import yaml
 from openpyxl.reader.excel import load_workbook
@@ -28,6 +27,8 @@ def update_nis_table(nis_file_path: Path) -> None:
     # 1. read the nis file
     # 2. update the nis table (in base.json:nis_table)
     # open excel file on specific sheet
+
+    data = json.load(nis_file_path.read_text())
     workbook = load_workbook(filename=config_data["nis_table"])
     sheet = workbook["Interfaces"]
     assert sheet["L1"].value == "Value"
@@ -38,7 +39,7 @@ def update_nis_table(nis_file_path: Path) -> None:
         interface = row[2].value
         # value = row[11]
         # make a lookup in the nis file
-        # value.value =
+        row[11].value = data[interface]
     workbook.save(filename=config_data["nis_table"])
 
 
@@ -84,6 +85,7 @@ def run_with_diff_nis_tables():
         print("Running scenario", index)
         update_nis_table(nis_file)
         update_config_field("output_directory", update_output_path(index).as_posix())
+        t.set_cfg_file_path(cfg_file_path.as_posix())
         # t.compute_indicators_from_base_and_simulation(keep_fragment_file=False)
 
 
