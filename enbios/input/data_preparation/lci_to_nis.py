@@ -358,7 +358,7 @@ def spold2nis(default_output_interface: str,
     :return: None
     """
 
-
+    os.makedirs(Path(output_file).parent.as_posix(), exist_ok=True)
     # FUNCTION STARTS HERE -----------------
     issues = []
 

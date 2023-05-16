@@ -20,6 +20,7 @@ from nexinfosys.command_generators.parser_field_parsers import string_to_ast, ar
 
 from nexinfosys.common.helper import PartialRetrievalDictionary, any_error_issue, create_dictionary
 from nexinfosys.embedded_nis import NIS
+from nexinfosys.globalConfig import GlobalConfig
 from nexinfosys.model_services import State
 from nexinfosys.models.musiasem_concepts import Processor, ProcessorsRelationPartOfObservation, Indicator, \
     FactorQuantitativeObservation
@@ -160,6 +161,7 @@ class Enviro:
 
     def set_cfg_file_path(self, cfg_file_path):
         self._cfg = read_parse_configuration(cfg_file_path)
+        GlobalConfig.config = self._cfg
         self._cfg_file_path = os.path.realpath(cfg_file_path) if isinstance(cfg_file_path, str) else None
         if "simulation_files_path" in self._cfg:
             self._simulation_files_path = self._cfg["simulation_files_path"]
@@ -323,7 +325,7 @@ class Enviro:
         if not os.path.isabs(output_dir):
             output_dir = os.path.join(os.path.dirname(self._cfg_file_path), output_dir)
 
-        print(f"output_dir: {output_dir}")
+        # print(f"output_dir: {output_dir}")
         os.makedirs(output_dir, exist_ok=True)
 
         # Prepare Base

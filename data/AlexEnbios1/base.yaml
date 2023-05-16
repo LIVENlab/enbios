@@ -1,6 +1,7 @@
-nis_file_location: "https://docs.google.com/spreadsheets/d/1qWWF40CqK_WzvZiJLmidMBupOWRhUupH4WtUBR7u9Z8/edit?usp=sharing"
+nis_file_location: "/home/ra/PycharmProjects/enbios2/data/AlexEnbios1/BASELINE_UPDATE_APOS.xlsx"
 development_nis_file_location: "https://docs.google.com/spreadsheets/d/1pkQ4SnYtQzfMP5XL6MZvp9RZABEjESWBLDQZUDSfafI/edit?usp=sharing"
 correspondence_files_path: ""
 simulation_type: single_csv
 simulation_files_path: /home/ra/PycharmProjects/enbios2/data/AlexEnbios1/data_.csv
 output_directory: /home/ra/PycharmProjects/enbios2/data/AlexEnbios1/output
+nis_table: /home/ra/PycharmProjects/enbios2/data/AlexEnbios1/lci_to_nis.xlsx

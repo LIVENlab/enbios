@@ -4,13 +4,16 @@ from enbios2.bw2.bw_autoimporter import get_bw_importer
 from enbios2.models.project import BWProject, BWProjectDatabase
 
 import bw2data as bd
-# import bw2calc as bc
 import bw2io as bi
-# import matrix_utils as mu
-# import bw_processing as bp
 
 
-def setup_bw_project(project: BWProject, require_fresh : bool = False) -> None:
+def setup_bw_project(project: BWProject, require_fresh: bool = False) -> None:
+    """
+    Setup a Brightway2 project and import databases
+    :param project:
+    :param require_fresh:
+    :return:
+    """
     print(f"Setup {project.project_name}")
     if project.project_name in bd.projects:
         if require_fresh:
@@ -42,6 +45,3 @@ def setup_bw_db(db: BWProjectDatabase):
     # print(type(imported))
     if imported.all_linked:
         imported.write_database()
-
-
-#
