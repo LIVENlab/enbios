@@ -64,8 +64,10 @@ def run_with_diff_nis_tables():
     nis_files = get_sorted_nis_update_files()
 
     for index, nis_file in enumerate(nis_files):
+        print("Running scenario", index)
         update_nis_table(nis_file)
         update_config_field("output_directory", update_output_path(index).as_posix())
         t.compute_indicators_from_base_and_simulation(keep_fragment_file=False)
 
 
+run_with_diff_nis_tables()
