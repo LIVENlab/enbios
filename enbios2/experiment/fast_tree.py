@@ -18,9 +18,9 @@ def check_unique_codes():
 
 def get_tree(code: str, keep_exchange_type: list[str] = None):
     """
-    Get all nodes that are related
-    :param code:
-    :param keep_exchange_type:
+    Get all nodes that are connected to the given node. (as inputs)
+    :param code: root code
+    :param keep_exchange_type: keep the exchanges of the given type
     :return:
     """
     visited = set()
