@@ -2,9 +2,9 @@ from bw2data.backends import ActivityDataset, ExchangeDataset, Activity
 from bw2data import Database, databases, methods, config, projects
 
 
-print(projects)
-projects.set_current("uab_bw_ei39")
-db = Database("ei391")
+# print(projects)
+projects.set_current("ecoi_dbs")
+db = Database("cutoff391")
 random_act = db.random()
 
 
@@ -30,12 +30,12 @@ def get_tree(code: str, keep_exchange_type: list[str] = None, check_unique_code:
     to_visit = {code}
     # nodes to visit in the next iteration
     to_visit_next = set()
-    # all exchanges (eventually filtered by type)
-    all_exchanges = []
+    # all exchanges (eventually filtered by type). just ids for memory efficiency
+    all_exchanges: list[int] = []
 
     while len(to_visit):
         # get all exchanges that we could currently reach
-        exchanges = list(ExchangeDataset.select().where(ExchangeDataset.output_code.in_(to_visit)))
+        exchanges = list(ExchangeDataset.select(ExchangeDataset.id, ExchangeDataset.input_code).where(ExchangeDataset.output_code.in_(to_visit)))
         # add nodes that we did not visit yet for the next iteration
         for exc in exchanges:
             if exc.input_code not in visited:
@@ -44,19 +44,19 @@ def get_tree(code: str, keep_exchange_type: list[str] = None, check_unique_code:
         visited.update(to_visit)
         # save exchanges
         if not keep_exchange_type:
-            all_exchanges.extend(exchanges)
+            all_exchanges.extend([e.id for e in exchanges])
         else:
-            all_exchanges.extend([exc for exc in exchanges if exc.type in keep_exchange_type])
+            all_exchanges.extend([exc.id for exc in exchanges if exc.type in keep_exchange_type])
         # update nodes to visit for next iteration
         to_visit = to_visit_next.copy()
         # reset nodes to visit in next iteration
         to_visit_next.clear()
 
-        print(len(visited), len(to_visit), len(all_exchanges))
+        print(f"visited: {len(visited)}, total exchanges: {len(all_exchanges)}, next nodes: {len(to_visit)}")
     return visited, all_exchanges
 
 
 print(random_act)
 
 
-visited, exchanges = get_tree(random_act["code"], ["technosphere"])
+visited, exchanges = get_tree(random_act["code"])
