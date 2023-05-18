@@ -1,20 +1,19 @@
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 
-import openpyxl
+import bw2data as bd
 import pandas as pd
 import pint
 from bw2data.backends import Activity
-import bw2data as bd
-import bw2io as bi
 from bw2io import SingleOutputEcospold2Importer
 
-base_data_path = Path("/mnt/SSD/projects/LIVENLab/enbios2/data")
-output_path = base_data_path / "/enbios/bw2nis"
+from enbios2.const import BASE_DATA_PATH
+
+output_path = BASE_DATA_PATH / "/enbios/bw2nis"
 
 ureg = pint.UnitRegistry()
+
 
 def long_to_short_unit(long_unit):
     try:
@@ -38,10 +37,11 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...],
     lca = activity.lca(method, 1)
     lca.lci()
     array = lca.inventory.sum(axis=1)
+    lca.load_lci_data()
     if hasattr(lca, 'dicts'):
         mapping = lca.dicts.biosphere
     else:
-        mapping = lca.biosphere_dict
+        mapping = lca.biosphere_mm
     data = []
     for key, row in mapping.items():
         amount = array[row, 0]
@@ -58,38 +58,6 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...],
         df.to_excel(out_path)
     return df
 
-def export_solved_inventory(activity: Activity, method: tuple[str, ...],
-                            out_path: Optional[str] = None) -> pd.DataFrame:
-    """
-    All credits to Ben Portner.
-    :param activity:
-    :param method:
-    :param out_path:
-    :return:
-    """
-    # print("calculating lci")
-    lca = activity.lca(method, 1)
-    lca.lci()
-    array = lca.inventory.sum(axis=1)
-    if hasattr(lca, 'dicts'):
-        mapping = lca.dicts.technosphere
-    else:
-        mapping = lca.technosphere_mm
-    data = []
-    for key, row in mapping.items():
-        amount = array[row, 0]
-        data.append((bd.get_activity(key), row, amount))
-    data.sort(key=lambda x: abs(x[2]))
-    df = pd.DataFrame([{
-        'row_index': row,
-        'amount': amount,
-        'name': flow.get('name'),
-        'unit': flow.get('unit'),
-        'categories': str(flow.get('categories'))
-    } for flow, row, amount in data])
-    if out_path:
-        df.to_excel(out_path)
-    return df
 
 def interface_type_template():
     return {
@@ -206,8 +174,10 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
 
     interface_type_new_rows = []
     for new_type in rows_to_add.iterrows():
-        # print(new_type)
+        print(new_type)
         row = new_type[1]
+        if row["amount"] == 0.0:
+            continue
         new_row = {**interface_type_template(), **{
             "InterfaceType": get_nis_name(row["name"]),
             "Sphere": "Biosphere",
@@ -237,23 +207,24 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
     new_interface_rows = []
     print(lci_result)
 
-    # TODO
-    # find the main_name...
     # and add the first row for it
+    main_name = get_nis_name("_".join(activity._data["synonyms"]))
     main_row = {
         "Orientation": "Output",
     }
     for row in lci_result.iterrows():
+        print(row)
+        data = row[1]
         new_interface_rows.append({**interfaces_template(),
                                    "Processor": get_nis_name(activity["name"]),
-                                   "InterfaceType": row["name"],
+                                   "InterfaceType": data["name"],
                                    "Interface": None,
                                    "Orientation": "Input",
                                    "I@compartment": None,
                                    "I@subcompartment": None,
-                                   "Value": None,
+                                   "Value": data["amount"],
                                    "Unit": None,
-                                   "RelativeTo": None, #
+                                   "RelativeTo": main_name,  #
                                    "Source": "BW",
                                    })
 
@@ -265,16 +236,13 @@ if __name__ == "__main__":
     projects = bd.projects
 
     bd.projects.set_current("uab_bw_ei39")
-    #
-    # if False:
-    #
-    #     print(bd.databases)
-    bi.bw2setup()
+
+    # bi.bw2setup()
 
     if "ei39" not in bd.databases:
         im = SingleOutputEcospold2Importer(
-                        (base_data_path / f"ecoinvent/ecoinvent 3.9_cutoff_ecoSpold02/datasets").as_posix(),
-                        "ei39")
+            (BASE_DATA_PATH / f"ecoinvent/ecoinvent 3.9_cutoff_ecoSpold02/datasets").as_posix(),
+            "ei39")
 
         im.apply_strategies()
         if im.statistics()[2] == 0:
@@ -282,10 +250,10 @@ if __name__ == "__main__":
         else:
             print("unlinked exchanges")
 
-    activities = bd.Database("ei39",).search("heat and power co-generation, oil", filter={"location": "PT"})
-    activity = activities[0]
+    # "heat and power co-generation, oil", filter={"location": "PT"}
+    activity = bd.Database("ei39", ).get("c36ee6e6d94bdd5edc0f861a3ff50c3c")
 
-    nis_file = base_data_path / "enbios/_1_/output/output.xlsx"
+    nis_file = BASE_DATA_PATH / "enbios/_1_/output/output.xlsx"
 
     dataframes = read_exising_nis_file(nis_file)
 
