@@ -1,10 +1,8 @@
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 
 import bw2data as bd
-import bw2io as bi
 import pandas as pd
 import pint
 from bw2data.backends import Activity
@@ -16,6 +14,7 @@ output_path = BASE_DATA_PATH / "/enbios/bw2nis"
 
 ureg = pint.UnitRegistry()
 
+
 def long_to_short_unit(long_unit):
     try:
         unit = ureg[long_unit]
@@ -23,7 +22,6 @@ def long_to_short_unit(long_unit):
     except (KeyError, ValueError):
         short_unit = long_unit  # If the long_unit is not recognized, return it as-is.
     return short_unit
-
 
 
 def export_solved_inventory(activity: Activity, method: tuple[str, ...],
@@ -39,10 +37,11 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...],
     lca = activity.lca(method, 1)
     lca.lci()
     array = lca.inventory.sum(axis=1)
+    lca.load_lci_data()
     if hasattr(lca, 'dicts'):
-        mapping = lca.dicts.technosphere
+        mapping = lca.dicts.biosphere
     else:
-        mapping = lca.technosphere_mm
+        mapping = lca.biosphere_mm
     data = []
     for key, row in mapping.items():
         amount = array[row, 0]
@@ -177,6 +176,8 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
     for new_type in rows_to_add.iterrows():
         print(new_type)
         row = new_type[1]
+        if row["amount"] == 0.0:
+            continue
         new_row = {**interface_type_template(), **{
             "InterfaceType": get_nis_name(row["name"]),
             "Sphere": "Biosphere",
@@ -212,16 +213,18 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
         "Orientation": "Output",
     }
     for row in lci_result.iterrows():
+        print(row)
+        data = row[1]
         new_interface_rows.append({**interfaces_template(),
                                    "Processor": get_nis_name(activity["name"]),
-                                   "InterfaceType": row["name"],
+                                   "InterfaceType": data["name"],
                                    "Interface": None,
                                    "Orientation": "Input",
                                    "I@compartment": None,
                                    "I@subcompartment": None,
-                                   "Value": None,
+                                   "Value": data["amount"],
                                    "Unit": None,
-                                   "RelativeTo": None, #
+                                   "RelativeTo": main_name,  #
                                    "Source": "BW",
                                    })
 
@@ -234,12 +237,12 @@ if __name__ == "__main__":
 
     bd.projects.set_current("uab_bw_ei39")
 
-    bi.bw2setup()
+    # bi.bw2setup()
 
     if "ei39" not in bd.databases:
         im = SingleOutputEcospold2Importer(
-                        (BASE_DATA_PATH / f"ecoinvent/ecoinvent 3.9_cutoff_ecoSpold02/datasets").as_posix(),
-                        "ei39")
+            (BASE_DATA_PATH / f"ecoinvent/ecoinvent 3.9_cutoff_ecoSpold02/datasets").as_posix(),
+            "ei39")
 
         im.apply_strategies()
         if im.statistics()[2] == 0:
@@ -248,8 +251,7 @@ if __name__ == "__main__":
             print("unlinked exchanges")
 
     # "heat and power co-generation, oil", filter={"location": "PT"}
-    activities = bd.Database("ei39",).get("c36ee6e6d94bdd5edc0f861a3ff50c3c")
-    activity = activities[0]
+    activity = bd.Database("ei39", ).get("c36ee6e6d94bdd5edc0f861a3ff50c3c")
 
     nis_file = BASE_DATA_PATH / "enbios/_1_/output/output.xlsx"
 
