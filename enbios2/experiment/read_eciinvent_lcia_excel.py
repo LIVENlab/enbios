@@ -1,57 +1,26 @@
 from pathlib import Path
 
 import openpyxl
-from peewee import TextField, Model, UUIDField, FloatField, SqliteDatabase
+from playhouse.shortcuts import model_to_dict
 from tqdm import tqdm
 
 from enbios2.const import BASE_DATA_PATH
-from enbios2.experiment.databases import add_db, DBTypes
-from sqlite import TupleJSONField
-
-
-class ActivityLCI(Model):
-    code = UUIDField(unique=True)
-    name = TextField(index=True)
-    location = TextField()
-    product = TextField()
-    product_unit = TextField()
-    amount = FloatField()
-    data = TupleJSONField()
-
-    class Meta:
-        pass
-
-
-class ExchangeInfo(Model):
-    exchange_name = TextField()
-    compartment_name = TextField()
-    sub_compartment_name = TextField()
-    unit = TextField()
-
-    class Meta:
-        pass
-
-
-
-
-def set_db_meta(db_path: Path):
-    db = SqliteDatabase(db_path)
-    ActivityLCI._meta.database = db
-    ExchangeInfo._meta.database = db
+from enbios2.experiment.databases import add_db, DBTypes, check_exists, set_db_meta, get_model_classes, \
+    prepare_db
+from enbios2.experiment.db_models import ActivityLCI, ExchangeInfo
 
 
 def create(file_path: Path, name: str, force_redo: bool = False):
-    db = SqliteDatabase(BASE_DATA_PATH / f"databases/{file_path.stem}.sqlite")
-
-    ActivityLCI._meta.database = db
-    ExchangeInfo._meta.database = db
+    db_path = BASE_DATA_PATH / f"databases/{name}.sqlite"
+    db_model_classes = get_model_classes(DBTypes.LCI)
+    db = set_db_meta(db_path, db_model_classes)
 
     db.connect()
 
     if force_redo:
-        db.drop_tables([ActivityLCI, ExchangeInfo])
+        db.drop_tables(db_model_classes)
 
-    db.create_tables([ActivityLCI, ExchangeInfo, Metadata])
+    db.create_tables(db_model_classes)
 
     # count the rows
     activity_count = ActivityLCI.select().count()
@@ -68,8 +37,8 @@ def create(file_path: Path, name: str, force_redo: bool = False):
         units = next(row_generator)[6:]
 
         for index, _ in enumerate(exchange_names):
-            ExchangeInfo(exchange_name=exchange_names[index], compartment_name=compartment_names[index],
-                         sub_compartment_name=sub_compartment_names[index], unit=units[index]).save()
+            ExchangeInfo(exchange=exchange_names[index], compartment=compartment_names[index],
+                         sub_compartment=sub_compartment_names[index], unit=units[index]).save()
 
         fields = list(ActivityLCI._meta.fields.keys())[1:]
         for activities in tqdm(row_generator):
@@ -79,18 +48,30 @@ def create(file_path: Path, name: str, force_redo: bool = False):
             db_activity.save()
 
     else:
-        print("Database already exists")
+        print(f"Database '{name}' already exists")
     db.close()
 
-    add_db(name, BASE_DATA_PATH / f"databases/{file_path.stem}.sqlite",
-           DBTypes.LCI, {"orig_file_name": file_path.name})
+    add_db(name, db_path, DBTypes.LCI.value, {"orig_file_name": file_path.name})
 
 
-def get(db_name: str, code: str):
-
+def get_lci(db_name: str, code: str, drop_zero: bool = False):
+    if not check_exists(db_name):
+        raise ValueError(f"Database '{db_name}' does not exist")
+    prepare_db(db_name)
     activity = ActivityLCI.get(ActivityLCI.code == code)
-    return activity
+    exchange_info = ExchangeInfo.select()
+    lci = []
+    for index, e in enumerate(exchange_info):
+        value = activity.data[index]
+        if drop_zero and value == 0:
+            continue
+        exchange_data = model_to_dict(e, exclude=[ActivityLCI.id])
+        exchange_data["value"] = value
+        lci.append(exchange_data)
+    return lci
 
 
-create(BASE_DATA_PATH / "ecoinvent/ecoinvent 3.9.1_cutoff_cumulative_lci_xlsx/Cut-off Cumulative LCI v3.9.1.xlsx",
-       "ecoinvent3.9.1.cut-off")
+# create(BASE_DATA_PATH / "ecoinvent/ecoinvent 3.9.1_cutoff_cumulative_lci_xlsx/Cut-off Cumulative LCI v3.9.1.xlsx",
+#        "ecoinvent3.9.1.cut-off.lci")
+
+a = get_lci("ecoinvent3.9.1.cut-off.lci", "739f38ee-b726-5bc5-b12e-8bb2df5a268c_b7b72951-a57c-4364-9b49-ea3c7cb03d00")
