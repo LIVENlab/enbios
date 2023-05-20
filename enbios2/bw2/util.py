@@ -60,3 +60,12 @@ def iter_activities_by_codes(codes: Iterator[str], batch_size: int = 1000) -> Ge
             yield act
         if last_batch:
             break
+
+
+def get_activity(code: str) -> Activity:
+    """
+    Get activity by code
+    :param code:
+    :return:
+    """
+    return Activity(ActivityDataset.get(ActivityDataset.code == code))

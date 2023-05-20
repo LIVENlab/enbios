@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import bw2data as bd
+import bw2io as bi
 import pandas as pd
 import pint
 from bw2data.backends import Activity
@@ -42,6 +43,40 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...],
         mapping = lca.dicts.biosphere
     else:
         mapping = lca.biosphere_mm
+    data = []
+    for key, row in mapping.items():
+        amount = array[row, 0]
+        data.append((bd.get_activity(key), row, amount))
+    data.sort(key=lambda x: abs(x[2]))
+    df = pd.DataFrame([{
+        'row_index': row,
+        'amount': amount,
+        'name': flow.get('name'),
+        'unit': flow.get('unit'),
+        'categories': str(flow.get('categories'))
+    } for flow, row, amount in data])
+    if out_path:
+        df.to_excel(out_path)
+    return df
+
+
+def export_solved_inventory(activity: Activity, method: tuple[str, ...],
+                            out_path: Optional[str] = None) -> pd.DataFrame:
+    """
+    All credits to Ben Portner.
+    :param activity:
+    :param method:
+    :param out_path:
+    :return:
+    """
+    # print("calculating lci")
+    lca = activity.lca(method, 1)
+    lca.lci()
+    array = lca.inventory.sum(axis=1)
+    if hasattr(lca, 'dicts'):
+        mapping = lca.dicts.biosphere
+    else:
+        mapping = lca.biosphere_dict
     data = []
     for key, row in mapping.items():
         amount = array[row, 0]
@@ -235,33 +270,33 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
 if __name__ == "__main__":
     projects = bd.projects
 
-    bd.projects.set_current("uab_bw_ei39")
+    bd.projects.set_current("ecoi_dbs")
 
-    # bi.bw2setup()
-
-    if "ei39" not in bd.databases:
-        im = SingleOutputEcospold2Importer(
-            (BASE_DATA_PATH / f"ecoinvent/ecoinvent 3.9_cutoff_ecoSpold02/datasets").as_posix(),
-            "ei39")
-
+    generate = False
+    if generate:
+        bi.bw2setup()
+        if "ei39" not in bd.databases:
+            im = SingleOutputEcospold2Importer(
+                (BASE_DATA_PATH / f"ecoinvent/ecoinvent 3.9_cutoff_ecoSpold02/datasets").as_posix(),
+                "ei39")
         im.apply_strategies()
         if im.statistics()[2] == 0:
             im.write_database()
         else:
             print("unlinked exchanges")
-
-    # "heat and power co-generation, oil", filter={"location": "PT"}
-    activity = bd.Database("ei39", ).get("c36ee6e6d94bdd5edc0f861a3ff50c3c")
-
+    #
+    # activities = bd.Database("cutoff391",).search("heat and power co-generation, oil", filter={"location": "PT"})
+    # activity = activities[0]
+    # print(activity._document.code)
+    activity = bd.Database("cutoff391", ).get("a8fe0b37705fe611fac8004ca6cb1afd")
+    #
+    #
     nis_file = BASE_DATA_PATH / "enbios/_1_/output/output.xlsx"
-
+    #
     dataframes = read_exising_nis_file(nis_file)
-
+    #
     lci_result = export_solved_inventory(activity,
                                          ('CML v4.8 2016', 'acidification',
                                           'acidification (incl. fate, average Europe total, A&B)'),
                                          "test.xlsx")
-    #
-    # lci_result = pd.read_excel("test.xlsx")
-    #
     insert_activity_processor(activity, dataframes, lci_result)
