@@ -1,35 +1,64 @@
 import functools
+from pathlib import Path
 from typing import Optional, Any
 
+from enbios2.experiment.tree_transformer import tree_to_csv
+from enbios2.generic.tree.basic_tree import BasicTreeNode
 
-class HierarchyNode:
+
+class HierarchyNode(BasicTreeNode):
+    """
+
+    Attributes:
+    ----------
+    name : str
+        The name of the node.
+
+    children : list["HierarchyNode"]
+        The child nodes of this node.
+
+    value : float, optional
+        The value associated with this node.
+
+    parent : HierarchyNode, optional
+        The parent node of this node. None if this node is the root.
+    """
 
     def __init__(self, name: str, children: Optional[list["HierarchyNode"]] = (), value: Optional[float] = None):
-        self.name: str = name
-        self.children: list[HierarchyNode] = []
+        """
+        Initialize the HierarchyNode.
+
+        :param name: The name of the node.
+        :param children: A list of child nodes (default is an empty list).
+        :param value: The value associated with the node (default is None).
+        """
+        # call super constructor
+        super().__init__(name, children)
+        self.value: float = value
+        self.children: list["HierarchyNode"] = []  # Override children type
         for child in children:
             self.add_child(child)
-        self.value: float = value
         self.parent: Optional[HierarchyNode] = None
 
-    def __setattr__(self, key, value):
-        if key == "value":
-            super().__setattr__('value', value)
-        else:
-            super().__setattr__(key, value)
+        self.value: float = value
+
+    def add_child(self, node: "HierarchyNode"):  # Override add_child method
+        self.children.append(node)
 
     @property
     def value_set(self):
         return self.value is not None
 
-    def is_leaf(self):
-        return not self.children
-
-    def add_child(self, node: "HierarchyNode"):
-        self.children.append(node)
-        node.parent = self
-
     def calc(self, ignore_missing_values: bool = False):
+        """
+        Calculate the value of the current node. If it has children,
+        the value is the sum of the values of the children.
+
+        :param ignore_missing_values: Whether to ignore missing values when
+                                      calculating (default is False).
+        :return: The calculated value.
+        """
+
         if (not self.children) and (not self.value_set) and (not ignore_missing_values):
             raise ValueError(
                 f"Hierarchy node '{self.name}': {self.location_names()} must either have children or have its value set")
@@ -43,83 +72,26 @@ class HierarchyNode:
             return 0
 
     def as_dict(self) -> dict[str, Any]:
+        """
+        Convert the hierarchy from this node down into a dictionary.
+
+        :return: The dictionary representing the hierarchy.
+        """
 
         def rec_build_dict(node: HierarchyNode) -> dict:
-            return {"children": {
-                child.name: rec_build_dict(child)
-                for child in node.children
-            }, "value": node.value}
+            return {
+                "name": node.name,
+                "children": {
+                    child.name: rec_build_dict(child)
+                    for child in node.children
+                }, "value": node.value}
 
         return {self.name: rec_build_dict(self)}
 
-    def location(self) -> list["HierarchyNode"]:
-        nodes: list[HierarchyNode] = []
-        current = self
-        while current:
-            nodes.append(current)
-            current = current.parent
-        return list(reversed(nodes))
+    def to_csv(self, file_path: Path):
+        """
+        Write the hierarchy to a csv file.
 
-    def location_names(self) -> list[str]:
-        nodes: list[str] = []
-        current = self
-        while current:
-            nodes.append(current.name)
-            current = current.parent
-        return list(reversed(nodes))
-
-    def assert_all_names_unique(self):
-        all_names: set = set()
-
-        def rec_assert_unique_name(node: HierarchyNode):
-            if node.name in all_names:
-                print(node.name)
-            assert node.name not in all_names, f"{node.name} seems to appear twice"
-            all_names.add(node.name)
-            for child in node.children:
-                rec_assert_unique_name(child)
-
-        rec_assert_unique_name(self)
-
-    def join_tree(self, node: "HierarchyNode", remove_from_original_root: bool = True):
-        for child in node.children:
-            self.add_child(child)
-        if remove_from_original_root:
-            node.children.clear()
-
-    def find_child_by_name(self, name: str, recursive: bool = True) -> Optional["HierarchyNode"]:
-
-        def rec_find_child(node: HierarchyNode) -> Optional["HierarchyNode"]:
-            if node.name == name:
-                return node
-            for child in node.children:
-                found_node = rec_find_child(child)
-                if found_node:
-                    return found_node
-
-        if not recursive:
-            for node in [self] + self.children:
-                if node.name == name:
-                    return node
-            return None
-
-        return rec_find_child(self)
-
-    def get_leaves(self) -> list["HierarchyNode"]:
-
-        def rec_get_leaves(node: HierarchyNode) -> list["HierarchyNode"]:
-            if not node.children:
-                return [node]
-            else:
-                _leaves: list[HierarchyNode] = []
-                for _child in node.children:
-                    _leaves.extend(rec_get_leaves(_child))
-                return _leaves
-
-        all_leaves: list["HierarchyNode"] = []
-        for child in self.children:
-            all_leaves.extend(rec_get_leaves(child))
-        return all_leaves
-
-    def __repr__(self) -> str:
-        return f"[{self.name} - {len(self.children)} children {'(' + self.parent.name + ')' if self.parent else ''}]"
+        :param file_path: The path to the csv file.
+        """
+        tree_to_csv(self.as_dict()[self.name], file_path, ["value"])
