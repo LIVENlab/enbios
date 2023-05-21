@@ -4,6 +4,8 @@ from typing import Dict, Union, List
 
 from pandas import DataFrame
 
+from enbios2.analyse.experiment import Experiment
+
 
 # from const import processor_col, value_col
 
