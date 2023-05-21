@@ -1,4 +1,7 @@
+from pathlib import Path
 from typing import Optional, Any
+
+from enbios2.experiment.tree_transformer import tree_to_csv
 
 
 class BasicTreeNode:
@@ -193,3 +196,11 @@ class BasicTreeNode:
         :return: String representation of the object.
         """
         return f"[{self.name} - {len(self.children)} children {'(' + self.parent.name + ')' if self.parent else ''}]"
+
+    def to_csv(self, file_path: Path, **kwargs):
+        """
+        Write the hierarchy to a csv file.
+
+        :param file_path: The path to the csv file.
+        """
+        tree_to_csv(self.as_dict()[self.name], file_path, **kwargs)

@@ -78,8 +78,9 @@ def tree_to_csv(root: dict, csv_file: Path, include_attrs, level_names: list[str
         _sub_rows = []
         for child in node.get("children", {}).values():
             _sub_rows.extend(rec_add_node_row(child, current_level + 1))
+        if _sub_rows:
             if merge_first_sub_row:
-                row = { **row, **_sub_rows[0]}
+                row = {**row, **_sub_rows[0]}
                 _sub_rows = _sub_rows[1:]
             if repeat_parent_name:
                 for sub_row in _sub_rows:
@@ -95,8 +96,27 @@ def tree_to_csv(root: dict, csv_file: Path, include_attrs, level_names: list[str
         writer.writerows(rows)
 
 
-json_file = BASE_DATA_PATH / "temp/miquel_upscaling/complete.json"
-print(json_file.exists())
-root = json.load(json_file.open())["impacts"]
-tree_to_csv(root,
-            BASE_DATA_PATH / "temp/miquel_upscaling/complete.csv", ["value"], repeat_parent_name=True)
+# json_file = BASE_DATA_PATH / "temp/miquel_upscaling/complete.json"
+# print(json_file.exists())
+# root = json.load(json_file.open())["impacts"]
+# tree_to_csv({
+#     "name": "root",
+#     "children": {
+#         "a": {
+#             "name": "a",
+#             "children": {
+#                 "a1": {
+#                     "name": "a1",
+#                     "children": {}
+#                 },
+#                 "a2": {
+#                     "name": "a2",
+#                     "children": {}
+#                 }
+#             }
+#         },
+#         "b": {
+#             "name": "b",
+#             "children": {}}}},
+#     BASE_DATA_PATH / "temp/miquel_upscaling/test.csv", ["value"], repeat_parent_name=False,
+#     merge_first_sub_row=True)

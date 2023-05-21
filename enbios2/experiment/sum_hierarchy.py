@@ -88,10 +88,14 @@ class HierarchyNode(BasicTreeNode):
 
         return {self.name: rec_build_dict(self)}
 
-    def to_csv(self, file_path: Path):
+    def to_csv(self, file_path: Path, **kwargs):
         """
         Write the hierarchy to a csv file.
 
         :param file_path: The path to the csv file.
         """
-        tree_to_csv(self.as_dict()[self.name], file_path, ["value"])
+        include_attrs = {"value"}
+        if "include_attrs" in kwargs:
+            include_attrs.update(kwargs["include_attrs"])
+            del kwargs["include_attrs"]
+        tree_to_csv(self.as_dict()[self.name], file_path, list(include_attrs), **kwargs)
