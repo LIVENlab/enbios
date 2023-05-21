@@ -1,5 +1,6 @@
+import csv
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 
 from enbios2.experiment.tree_transformer import tree_to_csv
 
@@ -34,8 +35,6 @@ class BasicTreeNode:
             self.add_child(child)
         self.parent: Optional[BasicTreeNode] = None
 
-
-
     @property
     def is_leaf(self):
         """
@@ -53,8 +52,6 @@ class BasicTreeNode:
         """
         self.children.append(node)
         node.parent = self
-
-
 
     def as_dict(self) -> dict[str, Any]:
         """
@@ -113,6 +110,23 @@ class BasicTreeNode:
                 rec_assert_unique_name(child)
 
         rec_assert_unique_name(self)
+
+    def make_names_unique(self, strategy: Literal["parent_name"] = "parent_name"):
+
+        if strategy == "parent_name":
+            names_map: dict[str, BasicTreeNode] = {}
+
+            def rec_make_names_unique(node: BasicTreeNode):
+                orig_name = node.name
+                if orig_name in names_map:
+                    node.name = f"{node.parent.name}_{node.name}"
+                    other = names_map[orig_name]
+                    other.name = f"{other.parent.name}_{other.name}"
+                names_map[orig_name] = node
+                for child in node.children:
+                    rec_make_names_unique(child)
+
+            rec_make_names_unique(self)
 
     def join_tree(self, node: "BasicTreeNode", remove_from_original_root: bool = True):
         """
@@ -181,6 +195,7 @@ class BasicTreeNode:
 
         :return: The depth of this node.
         """
+
         def calc_max_depth(node):
             if not node.children:
                 return 1
@@ -204,3 +219,24 @@ class BasicTreeNode:
         :param file_path: The path to the csv file.
         """
         tree_to_csv(self.as_dict()[self.name], file_path, **kwargs)
+
+    def to_sanky_tree(self, file_path: Path, value_key: str = "value"):
+        """
+        Write the hierarchy to a csv file.
+
+        :param file_path: The path to the csv file.
+        """
+
+        def rec_add_link_row(node, writer: csv.DictWriter, level: int = 0):
+            for child in node.children:
+                writer.writerow({"source": node.name,
+                                 "target": child.name,
+                                 "value": getattr(child, value_key, 0),
+                                 "target_level": level + 1})
+                rec_add_link_row(child, writer, level + 1)
+
+        with file_path.open("w", encoding="utf-8") as fout:
+            writer = csv.DictWriter(fout,
+                                    fieldnames=["source", "target", "value", "target_level"])
+            writer.writeheader()
+            rec_add_link_row(self, writer)

@@ -44,6 +44,7 @@ class HierarchyNode(BasicTreeNode):
 
     def add_child(self, node: "HierarchyNode"):  # Override add_child method
         self.children.append(node)
+        node.parent = self
 
     @property
     def value_set(self):
@@ -99,3 +100,5 @@ class HierarchyNode(BasicTreeNode):
             include_attrs.update(kwargs["include_attrs"])
             del kwargs["include_attrs"]
         tree_to_csv(self.as_dict()[self.name], file_path, list(include_attrs), **kwargs)
+
+
