@@ -47,6 +47,14 @@ class BasicTreeNode:
         """
         return not self.children
 
+    @property
+    def level(self) -> int:
+        """
+        Get the level of this node in the tree. The root node has level 0.
+        :return: level of this node
+        """
+        return len(self.location()) - 1
+
     def add_child(self, node: "BasicTreeNode"):
         """
         Add a child node to this node.
@@ -124,13 +132,6 @@ class BasicTreeNode:
 
         rec_assert_unique_name(self)
 
-    @property
-    def level(self) -> int:
-        """
-        Get the level of this node in the tree. The root node has level 0.
-        :return: level of this node
-        """
-        return len(self.location()) - 1
 
     def make_names_unique(self, strategy: Literal["parent_name"] = "parent_name"):
         """
@@ -234,14 +235,6 @@ class BasicTreeNode:
 
         return calc_max_depth(self)
 
-    def __repr__(self) -> str:
-        """
-        Get0 the  string representation of the node
-
-        :return: String representation of the object.
-        """
-        return f"[{self.name} - {len(self.children)} children{' (' + self.parent.name + ')' if self.parent else ''}]"
-
     def to_csv(self, file_path: Path, **kwargs):
         """
         Write the hierarchy to a csv file.
@@ -271,20 +264,6 @@ class BasicTreeNode:
             writer.writeheader()
             rec_add_link_row(self, writer)
 
-    def __contains__(self, item: Union[str, "BasicTreeNode"]) -> bool:
-        """
-        Check if a given item is a child of this node.
-        :param item: The item or name to check.
-        :return: bool, True if the item is a child of this node, False otherwise.
-        """
-        # print(item)
-        if isinstance(item, BasicTreeNode) or issubclass(type(item), BasicTreeNode):
-            item = item.name
-        for child_name in self.get_child_names():
-            if child_name == item:
-                return True
-        return False
-
     def get_child_names(self) -> list[str]:
         """
         Get the names of all children of this node.
@@ -298,27 +277,6 @@ class BasicTreeNode:
         :return: The number of children of this node.
         """
         return len(self)
-
-    def __len__(self):
-        """
-        Get the number of children of this node.
-        :return: The number of children of this node.
-        """
-        return len(self.children)
-
-    def __getitem__(self, item: Union[int, str]) -> "BasicTreeNode":
-        """
-        Get a child node by its index or name.
-        Throws KeyError or IndexError if the child is not found.
-        :param item: int index or name of the child node.
-        :return: Childr node.
-        """
-        if isinstance(item, str):
-            for child in self.children:
-                if child.name == item:
-                    return child
-            raise KeyError(f"Node {self.name} has no child with name {item}")
-        return self.children[item]
 
     def collect_all_nodes_at_level(self, level: int):
         """
@@ -401,6 +359,73 @@ class BasicTreeNode:
             # print(node_names)
 
         return root
+
+    def get_child(self, child_index_name: Union[int, str]) -> "BasicTreeNode":
+        """
+        Get a child node by its index or name.
+        Throws KeyError or IndexError if the child is not found.
+        :param child_index_name: int index or name of the child node.
+        :return: Child node.
+        """
+        return self[child_index_name]
+
+    def contains(self, item: Union[str, "BasicTreeNode"]) -> bool:
+        """
+        Check if a given item is a child of this node. calls "item in self"
+        :param item: The item or name to check.
+        :return: bool, True if the item is a child of this node, False otherwise.
+        """
+        return item in self
+
+    def __len__(self):
+        """
+        Get the number of children of this node.
+        :return: The number of children of this node.
+        """
+        return len(self.children)
+
+    def __getitem__(self, item: Union[int, str]) -> "BasicTreeNode":
+        """
+        Get a child node by its index or name.
+        Throws KeyError or IndexError if the child is not found.
+        :param item: int index or name of the child node.
+        :return: Child node.
+        """
+        if isinstance(item, str):
+            for child in self.children:
+                if child.name == item:
+                    return child
+            raise KeyError(f"Node {self.name} has no child with name {item}")
+        return self.children[item]
+
+    def __contains__(self, item: Union[str, "BasicTreeNode"]) -> bool:
+        """
+        Check if a given item is a child of this node.
+        :param item: The item or name to check.
+        :return: bool, True if the item is a child of this node, False otherwise.
+        """
+        # print(item)
+        if isinstance(item, BasicTreeNode) or issubclass(type(item), BasicTreeNode):
+            item = item.name
+        for child_name in self.get_child_names():
+            if child_name == item:
+                return True
+        return False
+
+    def __repr__(self) -> str:
+        """
+        Get0 the  string representation of the node
+
+        :return: String representation of the object.
+        """
+        return f"[{self.name} - {len(self.children)} children{' (' + self.parent.name + ')' if self.parent else ''}]"
+
+    def __bool__(self):
+        """
+        this prevents that 'if not node' is true for a node that has no children
+        :return:
+        """
+        return True
 
 
 if __name__ == "__main__":
