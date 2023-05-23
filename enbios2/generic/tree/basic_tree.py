@@ -1,7 +1,8 @@
 import csv
-import json
+from base64 import b64encode
 from pathlib import Path
 from typing import Optional, Any, Literal, Union, Generator
+from uuid import uuid4
 
 from enbios2.experiment.tree_transformer import tree_to_csv
 
@@ -23,7 +24,7 @@ class BasicTreeNode:
         The parent node of this node. None if this node is the root.
     """
 
-    def __init__(self, name: str, children: list["BasicTreeNode"] = ()):
+    def __init__(self, name: str, children: list["BasicTreeNode"] = (), create_id: bool = False):
         """
         Initialize the HierarchyNode.
 
@@ -36,6 +37,7 @@ class BasicTreeNode:
             self.add_child(child)
         self.parent: Optional[BasicTreeNode] = None
         self._data: dict[str, Any] = {}
+        self._id = b64encode(uuid4().bytes) if create_id else None
 
     @property
     def is_leaf(self):
@@ -60,7 +62,7 @@ class BasicTreeNode:
 
         :param node: The node to be added as a child.
         """
-        if node in self:
+        if node is self or node in self:
             raise ValueError(f"Node {node} is already a child of {self}")
         self.children.append(node)
         node.parent = self
@@ -71,14 +73,12 @@ class BasicTreeNode:
 
         :return: The dictionary representing the hierarchy.
         """
-
-        def rec_build_dict(node: BasicTreeNode) -> dict:
-            return {"children": {
-                child.name: rec_build_dict(child)
-                for child in node.children
-            }}
-
-        return {self.name: rec_build_dict(self)}
+        return {
+            "name": self.name,
+            "children": {
+                child.name: child.as_dict() for child in self.children
+            }
+        }
 
     def location(self) -> list["BasicTreeNode"]:
         """
@@ -131,7 +131,6 @@ class BasicTreeNode:
 
         rec_assert_unique_name(self)
 
-
     def make_names_unique(self, strategy: Literal["parent_name"] = "parent_name"):
         """
         Make all names in the tree unique. The strategy parameter determines how this is done.
@@ -152,13 +151,15 @@ class BasicTreeNode:
 
                 while len(set((n.name for n in nodes))) != len(nodes):
                     for node in nodes:
+                        if parent_level > node.level:
+                            raise ValueError(
+                                f"Cannot make names unique for {name} because it is not unique at level {parent_level}")
                         new_name = node.name
                         p = node
                         for i in range(parent_level):
                             p = p.parent
                             new_name = f"{p._data['orig_name']}_{new_name}"
                         node.name = new_name
-                    json.dump([[n._data['orig_name'], n.name] for n in nodes], open(f"rename_{parent_level}.json", "w"))
                     parent_level += 1
                 break
 
@@ -240,7 +241,7 @@ class BasicTreeNode:
 
         :param file_path: The path to the csv file.
         """
-        tree_to_csv(self.as_dict()[self.name], file_path, **kwargs)
+        tree_to_csv(self.as_dict(), file_path, **kwargs)
 
     def to_sanky_tree(self, file_path: Path, value_key: str = "value"):
         """
@@ -327,7 +328,7 @@ class BasicTreeNode:
     def from_csv(csv_file: Path,
                  node_columns: list[str] = None,
                  merged_first_sub_row: bool = True) -> "BasicTreeNode":
-        reader = csv.DictReader(csv_file.open("r", encoding="utf-8"))
+        reader: csv.DictReader = csv.DictReader(csv_file.open("r", encoding="utf-8"))
         if not node_columns:
             node_columns = reader.fieldnames
 
