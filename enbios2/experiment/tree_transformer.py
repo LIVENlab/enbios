@@ -60,9 +60,11 @@ def build_tree_from_csv(csv_file: Path, level_cols: list[str], attr_maps: dict[s
 import csv
 
 
-def tree_to_csv(root: dict, csv_file: Path, include_attrs, level_names: list[str] = None,
+def tree_to_csv(root: dict, csv_file: Path, include_attrs=None, level_names: list[str] = None,
                 merge_first_sub_row: bool = False, repeat_parent_name: bool = False):
     # Calculate max_depth based on root if not provided
+    if include_attrs is None:
+        include_attrs = []
     _total_level_names = level_names if level_names else []
 
     def level_name(level: int) -> str:
