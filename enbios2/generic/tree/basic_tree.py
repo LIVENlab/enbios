@@ -1,13 +1,15 @@
 import csv
+import json
 from pathlib import Path
-from typing import Optional, Any, Literal
+from typing import Optional, Any, Literal, Union, Generator
 
+from enbios2.const import BASE_DATA_PATH
 from enbios2.experiment.tree_transformer import tree_to_csv
 
 
 class BasicTreeNode:
     """
-    The `HierarchyNode` class represents a node in a tree hierarchy. Each node has a name,
+    The `BasicTreeNode` class represents a node in a tree hierarchy. Each node has a name,
     can have zero or more children.
 
     Attributes:
@@ -34,6 +36,7 @@ class BasicTreeNode:
         for child in children:
             self.add_child(child)
         self.parent: Optional[BasicTreeNode] = None
+        self._data: dict[str, Any] = {}
 
     @property
     def is_leaf(self):
@@ -50,6 +53,8 @@ class BasicTreeNode:
 
         :param node: The node to be added as a child.
         """
+        if node in self:
+            raise ValueError(f"Node {node} is already a child of {self}")
         self.children.append(node)
         node.parent = self
 
@@ -76,7 +81,7 @@ class BasicTreeNode:
         """
         nodes: list[BasicTreeNode] = []
         current = self
-        while current:
+        while current is not None:
             nodes.append(current)
             current = current.parent
         return list(reversed(nodes))
@@ -93,6 +98,14 @@ class BasicTreeNode:
             nodes.append(current.name)
             current = current.parent
         return list(reversed(nodes))
+
+    def location_id(self) -> str:
+        """
+        Get the ids of the nodes in the path from the root to this node.
+
+        :return: List of ids representing the path from the root to this node.
+        """
+        return "_".join(self.location_names())
 
     def assert_all_names_unique(self):
         """
@@ -111,22 +124,43 @@ class BasicTreeNode:
 
         rec_assert_unique_name(self)
 
+    @property
+    def level(self) -> int:
+        """
+        Get the level of this node in the tree. The root node has level 0.
+        :return: level of this node
+        """
+        return len(self.location()) - 1
+
     def make_names_unique(self, strategy: Literal["parent_name"] = "parent_name"):
+        """
+        Make all names in the tree unique. The strategy parameter determines how this is done.
+        Currently, there is just one strategy, which is to prefix the name with the name of the parent
+        :param strategy:
+        """
 
         if strategy == "parent_name":
-            names_map: dict[str, BasicTreeNode] = {}
+            name_map: dict[str, list[BasicTreeNode]] = {}
+            for node in self.collect_all_nodes():
+                node._data["orig_name"] = node.name
+                name_map.setdefault(node.name, []).append(node)
 
-            def rec_make_names_unique(node: BasicTreeNode):
-                orig_name = node.name
-                if orig_name in names_map:
-                    node.name = f"{node.parent.name}_{node.name}"
-                    other = names_map[orig_name]
-                    other.name = f"{other.parent.name}_{other.name}"
-                names_map[orig_name] = node
-                for child in node.children:
-                    rec_make_names_unique(child)
+            for name, nodes in name_map.items():
+                if len(nodes) == 1:
+                    continue
+                parent_level: int = 1
 
-            rec_make_names_unique(self)
+                while len(set((n.name for n in nodes))) != len(nodes):
+                    for node in nodes:
+                        new_name = node.name
+                        p = node
+                        for i in range(parent_level):
+                            p = p.parent
+                            new_name = f"{p._data['orig_name']}_{new_name}"
+                        node.name = new_name
+                    json.dump([[n._data['orig_name'], n.name] for n in nodes], open(f"rename_{parent_level}.json", "w"))
+                    parent_level += 1
+                break
 
     def join_tree(self, node: "BasicTreeNode", remove_from_original_root: bool = True):
         """
@@ -168,26 +202,22 @@ class BasicTreeNode:
 
         return rec_find_child(self)
 
-    def get_leaves(self) -> list["BasicTreeNode"]:
+    def get_leaves(self) -> Generator["BasicTreeNode", None, None]:
         """
         Get all leaf nodes of this node.
 
         :return: List of all leaf nodes.
         """
 
-        def rec_get_leaves(node: BasicTreeNode) -> list["BasicTreeNode"]:
+        def rec_get_leaves(node: BasicTreeNode) -> Generator["BasicTreeNode", None, None]:
             if not node.children:
-                return [node]
+                yield node
             else:
-                _leaves: list[BasicTreeNode] = []
                 for _child in node.children:
-                    _leaves.extend(rec_get_leaves(_child))
-                return _leaves
+                    yield from rec_get_leaves(_child)
 
-        all_leaves: list["BasicTreeNode"] = []
         for child in self.children:
-            all_leaves.extend(rec_get_leaves(child))
-        return all_leaves
+            yield from rec_get_leaves(child)
 
     def depth(self) -> int:
         """
@@ -210,7 +240,7 @@ class BasicTreeNode:
 
         :return: String representation of the object.
         """
-        return f"[{self.name} - {len(self.children)} children {'(' + self.parent.name + ')' if self.parent else ''}]"
+        return f"[{self.name} - {len(self.children)} children{' (' + self.parent.name + ')' if self.parent else ''}]"
 
     def to_csv(self, file_path: Path, **kwargs):
         """
@@ -223,8 +253,8 @@ class BasicTreeNode:
     def to_sanky_tree(self, file_path: Path, value_key: str = "value"):
         """
         Write the hierarchy to a csv file.
-
         :param file_path: The path to the csv file.
+        :param value_key: The key to use for the value of the links.
         """
 
         def rec_add_link_row(node, writer: csv.DictWriter, level: int = 0):
@@ -240,3 +270,142 @@ class BasicTreeNode:
                                     fieldnames=["source", "target", "value", "target_level"])
             writer.writeheader()
             rec_add_link_row(self, writer)
+
+    def __contains__(self, item: Union[str, "BasicTreeNode"]) -> bool:
+        """
+        Check if a given item is a child of this node.
+        :param item: The item or name to check.
+        :return: bool, True if the item is a child of this node, False otherwise.
+        """
+        # print(item)
+        if isinstance(item, BasicTreeNode) or issubclass(type(item), BasicTreeNode):
+            item = item.name
+        for child_name in self.get_child_names():
+            if child_name == item:
+                return True
+        return False
+
+    def get_child_names(self) -> list[str]:
+        """
+        Get the names of all children of this node.
+        :return: The names of all children of this node.
+        """
+        return [child.name for child in self.children]
+
+    def get_num_children(self) -> int:
+        """
+        Get the number of children of this node.
+        :return: The number of children of this node.
+        """
+        return len(self)
+
+    def __len__(self):
+        """
+        Get the number of children of this node.
+        :return: The number of children of this node.
+        """
+        return len(self.children)
+
+    def __getitem__(self, item: Union[int, str]) -> "BasicTreeNode":
+        """
+        Get a child node by its index or name.
+        Throws KeyError or IndexError if the child is not found.
+        :param item: int index or name of the child node.
+        :return: Childr node.
+        """
+        if isinstance(item, str):
+            for child in self.children:
+                if child.name == item:
+                    return child
+            raise KeyError(f"Node {self.name} has no child with name {item}")
+        return self.children[item]
+
+    def collect_all_nodes_at_level(self, level: int):
+        """
+        Collect all nodes at a given level.
+
+        :param level: The level of the nodes to be collected.
+        :return: List of nodes at the given level.
+        """
+        if level == 0:
+            return [self]
+        else:
+            nodes = []
+            for child in self.children:
+                nodes.extend(child.collect_all_nodes_at_level(level - 1))
+            return nodes
+
+    def get_sub_tree(self, max_level: int) -> "BasicTreeNode":
+        """
+        Get a subtree of the current tree.
+        Creates a copy of the tree.
+
+        :param max_level: The maximum level of the subtree.
+        :return: The subtree.
+        """
+
+        def rec_get_sub_tree(node: BasicTreeNode, max_level: int, **kwargs) -> BasicTreeNode:
+
+            if max_level == 0:
+                return BasicTreeNode(node.name, **{k: getattr(node, k) for k in kwargs})
+            else:
+                sub_tree = BasicTreeNode(node.name)
+                for child in node.children:
+                    sub_tree.add_child(child.get_sub_tree(max_level - 1))
+                return sub_tree
+
+        return rec_get_sub_tree(self, max_level)
+
+    def collect_all_nodes(self) -> Generator["BasicTreeNode", None, None]:
+        """
+        Collect all nodes of the tree.
+        :return: Generator of all nodes.
+        """
+        for _child in self.children:
+            yield from _child.collect_all_nodes()
+
+        yield self
+
+    @staticmethod
+    def from_csv(csv_file: Path,
+                 node_columns: list[str] = None,
+                 merged_first_sub_row: bool = True) -> "BasicTreeNode":
+        reader = csv.DictReader(csv_file.open("r", encoding="utf-8"))
+        if not node_columns:
+            node_columns = reader.fieldnames
+
+        root: Optional["BasicTreeNode"] = None
+        current_node: Optional["BasicTreeNode"] = None
+        for row in reader:
+            print(row)
+            if row[reader.fieldnames[0]]:
+                if not root:
+                    root = BasicTreeNode(row[reader.fieldnames[0]])
+                    current_node = root
+                    # print("root", root, root.level)
+                else:
+                    raise ValueError("Multiple root nodes found in csv file.")
+
+            new_node: Optional[BasicTreeNode] = None
+            for index, lvl_name in enumerate(node_columns):
+                if row[lvl_name].strip() == "":
+                    continue
+                if not current_node.level == index:
+                    raise ValueError(f"Node {current_node.name} has no parent at level {index + 1}")
+                new_node = BasicTreeNode(row[lvl_name])
+                current_node.add_child(new_node)
+                # print(new_node, new_node.level)
+                current_node = new_node
+            if new_node is not None:
+                current_node = new_node.parent
+            # print(node_names)
+
+        return root
+
+
+if __name__ == "__main__":
+    pass
+    # print(BasicTreeNode.from_csv(BASE_DATA_PATH / "temp/tree_create_test/a.csv").as_dict())
+    # print(BasicTreeNode.from_csv(BASE_DATA_PATH / "temp/tree_create_test/b.csv").as_dict())
+    # print(BasicTreeNode.from_csv(BASE_DATA_PATH / "temp/tree_create_test/b.csv", ["lvl0", "lvl1", "lvl2"]).as_dict())
+    # print(BasicTreeNode.from_csv(BASE_DATA_PATH / "temp/tree_create_test/b2.csv", ["lvl0", "lvl1", "lvl2"]).as_dict())
