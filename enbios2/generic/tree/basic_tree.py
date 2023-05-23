@@ -125,7 +125,7 @@ class BasicTreeNode:
                 orig_name = node.name
                 if orig_name in names_map:
                     node.name = f"{node.parent.name}_{node.name}"
-                    print(f"{orig_name} is in name-map: {node.name}")
+                    # print(f"{orig_name} is in name-map: {node.name}")
                     other = names_map[orig_name]
                     other.name = f"{other.parent.name}_{other.name}"
                 names_map[orig_name] = node
