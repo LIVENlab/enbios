@@ -3,7 +3,6 @@ import json
 from pathlib import Path
 from typing import Optional, Any, Literal, Union, Generator
 
-from enbios2.const import BASE_DATA_PATH
 from enbios2.experiment.tree_transformer import tree_to_csv
 
 
