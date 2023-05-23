@@ -1,4 +1,5 @@
 import csv
+import json
 from pathlib import Path
 from typing import Optional, Any, Literal, Union, Generator
 
@@ -96,6 +97,14 @@ class BasicTreeNode:
             current = current.parent
         return list(reversed(nodes))
 
+    def location_id(self) -> str:
+        """
+        Get the ids of the nodes in the path from the root to this node.
+
+        :return: List of ids representing the path from the root to this node.
+        """
+        return "_".join(self.location_names())
+
     def assert_all_names_unique(self):
         """
         Assert that all names in the tree are unique. Throws an exception
@@ -116,21 +125,33 @@ class BasicTreeNode:
     def make_names_unique(self, strategy: Literal["parent_name"] = "parent_name"):
 
         if strategy == "parent_name":
-            names_map: dict[str, BasicTreeNode] = {}
+            name_map: dict[str, list[BasicTreeNode]] = {}
+            for node in self.collect_all_nodes():
+                node.orig_name = node.name
+                name_map.setdefault(node.name, []).append(node)
 
-            def rec_make_names_unique(node: BasicTreeNode):
-                for child in node.children:
-                    rec_make_names_unique(child)
+            # print("name_map", name_map)
+            for name, nodes in name_map.items():
+                # print("****************")
+                if len(nodes) == 1:
+                    continue
+                # print(name, len(nodes))
+                parent_level: int = 1
 
-                orig_name = node.name
-                if orig_name in names_map:
-                    node.name = f"{node.parent.name}_{node.name}"
-                    # print(f"{orig_name} is in name-map: {node.name}")
-                    other = names_map[orig_name]
-                    other.name = f"{other.parent.name}_{other.name}"
-                names_map[orig_name] = node
-
-            rec_make_names_unique(self)
+                while len(set((n.name for n in nodes))) != len(nodes):
+                    # print("||||||||||||||")
+                    # print(set((n.name for n in nodes)), len(set((n.name for n in nodes))),len(nodes))
+                    for node in nodes:
+                        # print(node)
+                        new_name = node.name
+                        p = node
+                        for i in range(parent_level):
+                            p = p.parent
+                            new_name = f"{p.orig_name}_{new_name}"
+                        node.name = new_name
+                    json.dump([[n.orig_name, n.name] for n in nodes], open(f"rename_{parent_level}.json", "w"))
+                    parent_level += 1
+                break
 
     def join_tree(self, node: "BasicTreeNode", remove_from_original_root: bool = True):
         """
@@ -242,7 +263,7 @@ class BasicTreeNode:
             rec_add_link_row(self, writer)
 
     def __contains__(self, item: Union[str, "BasicTreeNode"]) -> bool:
-        print(item)
+        # print(item)
         if isinstance(item, BasicTreeNode) or issubclass(type(item), BasicTreeNode):
             item = item.name
         for child_name in self.get_child_names():
@@ -299,3 +320,9 @@ class BasicTreeNode:
                 return sub_tree
 
         return rec_get_sub_tree(self, max_level)
+
+    def collect_all_nodes(self) -> Generator["BasicTreeNode", None, None]:
+        for _child in self.children:
+            yield from _child.collect_all_nodes()
+
+        yield self
