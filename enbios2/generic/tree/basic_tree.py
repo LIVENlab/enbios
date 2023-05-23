@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Optional, Any, Literal
+from typing import Optional, Any, Literal, Union, Generator
 
 from enbios2.experiment.tree_transformer import tree_to_csv
 
@@ -50,6 +50,8 @@ class BasicTreeNode:
 
         :param node: The node to be added as a child.
         """
+        if node in self:
+            raise ValueError(f"Node {node} is already a child of {self}")
         self.children.append(node)
         node.parent = self
 
@@ -117,14 +119,16 @@ class BasicTreeNode:
             names_map: dict[str, BasicTreeNode] = {}
 
             def rec_make_names_unique(node: BasicTreeNode):
+                for child in node.children:
+                    rec_make_names_unique(child)
+
                 orig_name = node.name
                 if orig_name in names_map:
                     node.name = f"{node.parent.name}_{node.name}"
+                    print(f"{orig_name} is in name-map: {node.name}")
                     other = names_map[orig_name]
                     other.name = f"{other.parent.name}_{other.name}"
                 names_map[orig_name] = node
-                for child in node.children:
-                    rec_make_names_unique(child)
 
             rec_make_names_unique(self)
 
@@ -168,26 +172,22 @@ class BasicTreeNode:
 
         return rec_find_child(self)
 
-    def get_leaves(self) -> list["BasicTreeNode"]:
+    def get_leaves(self) -> Generator["BasicTreeNode", None, None]:
         """
         Get all leaf nodes of this node.
 
         :return: List of all leaf nodes.
         """
 
-        def rec_get_leaves(node: BasicTreeNode) -> list["BasicTreeNode"]:
+        def rec_get_leaves(node: BasicTreeNode) -> Generator["BasicTreeNode", None, None]:
             if not node.children:
-                return [node]
+                yield node
             else:
-                _leaves: list[BasicTreeNode] = []
                 for _child in node.children:
-                    _leaves.extend(rec_get_leaves(_child))
-                return _leaves
+                    yield from rec_get_leaves(_child)
 
-        all_leaves: list["BasicTreeNode"] = []
         for child in self.children:
-            all_leaves.extend(rec_get_leaves(child))
-        return all_leaves
+            yield from rec_get_leaves(child)
 
     def depth(self) -> int:
         """
@@ -210,7 +210,7 @@ class BasicTreeNode:
 
         :return: String representation of the object.
         """
-        return f"[{self.name} - {len(self.children)} children {'(' + self.parent.name + ')' if self.parent else ''}]"
+        return f"[{self.name} - {len(self.children)} children{' (' + self.parent.name + ')' if self.parent else ''}]"
 
     def to_csv(self, file_path: Path, **kwargs):
         """
@@ -240,3 +240,62 @@ class BasicTreeNode:
                                     fieldnames=["source", "target", "value", "target_level"])
             writer.writeheader()
             rec_add_link_row(self, writer)
+
+    def __contains__(self, item: Union[str, "BasicTreeNode"]) -> bool:
+        print(item)
+        if isinstance(item, BasicTreeNode) or issubclass(type(item), BasicTreeNode):
+            item = item.name
+        for child_name in self.get_child_names():
+            if child_name == item:
+                return True
+        return False
+
+    def get_child_names(self) -> list[str]:
+        return [child.name for child in self.children]
+
+    def get_num_children(self) -> int:
+        return len(self.children)
+
+    def __getitem__(self, item: Union[int, str]) -> "BasicTreeNode":
+        if isinstance(item, str):
+            for child in self.children:
+                if child.name == item:
+                    return child
+            raise KeyError(f"Node {self.name} has no child with name {item}")
+        return self.children[item]
+
+    def collect_all_nodes_at_level(self, level: int):
+        """
+        Collect all nodes at a given level.
+
+        :param level: The level of the nodes to be collected.
+        :return: List of nodes at the given level.
+        """
+        if level == 0:
+            return [self]
+        else:
+            nodes = []
+            for child in self.children:
+                nodes.extend(child.collect_all_nodes_at_level(level - 1))
+            return nodes
+
+    def get_sub_tree(self, max_level: int) -> "BasicTreeNode":
+        """
+        Get a subtree of the current tree.
+        Creates a copy of the tree.
+
+        :param max_level: The maximum level of the subtree.
+        :return: The subtree.
+        """
+
+        def rec_get_sub_tree(node: BasicTreeNode, max_level: int, **kwargs) -> BasicTreeNode:
+
+            if max_level == 0:
+                return BasicTreeNode(node.name, **{k: getattr(node, k) for k in kwargs})
+            else:
+                sub_tree = BasicTreeNode(node.name)
+                for child in node.children:
+                    sub_tree.add_child(child.get_sub_tree(max_level - 1))
+                return sub_tree
+
+        return rec_get_sub_tree(self, max_level)
