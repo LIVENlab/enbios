@@ -1,7 +1,7 @@
 from random import choice
 
 import pandas as pd
-from bw2calc import MultiLCA
+from bw2calc import LCA, MultiLCA
 from bw2data import calculation_setups
 
 import bw2data as bd
@@ -39,12 +39,22 @@ print("activities", rand_acts)
 print("methods", methods)
 
 res = run_multi_lca('test', rand_acts, methods)
-
 print(res)
 
+# one demand with 2 funcitonal unit ... short, bad looking code for {key1: value1, key2: value2}
+# lca = LCA(demand={list(a.keys())[0]: list(a.values())[0] for a in rand_acts}, method=methods[0], use_distributions=True)
+# lca.lci()
+# lca.lcia()
+#
+# # df = pd.DataFrame([{'score': lca.score} for _ in zip(lca, range(10))])
+# # print(df)
+# print(lca.score)
 """
 Also see:
 https://stackoverflow.com/questions/42984831/create-a-dataframe-from-multilca-results-in-brightway2
 A demand can already include multiple activities!
+
+also read...
 https://oie-mines-paristech.github.io/lca_algebraic/example-notebook.html
+https://github.com/brightway-lca/from-the-ground-up/blob/main/basic%20tasks/Searching.ipynb
 """
