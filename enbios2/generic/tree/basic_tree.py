@@ -38,7 +38,7 @@ class BasicTreeNode(Generic[T]):
         :param children: A list of child nodes (default is an empty list).
         """
         self._name: str = name
-        self.children: list[BasicTreeNode] = []
+        self.children: list[BasicTreeNode[T]] = []
         for child in children:
             self.add_child(child)
         self.parent: Optional[BasicTreeNode] = None
@@ -248,7 +248,7 @@ class BasicTreeNode(Generic[T]):
 
         return rec_find_child(self)
 
-    def get_leaves(self) -> Generator["BasicTreeNode", None, None]:
+    def get_leaves(self) -> Generator["BasicTreeNode[T]", None, None]:
         """
         Get all leaf nodes of this node.
 
@@ -459,7 +459,6 @@ class BasicTreeNode(Generic[T]):
     #     func(self)
     #     for child in self.children:
     #         child.recursive_apply(func)
-
     def get_child(self, child_index_name: Union[int, str]) -> "BasicTreeNode":
         """
         Get a child node by its index or name.
