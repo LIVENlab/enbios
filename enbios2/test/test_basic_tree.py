@@ -1,3 +1,5 @@
+from copy import copy
+
 import pytest
 
 from enbios2.generic.tree.basic_tree import BasicTreeNode
@@ -244,7 +246,7 @@ def test_get_sub_tree():
     assert all(child.is_leaf for child in sub_tree.children)
 
 
-def test_collect_all_nodes():
+def test_iter_all_nodes():
     root = BasicTreeNode("root", children=[
         BasicTreeNode("child1", children=[
             BasicTreeNode("grandchild1")
@@ -252,7 +254,7 @@ def test_collect_all_nodes():
         BasicTreeNode("child2")
     ])
 
-    all_nodes = list(root.collect_all_nodes())
+    all_nodes = list(root.iter_all_nodes())
     assert len(all_nodes) == 4
 
 
@@ -336,3 +338,113 @@ def test_repr():
 def test_bool():
     root = BasicTreeNode("root")
     assert bool(root) is True
+
+
+def test_copy():
+    node = BasicTreeNode("root")
+    copy = node.copy()
+    assert copy != node
+    assert copy.name == node.name
+    assert copy._id != node._id
+    assert copy.children == node.children
+
+
+def test_recursive_apply():
+    node = BasicTreeNode("root")
+    child1 = BasicTreeNode("child1")
+    node.add_child(child1)
+    child2 = BasicTreeNode("child2")
+    node.add_child(child2)
+
+    node.recursive_apply(lambda n: setattr(n, 'name', n.name.upper()))
+    assert node.name == "ROOT"
+    assert child1.name == "CHILD1"
+    assert child2.name == "CHILD2"
+
+
+def test_copy_and_merge():
+    node = BasicTreeNode("root")
+    child_names = ["child1", "child2"]
+    parent_name = "new_root"
+
+    new_root = node.copy_an_merge(child_names, parent_name)
+    assert new_root.name == parent_name
+    assert len(new_root.children) == 2
+    assert [child.name for child in new_root.children] == child_names
+
+
+def test_remove_child():
+    node = BasicTreeNode("root")
+    child1 = node.add_child(BasicTreeNode("child1"))
+    node.remove_child(child1)
+    assert len(node.children) == 0
+    assert child1.parent is None
+    node.add_child(child1)
+    assert child1.parent == node
+    node.remove_child(0)
+    assert len(node.children) == 0
+    assert child1.parent is None
+    with pytest.raises(IndexError):
+        node.remove_child(0)
+
+
+def test_clear():
+    node = BasicTreeNode("root")
+    child1 = node.add_child(BasicTreeNode("child1"))
+    node.add_child(BasicTreeNode("child2"))
+    node.add_child(BasicTreeNode("child3"))
+    removed = node.clear()
+    assert removed == 3
+    assert len(node) == 0
+    assert child1.parent is None
+
+
+def test_level_up():
+    node = BasicTreeNode("root")
+    child1 = node.add_child(BasicTreeNode("child1"))
+    child2 = child1.add_child(BasicTreeNode("child2"))
+    assert child1.level_up(0) == child1
+    assert child1.level_up(1) == node
+    assert child2.level_up(2) == node
+    with pytest.raises(ValueError):
+        child1.level_up(2)
+
+
+def test_make_names_unique():
+    node = BasicTreeNode("root")
+    child1 = node.add_child(BasicTreeNode("child1"))
+    child1.add_child(BasicTreeNode("child1"))
+    child2 = node.add_child(BasicTreeNode("child2"))
+    child2.add_child(BasicTreeNode("child1"))
+    child2.add_child(BasicTreeNode("child2"))
+    node.make_names_unique()
+    assert node.get_child_names() == ["root_child1", "root_child2"]
+    assert child1.get_child_names() == ["child1_child1"]
+    assert child2.get_child_names() == ["child2_child1", "child2_child2"]
+
+
+def test_copy():
+    root_ = BasicTreeNode("root")
+    other = copy(root_)
+    assert root_ is not other
+    assert root_ != other
+    assert root_._id != other._id
+    assert root_.name == other.name
+
+    child = root_.add_child(BasicTreeNode("child"))
+    other = root_.copy("copy_node")
+    assert other.name == "copy_node"
+    assert child == root_.children[0]
+    assert child is not other.children[0]
+    assert root_.children[0].parent == root_
+    assert other.children[0].parent == other
+
+
+def test_set_name():
+    node = BasicTreeNode("root")
+    child1 = node.add_child(BasicTreeNode("child1"))
+    child2 = node.add_child(BasicTreeNode("child2"))
+    child2.name = "x"
+    assert child2.name == "x"
+    with pytest.raises(ValueError):
+        child2.name = "child1"

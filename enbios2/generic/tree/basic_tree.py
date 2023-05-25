@@ -37,7 +37,7 @@ class BasicTreeNode(Generic[T]):
         :param name: The name of the node.
         :param children: A list of child nodes (default is an empty list).
         """
-        self.name: str = name
+        self._name: str = name
         self.children: list[BasicTreeNode] = []
         for child in children:
             self.add_child(child)
@@ -67,6 +67,27 @@ class BasicTreeNode(Generic[T]):
         """
         return len(self.location()) - 1
 
+    @property
+    def name(self) -> str:
+        """
+        Get the name of this node.
+
+        :return: The name of this node.
+        """
+        return self._name
+
+    @name.setter
+    def name(self, name: str):
+        """
+        Set the name of this node.
+
+        :param name: The new name of this node.
+        """
+        if self.parent:
+            if name in self.parent:
+                raise ValueError(f"Node {name} already exists in {self.parent}")
+        self._name = name
+
     def add_child(self, node: "BasicTreeNode") -> "BasicTreeNode":
         """
         Add a child node to this node.
@@ -87,14 +108,10 @@ class BasicTreeNode(Generic[T]):
         :param node: The node to be removed.
         :return: The node that was removed.
         """
-        if isinstance(node, BasicTreeNode):
-            self.children.remove(node)
-            node.parent = None
-        else:
-            node_i: int = node
-            node = self.children[node_i]
-            del self.children[node_i]
-            node.parent = None
+        if isinstance(node, int):
+            node = self.children[node]
+        self.children.remove(node)
+        node.parent = None
         return node
 
     def as_dict(self) -> dict[str, Any]:
@@ -170,7 +187,7 @@ class BasicTreeNode(Generic[T]):
 
         if strategy == "parent_name":
             name_map: dict[str, list[BasicTreeNode]] = {}
-            for node in self.collect_all_nodes():
+            for node in self.iter_all_nodes():
                 node._data["orig_name"] = node.name
                 name_map.setdefault(node.name, []).append(node)
 
@@ -181,9 +198,10 @@ class BasicTreeNode(Generic[T]):
 
                 while len(set((n.name for n in nodes))) != len(nodes):
                     for node in nodes:
-                        if parent_level > node.level:
-                            raise ValueError(
-                                f"Cannot make names unique for {name} because it is not unique at level {parent_level}")
+                        # in theory this should not happen
+                        # if parent_level > node.level:
+                        #     raise ValueError(
+                        #  f"Cannot make names unique for {name} because it is not unique at level {parent_level}")
                         new_name = node.name
                         p = node
                         for i in range(parent_level):
@@ -191,7 +209,6 @@ class BasicTreeNode(Generic[T]):
                             new_name = f"{p._data['orig_name']}_{new_name}"
                         node.name = new_name
                     parent_level += 1
-                break
 
     def join_tree(self, node: "BasicTreeNode") -> "BasicTreeNode":
         """
@@ -201,6 +218,7 @@ class BasicTreeNode(Generic[T]):
         :return: This node.
         """
         for child in node.children:
+            node.remove_child(child)
             self.add_child(child)
         return self
 
@@ -311,13 +329,10 @@ class BasicTreeNode(Generic[T]):
         :param level: The level of the nodes to be collected.
         :return: List of nodes at the given level.
         """
-        if level == 0:
-            return [self]
-        else:
-            nodes = []
-            for child in self.children:
-                nodes.extend(child.collect_all_nodes_at_level(level - 1))
-            return nodes
+        current = [self]
+        for _ in range(level):
+            current = [child for node in current for child in node.children]
+        return current
 
     def get_sub_tree(self, max_level: int) -> "BasicTreeNode":
         """
@@ -340,13 +355,13 @@ class BasicTreeNode(Generic[T]):
 
         return rec_get_sub_tree(self, max_level)
 
-    def collect_all_nodes(self) -> Generator["BasicTreeNode", None, None]:
+    def iter_all_nodes(self) -> Generator["BasicTreeNode", None, None]:
         """
-        Collect all nodes of the tree.
+        iterates all nodes of the tree. (Depth-First Search)
         :return: Generator of all nodes.
         """
         for _child in self.children:
-            yield from _child.collect_all_nodes()
+            yield from _child.iter_all_nodes()
 
         yield self
 
@@ -366,15 +381,15 @@ class BasicTreeNode(Generic[T]):
             levels -= 1
         return current
 
-    def copy(self, new_name: str) -> "BasicTreeNode":
+    def copy(self, new_name: Optional[str] = None) -> "BasicTreeNode":
         """
         Clone this node (and all children).
         :return: The cloned node.
         """
 
-        _copy = deepcopy(self)
-        _copy.name = new_name
-        _copy.recursive_apply(lambda n: n.generate_id())
+        _copy = copy(self)
+        if new_name:
+            _copy.name = new_name
         return _copy
 
     def __copy__(self) -> "BasicTreeNode":
@@ -382,10 +397,16 @@ class BasicTreeNode(Generic[T]):
         Copy the node.
         :return:
         """
-        node = deepcopy(self)
-        self.recursive_apply(lambda n: n.generate_id())
-        return node
 
+        def reset_parents(node: BasicTreeNode):
+            node.generate_id()
+            for child in node.children:
+                child.parent = node
+                reset_parents(child)
+
+        node = deepcopy(self)
+        reset_parents(node)
+        return node
 
     def copy_an_merge(self, child_names: list[str], parent_name: Optional[str] = None) -> "BasicTreeNode":
         """
@@ -394,13 +415,10 @@ class BasicTreeNode(Generic[T]):
         :param parent_name: The name of the new root node. Default: self.name
         :return: node that contains all "copies" as children.
         """
-        _root = BasicTreeNode(parent_name if not parent_name else parent_name)
+        _root = BasicTreeNode(parent_name if parent_name else self.name)
         for child_name in child_names:
-            _copy = self.copy()
-            _copy.name = child_name
-            _root.add_child(_copy)
+            _root.add_child(self.copy(child_name))
         return _root
-
 
     @staticmethod
     def from_csv(csv_file: Path,
@@ -414,17 +432,15 @@ class BasicTreeNode(Generic[T]):
         current_node: Optional["BasicTreeNode"] = None
         for row in reader:
             for index, lvl_name in enumerate(node_columns):
+                if row[lvl_name].strip() == "":
+                    continue
                 if index == 0 and not root:
                     root = BasicTreeNode(row[reader.fieldnames[0]])
                     current_node = root
                     continue
-                if row[lvl_name].strip() == "":
-                    continue
-                if current_node.level <= index:
-                    current_node = current_node.level_up(index - current_node.level - 1)
-                new_node = BasicTreeNode(row[lvl_name])
-                current_node.add_child(new_node)
-                current_node = new_node
+                if current_node.level >= index:
+                    current_node = current_node.level_up(current_node.level - index + 1)
+                current_node = current_node.add_child(BasicTreeNode(row[lvl_name]))
 
         return root
 
@@ -433,7 +449,6 @@ class BasicTreeNode(Generic[T]):
 
         for child in self.children:
             child.recursive_apply(func, *args, **kwargs)
-
 
     # def recursive_apply(self, func: Callable[["BasicTreeNode"], None]):
     #     """
@@ -467,10 +482,9 @@ class BasicTreeNode(Generic[T]):
         Remove all children from this node.
         :return: The number of removed children.
         """
-        for child in self.children:
-            child.parent = None
         num_children = len(self)
-        self.children = []
+        for _ in range(num_children):
+            self.remove_child(0)
         return num_children
 
     def __len__(self):
@@ -504,8 +518,6 @@ class BasicTreeNode(Generic[T]):
         # def temp_subclass_checker(item: Union[str, "BasicTreeNode"]) -> bool:
         #     return str(type(item)) in [str(sc) for sc in BasicTreeNode.__subclasses__()]
 
-        # todo, faulty. does not seem to get inheritance
-        # suddenly BasicTree has no subclasses
         if isinstance(item, BasicTreeNode) or issubclass(type(item), BasicTreeNode):
             item = item.name
         for child_name in self.get_child_names():
@@ -530,34 +542,8 @@ class BasicTreeNode(Generic[T]):
 
 
 if __name__ == "__main__":
+    pass
     # print(BasicTreeNode.from_csv(BASE_DATA_PATH / "temp/tree_create_test/a.csv").as_dict())
     # print(BasicTreeNode.from_csv(BASE_DATA_PATH / "temp/tree_create_test/b.csv").as_dict())
     # print(BasicTreeNode.from_csv(BASE_DATA_PATH / "temp/tree_create_test/b.csv", ["lvl0", "lvl1", "lvl2"]).as_dict())
     # print(BasicTreeNode.from_csv(BASE_DATA_PATH / "temp/tree_create_test/b2.csv", ["lvl0", "lvl1", "lvl2"]).as_dict())
-
-    def a__test_remove_child():
-        root_ = BasicTreeNode("root")
-        node = root_.add_child(BasicTreeNode("f"))
-        print(root_.as_dict())
-        assert root_.remove_child(node) == node
-        assert len(root_) == 0
-        print(root_.as_dict())
-        root_.add_child(node)
-        assert root_.remove_child(0) == node
-
-        import pytest
-        with pytest.raises(IndexError):
-            root_.remove_child(0)
-
-
-    # a__test_remove_child()
-
-
-    def a_test_copy():
-        root_ = BasicTreeNode("root")
-        other = copy(root_)
-        print(root_ is not other)
-        print(root_ != other)
-        print(root_._id != other._id)
-
-    a_test_copy()
