@@ -366,6 +366,42 @@ class BasicTreeNode(Generic[T]):
             levels -= 1
         return current
 
+    def copy(self, new_name: str) -> "BasicTreeNode":
+        """
+        Clone this node (and all children).
+        :return: The cloned node.
+        """
+
+        _copy = deepcopy(self)
+        _copy.name = new_name
+        _copy.recursive_apply(lambda n: n.generate_id())
+        return _copy
+
+    def __copy__(self) -> "BasicTreeNode":
+        """
+        Copy the node.
+        :return:
+        """
+        node = deepcopy(self)
+        self.recursive_apply(lambda n: n.generate_id())
+        return node
+
+
+    def copy_an_merge(self, child_names: list[str], parent_name: Optional[str] = None) -> "BasicTreeNode":
+        """
+        Copy this node (and all children) for any child_name in the list and make them children of one node.
+        :param child_names: The names of the children to be copied.
+        :param parent_name: The name of the new root node. Default: self.name
+        :return: node that contains all "copies" as children.
+        """
+        _root = BasicTreeNode(parent_name if not parent_name else parent_name)
+        for child_name in child_names:
+            _copy = self.copy()
+            _copy.name = child_name
+            _root.add_child(_copy)
+        return _root
+
+
     @staticmethod
     def from_csv(csv_file: Path,
                  node_columns: list[str] = None,
@@ -392,21 +428,22 @@ class BasicTreeNode(Generic[T]):
 
         return root
 
-    def __copy__(self) -> "BasicTreeNode":
-        """
-        Copy the node.
-        :return:
-        """
-        node = deepcopy(self)
-        print("copying")
-        self.recursive_apply(lambda n: n.generate_id())
-        return node
-
     def recursive_apply(self, func: Callable[["BasicTreeNode", ...], Any], *args, **kwargs):
         func(self, *args, **kwargs)
 
         for child in self.children:
             child.recursive_apply(func, *args, **kwargs)
+
+
+    # def recursive_apply(self, func: Callable[["BasicTreeNode"], None]):
+    #     """
+    #     Apply a function recursively to all nodes in the tree.
+    #
+    #     :param func: The function to be applied.
+    #     """
+    #     func(self)
+    #     for child in self.children:
+    #         child.recursive_apply(func)
 
     def get_child(self, child_index_name: Union[int, str]) -> "BasicTreeNode":
         """
@@ -424,6 +461,17 @@ class BasicTreeNode(Generic[T]):
         :return: bool, True if the item is a child of this node, False otherwise.
         """
         return item in self
+
+    def clear(self) -> int:
+        """
+        Remove all children from this node.
+        :return: The number of removed children.
+        """
+        for child in self.children:
+            child.parent = None
+        num_children = len(self)
+        self.children = []
+        return num_children
 
     def __len__(self):
         """
@@ -453,6 +501,11 @@ class BasicTreeNode(Generic[T]):
         :return: bool, True if the item is a child of this node, False otherwise.
         """
         # print(item)
+        # def temp_subclass_checker(item: Union[str, "BasicTreeNode"]) -> bool:
+        #     return str(type(item)) in [str(sc) for sc in BasicTreeNode.__subclasses__()]
+
+        # todo, faulty. does not seem to get inheritance
+        # suddenly BasicTree has no subclasses
         if isinstance(item, BasicTreeNode) or issubclass(type(item), BasicTreeNode):
             item = item.name
         for child_name in self.get_child_names():

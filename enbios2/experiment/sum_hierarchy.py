@@ -46,9 +46,9 @@ class HierarchyNode(BasicTreeNode):
         self.parent: Optional[HierarchyNode] = None
         self.allow_resetting_value = allow_resetting_value
 
-    def add_child(self, node: "HierarchyNode"):  # Override add_child method
-        self.children.append(node)
-        node.parent = self
+    # def add_child(self, node: "HierarchyNode"):  # Override add_child method
+    #     self.children.append(node)
+    #     node.parent = self
 
     @property
     def value(self):
