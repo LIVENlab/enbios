@@ -5,7 +5,7 @@ from typing import Union
 from enbios2.const import BASE_DATA_PATH
 from enbios2.generic.enbios2_logging import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger(__file__)
 
 
 def generate_levensthein_name_map(names_a: list[str], names_b: list[str]) -> dict[str, str]:
@@ -41,7 +41,12 @@ def generate_levensthein_dict_map(names_a: list[str, dict], dicts: list[dict], d
     return names_map
 
 
-def get_file_path(path: Union[str, Path]) -> Path:
+def get_data_file_path(path: Union[str, Path]) -> Path:
+    """
+    Returns a Path object from the data directory
+    :param path:
+    :return:
+    """
     path = Path(path)
     if path.is_absolute():
         return path

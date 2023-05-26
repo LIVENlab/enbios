@@ -1,8 +1,11 @@
 import logging.config
 import json
+import os
 from pathlib import Path
 
 import appdirs
+
+from enbios2.const import PROJECT_PATH
 
 default_log_config = {
     "version": 1,
@@ -77,5 +80,22 @@ class EnbiosLogger:
         return logging.getLogger(name)
 
 
-def get_logger(name: str) -> logging.Logger:
-    return EnbiosLogger.get_or_create_logger(name)
+def get_module_name(file_path: str) -> str:
+    """Get the module name based on the file's location in the project."""
+    relative_path = os.path.relpath(file_path, PROJECT_PATH)
+    module_name = os.path.splitext(relative_path)[0]
+    module_name = module_name.replace(os.sep, '.')
+    return module_name
+
+
+def get_logger(file_path: str) -> logging.Logger:
+    """
+    Get a logger for the given module, based on its file path.
+    use like this:
+    Takes the logging config from logging.json.
+    Creates a new entry in that file if it does not exist yet with 'new_logger_default_config'.
+    logger = get_logger(__file__)
+    :param file_path:  absolute file path
+    :return: logger for the module...
+    """
+    return EnbiosLogger.get_or_create_logger(get_module_name(file_path))
