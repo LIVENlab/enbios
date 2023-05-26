@@ -7,7 +7,7 @@ from bw2data.backends import Activity
 from pint import Quantity
 from pydantic.dataclasses import dataclass
 
-from enbios2.const import BASE_SCHEMA_PATH
+from enbios2.bw2.util import get_activity
 
 
 class Config:
@@ -33,7 +33,10 @@ class ExperimentActivityId:
 
     def get_bw_activity(self, allow_multiple: bool = False) -> Union[Activity, list[Activity]]:
         if self.code:
-            return bd.Database(self.database).get(self.code)
+            if not self.database:
+                return get_activity(self.code)
+            else:
+                return bd.Database(self.database).get(self.code)
         elif self.name:
             filters = {}
             if self.location:
@@ -82,6 +85,10 @@ class ExtendedExperimentActivityOutput:
 
 @dataclass
 class ExperimentActivity:
+    """
+    This is the dataclass for the activities in the experiment.
+    the id, is
+    """
     id: ExperimentActivityId
     output: Optional[ExperimentActivityOutput] = None
 
@@ -186,7 +193,7 @@ class ScenarioConfig:
 @dataclass
 class ExperimentData:
     bw_project: str
-    activities_config: ExperimentActivitiesGlobalConf = ExperimentActivitiesGlobalConf()
+    activities_config = ExperimentActivitiesGlobalConf()
     activities: Optional[Union[list[ExperimentActivity], dict[str, ExperimentActivity]]] = None
     methods: Optional[Union[list[ExperimentMethod], dict[str, ExperimentMethod]]] = None
     hierarchy: Optional[Union[ExperimentHierarchy, list[ExperimentHierarchy]]] = None
@@ -194,6 +201,4 @@ class ExperimentData:
     config: Optional[ScenarioConfig] = ScenarioConfig()
 
 
-if __name__ == "__main__":
-    (BASE_SCHEMA_PATH / "scenario.schema.gen.json").write_text(
-        ExperimentData.__pydantic_model__.schema_json(indent=2, ensure_ascii=False), encoding="utf-8")
+
