@@ -8,7 +8,6 @@ from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text.base import FormattedText
 from prompt_toolkit.lexers import PygmentsLexer
 from pygments.lexers.python import Python3Lexer
-from voluptuous import default_factory
 
 PROJECT = "project"
 IN_PROJECT = "in_project"

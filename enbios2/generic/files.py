@@ -1,10 +1,15 @@
 import json
 from csv import DictReader
 from pathlib import Path
+from typing import Generator
 
 import openpyxl
+import xmltodict
 
 from enbios2.const import BASE_DATA_PATH
+from enbios2.generic.enbios2_logging import get_logger
+
+logger = get_logger(__file__)
 
 
 class ReadPath(Path):
@@ -36,6 +41,26 @@ class ReadPath(Path):
         elif self.suffix == ".xlsx":
             workbook = openpyxl.load_workbook(self, read_only=True, data_only=True)
             return {sheet.title: list(sheet.values) for sheet in workbook.worksheets}
+        # xml
+        elif self.suffix == ".xml":
+            return xmltodict.parse(self.read_text(encoding="utf-8"))
+
+    def iter_data(self) -> Generator[dict, None, None]:
+        if self.suffix == ".json":
+            logger.warning("Reading json completely not as iterator")
+            return json.loads(self.read_text(encoding="utf-8"))
+        elif self.suffix == ".csv":
+            reader = DictReader(self.open(encoding="utf-8"))
+            for row in reader:
+                yield row
+        elif self.suffix == ".xlsx":
+            workbook = openpyxl.load_workbook(self, read_only=True, data_only=True)
+            for sheet in workbook.worksheets:
+                for row in sheet.iter_rows(values_only=True):
+                    yield {sheet.title: row}
+        elif self.suffix == ".xml":
+            logger.info("Reading xml completely not as iterator")
+            return dict(xmltodict.parse(self.read_text(encoding="utf-8")))
 
 
 class ReadDataPath(ReadPath):

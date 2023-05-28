@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Type
+from typing import Type, Any
 
 from peewee import Model, TextField, SqliteDatabase
 from playhouse.sqlite_ext import JSONField
@@ -10,12 +10,34 @@ from enbios2.const import BASE_DATA_PATH
 
 class DBTypes(Enum):
     LCI = "LCI"
+    LCIA = "LCIA"
+    ActivityFTS = "ActivityFTS"
 
+
+def type_pragmas(db_type: DBTypes) -> dict[str, Any]:
+    return {'journal_mode': 'wal',
+            'cache_size': -1024 * 32}
+
+
+# if db_type == DBTypes.LCI:
+#     return []
+# if db_type == DBTypes.LCIA:
+#     return []
+# if db_type == DBTypes.ActivityFTS:
+#     return [
+#         ('journal_mode', 'wal'),
+#         ('cache_size', -1024 * 32)]
 
 def get_model_classes(db_type: DBTypes) -> list[Type[Model]]:
     if db_type == DBTypes.LCI:
         from enbios2.experiment.db_models import ActivityLCI, ExchangeInfo
         return [ActivityLCI, ExchangeInfo]
+    if db_type == DBTypes.LCIA:
+        from enbios2.experiment.db_models import ActivityLCI, ImpactInfo
+        return [ActivityLCI, ImpactInfo]
+    if db_type == DBTypes.ActivityFTS:
+        from enbios2.experiment.activity_search import BW_Activity, FTS_BW_ActivitySimple
+        return [BW_Activity, FTS_BW_ActivitySimple]
 
 
 class Metadata(Model):
@@ -37,6 +59,7 @@ def init() -> SqliteDatabase:
 
 
 def add_db(name: str, db_path: Path, db_type: DBTypes, metadata: dict):
+    # todo do replace when name and path are the same
     database = init()
     Metadata(name=name, path=db_path, db_type=db_type, metadata=metadata).save()
     database.close()
@@ -63,6 +86,23 @@ def get_db_meta(name: str) -> Metadata:
     return db_metadata
 
 
+def create_db(db_path: Path, db_type: DBTypes):
+    """
+    create a new db, set
+    :param db_path:
+    :param db_type:
+    :return:
+    """
+    # todo, add to metadata,
+    pragmas = type_pragmas(db_type)
+    database = SqliteDatabase(db_path, pragmas)
+    models = get_model_classes(db_type)
+    set_db_meta(db_path, models)
+    database.create_tables(models)
+    add_db(db_path.stem, db_path, db_type, {})
+
+
+# todo use "create_db" instead
 def prepare_db(name: str):
     db_metadata = get_db_meta(name)
     db = set_db_meta(Path(db_metadata.path), get_model_classes(DBTypes(db_metadata.db_type)))
