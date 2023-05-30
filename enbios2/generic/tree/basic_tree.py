@@ -421,6 +421,17 @@ class BasicTreeNode(Generic[T]):
         return _root
 
     @staticmethod
+    def from_dict(data: dict):
+        children = {}
+        if "children" in data:
+            children = data["children"]
+            del data["children"]
+        node = BasicTreeNode(**data)
+        for child in children:
+            node.add_child(BasicTreeNode.from_dict(child))
+        return node
+
+    @staticmethod
     def from_csv(csv_file: Path,
                  node_columns: list[str] = None,
                  merged_first_sub_row: bool = True) -> "BasicTreeNode":

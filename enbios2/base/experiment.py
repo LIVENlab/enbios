@@ -39,6 +39,11 @@ class Experiment:
         self.validate_scenarios(list(self.activitiesMap.values()))
 
     def validate_activities(self, required_output: bool = False):
+        """
+
+        :param required_output:
+        :return:
+        """
         # check if all activities exist
         activities = self.raw_data.activities
         config: ExperimentActivitiesGlobalConf = self.raw_data.activities_config

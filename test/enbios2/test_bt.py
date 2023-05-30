@@ -1,9 +1,12 @@
+import sys
+
+sys.path.insert(0, "/mnt/SSD/projects/LIVENLab/enbios2")
+
 from copy import copy
 
 import pytest
 
 from enbios2.generic.tree.basic_tree import BasicTreeNode
-
 
 @pytest.fixture
 def csv_file_path(tmp_path):
@@ -340,6 +343,18 @@ def test_bool():
     assert bool(root) is True
 
 
+def test_level_up():
+    root_ = BasicTreeNode("root")
+    child2 = root_.add_child(BasicTreeNode("child1")).add_child(BasicTreeNode("child2"))
+    must_be_child1 = child2.level_up(1)
+    assert child2.parent == must_be_child1
+    assert root_ == child2.level_up(2)
+    with pytest.raises(ValueError):
+        child2.level_up(3)  # replace with your function call
+
+
+
+
 def test_copy():
     node = BasicTreeNode("root")
     copy = node.copy()
@@ -448,3 +463,4 @@ def test_set_name():
     assert child2.name == "x"
     with pytest.raises(ValueError):
         child2.name = "child1"
+

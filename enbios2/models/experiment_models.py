@@ -10,6 +10,11 @@ from pydantic.dataclasses import dataclass
 from enbios2.bw2.util import get_activity
 
 
+@dataclass
+class ExperimentBWProjectConfig:
+    index: Optional[str] = None
+
+
 class Config:
     arbitrary_types_allowed = True
 
@@ -47,7 +52,8 @@ class ExperimentActivityId:
                 search_results = bd.Database(self.database).search(self.name)
             if self.unit:
                 search_results = list(filter(lambda a: a["unit"] == self.unit, search_results))
-            assert len(search_results) == 0, f"No results for brightway activity-search: {(self.name, self.location, self.unit)}"
+            assert len(
+                search_results) == 0, f"No results for brightway activity-search: {(self.name, self.location, self.unit)}"
             if len(search_results) > 1:
                 if allow_multiple:
                     return search_results
@@ -94,6 +100,12 @@ class ExperimentActivity:
 
     def check_exist(self, default_id_attr: Optional[ExperimentActivityId] = None,
                     required_output: bool = False) -> "ExtendedExperimentActivity":
+        """
+        This method checks if the activity exists in the database by several ways.
+        :param default_id_attr:
+        :param required_output:
+        :return:
+        """
 
         result: ExtendedExperimentActivity = ExtendedExperimentActivity(**asdict(self))
         result.orig_id = copy(self.id)
@@ -192,13 +204,10 @@ class ScenarioConfig:
 
 @dataclass
 class ExperimentData:
-    bw_project: str
+    bw_project: Union[str, ExperimentBWProjectConfig]
     activities_config = ExperimentActivitiesGlobalConf()
     activities: Optional[Union[list[ExperimentActivity], dict[str, ExperimentActivity]]] = None
     methods: Optional[Union[list[ExperimentMethod], dict[str, ExperimentMethod]]] = None
     hierarchy: Optional[Union[ExperimentHierarchy, list[ExperimentHierarchy]]] = None
     scenarios: Optional[Union[list[ExperimentScenario], dict[str, ExperimentScenario]]] = None
     config: Optional[ScenarioConfig] = ScenarioConfig()
-
-
-
