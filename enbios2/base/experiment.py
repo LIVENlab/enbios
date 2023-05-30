@@ -5,9 +5,11 @@ from typing import Optional, Union
 import bw2data as bd
 from pint import UnitRegistry
 
-from enbios2.models.experiment import ExperimentActivitiesGlobalConf, ExperimentActivityId, ExtendedExperimentActivity, \
+from enbios2.models.experiment_models import ExperimentActivitiesGlobalConf, ExperimentActivityId, \
+    ExtendedExperimentActivity, \
     ExperimentActivity, BWMethod, ExperimentMethod, ExperimentHierarchyNode, \
     ExperimentHierarchy, ExperimentScenario, ExperimentData, ExtendedExperimentActivityOutput
+
 
 logger = logging.Logger(__name__)
 # add console.stream handler
@@ -73,7 +75,6 @@ class Experiment:
 
     def collect_orig_ids(self) -> list[tuple[ExperimentActivityId, ExtendedExperimentActivity]]:
         return [(activity.orig_id, activity) for activity in self.activitiesMap.values()]
-
 
     @staticmethod
     def validate_output(target_output: ExtendedExperimentActivityOutput, activity: ExtendedExperimentActivity) -> None:

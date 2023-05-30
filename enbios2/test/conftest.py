@@ -1,6 +1,6 @@
 import pytest
 
-from enbios2.test.test_bw2i import clean_project
+# from enbios2.test.test_bw2i import clean_project
 
 
 def pytest_configure(config):
