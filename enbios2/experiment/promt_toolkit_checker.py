@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional, Union
 
 import bw2data
@@ -9,16 +10,37 @@ from prompt_toolkit.formatted_text.base import FormattedText
 from prompt_toolkit.lexers import PygmentsLexer
 from pygments.lexers.python import Python3Lexer
 
+try:
+    import enbios2
+    # import enbios2.generic
+    # from enbios2.generic.enbios2_logging import get_logger
+except ImportError as err:
+    print("importing enbios2")
+    # print(err)
+    import sys
+
+    for dir_ in reversed(Path(__file__).parents):
+        if dir_.name == "enbios2":
+            sys.path.insert(0, dir_.as_posix())
+            break
+from enbios2.generic.enbios2_logging import get_logger
+
 PROJECT = "project"
 IN_PROJECT = "in_project"
 DATABASE = "database"
 METHOD = "method"
+
+logger = get_logger(__file__)
 
 
 class CustomBuffer(Buffer):
     def insert_completion(self, completion, overwrite_before=0):
         self.delete_before_cursor(overwrite_before)
         self.text = completion.text  # Replace the entire text with the completion
+
+
+tab_message = ". Press [tab] or [space] to list all options 🌕"
+exit_message = ". Press [ctrl+c] to exit 🔚"
 
 
 @dataclass
@@ -103,6 +125,7 @@ class CustomCompleter(Completer):
             self.message = FormattedText(msg + [("", "\n>>>")])
 
     def set_next(self, text: str):
+        logger.debug(f"{self.status} / set_next: {text}")
         if self.status == PROJECT:
             if text in self.current_candidates:
                 print("selected project: ", text)
@@ -142,12 +165,14 @@ class CustomCompleter(Completer):
                 print(f"method: {text} not found")
 
     def toolbar_msg(self):
+        messages: list[tuple[str, str]] = []
         if self.status == PROJECT:
-            return FormattedText([('bold', "🔥 Select a brightway project")])
+            messages.append(('bold', "🔥 Select a brightway project"))
         elif self.status == IN_PROJECT:
-            return FormattedText([('bold', f"🔥 Project: '{self.data.project}'. Select 'database' or 'method'")])
+            messages.append(('bold', f"🔥 Project: '{self.data.project}'. Select 'database' or 'method'"))
         elif self.status == METHOD:
-            return FormattedText([('bold', f"🔥 Project: '{self.data.project}'. Select methods...")])
+            messages.append(('bold', f"🔥 Project: '{self.data.project}'. Select methods..."))
+        return FormattedText(messages + [("", tab_message), ("", exit_message)])
 
 
 custom_completer = CustomCompleter()

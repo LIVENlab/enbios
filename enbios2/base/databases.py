@@ -5,13 +5,14 @@ from typing import Type, Any
 from peewee import Model, TextField, SqliteDatabase
 from playhouse.sqlite_ext import JSONField
 
+from enbios2.base.db_models import BW_Activity, FTS_BW_ActivitySimple, EcoinventDatabaseActivity, ExchangeInfo, ImpactInfo
 from enbios2.const import BASE_DATA_PATH
 
 
 class DBTypes(Enum):
     LCI = "LCI"
     LCIA = "LCIA"
-    ActivityFTS = "ActivityFTS"
+    ActivityFTS = "ActivityFTS"  # experimental
 
 
 def type_pragmas(db_type: DBTypes) -> dict[str, Any]:
@@ -30,13 +31,10 @@ def type_pragmas(db_type: DBTypes) -> dict[str, Any]:
 
 def get_model_classes(db_type: DBTypes) -> list[Type[Model]]:
     if db_type == DBTypes.LCI:
-        from enbios2.experiment.db_models import ActivityLCI, ExchangeInfo
-        return [ActivityLCI, ExchangeInfo]
+        return [EcoinventDatabaseActivity, ExchangeInfo]
     if db_type == DBTypes.LCIA:
-        from enbios2.experiment.db_models import ActivityLCI, ImpactInfo
-        return [ActivityLCI, ImpactInfo]
+        return [EcoinventDatabaseActivity, ImpactInfo]
     if db_type == DBTypes.ActivityFTS:
-        from enbios2.experiment.activity_search import BW_Activity, FTS_BW_ActivitySimple
         return [BW_Activity, FTS_BW_ActivitySimple]
 
 
@@ -77,6 +75,9 @@ def set_db_meta(db_path: Path, classes: list[Type[Model]]) -> SqliteDatabase:
     for cls in classes:
         cls._meta.database = db
     return db
+
+def set_model_table_name(cls: Type[Model], name: str):
+    cls._meta.table_name = name
 
 
 def get_db_meta(name: str) -> Metadata:
