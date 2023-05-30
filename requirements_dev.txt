@@ -81,6 +81,7 @@ matrix-utils==0.2.5
 mistune==2.0.5
 mrio-common-metadata==0.2.1
 multidict==6.0.4
+mkdocs-material==9.1.14
 mypy==1.2.0
 mypy-extensions==1.0.0
 NamedAtomicLock==1.1.3

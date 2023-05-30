@@ -7,6 +7,11 @@ import openpyxl
 from enbios2.const import BASE_DATA_PATH
 
 
+class DataPath(Path):
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls, BASE_DATA_PATH, *args, **kwargs)
+
+
 class ReadPath(Path):
     """
     Checks on instantiation that the file exists
