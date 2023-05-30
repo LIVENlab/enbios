@@ -318,7 +318,7 @@ class BasicTreeNode(Generic[T]):
     def get_num_children(self) -> int:
         """
         Get the number of children of this node.
-        :return: The number of children of this node.
+        :return: The number of children of this node.  == len(self)
         """
         return len(self)
 
@@ -421,6 +421,17 @@ class BasicTreeNode(Generic[T]):
         return _root
 
     @staticmethod
+    def from_dict(data: dict):
+        children = {}
+        if "children" in data:
+            children = data["children"]
+            del data["children"]
+        node = BasicTreeNode(**data)
+        for child in children:
+            node.add_child(BasicTreeNode.from_dict(child))
+        return node
+
+    @staticmethod
     def from_csv(csv_file: Path,
                  node_columns: list[str] = None,
                  merged_first_sub_row: bool = True) -> "BasicTreeNode":
@@ -493,7 +504,7 @@ class BasicTreeNode(Generic[T]):
         """
         return len(self.children)
 
-    def __getitem__(self, item: Union[int, str]) -> "BasicTreeNode":
+    def __getitem__(self, item: Union[int, str, list[Union[int,str]]]) -> "BasicTreeNode":
         """
         Get a child node by its index or name.
         Throws KeyError or IndexError if the child is not found.
@@ -505,7 +516,12 @@ class BasicTreeNode(Generic[T]):
                 if child.name == item:
                     return child
             raise KeyError(f"Node {self.name} has no child with name {item}")
-        return self.children[item]
+        elif isinstance(item, int):
+            return self.children[item]
+        elif isinstance(item, list):
+            next_node = self[item[0]]
+            if following := item[1:]:
+                return next_node[following]
 
     def __contains__(self, item: Union[str, "BasicTreeNode"]) -> bool:
         """
@@ -514,9 +530,6 @@ class BasicTreeNode(Generic[T]):
         :return: bool, True if the item is a child of this node, False otherwise.
         """
         # print(item)
-        # def temp_subclass_checker(item: Union[str, "BasicTreeNode"]) -> bool:
-        #     return str(type(item)) in [str(sc) for sc in BasicTreeNode.__subclasses__()]
-
         if isinstance(item, BasicTreeNode) or issubclass(type(item), BasicTreeNode):
             item = item.name
         for child_name in self.get_child_names():

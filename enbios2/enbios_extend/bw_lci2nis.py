@@ -1,14 +1,17 @@
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import bw2data as bd
 import bw2io as bi
+import openpyxl
 import pandas as pd
 import pint
-from bw2data.backends import Activity
+from bw2data.backends import Activity, ActivityDataset
 from bw2io import SingleOutputEcospold2Importer
 
+from enbios2.bw2.project_index import set_bw_current_project, BWIndex
 from enbios2.const import BASE_DATA_PATH
 
 output_path = BASE_DATA_PATH / "/enbios/bw2nis"
@@ -198,7 +201,8 @@ def read_exising_nis_file(file_path) -> NisSheetDfs:
     return NisSheetDfs(interface_types_df, bare_processors_df, interfaces_df)
 
 
-def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, lci_result: pd.DataFrame):
+def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, lci_result: pd.DataFrame,
+                              new_file_loc: Path):
     # insert new interface_types
     unique_interface_types = set(nis_dataframes.interface_types_df["@EcoinventName"].unique())
     lci_interface_types = set(lci_result["name"].unique())
@@ -207,9 +211,13 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
     # get the rows, where the interface type is missing
     rows_to_add = lci_result[lci_result["name"].isin(missing_interface_types)]
 
+    new_workbook = openpyxl.Workbook()
+    new_workbook.remove(new_workbook["Sheet"])
+    new_workbook.create_sheet("InterfaceTypes")
+
     interface_type_new_rows = []
     for new_type in rows_to_add.iterrows():
-        print(new_type)
+        # print(new_type)
         row = new_type[1]
         if row["amount"] == 0.0:
             continue
@@ -223,6 +231,16 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
         }}
         interface_type_new_rows.append(new_row)
 
+    # insert the new rows into the new sheet
+    new_sheet = new_workbook["InterfaceTypes"]
+    fieldnames = list(interface_type_new_rows[0].keys())
+    new_sheet.append(fieldnames)
+    for row in interface_type_new_rows:
+        new_sheet.append((row[k] for k in fieldnames))
+
+    # save the workbook
+    # new_workbook.save(new_file_loc.as_posix())
+
     unique_bareprocessors = set(nis_dataframes.bare_processors_df["Processor"].unique())
     # # difference between the two sets
     # missing_interface_types = lci_interface_types - unique_interface_types
@@ -230,25 +248,38 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
     # rows_to_add = lci_result[lci_result["name"].isin(missing_interface_types)]
 
     bareprocessor_new_rows = []
+
+    if not (carrier_name := activity.get("carrierName")):
+        print(f"activity data of {activity['name']} does not contain 'carrierName'. Setting it to electricity")
+
     if activity["name"] not in unique_bareprocessors:
         new_row = {**base_processors_template(), **{
             "Processor": get_nis_name(activity["name"]),
             "@EcoinventName": activity["name"],
             "@EcoinventFilename": "no-file",
-            "@EcoinventCarrierName": "???"
+            "@EcoinventCarrierName": carrier_name
         }}
         bareprocessor_new_rows.append(new_row)
 
     new_interface_rows = []
-    print(lci_result)
+    # print(lci_result)
+
+    new_sheet = new_workbook.create_sheet("BareProcessors")
+    fieldnames = list(bareprocessor_new_rows[0].keys())
+    new_sheet.append(fieldnames)
+    for row in bareprocessor_new_rows:
+        new_sheet.append((row[k] for k in fieldnames))
+
+    new_workbook.save(new_file_loc.as_posix())
 
     # and add the first row for it
     main_name = get_nis_name("_".join(activity._data["synonyms"]))
     main_row = {
         "Orientation": "Output",
     }
+
     for row in lci_result.iterrows():
-        print(row)
+        # print(row)
         data = row[1]
         new_interface_rows.append({**interfaces_template(),
                                    "Processor": get_nis_name(activity["name"]),
@@ -263,14 +294,19 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
                                    "Source": "BW",
                                    })
 
-    # interface_type_new_rows
-    # bareprocessor_new_rows
+    new_sheet = new_workbook.create_sheet("Interfaces")
+    fieldnames = list(new_interface_rows[0].keys())
+    new_sheet.append(fieldnames)
+    for row in new_interface_rows:
+        new_sheet.append((row[k] for k in fieldnames))
+
+    new_workbook.save(new_file_loc.as_posix())
 
 
 if __name__ == "__main__":
     projects = bd.projects
 
-    bd.projects.set_current("ecoi_dbs")
+    set_bw_current_project(BWIndex.ecovinvent391cutoff)
 
     generate = False
     if generate:
@@ -288,15 +324,16 @@ if __name__ == "__main__":
     # activities = bd.Database("cutoff391",).search("heat and power co-generation, oil", filter={"location": "PT"})
     # activity = activities[0]
     # print(activity._document.code)
-    activity = bd.Database("cutoff391", ).get("a8fe0b37705fe611fac8004ca6cb1afd")
-    #
-    #
-    nis_file = BASE_DATA_PATH / "enbios/_1_/output/output.xlsx"
-    #
+    activity_ds = ActivityDataset.select().where(ActivityDataset.code == "a8fe0b37705fe611fac8004ca6cb1afd")
+    activity = Activity(activity_ds[0])
+    print(activity._document.name)
+
+    base_folder = BASE_DATA_PATH / "nis_tests"
+    nis_file = base_folder / "output.xlsx"
+
     dataframes = read_exising_nis_file(nis_file)
-    #
     lci_result = export_solved_inventory(activity,
                                          ('CML v4.8 2016', 'acidification',
                                           'acidification (incl. fate, average Europe total, A&B)'),
                                          "test.xlsx")
-    insert_activity_processor(activity, dataframes, lci_result)
+    insert_activity_processor(activity, dataframes, lci_result, base_folder / "output2.xlsx")

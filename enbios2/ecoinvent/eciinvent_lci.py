@@ -5,6 +5,7 @@ from playhouse.shortcuts import model_to_dict
 from tqdm import tqdm
 
 from enbios2.const import BASE_DATA_PATH
+from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_path, EcoinventDatasetDescriptor
 from enbios2.experiment.databases import add_db, DBTypes, check_exists, set_db_meta, get_model_classes, \
     prepare_db
 from enbios2.experiment.db_models import ActivityLCI, ExchangeInfo
@@ -71,7 +72,7 @@ def get_lci(db_name: str, code: str, drop_zero: bool = False):
     return lci
 
 
-# create(BASE_DATA_PATH / "ecoinvent/ecoinvent 3.9.1_cutoff_cumulative_lci_xlsx/Cut-off Cumulative LCI v3.9.1.xlsx",
-#        "ecoinvent3.9.1.cut-off.lci")
+path = get_ecoinvent_dataset_path(EcoinventDatasetDescriptor(version="3.9.1", system_model="cutoff", type="LCI"))
+create(path, "ecoinvent3.9.1.cut-off.lci")
 
-a = get_lci("ecoinvent3.9.1.cut-off.lci", "739f38ee-b726-5bc5-b12e-8bb2df5a268c_b7b72951-a57c-4364-9b49-ea3c7cb03d00")
+# a = get_lci("ecoinvent3.9.1.cut-off.lci", "739f38ee-b726-5bc5-b12e-8bb2df5a268c_b7b72951-a57c-4364-9b49-ea3c7cb03d00")
