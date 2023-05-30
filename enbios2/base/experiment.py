@@ -56,6 +56,7 @@ class Experiment:
             activities_list: list[ExperimentActivity] = activities
 
             for activity in activities_list:
+                activity: ExperimentActivity = activity
                 ext_activity = activity.check_exist(default_id_data, required_output)
                 self.activitiesMap[ext_activity.id.alias] = ext_activity
                 # assert activity.id.alias not in self.activitiesMap, f"Duplicate activity. {activity.id.alias} exists already. Try giving it a specific alias"

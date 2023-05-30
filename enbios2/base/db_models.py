@@ -4,7 +4,7 @@ from playhouse.sqlite_ext import FTSModel
 from sqlite import TupleJSONField
 
 
-class ActivityLCI(Model):
+class EcoinventDatabaseActivity(Model):
     code = TextField(unique=True)
     name = TextField(index=True)
     location = TextField()
@@ -15,7 +15,6 @@ class ActivityLCI(Model):
 
     class Meta:
         pass
-
 
 class ExchangeInfo(Model):
     exchange = TextField()
