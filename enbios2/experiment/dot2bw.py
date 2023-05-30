@@ -9,9 +9,9 @@ from bw2data.backends import Activity, Exchange
 from bw2data.errors import DuplicateNode
 
 from enbios2.generic.enbios2_logging import get_logger
-from enbios2.generic.util import get_file_path
+from enbios2.generic.util import get_data_file_path
 
-logger = get_logger(__name__)
+logger = get_logger(__file__)
 
 
 def read_dot_file(file_path: Path) -> pydot.Dot:
@@ -117,7 +117,7 @@ class Dot2BW:
         self.graph_diff = GraphDiffData()
 
         if dot_file_path:
-            dot_file_path = get_file_path(dot_file_path)
+            dot_file_path = get_data_file_path(dot_file_path)
             graph = read_dot_file(dot_file_path)
             self.define_db_with_graph(graph)
 
