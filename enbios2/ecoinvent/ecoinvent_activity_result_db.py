@@ -12,13 +12,15 @@ Both databases have two tables:
 
 """
 from pathlib import Path
+from typing import Type
 
 import openpyxl
+from peewee import Model, OperationalError
 from playhouse.shortcuts import model_to_dict
 from tqdm import tqdm
 
 from enbios2.base.databases import add_db, DBTypes, check_exists, set_db_meta, get_model_classes, \
-    prepare_db, set_model_table_name
+    prepare_db, set_model_table_name, guarantee_db_dir
 from enbios2.base.db_models import EcoinventDatabaseActivity, ExchangeInfo
 from enbios2.const import BASE_DATABASES_PATH
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_path, EcoinventDatasetDescriptor
@@ -29,13 +31,19 @@ logger = get_logger(__file__)
 
 
 def create(type_: DBTypes, file_path: Path, name: str, force_redo: bool = False):
+    guarantee_db_dir()
+    assert file_path.exists() and file_path.suffix == ".xlsx", f"File {file_path} does not exist or is not an xlsx file"
     assert type_ in [DBTypes.LCI, DBTypes.LCIA], f"Type must be either {DBTypes.LCI} or {DBTypes.LCIA}"
     db_path = BASE_DATABASES_PATH / f"{name}.sqlite"
     db_model_classes = get_model_classes(type_)
     db = set_db_meta(db_path, db_model_classes)
     # set table name to activity_lci or activity_lcia
     set_model_table_name(db_model_classes[0], f"activity_{type_.value}")
-    db.connect()
+    try:
+        db.connect()
+    except OperationalError as e:
+        logger.error(f"Could not connect to database {db_path}")
+        raise e
 
     if force_redo:
         db.drop_tables(db_model_classes)
@@ -46,7 +54,7 @@ def create(type_: DBTypes, file_path: Path, name: str, force_redo: bool = False)
     activity_count = EcoinventDatabaseActivity.select().count()
     if activity_count == 0:
 
-        reader = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+        reader = openpyxl.load_workbook(file_path.as_posix(), read_only=True, data_only=True)
         lci_sheet = reader[type_.value]
 
         # impacts/exchanges start from G -> 6
@@ -82,7 +90,7 @@ def create(type_: DBTypes, file_path: Path, name: str, force_redo: bool = False)
         for activities in tqdm(row_generator):
             # print({k: v for k, v in zip(fields, activities[:6])})
             db_act = {k: v for k, v in zip(fields, activities[:6])}
-            db_act.data = activities[6:]
+            db_act["data"] = activities[6:]
             batch.append(db_act)
             if len(batch) == batch_size:
                 insert_batch(EcoinventDatabaseActivity, batch)
@@ -118,9 +126,10 @@ def create_if_not_exists(file_path: ReadDataPath, name: str):
         create(DBTypes.LCIA, file_path, name)
 
 
-create_if_not_exists(
-    ReadDataPath("ecoinvent/ecoinvent 3.9.1_cutoff_cumulative_lcia_xlsx/Cut-off Cumulative LCIA v3.9.1.xlsx"),
-    "ecoinvent3.9.1.cut-off_test2.lcia")
+path = get_ecoinvent_dataset_path(
+    EcoinventDatasetDescriptor(version="3.9.1",
+                               system_model="cutoff",
+                               type="lci",
+                               xlsx=True))
 
-# path = get_ecoinvent_dataset_path(EcoinventDatasetDescriptor(version="3.9.1", system_model="cutoff", type="lci"))
-# create(path, "ecoinvent3.9.1.cut-off.lci")
+create(DBTypes.LCI, path, "ecoinvent3.9.1.cut-off.lci")

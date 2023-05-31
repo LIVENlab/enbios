@@ -178,6 +178,7 @@ Whoosh==2.7.4
 widgetsnbextension==4.0.7
 wrapt==1.15.0
 xarray==2023.4.0
+xmltodict==0.13.0
 xlrd==2.0.1
 XlsxWriter==3.1.0
 zipp==3.15.0

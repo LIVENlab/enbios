@@ -1,7 +1,7 @@
-from peewee import UUIDField, Model, TextField, FloatField
+from peewee import Model, TextField, FloatField
 from playhouse.sqlite_ext import FTSModel
 
-from sqlite import TupleJSONField
+from enbios2.base.db_fields import TupleJSONField
 
 
 class EcoinventDatabaseActivity(Model):
@@ -15,6 +15,7 @@ class EcoinventDatabaseActivity(Model):
 
     class Meta:
         pass
+
 
 class ExchangeInfo(Model):
     exchange = TextField()
@@ -53,7 +54,6 @@ class BW_Activity(Model):
     reference_product = TextField(null=True)
 
 
-
 class FTS_BW_ActivitySimple(FTSModel):
     name = TextField()
     product = TextField()
@@ -62,9 +62,11 @@ class FTS_BW_ActivitySimple(FTSModel):
     comment = TextField()
     content = TextField()
 
+
 # class BWProjectIndex(Model):
 #     version: TextField()  # should have validation // see ecoinvent_consts
 #     system_model: ecoinvent_system_models
 #     type: ecoinvent_dataset_types = "default"
 #     xlsx: bool = False
 #     path: Optional[Path] = None
+
