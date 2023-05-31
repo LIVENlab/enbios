@@ -4,18 +4,14 @@ from pathlib import Path
 from typing import Literal, Union, Optional
 
 from enbios2.const import BASE_DATA_PATH, ECOINVENT_INDEX_FILE
+from enbios2.ecoinvent.ecoinvent_consts import ecoinvent_versions_lit, ecoinvent_system_models_lit, ecoinvent_dataset_types_lit
 from enbios2.generic.files import ReadPath
-
-ecoinvent_versions = Literal["3.8", "3.9", "3.9.1"]
-ecoinvent_system_models = Literal["cutoff", "consequential", "apos"]
-ecoinvent_dataset_types = Literal["default", "lci", "lcia"]
-
 
 @dataclass
 class EcoinventDatasetDescriptor:
-    version: ecoinvent_versions
-    system_model: ecoinvent_system_models
-    type: ecoinvent_dataset_types = "default"
+    version: ecoinvent_versions_lit
+    system_model: ecoinvent_system_models_lit
+    type: ecoinvent_dataset_types_lit = "default"
     xlsx: bool = False
     path: Optional[Path] = None
 

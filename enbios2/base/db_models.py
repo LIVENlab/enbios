@@ -36,8 +36,6 @@ class ImpactInfo(Model):
         pass
 
 
-
-
 class BW_Activity(Model):
     code = TextField()
     database = TextField()
@@ -63,3 +61,10 @@ class FTS_BW_ActivitySimple(FTSModel):
     location_name = TextField()
     comment = TextField()
     content = TextField()
+
+# class BWProjectIndex(Model):
+#     version: TextField()  # should have validation // see ecoinvent_consts
+#     system_model: ecoinvent_system_models
+#     type: ecoinvent_dataset_types = "default"
+#     xlsx: bool = False
+#     path: Optional[Path] = None
