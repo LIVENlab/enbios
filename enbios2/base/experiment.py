@@ -3,18 +3,18 @@ import sys
 from typing import Optional, Union
 
 import bw2data as bd
+from bw2data.backends import Activity
 from pint import UnitRegistry
 
+from enbios2.generic.enbios2_logging import get_logger
+from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import ExperimentActivitiesGlobalConf, ExperimentActivityId, \
     ExtendedExperimentActivity, \
     ExperimentActivity, BWMethod, ExperimentMethod, ExperimentHierarchyNode, \
     ExperimentHierarchy, ExperimentScenario, ExperimentData, ExtendedExperimentActivityOutput
+from enbios2.technology_tree import BW_CalculationSetup
 
-
-logger = logging.Logger(__name__)
-# add console.stream handler
-logger.addHandler(logging.StreamHandler(sys.stdout))
-logger.setLevel("INFO")
+logger = get_logger(__file__)
 
 
 class Experiment:
@@ -37,6 +37,14 @@ class Experiment:
 
         self.validate_hierarchies()
         self.validate_scenarios(list(self.activitiesMap.values()))
+        self.scenarios: list[ExperimentScenario] = []
+        self.next_scenario_index = 0
+
+        self.create_scenarios()
+
+        self.technology_root_node: BasicTreeNode = self.create_technology_tree()
+
+        self.create_bw_calculation_setup()
 
     def validate_activities(self, required_output: bool = False):
         """
@@ -267,3 +275,116 @@ class Experiment:
         elif not scenarios:
             # todo. one scenario
             return
+
+    def create_scenarios(self):
+        """
+        Create scenarios from raw data
+        :return:
+        """
+        scenarios = self.raw_data.scenarios
+        if isinstance(scenarios, list):
+            self.scenarios = scenarios
+        elif isinstance(scenarios, dict):
+            self.scenarios = list(scenarios.values())
+        else:
+            self.scenarios = [ExperimentScenario(alias="default scenario")]
+
+    def create_technology_tree(self) -> BasicTreeNode:
+        """
+        Build a tree of all technologies
+        :return:
+        """
+        hierarchy = self.raw_data.hierarchy
+        if isinstance(hierarchy, list):
+            raise "Currently only one hierarchy is supported"
+
+        def recursive_get_children(
+                children_data: Union[ExperimentHierarchyNode, list, dict[str, ExperimentHierarchyNode]]) -> list[
+            BasicTreeNode]:
+            child_nodes: list[BasicTreeNode] = []
+            if isinstance(children_data, dict):
+                for child_name, child_data in children_data.items():
+                    child_node = BasicTreeNode(name=child_name)
+                    child_nodes.append(child_node)
+                    child_node.add_children(recursive_get_children(child_data))
+            else:
+                # this could be str, or ExperimentActivityId
+                children_data: ExperimentHierarchyNode = children_data
+                for activity_id in children_data.children:
+                    # todo, this could be also of type "ExperimentActivityId" (not just str)
+                    activity_node = BasicTreeNode(name=activity_id)
+                    activity_node._data = self._get_activity(activity_id)
+                    child_nodes.append(activity_node)
+            return child_nodes
+
+        root_node = BasicTreeNode(name="root")
+        root_node.add_children(recursive_get_children(hierarchy.root.children))
+        return root_node
+
+    def create_bw_calculation_setup(self, scenario: Optional[str] = None) -> BW_CalculationSetup:
+        if not scenario:
+            scenario = self.scenarios[self.next_scenario_index]
+        logger.debug(f"Creating BW_CalculationSetup for scenario: {scenario.alias}")
+
+        inventory: list[tuple[Activity, float]] = []
+        methods: list[tuple[str]] = []
+
+        activities = self.technology_root_node.get_leaves()
+
+        # for node in scenario_tree.iter_all_nodes():
+        #     _data = node.data
+        #     if not _data:
+        #         node.data = TechnologyTree_LevelNode_Data("level", 0)
+        #         continue
+        #     if _data.node_type == "method":
+        #         node.data: ScenarioTree_MethodNode_Data
+        #         methods.append(_data.method.name)
+        #     if _data.node_type == "activity":
+        #         node.data: TechnologyTree_ActivityNode_Data
+        #         inventory.append((_data.activity, _data.amount))
+        #
+        # return BW_CalculationSetup(scenario_tree.name, inventory, methods)
+
+
+if __name__ == "__main__":
+    scenario_data = {
+        "bw_project": "uab_bw_ei39",
+        "activities_config": {
+            "default_database": "ei391"
+        },
+        "activities": {
+            "single_activity": {
+                "id": {
+                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit": "kilowatt hour",
+                    "location": "DK"
+                },
+                "output": [
+                    "MWh",
+                    30
+                ]
+            }
+        },
+        "methods": [
+            {
+                "id": [
+                    "Crustal Scarcity Indicator 2020",
+                    "material resources: metals/minerals"
+                ]
+            }
+        ],
+        "hierarchy": {
+            "root": {
+                "children": {
+                    "energy": {
+                        "children": [
+                            "single_activity"
+                        ]
+                    }
+                }
+            }
+        }
+    }
+    exp_data = ExperimentData(**scenario_data)
+    exp = Experiment(exp_data)
+    print(exp)
