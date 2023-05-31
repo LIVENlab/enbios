@@ -11,6 +11,7 @@ Both databases have two tables:
             ImpactInfo : ['method', 'category', 'indicator', 'unit']
 
 """
+import json
 from pathlib import Path
 from typing import Type
 
@@ -20,12 +21,13 @@ from playhouse.shortcuts import model_to_dict
 from tqdm import tqdm
 
 from enbios2.base.databases import add_db, DBTypes, check_exists, set_db_meta, get_model_classes, \
-    prepare_db, set_model_table_name, guarantee_db_dir
+    prepare_db, set_model_table_name, guarantee_db_dir, get_db_meta
 from enbios2.base.db_models import EcoinventDatabaseActivity, ExchangeInfo
 from enbios2.const import BASE_DATABASES_PATH
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_path, EcoinventDatasetDescriptor
 from enbios2.generic.enbios2_logging import get_logger
-from enbios2.generic.files import ReadDataPath
+from enbios2.generic.files import ReadPath
+from enbios2.generic.util import get_enum_by_value
 
 logger = get_logger(__file__)
 
@@ -75,7 +77,7 @@ def create(type_: DBTypes, file_path: Path, name: str, force_redo: bool = False)
         batch = []
 
         def insert_batch(table: Type[Model], batch: list[dict]):
-            table.insert_many(batch)
+            table.insert_many(batch).execute()
             batch.clear()
 
         for index, _ in enumerate(data_index_fields[0]):
@@ -103,33 +105,63 @@ def create(type_: DBTypes, file_path: Path, name: str, force_redo: bool = False)
     add_db(name, db_path, DBTypes.LCI.value, {"orig_file_name": file_path.name})
 
 
-def get_lcia(db_name: str, code: str, drop_zero: bool = False):
+def create_if_not_exists(type_: DBTypes, file_path: ReadPath, name: str):
+    if not check_exists(name):
+        logger.info(f"Creating database '{name}'")
+        create(type_, file_path, name)
+
+
+def get_activity_data(db_name: str, code: str, drop_zero: bool = False):
+    """
+    Get the data for an activity in a database
+    :param db_name:
+    :param code:
+    :param drop_zero:
+    :return:
+    """
     if not check_exists(db_name):
         raise ValueError(f"Database '{db_name}' does not exist")
     prepare_db(db_name)
+
+    metadata = get_db_meta(db_name)
+
+    db_type = get_enum_by_value(DBTypes, metadata.db_type)
+    assert db_type in [DBTypes.LCI, DBTypes.LCIA], f"Database type must be either {DBTypes.LCI} or {DBTypes.LCIA}"
+    db_model_classes = get_model_classes(db_type)
+    set_model_table_name(EcoinventDatabaseActivity, f"activity_{metadata.db_type}")
     activity = EcoinventDatabaseActivity.get(EcoinventDatabaseActivity.code == code)
-    exchange_info = ExchangeInfo.select()
-    lci = []
-    for index, e in enumerate(exchange_info):
+    data_index_rows = db_model_classes[1].select()
+    data_ = []
+    for index, e in enumerate(data_index_rows):
         value = activity.data[index]
         if drop_zero and value == 0:
             continue
-        exchange_data = model_to_dict(e, exclude=[EcoinventDatabaseActivity.id])
+        exchange_data = model_to_dict(e, exclude=[db_model_classes[1].id])
         exchange_data["value"] = value
-        lci.append(exchange_data)
-    return lci
+        data_.append(exchange_data)
+    return data_
 
 
-def create_if_not_exists(file_path: ReadDataPath, name: str):
-    if not check_exists(name) or True:
-        logger.info(f"Creating database '{name}'")
-        create(DBTypes.LCIA, file_path, name)
+# todo: check all EcoInvent indexes (xlsx) and suggest to create databases
+# suggest name, and check if name already exists...
 
+if __name__ == "__main__":
+    path = get_ecoinvent_dataset_path(
+        EcoinventDatasetDescriptor(version="3.9.1",
+                                   system_model="cutoff",
+                                   type="lci",
+                                   xlsx=True))
+    create_if_not_exists(DBTypes.LCI, path, "ecoinvent3.9.1.cut-off.lci")
 
-path = get_ecoinvent_dataset_path(
-    EcoinventDatasetDescriptor(version="3.9.1",
-                               system_model="cutoff",
-                               type="lci",
-                               xlsx=True))
+    path = get_ecoinvent_dataset_path(
+        EcoinventDatasetDescriptor(version="3.9.1",
+                                   system_model="cutoff",
+                                   type="lcia",
+                                   xlsx=True))
 
-create(DBTypes.LCI, path, "ecoinvent3.9.1.cut-off.lci")
+    create_if_not_exists(DBTypes.LCIA, path, "ecoinvent3.9.1.cut-off.lcia")
+
+    data = get_activity_data("ecoinvent3.9.1.cut-off.lci",
+                             "d195d4a3-6ae5-54e4-9954-7f915cf08668_d69294d7-8d64-4915-a896-9996a014c410")
+    print(json.dumps(data, indent=2))
+    pass

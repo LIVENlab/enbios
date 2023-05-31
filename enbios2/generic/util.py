@@ -1,6 +1,7 @@
 import re
+from enum import Enum
 from pathlib import Path
-from typing import Union
+from typing import Union, Type
 
 from enbios2.const import BASE_DATA_PATH
 from enbios2.generic.enbios2_logging import get_logger
@@ -78,3 +79,10 @@ def simple_name(text, replacer_char: str = "_") -> str:
         logger.warning("replacer_char should be a single character")
         replacer_char = replacer_char[0]
     return re.sub(f"[^0-9a-zA-Z{replacer_char}]", replacer_char, text)
+
+
+def get_enum_by_value(enum_type: Type[Enum], value):
+    for enum_member in enum_type.__members__.values():
+        if enum_member.value == value:
+            return enum_member
+    return None
