@@ -2,11 +2,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Type, Any
 
-from peewee import Model, TextField, SqliteDatabase
-from playhouse.sqlite_ext import JSONField
+from peewee import Model, SqliteDatabase
 
-from enbios2.base.db_models import BW_Activity, FTS_BW_ActivitySimple, EcoinventDatabaseActivity, ExchangeInfo, ImpactInfo
-from enbios2.const import BASE_DATA_PATH, BASE_DATABASES_PATH
+from enbios2.base.db_models import BW_Activity, FTS_BW_ActivitySimple, EcoinventDatabaseActivity, ExchangeInfo, \
+    ImpactInfo, Enbios2DBMetadata, MainDatabase, EcoinventDataset, BWProjectIndex
+from enbios2.const import BASE_DATA_PATH, BASE_DATABASES_PATH, MAIN_DATABASE_PATH
+
+
+# from playhouse.sqlite_ext import JSONField
 
 
 class DBTypes(Enum):
@@ -38,38 +41,28 @@ def get_model_classes(db_type: DBTypes) -> list[Type[Model]]:
         return [BW_Activity, FTS_BW_ActivitySimple]
 
 
-class Metadata(Model):
-    name = TextField()
-    path = TextField()
-    db_type = TextField()
-    metadata = JSONField()
-
-    class Meta:
-        pass
-
-
 def guarantee_db_dir():
     BASE_DATABASES_PATH.mkdir(parents=True, exist_ok=True)
 
 
-def init() -> SqliteDatabase:
-    database = SqliteDatabase(BASE_DATA_PATH / f"databases/meta.sqlite")
-    Metadata._meta.database = database
-    database.connection()
-    database.create_tables([Metadata])
+def init_databases() -> SqliteDatabase:
+    guarantee_db_dir()
+    database = MainDatabase._meta.database
+    database.connect()
+    database.create_tables([Enbios2DBMetadata, EcoinventDataset, BWProjectIndex])
     return database
 
 
 def add_db(name: str, db_path: Path, db_type: DBTypes, metadata: dict):
     # todo do replace when name and path are the same
-    database = init()
-    Metadata(name=name, path=db_path, db_type=db_type, metadata=metadata).save()
+    database = init_databases()
+    Enbios2DBMetadata(name=name, path=db_path, db_type=db_type, metadata=metadata).save()
     database.close()
 
 
 def check_exists(name: str) -> bool:
-    database = init()
-    exists = Metadata.select().where(Metadata.name == name).exists()
+    database = init_databases()
+    exists = Enbios2DBMetadata.select().where(Enbios2DBMetadata.name == name).exists()
     database.close()
     return exists
 
@@ -84,9 +77,9 @@ def set_model_table_name(cls: Type[Model], name: str):
     cls._meta.table_name = name
 
 
-def get_db_meta(name: str) -> Metadata:
-    database = init()
-    db_metadata = Metadata.get(Metadata.name == name)
+def get_db_meta(name: str) -> Enbios2DBMetadata:
+    database = init_databases()
+    db_metadata = Enbios2DBMetadata.get(Enbios2DBMetadata.name == name)
     database.close()
     return db_metadata
 

@@ -24,7 +24,7 @@ from enbios2.base.databases import add_db, DBTypes, check_exists, set_db_meta, g
     prepare_db, set_model_table_name, guarantee_db_dir, get_db_meta
 from enbios2.base.db_models import EcoinventDatabaseActivity, ExchangeInfo
 from enbios2.const import BASE_DATABASES_PATH
-from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_path, EcoinventDatasetDescriptor
+# from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_path, EcoinventDatasetDescriptor
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.files import ReadPath
 from enbios2.generic.util import get_enum_by_value
