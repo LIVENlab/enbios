@@ -19,7 +19,6 @@ projects = bw2data.projects
 
 BW_Databases = Literal["ecovinvent391cutoff", "ecovinvent391consequential", "ecovinvent391apos"]
 
-
 class BWIndex(Enum):
     ecovinvent391cutoff = "ecovinvent391cutoff"
     ecovinvent391consequential = "ecovinvent391consequential"
@@ -92,3 +91,10 @@ if __name__ == "__main__":
     print_bw_index()
     set_bw_index(BWIndex.ecovinvent391cutoff, "uab_bw_ei39")
     set_bw_current_project(BWIndex.ecovinvent391cutoff)
+
+
+#
+def add_bw_project_index(project_name: str):
+    assert project_name in bw2data.projects
+
+
