@@ -70,7 +70,7 @@ def analyze_directory(directory: Path, store_to_index_file: bool = True) -> list
     return indexes
 
 
-def get_ecoinvent_dataset_path(descr: EcoinventDatasetDescriptor) -> Path:
+def get_ecoinvent_dataset_path(descr: EcoinventDatasetDescriptor) -> ReadPath:
     """
     get the definite path of the dataset (spold files) or excel file
     :param descr:
