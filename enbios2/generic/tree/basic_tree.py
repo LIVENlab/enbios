@@ -101,6 +101,15 @@ class BasicTreeNode(Generic[T]):
         node.parent = self
         return node
 
+    def add_children(self, nodes: list["BasicTreeNode"]):
+        """
+        Add multiple child nodes to this node.
+        :param nodes:
+        :return:
+        """
+        for node in nodes:
+            self.add_child(node)
+
     def remove_child(self, node: Union["BasicTreeNode", int]) -> "BasicTreeNode":
         """
         Remove a child node from this node.
@@ -422,6 +431,11 @@ class BasicTreeNode(Generic[T]):
 
     @staticmethod
     def from_dict(data: dict):
+        """
+        Parse a dict and create a tree from it.
+        :param data:
+        :return:
+        """
         children = {}
         if "children" in data:
             children = data["children"]
@@ -504,7 +518,7 @@ class BasicTreeNode(Generic[T]):
         """
         return len(self.children)
 
-    def __getitem__(self, item: Union[int, str, list[Union[int,str]]]) -> "BasicTreeNode":
+    def __getitem__(self, item: Union[int, str, list[Union[int, str]]]) -> "BasicTreeNode":
         """
         Get a child node by its index or name.
         Throws KeyError or IndexError if the child is not found.

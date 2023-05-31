@@ -1,5 +1,5 @@
 from copy import copy
-from dataclasses import asdict
+from dataclasses import asdict, field
 from typing import Optional, Union, Type
 
 import bw2data as bd
@@ -110,13 +110,17 @@ class ExperimentActivity:
         result: ExtendedExperimentActivity = ExtendedExperimentActivity(**asdict(self))
         result.orig_id = copy(self.id)
         if not self.id.database:
-            assert default_id_attr.database is not None, f"database must be specified for {self.id} or default_database set in config"
             result.id.database = default_id_attr.database
-        assert result.id.database in bd.databases, f"activity database does not exist: '{self.id.database}' for {self.id}"
+            assert default_id_attr.database is not None, f"database must be specified for {self.id} or default_database set in config"
+        # assert result.id.database in bd.databases, f"activity database does not exist: '{self.id.database}' for {self.id}"
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
         if result.id.code:
-            result.bw_activity = bd.Database(result.id.database).get(result.id.code)
+            if result.id.database:
+                result.bw_activity = bd.Database(result.id.database).get(result.id.code)
+            else:
+                result.bw_activity = get_activity(result.id.code)
         elif result.id.name:
+            assert result.id.database is not None, f"database must be specified for {self.id} or default_database set in config"
             filters = {}
             if result.id.location:
                 filters["location"] = result.id.location
@@ -127,6 +131,8 @@ class ExperimentActivity:
             # print(search_results)
             if result.id.unit:
                 search_results = list(filter(lambda a: a["unit"] == result.id.unit, search_results))
+                if len(search_results) == 0:
+                    raise ValueError("No activity found with the specified unit")
             assert len(search_results) == 1, f"results : {len(search_results)}"
             result.bw_activity = search_results[0]
 
@@ -165,11 +171,12 @@ class ExtendedExperimentActivity:
 
 @dataclass
 class ExperimentHierarchyNode:
-    children: Optional[
-        Union[
-            dict[str, "ExperimentHierarchyNode"],
-            list[ExperimentActivityId],  # any activityId type
-            list[str]]]  # activity alias
+    # name: str
+    # children: Optional[list[Union["ExperimentHierarchyNode", ExperimentActivityId, str]]] = field(default_factory=list)
+    children: Union[
+        dict[str, "ExperimentHierarchyNode"],
+        list[ExperimentActivityId],  # any activityId type
+        list[str]]  # activity alias
 
 
 @dataclass
@@ -184,7 +191,8 @@ class ExperimentScenario:
     activities: Optional[Union[
         list[
             tuple[Union[str, ExperimentActivityId], ExperimentActivityOutput]],  # alias or id to output
-        dict[str, Optional[ExperimentActivityOutput]]]]  # alias to output, null means default-output (check exists)
+        dict[str, Optional[
+            ExperimentActivityOutput]]]] = None  # alias to output, null means default-output (check exists)
 
     # either the alias, or the id of any method. not method means running them all
     methods: Optional[list[Union[str, list[str], tuple[str, ...]]]] = None
@@ -205,7 +213,7 @@ class ScenarioConfig:
 @dataclass
 class ExperimentData:
     bw_project: Union[str, ExperimentBWProjectConfig]
-    activities_config = ExperimentActivitiesGlobalConf()
+    activities_config: ExperimentActivitiesGlobalConf = ExperimentActivitiesGlobalConf()
     activities: Optional[Union[list[ExperimentActivity], dict[str, ExperimentActivity]]] = None
     methods: Optional[Union[list[ExperimentMethod], dict[str, ExperimentMethod]]] = None
     hierarchy: Optional[Union[ExperimentHierarchy, list[ExperimentHierarchy]]] = None

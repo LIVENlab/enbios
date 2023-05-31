@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import bw2data
+from bw2data.backends import ActivityDataset
 from prompt_toolkit import PromptSession
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.completion import Completer, Completion
@@ -28,6 +29,7 @@ from enbios2.generic.enbios2_logging import get_logger
 PROJECT = "project"
 IN_PROJECT = "in_project"
 DATABASE = "database"
+IN_DATABASE = "in_database"
 METHOD = "method"
 
 logger = get_logger(__file__)
@@ -52,11 +54,17 @@ class PromptStore:
     methods: list[tuple] = field(default_factory=list)
 
 
+@dataclass
+class PromtState:
+    current_db: bw2data.backends.base.SQLiteBackend = None
+
+
 class CustomCompleter(Completer):
     def __init__(self):
         super(CustomCompleter, self).__init__()
 
         self.data: PromptStore = PromptStore()
+        self.state: PromtState = PromtState()
 
         self.message: Union[str, FormattedText] = ""  # current message before each input
         self.set_message("select a brightway project")
@@ -75,6 +83,11 @@ class CustomCompleter(Completer):
             return [DATABASE, METHOD]
         elif self.status == DATABASE:
             return bw2data.databases
+        elif self.status == IN_DATABASE:
+            candidates = list((act.name for act in ActivityDataset.select(ActivityDataset.name).where(
+                ActivityDataset.database == self.state.current_db.name)))
+            print(candidates[0])
+            return candidates
         elif self.status == METHOD:
             return ["_".join(m) for m in bw2data.methods]
         return []
@@ -103,14 +116,19 @@ class CustomCompleter(Completer):
                 else:
                     yield Completion(known_word, start_position=-len(word))
 
-    def set_status(self, status: str):
+    def set_status(self, status: str, text: Optional[str] = None):
         """
         set the status and update the candidates depending on the new status
         :param status:
         :return:
         """
         self.status = status
+        self.set_state(status, text)
         self.update_candidates()
+
+    def set_state(self, status: str, text: str):
+        if status == IN_DATABASE:
+            self.state.current_db = bw2data.Database(text)
 
     def set_message(self, msg: Union[str, list[tuple[str, str]]]):
         """
@@ -137,13 +155,20 @@ class CustomCompleter(Completer):
                 print(f"project: {text} not found")
         elif self.status == IN_PROJECT:
             if text == DATABASE:
-                self.status = DATABASE
+                self.set_status(DATABASE)
+                self.set_message(
+                    f"There are {len(self.current_candidates)} databases. Select any number of candidates one by one")
             elif text == METHOD:
                 self.set_status(METHOD)
                 self.set_message(
                     f"There are {len(self.current_candidates)} methods. Select any number of candidates one by one")
             else:
                 print(f"command: {text} not found")
+        elif self.status == DATABASE:
+            print("loading database...")
+            self.set_status(IN_DATABASE, text)
+            self.set_message(
+                f"There are {len(self.current_candidates)} activities. Select any number of candidates one by one")
         elif self.status == METHOD:
             try:
                 # check validity
@@ -179,6 +204,13 @@ custom_completer = CustomCompleter()
 
 session = PromptSession(lexer=PygmentsLexer(Python3Lexer), completer=custom_completer,
                         bottom_toolbar=custom_completer.toolbar_msg)
+
+# bw2data.projects.set_current("uab_bw_ei39")
+# #
+# candidates = list(ActivityDataset.select(ActivityDataset).where(
+#     ActivityDataset.database == "ei391"))
+# print(candidates[0])
+
 
 while True:
     try:
