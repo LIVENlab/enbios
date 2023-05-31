@@ -6,7 +6,7 @@ from peewee import Model, TextField, SqliteDatabase
 from playhouse.sqlite_ext import JSONField
 
 from enbios2.base.db_models import BW_Activity, FTS_BW_ActivitySimple, EcoinventDatabaseActivity, ExchangeInfo, ImpactInfo
-from enbios2.const import BASE_DATA_PATH
+from enbios2.const import BASE_DATA_PATH, BASE_DATABASES_PATH
 
 
 class DBTypes(Enum):
@@ -46,6 +46,10 @@ class Metadata(Model):
 
     class Meta:
         pass
+
+
+def guarantee_db_dir():
+    BASE_DATABASES_PATH.mkdir(parents=True, exist_ok=True)
 
 
 def init() -> SqliteDatabase:

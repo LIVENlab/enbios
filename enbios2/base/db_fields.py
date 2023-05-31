@@ -1,3 +1,6 @@
+"""
+this is from bw2data sqlite, but is not in all version of bw2data
+"""
 import json
 import pickle
 
