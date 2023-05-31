@@ -63,17 +63,30 @@ def create(type_: DBTypes, file_path: Path, name: str, force_redo: bool = False)
         if type_ == DBTypes.LCIA:
             assert data_fields_names == ['method', 'category', 'indicator', 'unit']
 
+        batch_size = 1000
+        batch = []
+
+        def insert_batch(table: Type[Model], batch: list[dict]):
+            table.insert_many(batch)
+            batch.clear()
+
         for index, _ in enumerate(data_index_fields[0]):
-            index_table.create(**{k: v[index] for k, v in zip(data_fields_names, data_index_fields)})
-            # ImpactInfo.create(method=data_field0[index], category=data_field1[index],
-            #            indicator=data_field2[index], unit=data_field3[index]).save()
+            batch.append({k: v[index] for k, v in zip(data_fields_names, data_index_fields)})
+            if len(batch) == batch_size:
+                insert_batch(index_table, batch)
+
+        insert_batch(index_table, batch)
 
         fields = list(EcoinventDatabaseActivity._meta.fields.keys())[1:]
+
         for activities in tqdm(row_generator):
             # print({k: v for k, v in zip(fields, activities[:6])})
-            db_activity = EcoinventDatabaseActivity(**{k: v for k, v in zip(fields, activities[:6])})
-            db_activity.data = activities[6:]
-            db_activity.save()
+            db_act = {k: v for k, v in zip(fields, activities[:6])}
+            db_act.data = activities[6:]
+            batch.append(db_act)
+            if len(batch) == batch_size:
+                insert_batch(EcoinventDatabaseActivity, batch)
+        insert_batch(EcoinventDatabaseActivity, batch)
 
     else:
         print(f"Database '{name}' already exists")
@@ -107,7 +120,7 @@ def create_if_not_exists(file_path: ReadDataPath, name: str):
 
 create_if_not_exists(
     ReadDataPath("ecoinvent/ecoinvent 3.9.1_cutoff_cumulative_lcia_xlsx/Cut-off Cumulative LCIA v3.9.1.xlsx"),
-    "ecoinvent3.9.1.cut-off_test.lcia")
+    "ecoinvent3.9.1.cut-off_test2.lcia")
 
-path = get_ecoinvent_dataset_path(EcoinventDatasetDescriptor(version="3.9.1", system_model="cutoff", type="lci"))
-create(path, "ecoinvent3.9.1.cut-off.lci")
+# path = get_ecoinvent_dataset_path(EcoinventDatasetDescriptor(version="3.9.1", system_model="cutoff", type="lci"))
+# create(path, "ecoinvent3.9.1.cut-off.lci")
