@@ -30,7 +30,8 @@ class BasicTreeNode(Generic[T]):
     def __init__(self,
                  name: str,
                  children: list["BasicTreeNode"] = (),
-                 data: Optional[T] = None):
+                 data: Optional[T] = None,
+                 **kwargs):
         """
         Initialize the HierarchyNode.
 
@@ -43,7 +44,7 @@ class BasicTreeNode(Generic[T]):
             self.add_child(child)
         self.parent: Optional[BasicTreeNode] = None
         self.data: Optional[T] = data
-        self._data: dict[str, Any] = {}  # this is used for temporary storage of data
+        self._data: dict[str, Any] = kwargs  # this is used for temporary storage of data
         self._id: bytes = self.generate_id()
 
     def generate_id(self) -> bytes:
@@ -443,7 +444,7 @@ class BasicTreeNode(Generic[T]):
             children = data["children"]
             del data["children"]
         node = BasicTreeNode(**data)
-        for child in children:
+        for child in children.values():
             node.add_child(BasicTreeNode.from_dict(child))
         return node
 
@@ -512,6 +513,10 @@ class BasicTreeNode(Generic[T]):
         for _ in range(num_children):
             self.remove_child(0)
         return num_children
+
+    @property
+    def id(self):
+        return self._id
 
     def __len__(self):
         """
