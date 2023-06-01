@@ -83,6 +83,8 @@ class BasicTreeNode(Generic[T]):
 
         :param name: The new name of this node.
         """
+        if self._name == name:
+            return
         if self.parent:
             if name in self.parent:
                 raise ValueError(f"Node {name} already exists in {self.parent}")
