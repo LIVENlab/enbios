@@ -1,3 +1,5 @@
+from copy import copy
+
 import pytest
 import sys
 
@@ -16,8 +18,6 @@ print(sys.path)
 
 
 # from enbios2.generic.tree.basic_tree import BasicTreeNode
-
-
 @pytest.fixture
 def csv_file_path(tmp_path):
     return tmp_path / "test.csv"
@@ -388,3 +388,45 @@ def test_from_dict():
     assert len(root.children[0].children) == 1
     assert root.children[1].name == "child2"
     assert len(root.children[1].children) == 0
+
+
+
+def test_make_names_unique():
+    node = BasicTreeNode("root")
+    child1 = node.add_child(BasicTreeNode("child1"))
+    child1.add_child(BasicTreeNode("child1"))
+    child2 = node.add_child(BasicTreeNode("child2"))
+    child2.add_child(BasicTreeNode("child1"))
+    child2.add_child(BasicTreeNode("child2"))
+    node.make_names_unique()
+    assert node.get_child_names() == ["root_child1", "root_child2"]
+    assert child1.get_child_names() == ["child1_child1"]
+    assert child2.get_child_names() == ["child2_child1", "child2_child2"]
+
+
+def test_copy():
+    root_ = BasicTreeNode("root")
+    other = copy(root_)
+    assert root_ is not other
+    assert root_ != other
+    assert root_._id != other._id
+    assert root_.name == other.name
+
+    child = root_.add_child(BasicTreeNode("child"))
+    other = root_.copy("copy_node")
+    assert other.name == "copy_node"
+    assert child == root_.children[0]
+    assert child is not other.children[0]
+    assert root_.children[0].parent == root_
+    assert other.children[0].parent == other
+
+
+def test_set_name():
+    node = BasicTreeNode("root")
+    child1 = node.add_child(BasicTreeNode("child1"))
+    child2 = node.add_child(BasicTreeNode("child2"))
+    child2.name = "x"
+    assert child2.name == "x"
+    with pytest.raises(ValueError):
+        child2.name = "child1"
+
