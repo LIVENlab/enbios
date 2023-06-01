@@ -45,11 +45,11 @@ def analyze_directory(directory: Optional[Path] = None,
     return indexes
 
 
-def get_dataset_index(*,
-                      version: Optional[Union[str, list[str]]] = None,
-                      system_model: Optional[Union[str, list[str]]] = None,
-                      type_: Optional[Union[str, list[str]]] = None,
-                      xlsx: Optional[bool] = None) -> Generator[EcoinventDataset, None, None]:
+def get_ecoinvent_dataset_index(*,
+                                version: Optional[Union[str, list[str]]] = None,
+                                system_model: Optional[Union[str, list[str]]] = None,
+                                type_: Optional[Union[str, list[str]]] = None,
+                                xlsx: Optional[bool] = None) -> Generator[EcoinventDataset, None, None]:
     """
     Get the dataset index for the given parameters
     :param version:
@@ -81,5 +81,5 @@ if __name__ == "__main__":
     init_databases()
     analyze_directory(store_to_index_file=True)
 
-    print(list(get_dataset_index(xlsx=True)))
-    print(list(get_dataset_index(xlsx=True))[0].dataset_path)
+    print(list(get_ecoinvent_dataset_index(xlsx=True)))
+    print(list(get_ecoinvent_dataset_index(xlsx=True))[0].dataset_path)

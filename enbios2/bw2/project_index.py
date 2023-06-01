@@ -1,43 +1,26 @@
 """
 A shortcut of initializing the project in brightway2. The motivation is to have a local brightway project index file.
-Now if someone uses this module to set the current index, that is independet of the machine that is used, as long as the index file exists.
+Now if someone uses this module to set the current index, that is independent of the machine that is used, as long as the index file exists.
 This helps with the problem of different bw project names on different machines
 """
-import json
-from dataclasses import dataclass, asdict
-from enum import Enum
-from pathlib import Path
-from typing import Literal, Optional
+from typing import Optional
 
 import bw2data
 import yaml
 
-from enbios2.const import BW_PROJECT_INDEX_FILE
-from enbios2.generic.files import ReadPath
+from enbios2.base.databases import init_databases
+from enbios2.base.db_models import BWProjectIndex, EcoinventDataset
+from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
+from enbios2.generic.enbios2_logging import get_logger
 
 projects = bw2data.projects
 
-BW_Databases = Literal["ecovinvent391cutoff", "ecovinvent391consequential", "ecovinvent391apos"]
 
-class BWIndex(Enum):
-    ecovinvent391cutoff = "ecovinvent391cutoff"
-    ecovinvent391consequential = "ecovinvent391consequential"
-    ecovinvent391apos = "ecovinvent391apos"
-    # biosphere_db = "biosphere_db"
-    # ecoinvent_db = "ecoinvent_db"
+logger = get_logger(__file__)
 
 
-@dataclass
-class BWProjectIndex:
-    ecovinvent391cutoff: Optional[str] = None
-    ecovinvent391consequential: Optional[str] = None
-    ecovinvent391apos: Optional[str] = None
-
-
-def _read_bw_index_file() -> BWProjectIndex:
-    if not Path(BW_PROJECT_INDEX_FILE).exists():
-        Path.write_text("{}")
-    return BWProjectIndex(**ReadPath(BW_PROJECT_INDEX_FILE).read_data())
+def _read_bw_index_file() -> list[BWProjectIndex]:
+    return list(BWProjectIndex.select())
 
 
 def print_bw_index():
@@ -48,28 +31,31 @@ def print_bw_index():
     print(_read_bw_index_file())
 
 
-def set_bw_current_project(bw_project_index: BWIndex):
-    """
-    Sets the current bw project
-    :param bw_project_index:
-    :return:
-    """
-    project_index = getattr(_read_bw_index_file(), bw_project_index.value)
-    if not project_index:
-        raise ValueError(f"Project index '{bw_project_index.value}' not found")
-    bw2data.projects.set_current(project_index)
+def get_existing(project_name: str, database_name: str) -> Optional[BWProjectIndex]:
+    existing = list(BWProjectIndex.select(BWProjectIndex, EcoinventDataset).join(EcoinventDataset).where(
+        BWProjectIndex.project_name == project_name and
+        BWProjectIndex.database_name == database_name))
+    if existing:
+        return existing[0]
 
 
-def set_bw_index(bw_project_index: BWIndex, project_name: str):
+def set_bw_index(project_name: str, database_name: str, ecoinvent_dataset: EcoinventDataset) -> BWProjectIndex:
     """
     set a new index
-    :param bw_project_index:
     :param project_name:
+    :param database_name:
+
     :return:
     """
-    project_index = _read_bw_index_file()
-    setattr(project_index, bw_project_index.value, project_name)
-    Path(BW_PROJECT_INDEX_FILE).write_text(json.dumps(asdict(project_index), indent=2))
+    existing = get_existing(project_name, database_name)
+    if existing:
+        logger.info(
+            f"Index for {project_name},{database_name} exists already with Ecoinvent dataset: {existing.ecoinvent_dataset.identity}")
+        return existing
+
+    bw_project_index = BWProjectIndex.create(project_name=project_name, database_name=database_name,
+                                             ecoinvent_dataset=ecoinvent_dataset)
+    return bw_project_index
 
 
 def project_index_creation_helper():
@@ -87,14 +73,13 @@ def project_index_creation_helper():
 
 
 if __name__ == "__main__":
+    init_databases()
     project_index_creation_helper()
-    print_bw_index()
-    set_bw_index(BWIndex.ecovinvent391cutoff, "uab_bw_ei39")
-    set_bw_current_project(BWIndex.ecovinvent391cutoff)
-
+    # print_bw_index()
+    candidates = list(get_ecoinvent_dataset_index(version="3.9.1", system_model="cutoff", xlsx=False))
+    # print(list(candidates))
+    set_bw_index("ecoi_dbs", "cutoff391", candidates[0])
 
 #
-def add_bw_project_index(project_name: str):
-    assert project_name in bw2data.projects
-
-
+# def add_bw_project_index(project_name: str):
+#     assert project_name in bw2data.projects
