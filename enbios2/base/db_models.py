@@ -1,14 +1,14 @@
 from pathlib import Path
 from typing import Union
 
-from peewee import Model, TextField, FloatField, BooleanField, ForeignKeyField, SqliteDatabase
+from peewee import Model, TextField, FloatField, BooleanField, SqliteDatabase, ForeignKeyField
+from playhouse.shortcuts import model_to_dict
 from playhouse.sqlite_ext import FTSModel, JSONField
 
 from enbios2.base.db_fields import TupleJSONField, PathField
 from enbios2.const import MAIN_DATABASE_PATH
 from enbios2.ecoinvent.ecoinvent_consts import valid_ecoinvent_versions, valid_ecoinvent_system_models, \
     valid_ecoinvent_datatypes
-from enbios2.generic.files import ReadPath
 
 
 class MainDatabase(Model):
@@ -39,7 +39,7 @@ class EcoinventDataset(MainDatabase):
     system_model = TextField()  # cutoff, consequential, apos
     type = TextField(default="default")  # ecoinvent_dataset_types
     xlsx = BooleanField(default=False)
-    directory: Path = PathField()  # Path typehint, so that static checker chills
+    directory: Path = PathField(null=True)  # Path typehint, so that static checker chills
     identity = TextField(unique=True)
 
     class Meta:
@@ -47,15 +47,16 @@ class EcoinventDataset(MainDatabase):
 
     def __init__(self, *args, **kwargs):
         super(EcoinventDataset, self).__init__(*args, **kwargs)
+        self.identity = f"{self.system_model}_{self.version}_{self.type}{'_xlsx' if self.xlsx else ''}"
 
+    def save(self, *args, **kwargs):
         check_fields = [("version", valid_ecoinvent_versions), ("system_model", valid_ecoinvent_system_models),
                         ("type", valid_ecoinvent_datatypes)]
         for field, valid_values in check_fields:
             if getattr(self, field) not in valid_values:
                 raise ValueError(
                     f"EcoinventIndex entry '{field}' is not valid: {getattr(self, field)}. Must be of {valid_values}")
-
-        self.identity = f"{self.system_model}_{self.version}_{self.type}{'_xlsx' if self.xlsx else ''}"
+        super(EcoinventDataset, self).save(*args, **kwargs)
 
     @classmethod
     def identity_exists(cls, identity: Union["EcoinventDataset", str]) -> bool:
@@ -84,8 +85,8 @@ class EcoinventDataset(MainDatabase):
 
 class BWProjectIndex(MainDatabase):
     project_name = TextField()
-    # relation to EcoinventIndex
-    ecoinvent_data = TupleJSONField()
+    database_name = TextField()
+    ecoinvent_dataset = ForeignKeyField(EcoinventDataset, backref='bw_project_db', unique=True)
 
     class Meta:
         table_name = "bw_project_index"
