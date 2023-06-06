@@ -33,7 +33,7 @@ def print_bw_index():
 
 def get_existing(project_name: str, database_name: str) -> Optional[BWProjectIndex]:
     existing = list(BWProjectIndex.select(BWProjectIndex, EcoinventDataset).join(EcoinventDataset).where(
-        BWProjectIndex.project_name == project_name and
+        BWProjectIndex.project_name == project_name &
         BWProjectIndex.database_name == database_name))
     if existing:
         return existing[0]

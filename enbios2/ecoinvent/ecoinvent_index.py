@@ -76,6 +76,15 @@ def get_ecoinvent_dataset_index(*,
         query = query.where(EcoinventDataset.xlsx == xlsx)
     return query
 
+def is_resolved_database_available(dataset: EcoinventDataset):
+    """
+    Checks if the resolved database (lci, lcia from excel) is available for the given dataset
+    :param dataset:
+    :return:
+    """
+    pass
+
+
 
 if __name__ == "__main__":
     init_databases()
