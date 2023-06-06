@@ -19,18 +19,40 @@ logger = get_logger(__file__)
 # todo there is another type for this, with units...
 Activity_Outputs = dict[str, tuple[Activity, float]]
 
+"""
+dict of Method tuple, to result-value 
+"""
+ScenarioResultNodeData = dict[tuple[str], float]
 
 @dataclass
 class Scenario:
     alias: Optional[str] = None
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     results: Optional[Any] = None
+    result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
 
+    def add_results_to_technology_tree(self, methods_ids: list[tuple[str]]):
+        activity_nodes = self.result_tree.get_leaves()
+        activities_outputs = list(self.activities_outputs.values())
+        for result_index, activity_out in enumerate(activities_outputs):
+            activity_node = next(filter(lambda node: node._data.bw_activity == activity_out[0], activity_nodes))
+            for method_index, method in enumerate(methods_ids):
+                activity_node.data[method] = self.results[result_index][method_index]
 
-"""
-dict of Method tuple, to result-value 
-"""
-ScenarioResultNodeData = dict[tuple[str], float]
+    def resolve_result_tree(self):
+
+        def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]) -> ScenarioResultNodeData:
+            if node.is_leaf:
+                return node.data
+            for child in node.children:
+                recursive_resolve_node(child)
+            for child in node.children:
+                for key, value in child.data.items():
+                    if node.data.get(key) is None:
+                        node.data[key] = 0
+                    node.data[key] += value
+
+        recursive_resolve_node(self.result_tree)
 
 
 class Experiment:
@@ -348,20 +370,18 @@ class Experiment:
 
         return BW_CalculationSetup(scenario.alias, inventory, methods)
 
-    def add_results_to_technology_tree(self, scenario: Scenario):
-        activity_nodes = self.technology_root_node.get_leaves()
-        activities_outputs = list(scenario.activities_outputs.values())
-        for result_index, activity_out in enumerate(activities_outputs):
-            activity_node = next(filter(lambda node: node._data.bw_activity == activity_out[0], activity_nodes))
-            for method_index, method in enumerate(self.methods.values()):
-                activity_node.data[method.full_id] = scenario.results[result_index][method_index]
+    def method_ids(self) -> list[tuple[str]]:
+        return [m.full_id for m in self.methods.values()]
 
     def run_next_scenario(self):
         scenario = self.get_next_scenario()
         bw_calc_setup = self.create_bw_calculation_setup(scenario)
         bw_calc_setup.register()
         scenario.results = MultiLCA(bw_calc_setup.name).results
-        self.add_results_to_technology_tree(scenario)
+        scenario.result_tree = self.technology_root_node.copy()
+
+        scenario.add_results_to_technology_tree(self.method_ids())
+        scenario.resolve_result_tree()
         self.next_scenario_index += 1
 
 
