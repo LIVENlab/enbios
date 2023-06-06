@@ -37,7 +37,6 @@ class State(Enum):
 
 logger = get_logger(__file__)
 
-
 class CustomBuffer(Buffer):
     def insert_completion(self, completion, overwrite_before=0):
         self.delete_before_cursor(overwrite_before)

@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Union
 
 from peewee import Model, TextField, FloatField, BooleanField, SqliteDatabase, ForeignKeyField
-from playhouse.shortcuts import model_to_dict
 from playhouse.sqlite_ext import FTSModel, JSONField
 
 from enbios2.base.db_fields import TupleJSONField, PathField
@@ -16,19 +15,6 @@ class MainDatabase(Model):
 
     class Meta:
         database = SqliteDatabase(MAIN_DATABASE_PATH)
-
-
-class Enbios2DBMetadata(MainDatabase):
-    """
-    Metadata table for Ecoinvent databases
-    """
-    name = TextField()
-    path = TextField()
-    db_type = TextField()
-    metadata = JSONField()
-
-    class Meta:
-        table_name = "enbios2_db_metadata"
 
 
 class EcoinventDataset(MainDatabase):
@@ -48,6 +34,7 @@ class EcoinventDataset(MainDatabase):
     def __init__(self, *args, **kwargs):
         super(EcoinventDataset, self).__init__(*args, **kwargs)
         self.identity = f"{self.system_model}_{self.version}_{self.type}{'_xlsx' if self.xlsx else ''}"
+
 
     def save(self, *args, **kwargs):
         check_fields = [("version", valid_ecoinvent_versions), ("system_model", valid_ecoinvent_system_models),
@@ -83,6 +70,20 @@ class EcoinventDataset(MainDatabase):
     __repr__ = __str__ = lambda self: f"EcoinventDataset: {self.identity}"
 
 
+class EcoinventResolvedDataset(MainDatabase):
+    """
+    Metadata table for Ecoinvent databases
+    """
+    name = TextField()
+    path = TextField()
+    db_type = TextField()
+    metadata = JSONField()
+    ecoinvent_dataset = ForeignKeyField(EcoinventDataset, backref='resolved_dataset', unique=True)
+
+    class Meta:
+        table_name = "ecoinvent_resolved_dataset"
+
+
 class BWProjectIndex(MainDatabase):
     project_name = TextField()
     database_name = TextField()
@@ -94,7 +95,7 @@ class BWProjectIndex(MainDatabase):
 
 class EcoinventDatabaseActivity(Model):
     """
-    Main table for the 2 Ecoinvent databases (LCI, LCIA)
+    Main table for the 2 resolved Ecoinvent databases (LCI, LCIA)
     """
     code = TextField(unique=True)
     name = TextField(index=True)
