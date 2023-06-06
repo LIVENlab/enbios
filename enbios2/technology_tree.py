@@ -4,6 +4,7 @@ from typing import Union, Literal, Optional
 import bw2data as bd
 from bw2data import Method
 from bw2data.backends import Activity
+from bw2data.meta import CalculationSetups
 
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 
@@ -37,8 +38,18 @@ ScenarioTree_Node_Data = Union[ScenarioTree_MethodNode_Data, TechnologyTree_Leve
 @dataclass
 class BW_CalculationSetup:
     name: str
-    inv: list[tuple[Activity, float]]
+    inv: list[dict[Activity, float]]
     ia: list[tuple[str]]
+
+    def register(self):
+        cs = CalculationSetups()
+        cs[self.name] = {
+            "inv": self.inv,
+            "ia": self.ia
+        }
+        cs.flush()
+
+
 
 
 def build_technology_tree(raw_tree: BasicTreeNode) -> BasicTreeNode[TechnologyTree_Node_Data]:
