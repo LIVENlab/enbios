@@ -29,7 +29,7 @@ class BasicTreeNode(Generic[T]):
 
     def __init__(self,
                  name: str,
-                 children: list["BasicTreeNode"] = (),
+                 children: list["BasicTreeNode", dict] = (),
                  data: Optional[T] = None,
                  **kwargs):
         """
@@ -41,6 +41,8 @@ class BasicTreeNode(Generic[T]):
         self._name: str = name
         self.children: list[BasicTreeNode[T]] = []
         for child in children:
+            if isinstance(child, dict):
+                child = BasicTreeNode.from_dict(child)
             self.add_child(child)
         self.parent: Optional[BasicTreeNode] = None
         self.data: Optional[T] = data
@@ -134,10 +136,26 @@ class BasicTreeNode(Generic[T]):
         """
         return {
             "name": self.name,
-            "children": {
-                child.name: child.as_dict() for child in self.children
-            }
+            "children": [
+                child.as_dict() for child in self.children
+            ]
         }
+
+    @staticmethod
+    def from_dict(data: dict):
+        """
+        Parse a dict and create a tree from it.
+        :param data:
+        :return:
+        """
+        # children = {}
+        # if "children" in data:
+        #     children = data["children"]
+        #     del data["children"]
+        node = BasicTreeNode(**data)
+        # for child in children:
+        #     node.add_child(BasicTreeNode.from_dict(child))
+        return node
 
     def location(self) -> list["BasicTreeNode"]:
         """
@@ -431,22 +449,6 @@ class BasicTreeNode(Generic[T]):
         for child_name in child_names:
             _root.add_child(self.copy(child_name))
         return _root
-
-    @staticmethod
-    def from_dict(data: dict):
-        """
-        Parse a dict and create a tree from it.
-        :param data:
-        :return:
-        """
-        children = {}
-        if "children" in data:
-            children = data["children"]
-            del data["children"]
-        node = BasicTreeNode(**data)
-        for child in children.values():
-            node.add_child(BasicTreeNode.from_dict(child))
-        return node
 
     @staticmethod
     def from_csv(csv_file: Path,
