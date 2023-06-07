@@ -35,7 +35,6 @@ class EcoinventDataset(MainDatabase):
         super(EcoinventDataset, self).__init__(*args, **kwargs)
         self.identity = f"{self.system_model}_{self.version}_{self.type}{'_xlsx' if self.xlsx else ''}"
 
-
     def save(self, *args, **kwargs):
         check_fields = [("version", valid_ecoinvent_versions), ("system_model", valid_ecoinvent_system_models),
                         ("type", valid_ecoinvent_datatypes)]

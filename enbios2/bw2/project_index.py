@@ -15,7 +15,6 @@ from enbios2.generic.enbios2_logging import get_logger
 
 projects = bw2data.projects
 
-
 logger = get_logger(__file__)
 
 
@@ -33,8 +32,8 @@ def print_bw_index():
 
 def get_existing(project_name: str, database_name: str) -> Optional[BWProjectIndex]:
     existing = list(BWProjectIndex.select(BWProjectIndex, EcoinventDataset).join(EcoinventDataset).where(
-        BWProjectIndex.project_name == project_name &
-        BWProjectIndex.database_name == database_name))
+        (BWProjectIndex.project_name == project_name) &
+        (BWProjectIndex.database_name == database_name)))
     if existing:
         return existing[0]
 
@@ -70,6 +69,21 @@ def project_index_creation_helper():
                                                for key, value in v.items() if key in ["format", "number"]}
                                            for k, v in bw2data.databases.data.items()}
     print(yaml.dump(projects_overview))
+
+
+def set_bw_current_project(system_model: str, version: str):
+    bwp = BWProjectIndex.select().join(
+        EcoinventDataset,
+        on=(BWProjectIndex.ecoinvent_dataset == EcoinventDataset.id)).where(
+        (EcoinventDataset.system_model == system_model) &
+        (EcoinventDataset.version == version) &
+        (EcoinventDataset.type == "default") &
+        (EcoinventDataset.xlsx == False))
+    if bwp:
+        bw2data.projects.set_current(bwp[0].project_name)
+        logger.info(f"Set current project to '{bwp[0].project_name}'")
+    else:
+        logger.error(f"No brightway project found for ecoinvent dataset: {system_model}, {version}")
 
 
 if __name__ == "__main__":
