@@ -24,6 +24,7 @@ dict of Method tuple, to result-value
 """
 ScenarioResultNodeData = dict[tuple[str], float]
 
+
 @dataclass
 class Scenario:
     alias: Optional[str] = None
@@ -231,7 +232,7 @@ class Experiment:
                     # merge all leafs of children
                     leafs = []
                     for child in node.children.values():
-                        # todo, if only key, and value: None, it shouold be a leaf activity-id
+                        # todo, if only key, and value: None, it should be a leaf activity-id
                         leafs.extend(rec_find_leaf(child))
                     return leafs
                 elif isinstance(node.children, list):
