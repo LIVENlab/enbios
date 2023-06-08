@@ -1,20 +1,59 @@
-import logging
-import sys
-from typing import Optional, Union
+from dataclasses import dataclass, field
+from typing import Optional, Union, Any
 
 import bw2data as bd
+from bw2calc import MultiLCA
 from bw2data.backends import Activity
 from pint import UnitRegistry
 
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import ExperimentActivitiesGlobalConf, ExperimentActivityId, \
-    ExtendedExperimentActivity, \
-    ExperimentActivity, BWMethod, ExperimentMethod, ExperimentHierarchyNode, \
-    ExperimentHierarchy, ExperimentScenario, ExperimentData, ExtendedExperimentActivityOutput
+    ExtendedExperimentActivityData, \
+    ExperimentActivityData, BWMethod, ExperimentMethodData, ExperimentHierarchyNode, \
+    ExperimentHierarchyData, ExperimentScenarioData, ExperimentData, ExtendedExperimentActivityOutput
 from enbios2.technology_tree import BW_CalculationSetup
 
 logger = get_logger(__file__)
+
+# todo there is another type for this, with units...
+Activity_Outputs = dict[str, tuple[Activity, float]]
+
+"""
+dict of Method tuple, to result-value 
+"""
+ScenarioResultNodeData = dict[tuple[str], float]
+
+
+@dataclass
+class Scenario:
+    alias: Optional[str] = None
+    activities_outputs: Activity_Outputs = field(default_factory=dict)
+    results: Optional[Any] = None
+    result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
+
+    def add_results_to_technology_tree(self, methods_ids: list[tuple[str]]):
+        activity_nodes = self.result_tree.get_leaves()
+        activities_outputs = list(self.activities_outputs.values())
+        for result_index, activity_out in enumerate(activities_outputs):
+            activity_node = next(filter(lambda node: node._data.bw_activity == activity_out[0], activity_nodes))
+            for method_index, method in enumerate(methods_ids):
+                activity_node.data[method] = self.results[result_index][method_index]
+
+    def resolve_result_tree(self):
+
+        def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]) -> ScenarioResultNodeData:
+            if node.is_leaf:
+                return node.data
+            for child in node.children:
+                recursive_resolve_node(child)
+            for child in node.children:
+                for key, value in child.data.items():
+                    if node.data.get(key) is None:
+                        node.data[key] = 0
+                    node.data[key] += value
+
+        recursive_resolve_node(self.result_tree)
 
 
 class Experiment:
@@ -24,27 +63,23 @@ class Experiment:
         if raw_data.bw_project in bd.projects:
             bd.projects.set_current(raw_data.bw_project)
         self.raw_data = raw_data
-        self.ureg = UnitRegistry()
+        Experiment.ureg = UnitRegistry()
 
         # alias to activity
-        self.activitiesMap: dict[str, ExtendedExperimentActivity] = {}
+        self.activitiesMap: dict[str, ExtendedExperimentActivityData] = {}
+        self.default_activities_outputs: Activity_Outputs = {}
 
         output_required = not raw_data.scenarios
         self.validate_activities(output_required)
 
-        self.methods: dict[str, ExperimentMethod] = self.prepare_methods()
+        self.methods: dict[str, ExperimentMethodData] = self.prepare_methods()
         self.validate_methods(self.methods)
 
         self.validate_hierarchies()
-        self.validate_scenarios(list(self.activitiesMap.values()))
-        self.scenarios: list[ExperimentScenario] = []
+        self.scenarios: list[Scenario] = self.validate_scenarios(list(self.activitiesMap.values()))
         self.next_scenario_index = 0
 
-        self.create_scenarios()
-
-        self.technology_root_node: BasicTreeNode = self.create_technology_tree()
-
-        self.create_bw_calculation_setup()
+        self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
     def validate_activities(self, required_output: bool = False):
         """
@@ -61,14 +96,12 @@ class Experiment:
         default_id_data = ExperimentActivityId(database=config.default_database)
         if isinstance(activities, list):
             logger.debug("activity list")
-            activities_list: list[ExperimentActivity] = activities
+            activities_list: list[ExperimentActivityData] = activities
 
             for activity in activities_list:
-                activity: ExperimentActivity = activity
+                activity: ExperimentActivityData = activity
                 ext_activity = activity.check_exist(default_id_data, required_output)
                 self.activitiesMap[ext_activity.id.alias] = ext_activity
-                # assert activity.id.alias not in self.activitiesMap, f"Duplicate activity. {activity.id.alias} exists already. Try giving it a specific alias"
-                # self.activitiesMap[activity.id.alias] = ext_activity
         elif isinstance(activities, dict):
             logger.debug("activity dict")
             # activities: dict[str, ExperimentActivity] = activities
@@ -80,51 +113,55 @@ class Experiment:
         # all codes should only appear once
         unique_activities = set()
         for activity in self.activitiesMap.values():
-            activity: ExtendedExperimentActivity = activity
+            activity: ExtendedExperimentActivityData = activity
             unique_activities.add((activity.id.database, activity.id.code))
             if activity.output:
-                Experiment.validate_output(activity.output, activity)
+                output = Experiment.validate_output(activity.output, activity)
+                self.default_activities_outputs[activity.bw_activity._document.code] = (activity.bw_activity, output)
 
         assert len(unique_activities) == len(activities), "Not all activities are unique"
 
-    def collect_orig_ids(self) -> list[tuple[ExperimentActivityId, ExtendedExperimentActivity]]:
+    def collect_orig_ids(self) -> list[tuple[ExperimentActivityId, ExtendedExperimentActivityData]]:
         return [(activity.orig_id, activity) for activity in self.activitiesMap.values()]
 
     @staticmethod
-    def validate_output(target_output: ExtendedExperimentActivityOutput, activity: ExtendedExperimentActivity) -> None:
+    def validate_output(target_output: ExtendedExperimentActivityOutput,
+                        activity: ExtendedExperimentActivityData) -> float:
         try:
-            pint_target_unit = Experiment.ureg[target_output.unit]
+            pint_target_unit = Experiment.ureg(target_output.unit)
             pint_target_quantity = target_output.magnitude * pint_target_unit
             #
-            pint_activity_unit = Experiment.ureg[activity.id.unit]
+            pint_activity_unit = Experiment.ureg(activity.id.unit)
             #
             target_output.pint_quantity = pint_target_quantity.to(pint_activity_unit)
+            return target_output.magnitude
         except Exception as err:
             # todo, change to Exception, and catch that in test too,
             # raise Exception(f"Unit error, {err}; For activity: {activity.id}")
             assert False, f"Unit error, {err}; For activity: {activity.id}"
 
-    def prepare_methods(self) -> dict[str, ExperimentMethod]:
+    def prepare_methods(self) -> dict[str, ExperimentMethodData]:
         """
         give all methods some alias and turn them into a dict
         :return: map of alias -> method
         """
         if isinstance(self.raw_data.methods, dict):
-            method_dict: dict[str, ExperimentMethod] = self.raw_data.methods
+            method_dict: dict[str, ExperimentMethodData] = self.raw_data.methods
             for method_alias, method in method_dict.items():
                 assert method.alias is None or method_alias == method.alias, f"Method: {method} must either have NO alias or the same as the key"
                 method.alias = method_alias
             return method_dict
         elif isinstance(self.raw_data.methods, list):
-            method_list: list[ExperimentMethod] = self.raw_data.methods
-            method_dict: dict[str, ExperimentMethod] = {}
+            method_list: list[ExperimentMethodData] = self.raw_data.methods
+            method_dict: dict[str, ExperimentMethodData] = {}
             for method in method_list:
                 if not method.alias:
                     method.alias = "_".join(method.id)
                 method_dict[method.alias] = method
             return method_dict
 
-    def validate_methods(self, methods: dict[str, ExperimentMethod]):
+    @staticmethod
+    def validate_methods(methods: dict[str, ExperimentMethodData]):
         # all methods must exist
         all_methods = bd.methods
         method_tree: dict[str, dict] = {}
@@ -160,13 +197,16 @@ class Experiment:
                     result.append(_next)
                     current = current[_next]
 
-            return all_methods.get(tuple(result))
+            return {**all_methods.get(tuple(result)), "full_id": result}
 
         for alias, method in methods.items():
             method_tuple = tuple(method.id)
             bw_method = all_methods.get(method_tuple)
-            if not bw_method and len(method_tuple) < 3:
+            method.full_id = method_tuple
+            if not bw_method:
                 bw_method = tree_search(method_tuple)
+                if bw_method:
+                    method.full_id = tuple(bw_method["full_id"])
 
             assert bw_method, f"Method with id: {method_tuple} does not exist"
             method.bw_method = BWMethod(**bw_method)
@@ -178,9 +218,9 @@ class Experiment:
         if not hierarchies:
             return
 
-        orig_activities_ids: list[tuple[ExperimentActivityId, ExtendedExperimentActivity]] = self.collect_orig_ids()
+        orig_activities_ids: list[tuple[ExperimentActivityId, ExtendedExperimentActivityData]] = self.collect_orig_ids()
 
-        def check_hierarchy(hierarchy: ExperimentHierarchy):
+        def check_hierarchy(hierarchy: ExperimentHierarchyData):
             def rec_find_leaf(node: ExperimentHierarchyNode) -> list[ExperimentActivityId]:
                 """
                 find all leafs of  a node
@@ -192,7 +232,7 @@ class Experiment:
                     # merge all leafs of children
                     leafs = []
                     for child in node.children.values():
-                        # todo, if only key, and value: None, it shouold be a leaf activity-id
+                        # todo, if only key, and value: None, it should be a leaf activity-id
                         leafs.extend(rec_find_leaf(child))
                     return leafs
                 elif isinstance(node.children, list):
@@ -214,7 +254,7 @@ class Experiment:
         else:
             check_hierarchy(hierarchies)
 
-    def _get_activity(self, alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivity]:
+    def _get_activity(self, alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityData]:
         if isinstance(alias_or_id, str):
             return self.activitiesMap.get(alias_or_id, None)
         elif isinstance(alias_or_id, ExperimentActivityId):
@@ -222,74 +262,73 @@ class Experiment:
                 if activity.orig_id == alias_or_id:
                     return activity
 
-    def validate_scenarios(self, defined_activities: list[ExtendedExperimentActivity]):
+    def validate_scenarios(self, defined_activities: list[ExtendedExperimentActivityData]) -> list[Scenario]:
         """
 
         :param defined_activities:
         :return:
         """
 
-        def validate_activities(scenario: ExperimentScenario):
+        def validate_activities(scenario: ExperimentScenarioData) -> Activity_Outputs:
             activities = scenario.activities
             # two Union types,
             # 1. list of tuple: alias | ActivityIds -> unit
             # 2. dict: alias -> unit
             # turn to alias dict
+            activity_outputs: Activity_Outputs = {}
             if isinstance(activities, list):
                 for activity in activities:
                     activity_id, activity_output = activity
                     activity = self._get_activity(activity_id)
                     assert activity
-                    Experiment.validate_output(activity_output, activity)
+                    output: float = Experiment.validate_output(activity_output, activity)
+                    activity_outputs[activity.bw_activity._document.code] = (activity.bw_activity, output)
             elif isinstance(activities, dict):
                 for activity_alias, activity_output in activities.items():
                     activity = self._get_activity(activity_alias)
                     assert activity
-                    Experiment.validate_output(activity_output, activity)
+                    output: float = Experiment.validate_output(activity_output, activity)
+                    activity_outputs[activity.bw_activity._document.code] = (activity.bw_activity, output)
+            return activity_outputs
 
-        def validate_scenario(scenario: ExperimentScenario, generate_name_index: Optional[int] = None):
+        def validate_scenario(scenario: ExperimentScenarioData) -> Scenario:
             """
             Validate one scenario
             :param scenario:
             :return:
             """
-            validate_activities(scenario)
+            scenario_activities_outputs: Activity_Outputs = validate_activities(scenario)
+            for activity in self.activitiesMap.values():
+                activity_code = activity.bw_activity._document.code
+                if activity_code not in scenario_activities_outputs:
+                    scenario_activities_outputs[activity_code] = self.default_activities_outputs[activity_code]
+            return Scenario(alias=scenario.alias,
+                            activities_outputs=scenario_activities_outputs)
 
-        scenarios = self.raw_data.scenarios
+        raw_scenarios = self.raw_data.scenarios
+        scenarios: list[Scenario] = []
 
         # from Union, list or dict
-        if isinstance(scenarios, list):
-            scenarios: list[ExperimentScenario] = self.raw_data.scenarios
-            for index, _scenario in enumerate(scenarios):
+        if isinstance(raw_scenarios, list):
+            raw_scenarios: list[ExperimentScenarioData] = self.raw_data.scenarios
+            for index, _scenario in enumerate(raw_scenarios):
                 if not _scenario.alias:
-                    _scenario.alias = ExperimentScenario.alias_factory(index)
-                validate_scenario(_scenario, index)
-            pass
+                    _scenario.alias = ExperimentScenarioData.alias_factory(index)
+                scenarios.append(validate_scenario(_scenario, index))
         elif isinstance(self.raw_data.scenarios, dict):
-            scenarios: dict[str, ExperimentScenario] = self.raw_data.scenarios
-            for alias, _scenario in scenarios.items():
+            raw_scenarios: dict[str, ExperimentScenarioData] = self.raw_data.scenarios
+            for alias, _scenario in raw_scenarios.items():
                 if _scenario.alias is not None and _scenario.alias != alias:
                     assert False, f"Scenario defines alias as dict-key: {alias} but also in the scenario object: {_scenario.alias}"
                 _scenario.alias = alias
-                validate_scenario(_scenario)
-        elif not scenarios:
-            # todo. one scenario
-            return
+                scenarios.append(validate_scenario(_scenario))
+        elif not raw_scenarios:
+            default_scenario = ExperimentScenarioData(alias="default scenario")
+            scenarios.append(validate_scenario(default_scenario))
 
-    def create_scenarios(self):
-        """
-        Create scenarios from raw data
-        :return:
-        """
-        scenarios = self.raw_data.scenarios
-        if isinstance(scenarios, list):
-            self.scenarios = scenarios
-        elif isinstance(scenarios, dict):
-            self.scenarios = list(scenarios.values())
-        else:
-            self.scenarios = [ExperimentScenario(alias="default scenario")]
+        return scenarios
 
-    def create_technology_tree(self) -> BasicTreeNode:
+    def create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
         """
         Build a tree of all technologies
         :return:
@@ -300,11 +339,11 @@ class Experiment:
 
         def recursive_get_children(
                 children_data: Union[ExperimentHierarchyNode, list, dict[str, ExperimentHierarchyNode]]) -> list[
-            BasicTreeNode]:
+            BasicTreeNode[ScenarioResultNodeData]]:
             child_nodes: list[BasicTreeNode] = []
             if isinstance(children_data, dict):
                 for child_name, child_data in children_data.items():
-                    child_node = BasicTreeNode(name=child_name)
+                    child_node = BasicTreeNode(name=child_name, data={})
                     child_nodes.append(child_node)
                     child_node.add_children(recursive_get_children(child_data))
             else:
@@ -312,45 +351,46 @@ class Experiment:
                 children_data: ExperimentHierarchyNode = children_data
                 for activity_id in children_data.children:
                     # todo, this could be also of type "ExperimentActivityId" (not just str)
-                    activity_node = BasicTreeNode(name=activity_id)
+                    activity_node = BasicTreeNode(name=activity_id, data={})
                     activity_node._data = self._get_activity(activity_id)
                     child_nodes.append(activity_node)
             return child_nodes
 
-        root_node = BasicTreeNode(name="root")
+        root_node = BasicTreeNode[ScenarioResultNodeData](name="root", data={})
         root_node.add_children(recursive_get_children(hierarchy.root.children))
         return root_node
 
-    def create_bw_calculation_setup(self, scenario: Optional[str] = None) -> BW_CalculationSetup:
-        if not scenario:
-            scenario = self.scenarios[self.next_scenario_index]
-        logger.debug(f"Creating BW_CalculationSetup for scenario: {scenario.alias}")
+    def get_next_scenario(self) -> Scenario:
+        return self.scenarios[self.next_scenario_index]
 
-        inventory: list[tuple[Activity, float]] = []
-        methods: list[tuple[str]] = []
+    def create_bw_calculation_setup(self, scenario: Scenario) -> BW_CalculationSetup:
+        inventory: list[dict[Activity, float]] = []
+        for act_out in scenario.activities_outputs.values():
+            inventory.append({act_out[0]: act_out[1]})
+        methods = [m.full_id for m in self.methods.values()]
 
-        activities = self.technology_root_node.get_leaves()
+        return BW_CalculationSetup(scenario.alias, inventory, methods)
 
-        # for node in scenario_tree.iter_all_nodes():
-        #     _data = node.data
-        #     if not _data:
-        #         node.data = TechnologyTree_LevelNode_Data("level", 0)
-        #         continue
-        #     if _data.node_type == "method":
-        #         node.data: ScenarioTree_MethodNode_Data
-        #         methods.append(_data.method.name)
-        #     if _data.node_type == "activity":
-        #         node.data: TechnologyTree_ActivityNode_Data
-        #         inventory.append((_data.activity, _data.amount))
-        #
-        # return BW_CalculationSetup(scenario_tree.name, inventory, methods)
+    def method_ids(self) -> list[tuple[str]]:
+        return [m.full_id for m in self.methods.values()]
+
+    def run_next_scenario(self):
+        scenario = self.get_next_scenario()
+        bw_calc_setup = self.create_bw_calculation_setup(scenario)
+        bw_calc_setup.register()
+        scenario.results = MultiLCA(bw_calc_setup.name).results
+        scenario.result_tree = self.technology_root_node.copy()
+
+        scenario.add_results_to_technology_tree(self.method_ids())
+        scenario.resolve_result_tree()
+        self.next_scenario_index += 1
 
 
 if __name__ == "__main__":
     scenario_data = {
-        "bw_project": "uab_bw_ei39",
+        "bw_project": "ecoi_dbs",
         "activities_config": {
-            "default_database": "ei391"
+            "default_database": "cutoff391"
         },
         "activities": {
             "single_activity": {
@@ -367,10 +407,13 @@ if __name__ == "__main__":
         },
         "methods": [
             {
-                "id": [
+                "id": (
                     "Crustal Scarcity Indicator 2020",
                     "material resources: metals/minerals"
-                ]
+                )
+            },
+            {
+                "id": ('EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT')
             }
         ],
         "hierarchy": {
@@ -387,4 +430,4 @@ if __name__ == "__main__":
     }
     exp_data = ExperimentData(**scenario_data)
     exp = Experiment(exp_data)
-    print(exp)
+    exp.run_next_scenario()

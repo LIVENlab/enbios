@@ -78,7 +78,7 @@ def tree_to_csv(root: dict, csv_file: Path, include_attrs=None, level_names: lis
             row[attr] = node.get(attr, "")
         row[level_name(current_level)] = node["name"]
         _sub_rows = []
-        for child in node.get("children", {}).values():
+        for child in node.get("children", []):
             _sub_rows.extend(rec_add_node_row(child, current_level + 1))
         if _sub_rows:
             if merge_first_sub_row:

@@ -5,6 +5,7 @@ from typing import Generator
 
 import openpyxl
 import xmltodict
+import yaml
 
 from enbios2.const import BASE_DATA_PATH
 from enbios2.generic.enbios2_logging import get_logger
@@ -50,10 +51,12 @@ class ReadPath(Path):
         elif self.suffix == ".xml":
             return xmltodict.parse(self.read_text(encoding="utf-8"))
 
-    def iter_data(self) -> Generator[dict, None, None]:
+    def iter_data(self) -> Generator[dict, None, dict]:
         if self.suffix == ".json":
             logger.warning("Reading json completely not as iterator")
             return json.loads(self.read_text(encoding="utf-8"))
+        elif self.suffix in [".yaml",".yml"]:
+            yaml.load(self.read_text(encoding="utf-8"))
         elif self.suffix == ".csv":
             reader = DictReader(self.open(encoding="utf-8"))
             for row in reader:

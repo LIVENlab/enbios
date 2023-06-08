@@ -1,0 +1,7 @@
+nis_file_location: "/home/ra/PycharmProjects/enbios2/data/nis_tests/BASELINE_UPDATE_APOS.xlsx"
+_development_nis_file_location: "https://docs.google.com/spreadsheets/d/1pkQ4SnYtQzfMP5XL6MZvp9RZABEjESWBLDQZUDSfafI/edit?usp=sharing"
+correspondence_files_path: ""
+simulation_type: single_csv
+simulation_files_path: /home/ra/PycharmProjects/enbios2/data/nis_tests/data_.csv
+output_directory: /home/ra/PycharmProjects/enbios2/data/nis_tests/output
+nis_table: /home/ra/PycharmProjects/enbios2/data/nis_tests/output.xlsx

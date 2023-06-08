@@ -29,8 +29,9 @@ class BasicTreeNode(Generic[T]):
 
     def __init__(self,
                  name: str,
-                 children: list["BasicTreeNode"] = (),
-                 data: Optional[T] = None):
+                 children: list["BasicTreeNode", dict] = (),
+                 data: Optional[T] = None,
+                 **kwargs):
         """
         Initialize the HierarchyNode.
 
@@ -40,10 +41,12 @@ class BasicTreeNode(Generic[T]):
         self._name: str = name
         self.children: list[BasicTreeNode[T]] = []
         for child in children:
+            if isinstance(child, dict):
+                child = BasicTreeNode.from_dict(child)
             self.add_child(child)
         self.parent: Optional[BasicTreeNode] = None
         self.data: Optional[T] = data
-        self._data: dict[str, Any] = {}  # this is used for temporary storage of data
+        self._data: dict[str, Any] = kwargs  # this is used for temporary storage of data
         self._id: bytes = self.generate_id()
 
     def generate_id(self) -> bytes:
@@ -83,6 +86,8 @@ class BasicTreeNode(Generic[T]):
 
         :param name: The new name of this node.
         """
+        if self._name == name:
+            return
         if self.parent:
             if name in self.parent:
                 raise ValueError(f"Node {name} already exists in {self.parent}")
@@ -131,10 +136,26 @@ class BasicTreeNode(Generic[T]):
         """
         return {
             "name": self.name,
-            "children": {
-                child.name: child.as_dict() for child in self.children
-            }
+            "children": [
+                child.as_dict() for child in self.children
+            ]
         }
+
+    @staticmethod
+    def from_dict(data: dict):
+        """
+        Parse a dict and create a tree from it.
+        :param data:
+        :return:
+        """
+        # children = {}
+        # if "children" in data:
+        #     children = data["children"]
+        #     del data["children"]
+        node = BasicTreeNode(**data)
+        # for child in children:
+        #     node.add_child(BasicTreeNode.from_dict(child))
+        return node
 
     def location(self) -> list["BasicTreeNode"]:
         """
@@ -430,22 +451,6 @@ class BasicTreeNode(Generic[T]):
         return _root
 
     @staticmethod
-    def from_dict(data: dict):
-        """
-        Parse a dict and create a tree from it.
-        :param data:
-        :return:
-        """
-        children = {}
-        if "children" in data:
-            children = data["children"]
-            del data["children"]
-        node = BasicTreeNode(**data)
-        for child in children:
-            node.add_child(BasicTreeNode.from_dict(child))
-        return node
-
-    @staticmethod
     def from_csv(csv_file: Path,
                  node_columns: list[str] = None,
                  merged_first_sub_row: bool = True) -> "BasicTreeNode":
@@ -510,6 +515,10 @@ class BasicTreeNode(Generic[T]):
         for _ in range(num_children):
             self.remove_child(0)
         return num_children
+
+    @property
+    def id(self):
+        return self._id
 
     def __len__(self):
         """

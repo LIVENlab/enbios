@@ -1,5 +1,5 @@
 from copy import copy
-from dataclasses import asdict, field
+from dataclasses import asdict
 from typing import Optional, Union, Type
 
 import bw2data as bd
@@ -52,8 +52,8 @@ class ExperimentActivityId:
                 search_results = bd.Database(self.database).search(self.name)
             if self.unit:
                 search_results = list(filter(lambda a: a["unit"] == self.unit, search_results))
-            assert len(
-                search_results) == 0, f"No results for brightway activity-search: {(self.name, self.location, self.unit)}"
+            assert (len(search_results) == 0,
+                    f"No results for brightway activity-search: {(self.name, self.location, self.unit)}")
             if len(search_results) > 1:
                 if allow_multiple:
                     return search_results
@@ -90,7 +90,7 @@ class ExtendedExperimentActivityOutput:
 
 
 @dataclass
-class ExperimentActivity:
+class ExperimentActivityData:
     """
     This is the dataclass for the activities in the experiment.
     the id, is
@@ -99,7 +99,7 @@ class ExperimentActivity:
     output: Optional[ExperimentActivityOutput] = None
 
     def check_exist(self, default_id_attr: Optional[ExperimentActivityId] = None,
-                    required_output: bool = False) -> "ExtendedExperimentActivity":
+                    required_output: bool = False) -> "ExtendedExperimentActivityData":
         """
         This method checks if the activity exists in the database by several ways.
         :param default_id_attr:
@@ -107,12 +107,14 @@ class ExperimentActivity:
         :return:
         """
 
-        result: ExtendedExperimentActivity = ExtendedExperimentActivity(**asdict(self))
+        result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**asdict(self))
         result.orig_id = copy(self.id)
         if not self.id.database:
             result.id.database = default_id_attr.database
-            assert default_id_attr.database is not None, f"database must be specified for {self.id} or default_database set in config"
-        # assert result.id.database in bd.databases, f"activity database does not exist: '{self.id.database}' for {self.id}"
+            assert (default_id_attr.database is not None,
+                    f"database must be specified for {self.id} or default_database set in config")
+        # assert result.id.database in bd.databases,
+        # f"activity database does not exist: '{self.id.database}' for {self.id}"
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
         if result.id.code:
             if result.id.database:
@@ -143,7 +145,7 @@ class ExperimentActivity:
         return result
 
 
-@dataclass
+@dataclass(frozen=True)
 class BWMethod:
     description: str
     filename: str
@@ -154,13 +156,14 @@ class BWMethod:
 
 
 @dataclass
-class ExperimentMethod:
+class ExperimentMethodData:
     id: Union[list[str], tuple[str, ...]]
     alias: Optional[str] = None
+    full_id: Optional[tuple[str, ...]] = None
 
 
 @dataclass(config=Config)
-class ExtendedExperimentActivity:
+class ExtendedExperimentActivityData:
     id: ExperimentActivityId
     output: Optional["ExtendedExperimentActivityOutput"] = None
     orig_id: Optional[ExperimentActivityId] = None
@@ -169,25 +172,24 @@ class ExtendedExperimentActivity:
         Union["ExtendedExperimentActivityOutput", dict[str, "ExtendedExperimentActivityOutput"]]] = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExperimentHierarchyNode:
     # name: str
-    # children: Optional[list[Union["ExperimentHierarchyNode", ExperimentActivityId, str]]] = field(default_factory=list)
     children: Union[
         dict[str, "ExperimentHierarchyNode"],
         list[ExperimentActivityId],  # any activityId type
         list[str]]  # activity alias
 
 
-@dataclass
-class ExperimentHierarchy:
+@dataclass(frozen=True)
+class ExperimentHierarchyData:
     root: ExperimentHierarchyNode
     name: Optional[str] = None
 
 
-@dataclass
-class ExperimentScenario:
-    # map from activity id to output. id is either as original (tupled) or alias-dict
+@dataclass(frozen=True)
+class ExperimentScenarioData:
+    # map from activity id to output. id is either as original (tuple) or alias-dict
     activities: Optional[Union[
         list[
             tuple[Union[str, ExperimentActivityId], ExperimentActivityOutput]],  # alias or id to output
@@ -214,8 +216,8 @@ class ScenarioConfig:
 class ExperimentData:
     bw_project: Union[str, ExperimentBWProjectConfig]
     activities_config: ExperimentActivitiesGlobalConf = ExperimentActivitiesGlobalConf()
-    activities: Optional[Union[list[ExperimentActivity], dict[str, ExperimentActivity]]] = None
-    methods: Optional[Union[list[ExperimentMethod], dict[str, ExperimentMethod]]] = None
-    hierarchy: Optional[Union[ExperimentHierarchy, list[ExperimentHierarchy]]] = None
-    scenarios: Optional[Union[list[ExperimentScenario], dict[str, ExperimentScenario]]] = None
+    activities: Optional[Union[list[ExperimentActivityData], dict[str, ExperimentActivityData]]] = None
+    methods: Optional[Union[list[ExperimentMethodData], dict[str, ExperimentMethodData]]] = None
+    hierarchy: Optional[Union[ExperimentHierarchyData, list[ExperimentHierarchyData]]] = None
+    scenarios: Optional[Union[list[ExperimentScenarioData], dict[str, ExperimentScenarioData]]] = None
     config: Optional[ScenarioConfig] = ScenarioConfig()

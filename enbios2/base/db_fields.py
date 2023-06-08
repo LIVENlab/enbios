@@ -3,6 +3,7 @@ this is from bw2data sqlite, but is not in all version of bw2data
 """
 import json
 import pickle
+from pathlib import Path
 
 from peewee import BlobField, SqliteDatabase, TextField
 
@@ -75,3 +76,13 @@ class TupleJSONField(JSONField):
         if isinstance(data, list):
             data = tuple(data)
         return data
+
+
+class PathField(TextField):
+    def db_value(self, value):
+        if value is not None:
+            return str(value)
+
+    def python_value(self, value):
+        if value is not None:
+            return Path(value)
