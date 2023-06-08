@@ -1,17 +1,19 @@
+import ast
+import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+import bw2data
 import bw2data as bd
-import bw2io as bi
 import openpyxl
 import pandas as pd
 import pint
 from bw2data.backends import Activity, ActivityDataset
-from bw2io import SingleOutputEcospold2Importer
+from pint import DimensionalityError, UndefinedUnitError
 
-from enbios2.bw2.project_index import set_bw_current_project, BWIndex
+from enbios2.bw2.project_index import set_bw_current_project
 from enbios2.const import BASE_DATA_PATH
 
 output_path = BASE_DATA_PATH / "/enbios/bw2nis"
@@ -21,15 +23,88 @@ ureg = pint.UnitRegistry()
 
 def long_to_short_unit(long_unit):
     try:
-        unit = ureg[long_unit]
-        short_unit = '{:~}'.format(unit).split()[1:]
-    except (KeyError, ValueError):
-        short_unit = long_unit  # If the long_unit is not recognized, return it as-is.
+        unit = ureg(long_unit)
+        # print(unit)
+        short_unit = '{:~}'.format(unit).split()[1:][0]
+    except (KeyError, ValueError, Exception) as err:
+        return None
+
     return short_unit
+#
+#
+flow_unit_lookup_data = {}
+unit_lookup_data = {}
+
+
+def easy_unit_lookup(name) -> str:
+    global flow_unit_lookup_data
+    if not flow_unit_lookup_data:
+        flow_unit_lookup_data = json.load((BASE_DATA_PATH / "enbios/bioflow_unit_lookup.json").open())
+    unit = flow_unit_lookup_data.get(name)
+    if unit:
+        return unit
+    else:
+        return get_unit_lookup(name)
+        # print("No unit found for biosphere activity", name, "using 'kg' as default")
+
+
+def from_manual_lookup(name, unit):
+    data = json.load((BASE_DATA_PATH / "enbios/manual_unit_lookup.json").open())
+    res_unit = data.get(unit)
+    if res_unit:
+        return res_unit
+    else:
+        print(f"No unit found for biosphere activity {name}, {unit} using 'kg' as default. put something for '{unit}' into manual lookup")
+        return "kg"
+
+
+def get_unit_lookup(name, folder: Optional[Path] = None) -> str:
+    global unit_lookup_data
+    if not folder:
+        folder = BASE_DATA_PATH / "temp"
+    if not unit_lookup_data:
+        if (folder / "units.json").exists():
+            unit_lookup_data = json.load((folder / "units.json").open())
+        else:
+            unit_lookup_data = {}
+    unit = unit_lookup_data.get(name)
+    if unit:
+        # print(name, unit)
+        res_unit = long_to_short_unit(unit)
+        if not res_unit:
+            res_unit = from_manual_lookup(name, unit)
+        return res_unit
+    print("searching for biosphere activity", name)
+    res = bw2data.Database("biosphere3").search(name)
+    if res:
+        unit = res[0]["unit"]
+        flow_unit_lookup_data[name] = unit
+        json.dump(flow_unit_lookup_data, (folder / "units.json").open("w"))
+        # print(name, unit)
+        res_unit =  long_to_short_unit(unit)
+        if not res_unit:
+            res_unit = from_manual_lookup(name, unit)
+        return res_unit
+
+    else:
+        print("No unit found for biosphere activity", name, "using 'kg' as default")
+
+
+# def long_to_short_unit(long_unit):
+#     try:
+#         unit = ureg(long_unit)
+#         short_unit = '{:~}'.format(unit).split()[1:]
+#         # print(unit, short_unit)
+#     except (KeyError, ValueError, AttributeError, DimensionalityError, UndefinedUnitError) as err:
+#         print(long_unit)
+#         print(err)
+#         short_unit = long_unit  # If the long_unit is not recognized, return it as-is.
+#     return short_unit
 
 
 def export_solved_inventory(activity: Activity, method: tuple[str, ...],
-                            out_path: Optional[str] = None) -> pd.DataFrame:
+                            out_path: Optional[str] = None,
+                            sphere: Optional[str] = "biosphere") -> pd.DataFrame:
     """
     All credits to Ben Portner.
     :param activity:
@@ -41,55 +116,22 @@ def export_solved_inventory(activity: Activity, method: tuple[str, ...],
     lca = activity.lca(method, 1)
     lca.lci()
     array = lca.inventory.sum(axis=1)
-    lca.load_lci_data()
     if hasattr(lca, 'dicts'):
-        mapping = lca.dicts.biosphere
+        mapping = lca.dicts._dicts[sphere]
     else:
-        mapping = lca.biosphere_mm
+        raise ValueError("No dicts found")
+        # mapping = lca.biosphere_dict
     data = []
     for key, row in mapping.items():
         amount = array[row, 0]
         data.append((bd.get_activity(key), row, amount))
     data.sort(key=lambda x: abs(x[2]))
+
     df = pd.DataFrame([{
         'row_index': row,
         'amount': amount,
         'name': flow.get('name'),
-        'unit': flow.get('unit'),
-        'categories': str(flow.get('categories'))
-    } for flow, row, amount in data])
-    if out_path:
-        df.to_excel(out_path)
-    return df
-
-
-def export_solved_inventory(activity: Activity, method: tuple[str, ...],
-                            out_path: Optional[str] = None) -> pd.DataFrame:
-    """
-    All credits to Ben Portner.
-    :param activity:
-    :param method:
-    :param out_path:
-    :return:
-    """
-    # print("calculating lci")
-    lca = activity.lca(method, 1)
-    lca.lci()
-    array = lca.inventory.sum(axis=1)
-    if hasattr(lca, 'dicts'):
-        mapping = lca.dicts.biosphere
-    else:
-        mapping = lca.biosphere_dict
-    data = []
-    for key, row in mapping.items():
-        amount = array[row, 0]
-        data.append((bd.get_activity(key), row, amount))
-    data.sort(key=lambda x: abs(x[2]))
-    df = pd.DataFrame([{
-        'row_index': row,
-        'amount': amount,
-        'name': flow.get('name'),
-        'unit': flow.get('unit'),
+        'unit': easy_unit_lookup(flow.get('name')),
         'categories': str(flow.get('categories'))
     } for flow, row, amount in data])
     if out_path:
@@ -205,6 +247,8 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
                               new_file_loc: Path):
     # insert new interface_types
     unique_interface_types = set(nis_dataframes.interface_types_df["@EcoinventName"].unique())
+    # print(len(unique_interface_types))
+    lci_result = lci_result[lci_result["amount"] > 0]
     lci_interface_types = set(lci_result["name"].unique())
     # difference between the two sets
     missing_interface_types = lci_interface_types - unique_interface_types
@@ -219,12 +263,11 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
     for new_type in rows_to_add.iterrows():
         # print(new_type)
         row = new_type[1]
-        if row["amount"] == 0.0:
-            continue
+
         new_row = {**interface_type_template(), **{
             "InterfaceType": get_nis_name(row["name"]),
             "Sphere": "Biosphere",
-            "Unit": row["unit"],
+            "Unit": easy_unit_lookup(row["name"]),
             # opposite = "Environment" if props["sphere"].lower() == "biosphere" else ""
             "OppositeSubsystemType": "Environment",
             "@EcoinventName": row["name"]
@@ -278,16 +321,21 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
         "Orientation": "Output",
     }
 
+    # new_interface_rows.append(main_row)
+
     for row in lci_result.iterrows():
         # print(row)
         data = row[1]
+        categories = ast.literal_eval(data["categories"])
+        compartment = categories[0]
+        subcompartment = categories[1] if len(categories) > 1 else "unspecified"
         new_interface_rows.append({**interfaces_template(),
                                    "Processor": get_nis_name(activity["name"]),
-                                   "InterfaceType": data["name"],
-                                   "Interface": None,
+                                   "InterfaceType": get_nis_name(data["name"]),
+                                   "Interface": get_nis_name(data["name"] + "_" + compartment + "_" + subcompartment),
                                    "Orientation": "Input",
-                                   "I@compartment": None,
-                                   "I@subcompartment": None,
+                                   "I@compartment": compartment,
+                                   "I@subcompartment": subcompartment,
                                    "Value": data["amount"],
                                    "Unit": None,
                                    "RelativeTo": main_name,  #
@@ -303,37 +351,38 @@ def insert_activity_processor(activity: Activity, nis_dataframes: NisSheetDfs, l
     new_workbook.save(new_file_loc.as_posix())
 
 
-if __name__ == "__main__":
-    projects = bd.projects
-
-    set_bw_current_project(BWIndex.ecovinvent391cutoff)
-
-    generate = False
-    if generate:
-        bi.bw2setup()
-        if "ei39" not in bd.databases:
-            im = SingleOutputEcospold2Importer(
-                (BASE_DATA_PATH / f"ecoinvent/ecoinvent 3.9_cutoff_ecoSpold02/datasets").as_posix(),
-                "ei39")
-        im.apply_strategies()
-        if im.statistics()[2] == 0:
-            im.write_database()
-        else:
-            print("unlinked exchanges")
-    #
-    # activities = bd.Database("cutoff391",).search("heat and power co-generation, oil", filter={"location": "PT"})
-    # activity = activities[0]
-    # print(activity._document.code)
-    activity_ds = ActivityDataset.select().where(ActivityDataset.code == "a8fe0b37705fe611fac8004ca6cb1afd")
-    activity = Activity(activity_ds[0])
-    print(activity._document.name)
-
-    base_folder = BASE_DATA_PATH / "nis_tests"
-    nis_file = base_folder / "output.xlsx"
-
-    dataframes = read_exising_nis_file(nis_file)
-    lci_result = export_solved_inventory(activity,
-                                         ('CML v4.8 2016', 'acidification',
-                                          'acidification (incl. fate, average Europe total, A&B)'),
-                                         "test.xlsx")
-    insert_activity_processor(activity, dataframes, lci_result, base_folder / "output2.xlsx")
+# if __name__ == "__main__":
+#     projects = bd.projects
+#
+#     set_bw_current_project(version="3.9.1", system_model="cutoff")
+#
+#     # generate = False
+#     # if generate:
+#     #     bi.bw2setup()
+#     #     if "ei39" not in bd.databases:
+#     #         im = SingleOutputEcospold2Importer(
+#     #             (BASE_DATA_PATH / f"ecoinvent/ecoinvent 3.9_cutoff_ecoSpold02/datasets").as_posix(),
+#     #             "ei39")
+#     #     im.apply_strategies()
+#     #     if im.statistics()[2] == 0:
+#     #         im.write_database()
+#     #     else:
+#     #         print("unlinked exchanges")
+#     # #
+#     # activities = bd.Database("cutoff391",).search("heat and power co-generation, oil", filter={"location": "PT"})
+#     # activity = activities[0]
+#     # print(activity._document.code)
+#     activity_ds = ActivityDataset.select().where(ActivityDataset.code == "a8fe0b37705fe611fac8004ca6cb1afd")
+#     activity = Activity(activity_ds[0])
+#     print(activity._document.name)
+#     #
+#     base_folder = BASE_DATA_PATH / "nis_tests"
+#     nis_file = base_folder / "output.xlsx"
+#     #
+#     dataframes = read_exising_nis_file(nis_file)
+#     lci_result = export_solved_inventory(activity,
+#                                          ('CML v4.8 2016', 'acidification',
+#                                           'acidification (incl. fate, average Europe total, A&B)'),
+#                                          "test.xlsx")
+#
+#     insert_activity_processor(activity, dataframes, lci_result, base_folder / "output2.xlsx")
