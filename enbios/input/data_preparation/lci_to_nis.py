@@ -514,7 +514,8 @@ def spold2nis2(default_output_interface: str,
         # spolds.extend(_)
         raise NotImplementedError("Correspondence file not implemented currently")
     if nis_base_path:
-        spolds.extend(_get_spold_files_from_nis_file2(nis_base_path))
+        spolds.extend(_get_spold_files_from_nis_file(nis_base_path))
+        # spolds.extend(_get_spold_files_from_nis_file2(nis_base_path))
     if nis_base_url:
         # _ = _get_spold_files_from_nis_file_url(nis_base_url)
         # spolds.extend(_)
@@ -619,6 +620,7 @@ def spold2nis2(default_output_interface: str,
 
     # Write to file
     if s:
+        Path(output_file).parent.mkdir(exist_ok=True)
         with open(output_file, "wb") as f:
             f.write(s)
 
