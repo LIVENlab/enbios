@@ -139,6 +139,10 @@ def parse_action_unit_name(s, l, tt):
         ureg.parse_expression(s)
         return {"type": "unit_name", "unit": s}
     except:
+        if s == "Sm3":
+            ureg.parse_expression("cubic metre")
+            return {"type": "unit_name", "unit": "cubic metre"}
+        # cubic metre
         raise Exception("Unit name invalid")
 
 
