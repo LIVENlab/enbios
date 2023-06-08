@@ -314,12 +314,13 @@ class Experiment:
             for index, _scenario in enumerate(raw_scenarios):
                 if not _scenario.alias:
                     _scenario.alias = ExperimentScenarioData.alias_factory(index)
-                scenarios.append(validate_scenario(_scenario, index))
+                scenarios.append(validate_scenario(_scenario))
         elif isinstance(self.raw_data.scenarios, dict):
             raw_scenarios: dict[str, ExperimentScenarioData] = self.raw_data.scenarios
             for alias, _scenario in raw_scenarios.items():
                 if _scenario.alias is not None and _scenario.alias != alias:
-                    assert False, f"Scenario defines alias as dict-key: {alias} but also in the scenario object: {_scenario.alias}"
+                    assert False, (f"Scenario defines alias as dict-key: {alias} but "
+                                   f"also in the scenario object: {_scenario.alias}")
                 _scenario.alias = alias
                 scenarios.append(validate_scenario(_scenario))
         elif not raw_scenarios:

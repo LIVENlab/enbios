@@ -1,3 +1,4 @@
+import json
 from copy import copy
 
 import pytest
@@ -62,6 +63,42 @@ def test_node_add_child():
     parent_node.add_child(child_node)
     assert child_node in parent_node.children
     assert child_node.parent == parent_node
+
+
+def test_node_add_children():
+    parent_node = BasicTreeNode("parent")
+    children = [BasicTreeNode("child"), BasicTreeNode("child2")]
+    parent_node.add_children(children)
+
+
+def test_remove_child():
+    parent_node = BasicTreeNode("parent")
+    child_node = BasicTreeNode("child")
+    parent_node.add_child(child_node)
+    parent_node.remove_child(0)
+    assert len(parent_node.children) == 0
+    parent_node.add_child(child_node)
+    parent_node.remove_child(child_node)
+    assert len(parent_node.children) == 0
+
+
+def test_copy_an_merge():
+    assert False, "not implemented yet"
+
+
+def test_recursive_apply():
+    assert False, "not implemented yet"
+
+
+def test_clear():
+    parent_node = BasicTreeNode("parent", children=
+    [BasicTreeNode("child"), BasicTreeNode("child2")])
+    parent_node.clear()
+
+
+def test_id():
+    node = BasicTreeNode("node1")
+    assert node.id == node._id
 
 
 def test_node_add_child_raises():
@@ -328,10 +365,25 @@ def test_len():
     assert len(root) == 2
 
 
-def test_getitem():
+def test_set_name():
     root = BasicTreeNode("root", children=[
         BasicTreeNode("child1"),
         BasicTreeNode("child2")
+    ])
+    root.name = "new_name"
+    assert root.name == "new_name"
+    with pytest.raises(ValueError):
+        root[1].name = "child1"
+
+
+def test_getitem():
+    root = BasicTreeNode("root", children=[
+        BasicTreeNode("child1"),
+        BasicTreeNode("child2", children=[
+            {
+                "name": "grandchild1"
+            }
+        ])
     ])
 
     assert root[0].name == "child1"
@@ -340,6 +392,8 @@ def test_getitem():
         _ = root[2]
     with pytest.raises(KeyError):
         _ = root["non_existent"]
+
+    assert root[[1, 0]].name == "grandchild1"
 
 
 def test_repr():
@@ -393,7 +447,6 @@ def test_from_dict():
     assert len(root.children[1].children) == 0
 
 
-
 def test_make_names_unique():
     node = BasicTreeNode("root")
     child1 = node.add_child(BasicTreeNode("child1"))
@@ -405,6 +458,26 @@ def test_make_names_unique():
     assert node.get_child_names() == ["root_child1", "root_child2"]
     assert child1.get_child_names() == ["child1_child1"]
     assert child2.get_child_names() == ["child2_child1", "child2_child2"]
+
+
+def test_from_compact_dict():
+    data1 = {
+        "name": "root",
+        "children": {"child1": {"children": "gc1"}, "child2": []},
+    }
+    # tree = BasicTreeNode.from_dict(data1, compact=True)
+
+    a = {"x": ["x1"], "y": ["y1"]}
+    b = {"x": [{"name": "x1", "data": 34}]}
+    c = {"x": {"x1": [], "x2": []}}
+
+    for x in [a, b, c]:
+        tree = BasicTreeNode.from_dict(x, compact=True)
+        print(json.dumps(tree.as_dict(), indent=2))
+
+    # assert tree.name == "root"
+    # assert len(tree.children) == 2
+    # assert tree[[0, 0]].name == "gc1"
 
 
 def test_copy():
@@ -436,8 +509,7 @@ def test_set_name():
 
 def test_copy2():
     # print(ReadDataPath(BASE_TEST_DATA_PATH/ "basic_tree/full_tree.json").read_data())
-    data = ReadDataPath(BASE_TEST_DATA_PATH/ "basic_tree/full_tree.json").read_data()
-
+    data = ReadDataPath(BASE_TEST_DATA_PATH / "basic_tree/full_tree.json").read_data()
 
     tree = BasicTreeNode.from_dict(data)
     tree_copy = tree.copy()
