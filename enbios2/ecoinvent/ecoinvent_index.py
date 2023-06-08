@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Union, Generator
+from typing import Optional, Union
 
 from enbios2.base.databases import init_databases
 from enbios2.base.db_models import EcoinventDataset
@@ -45,16 +45,41 @@ def analyze_directory(directory: Optional[Path] = None,
     return indexes
 
 
+def add_dataset_index(version: str,
+                      system_model: str,
+                      type: str,
+                      xlsx: str,
+                      directory: str):
+    """
+    Add a dataset index
+    :param version:
+    :param system_model:
+    :param type:
+    :param xlsx:
+    :param directory:
+    :return:
+    """
+    ds = EcoinventDataset(version=version,
+                          system_model=system_model,
+                          type=type,
+                          xlsx=xlsx,
+                          directory=directory)
+    if EcoinventDataset.identity_exists(ds.identity):
+        logger.debug(f"Ecoinvent dataset '{ds.identity}' already indexed and will not be added")
+        return
+    ds.save()
+
+
 def get_ecoinvent_dataset_index(*,
                                 version: Optional[Union[str, list[str]]] = None,
                                 system_model: Optional[Union[str, list[str]]] = None,
-                                type_: Optional[Union[str, list[str]]] = None,
-                                xlsx: Optional[bool] = None) -> Generator[EcoinventDataset, None, None]:
+                                type: Optional[Union[str, list[str]]] = None,
+                                xlsx: Optional[bool] = None) -> list[EcoinventDataset]:
     """
     Get the dataset index for the given parameters
     :param version:
     :param system_model:
-    :param type_:
+    :param type:
     :param xlsx:
     :return:
     """
@@ -68,13 +93,14 @@ def get_ecoinvent_dataset_index(*,
         if isinstance(system_model, str):
             system_model = [system_model]
         query = query.where(EcoinventDataset.system_model.in_(system_model))
-    if type_:
-        if isinstance(type_, str):
-            type_ = [type_]
+    if type:
+        if isinstance(type, str):
+            type_ = [type]
         query = query.where(EcoinventDataset.type.in_(type_))
     if xlsx is not None:
         query = query.where(EcoinventDataset.xlsx == xlsx)
-    return query
+    return list(query)
+
 
 def is_resolved_database_available(dataset: EcoinventDataset):
     """
@@ -83,7 +109,6 @@ def is_resolved_database_available(dataset: EcoinventDataset):
     :return:
     """
     pass
-
 
 
 if __name__ == "__main__":

@@ -7,6 +7,8 @@ from typing import Optional
 
 import bw2data
 import yaml
+from bw2data.backends import SQLiteBackend
+from peewee import SqliteDatabase
 
 from enbios2.base.databases import init_databases
 from enbios2.base.db_models import BWProjectIndex, EcoinventDataset
@@ -71,7 +73,13 @@ def project_index_creation_helper():
     print(yaml.dump(projects_overview))
 
 
-def set_bw_current_project(system_model: str, version: str):
+def set_bw_current_project(system_model: str, version: str) -> Optional[BWProjectIndex]:
+    """
+
+    :param system_model:
+    :param version:
+    :return: the BWProjectIndex, if the project was set
+    """
     bwp = BWProjectIndex.select().join(
         EcoinventDataset,
         on=(BWProjectIndex.ecoinvent_dataset == EcoinventDataset.id)).where(
@@ -80,10 +88,19 @@ def set_bw_current_project(system_model: str, version: str):
         (EcoinventDataset.type == "default") &
         (EcoinventDataset.xlsx == False))
     if bwp:
-        bw2data.projects.set_current(bwp[0].project_name)
-        logger.info(f"Set current project to '{bwp[0].project_name}'")
+        bwp = bwp[0]
+        bw2data.projects.set_current(bwp.project_name)
+        logger.info(f"Set current project to '{bwp.project_name}'. Ecoinvent database is '{bwp.database_name}'")
+        return bwp
     else:
         logger.error(f"No brightway project found for ecoinvent dataset: {system_model}, {version}")
+        return None
+
+
+def get_bw_database(system_model: str, version: str) -> Optional[SQLiteBackend]:
+    bwp = set_bw_current_project(system_model, version)
+    if bwp:
+        return bw2data.Database(bwp.database_name)
 
 
 if __name__ == "__main__":
