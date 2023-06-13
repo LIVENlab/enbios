@@ -1,18 +1,19 @@
 import json
 from csv import DictWriter
-from typing import Dict, Union, List
+from typing import Dict, Union, List, TYPE_CHECKING
 
 from pandas import DataFrame
 
-from enbios2.analyse.experiment import Experiment
-
+# import Experiment but just for type hinting
+if TYPE_CHECKING:
+    from enbios2.analyse.experiment import Experiment
 
 # from const import processor_col, value_col
 
 
 class ExperimentExporter:
 
-    def __init__(self, experiment: "Experiment"):
+    def __init__(self, experiment: Experiment):
         self.experiment = experiment
 
     def build_simple_tree(self, scenario: str, indicator: str, save: bool = True) -> Dict[str, any]:
@@ -63,16 +64,7 @@ class ExperimentExporter:
         col_pro = self.experiment.col("processor")
         col_val = self.experiment.col("value")
         data: DataFrame = self.experiment.get_data(self.experiment.complete_df, {col_sce: scenario, col_ind: indicator})
-        # data = [
-        #     {"Processor": "A", "Value": 5},
-        #     {"Processor": "A.A", "Value": 4},
-        #     {"Processor": "A.B", "Value": 1},
-        #     {"Processor": "A.A.A", "Value": 2},
-        #     {"Processor": "A.A.B", "Value": 1},
-        #     {"Processor": "A.A.C", "Value": 1},
-        # ]
 
-        # print(data)
         result_data = []
         for row in data.iterrows():
             row = row[1].to_dict()
