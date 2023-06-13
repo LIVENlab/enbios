@@ -1,0 +1,11 @@
+{
+  "root": {
+    "children": {
+      "energy": {
+        "children": [
+          "single_activity"
+        ]
+      }
+    }
+  }
+}

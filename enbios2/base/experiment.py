@@ -4,14 +4,16 @@ from typing import Optional, Union, Any
 import bw2data as bd
 from bw2calc import MultiLCA
 from bw2data.backends import Activity
+from numpy import ndarray
 from pint import UnitRegistry
 
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
-from enbios2.models.experiment_models import ExperimentActivitiesGlobalConf, ExperimentActivityId, \
-    ExtendedExperimentActivityData, \
-    ExperimentActivityData, BWMethod, ExperimentMethodData, ExperimentHierarchyNode, \
-    ExperimentHierarchyData, ExperimentScenarioData, ExperimentData, ExtendedExperimentActivityOutput
+from enbios2.models.experiment_models import (ExperimentActivitiesGlobalConf, ExperimentActivityId,
+                                              ExtendedExperimentActivityData,
+                                              ExperimentActivityData, BWMethod, ExperimentMethodData,
+                                              ExperimentScenarioData, ExperimentData,
+                                              ExtendedExperimentActivityOutput)
 from enbios2.technology_tree import BW_CalculationSetup
 
 logger = get_logger(__file__)
@@ -29,7 +31,7 @@ ScenarioResultNodeData = dict[tuple[str], float]
 class Scenario:
     alias: Optional[str] = None
     activities_outputs: Activity_Outputs = field(default_factory=dict)
-    results: Optional[Any] = None
+    results: Optional[ndarray] = None
     result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
 
     def add_results_to_technology_tree(self, methods_ids: list[tuple[str]]):
@@ -65,6 +67,7 @@ class Experiment:
         self.raw_data = raw_data
         Experiment.ureg = UnitRegistry()
 
+        self.validate_bw_config()
         # alias to activity
         self.activitiesMap: dict[str, ExtendedExperimentActivityData] = {}
         self.default_activities_outputs: Activity_Outputs = {}
@@ -75,11 +78,20 @@ class Experiment:
         self.methods: dict[str, ExperimentMethodData] = self.prepare_methods()
         self.validate_methods(self.methods)
 
-        self.validate_hierarchies()
         self.scenarios: list[Scenario] = self.validate_scenarios(list(self.activitiesMap.values()))
         self.next_scenario_index = 0
 
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
+
+    def validate_bw_config(self):
+        if self.raw_data.bw_project not in bd.projects:
+            raise Exception(f"Project {self.raw_data.bw_project} not found")
+        if self.raw_data.bw_project in bd.projects:
+            bd.projects.set_current(self.raw_data.bw_project)
+
+        if self.raw_data.activities_config.default_database:
+            if self.raw_data.activities_config.default_database not in bd.databases:
+                raise Exception(f"Database {self.raw_data.activities_config.default_database} not found")
 
     def validate_activities(self, required_output: bool = False):
         """
@@ -211,49 +223,6 @@ class Experiment:
             assert bw_method, f"Method with id: {method_tuple} does not exist"
             method.bw_method = BWMethod(**bw_method)
 
-    def validate_hierarchies(self):
-
-        hierarchies = self.raw_data.hierarchy
-
-        if not hierarchies:
-            return
-
-        orig_activities_ids: list[tuple[ExperimentActivityId, ExtendedExperimentActivityData]] = self.collect_orig_ids()
-
-        def check_hierarchy(hierarchy: ExperimentHierarchyData):
-            def rec_find_leaf(node: ExperimentHierarchyNode) -> list[ExperimentActivityId]:
-                """
-                find all leafs of  a node
-                :param node:
-                :return:
-                """
-                # print(node)
-                if isinstance(node.children, dict):
-                    # merge all leafs of children
-                    leafs = []
-                    for child in node.children.values():
-                        # todo, if only key, and value: None, it should be a leaf activity-id
-                        leafs.extend(rec_find_leaf(child))
-                    return leafs
-                elif isinstance(node.children, list):
-                    result: list[ExperimentActivityId] = []
-                    for child in node.children:
-                        assert isinstance(child, str)
-                        assert (activity_ := self._get_activity(child))
-                        result.append(activity_.orig_id)
-                    return result
-
-            rec_find_leaf(hierarchy.root)
-            # all_aliases = [leaf.alias for leaf in leafs]
-
-        if isinstance(hierarchies, list):
-            # all activities must be in the hierarchy
-            assert len(set(h.name for h in hierarchies)) == len(hierarchies), "Hierarchy names must be unique"
-            for _hierarchy in hierarchies:
-                check_hierarchy(_hierarchy)
-        else:
-            check_hierarchy(hierarchies)
-
     def _get_activity(self, alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityData]:
         if isinstance(alias_or_id, str):
             return self.activitiesMap.get(alias_or_id, None)
@@ -330,36 +299,12 @@ class Experiment:
         return scenarios
 
     def create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
-        """
-        Build a tree of all technologies
-        :return:
-        """
-        hierarchy = self.raw_data.hierarchy
-        if isinstance(hierarchy, list):
-            raise "Currently only one hierarchy is supported"
-
-        def recursive_get_children(
-                children_data: Union[ExperimentHierarchyNode, list, dict[str, ExperimentHierarchyNode]]) -> list[
-            BasicTreeNode[ScenarioResultNodeData]]:
-            child_nodes: list[BasicTreeNode] = []
-            if isinstance(children_data, dict):
-                for child_name, child_data in children_data.items():
-                    child_node = BasicTreeNode(name=child_name, data={})
-                    child_nodes.append(child_node)
-                    child_node.add_children(recursive_get_children(child_data))
-            else:
-                # this could be str, or ExperimentActivityId
-                children_data: ExperimentHierarchyNode = children_data
-                for activity_id in children_data.children:
-                    # todo, this could be also of type "ExperimentActivityId" (not just str)
-                    activity_node = BasicTreeNode(name=activity_id, data={})
-                    activity_node._data = self._get_activity(activity_id)
-                    child_nodes.append(activity_node)
-            return child_nodes
-
-        root_node = BasicTreeNode[ScenarioResultNodeData](name="root", data={})
-        root_node.add_children(recursive_get_children(hierarchy.root.children))
-        return root_node
+        tech_tree: BasicTreeNode = BasicTreeNode[ScenarioResultNodeData].from_dict(self.raw_data.hierarchy,
+                                                                                   compact=True,
+                                                                                   data_factory=lambda e: dict())
+        for leaf in tech_tree.get_leaves():
+            leaf._data = self._get_activity(leaf.name)
+        return tech_tree
 
     def get_next_scenario(self) -> Scenario:
         return self.scenarios[self.next_scenario_index]
@@ -377,6 +322,7 @@ class Experiment:
 
     def run_next_scenario(self):
         scenario = self.get_next_scenario()
+        logger.info(f"Running scenario '{scenario.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup(scenario)
         bw_calc_setup.register()
         scenario.results = MultiLCA(bw_calc_setup.name).results
@@ -389,9 +335,9 @@ class Experiment:
 
 if __name__ == "__main__":
     scenario_data = {
-        "bw_project": "ecoi_dbs",
+        "bw_project": "uab_bw_ei39",
         "activities_config": {
-            "default_database": "cutoff391"
+            "default_database": "ei391"
         },
         "activities": {
             "single_activity": {
