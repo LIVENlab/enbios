@@ -1,5 +1,6 @@
+import json
 from dataclasses import dataclass, field
-from typing import Optional, Union, Any
+from typing import Optional, Union
 
 import bw2data as bd
 from bw2calc import MultiLCA
@@ -320,7 +321,7 @@ class Experiment:
     def method_ids(self) -> list[tuple[str]]:
         return [m.full_id for m in self.methods.values()]
 
-    def run_next_scenario(self):
+    def run_next_scenario(self) -> BasicTreeNode[ScenarioResultNodeData]:
         scenario = self.get_next_scenario()
         logger.info(f"Running scenario '{scenario.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup(scenario)
@@ -331,6 +332,23 @@ class Experiment:
         scenario.add_results_to_technology_tree(self.method_ids())
         scenario.resolve_result_tree()
         self.next_scenario_index += 1
+        return scenario.result_tree
+
+    @staticmethod
+    def result_tree_serializer(data: ScenarioResultNodeData):
+        return {
+            "_".join(method_tuple): value
+            for method_tuple, value in data.items()
+        }
+
+    def get_results(self, scenario_name: str):
+        scenario = filter(lambda s: s.alias == scenario_name, self.scenarios)
+        assert scenario, f"Scenario '{scenario_name}' not found"
+        scenario = next(scenario)
+        if not scenario.result_tree:
+            raise ValueError(f"Scenario '{scenario_name}' has no results")
+
+        return scenario.result_tree.as_dict(include_data=True, data_serializer=self.result_tree_serializer)
 
 
 if __name__ == "__main__":
@@ -377,4 +395,6 @@ if __name__ == "__main__":
     }
     exp_data = ExperimentData(**scenario_data)
     exp = Experiment(exp_data)
-    exp.run_next_scenario()
+    result_tree = exp.run_next_scenario()
+    from pathlib import Path
+    result_tree.to_csv(Path("test.csv"), include_data=True, data_serializer=Experiment.result_tree_serializer)

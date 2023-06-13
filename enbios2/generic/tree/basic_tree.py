@@ -133,18 +133,23 @@ class BasicTreeNode(Generic[T]):
         node.parent = None
         return node
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self,
+                include_data: bool = False,
+                data_serializer: Optional[Callable[[T], Any]] = None) -> dict[str, Any]:
         """
         Convert the hierarchy from this node down into a dictionary.
 
         :return: The dictionary representing the hierarchy.
         """
-        return {
+        result = {
             "name": self.name,
             "children": [
-                child.as_dict() for child in self.children
+                child.as_dict(include_data, data_serializer) for child in self.children
             ]
         }
+        if include_data:
+            result["data"] = data_serializer(self.data) if data_serializer else self.data
+        return result
 
     @staticmethod
     def from_dict(data: dict, *, compact: bool = False, data_factory: Optional[Callable] = None) -> "BasicTreeNode":
@@ -341,13 +346,19 @@ class BasicTreeNode(Generic[T]):
 
         return calc_max_depth(self)
 
-    def to_csv(self, file_path: Path, **kwargs):
+    def to_csv(self,
+               file_path: Path,
+               include_data: Optional[bool] = False,
+               data_serializer: Optional[Callable[[T], Any]] = None,
+               **kwargs):
         """
         Write the hierarchy to a csv file.
 
         :param file_path: The path to the csv file.
+        :param data_serializer:
+        :param include_data:
         """
-        tree_to_csv(self.as_dict(), file_path, **kwargs)
+        tree_to_csv(self.as_dict(include_data, data_serializer), file_path, **kwargs)
 
     def to_sanky_tree(self, file_path: Path, value_key: str = "value"):
         """
