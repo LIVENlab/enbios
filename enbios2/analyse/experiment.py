@@ -16,7 +16,7 @@ from pandas import DataFrame
 from .const import scenario_col, processor_col, value_col, level_col, ABSOLUTE, RELATIVE, INDICATOR, PROCESSOR, \
     SCENARIO, \
     indicator_col, indicator_map_file
-from experiment_exporter import ExperimentExporter
+from .experiment_exporter import ExperimentExporter
 from .util import generate_indicator_map
 
 
