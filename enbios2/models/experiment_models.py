@@ -52,8 +52,8 @@ class ExperimentActivityId:
                 search_results = bd.Database(self.database).search(self.name)
             if self.unit:
                 search_results = list(filter(lambda a: a["unit"] == self.unit, search_results))
-            assert (len(search_results) == 0,
-                    f"No results for brightway activity-search: {(self.name, self.location, self.unit)}")
+            assert len(search_results) == 0, (f"No results for brightway activity-search:"
+                                              f" {(self.name, self.location, self.unit)}")
             if len(search_results) > 1:
                 if allow_multiple:
                     return search_results
@@ -111,8 +111,8 @@ class ExperimentActivityData:
         result.orig_id = copy(self.id)
         if not self.id.database:
             result.id.database = default_id_attr.database
-            assert (default_id_attr.database is not None,
-                    f"database must be specified for {self.id} or default_database set in config")
+            assert default_id_attr.database is not None, (f"database must be specified for {self.id} "
+                                                          f"or default_database set in config")
         # assert result.id.database in bd.databases,
         # f"activity database does not exist: '{self.id.database}' for {self.id}"
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
@@ -187,7 +187,7 @@ class ExperimentHierarchyData:
     name: Optional[str] = None
 
 
-@dataclass(frozen=True)
+@dataclass
 class ExperimentScenarioData:
     # map from activity id to output. id is either as original (tuple) or alias-dict
     activities: Optional[Union[

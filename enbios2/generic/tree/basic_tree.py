@@ -29,7 +29,7 @@ class BasicTreeNode(Generic[T]):
 
     def __init__(self,
                  name: str,
-                 children: list["BasicTreeNode", dict] = (),
+                 children: list["BasicTreeNode", dict[str, Any]] = (),
                  data: Optional[T] = None,
                  **kwargs):
         """
@@ -38,6 +38,8 @@ class BasicTreeNode(Generic[T]):
         :param name: The name of the node.
         :param children: A list of child nodes (default is an empty list).
         """
+        if not name:
+            raise ValueError("name must be a non-empty string")
         self._name: str = name
         self.children: list[BasicTreeNode[T]] = []
         for child in children:
@@ -142,20 +144,43 @@ class BasicTreeNode(Generic[T]):
         }
 
     @staticmethod
-    def from_dict(data: dict):
+    def from_dict(data: dict, *, compact: bool = False) -> "BasicTreeNode":
         """
         Parse a dict and create a tree from it.
         :param data:
-        :return:
+        :param compact: if True, the data is assumed to be in compact format
+        :return: a node containing the whole tree
         """
-        # children = {}
-        # if "children" in data:
-        #     children = data["children"]
-        #     del data["children"]
+        # TODO type parameter of BasicTreeNode
+        if compact:
+            return BasicTreeNode.from_compact_dict(data)
         node = BasicTreeNode(**data)
-        # for child in children:
-        #     node.add_child(BasicTreeNode.from_dict(child))
         return node
+
+
+    @staticmethod
+    def from_compact_dict(input_dict, root_name='root') -> "BasicTreeNode":
+
+        def generate_node(node_info: Union[dict, list]):
+            if isinstance(node_info, dict):
+                data = node_info.get("data")
+                name = node_info.get("name")
+                if not name:  # If 'name' is not a key, then node_info represents children nodes
+                    return [BasicTreeNode(name=key, children=generate_node(value)) for key, value in node_info.items()]
+                else:  # If 'name' is a key, then node_info represents a single node with optional 'data' and 'children'
+                    return [BasicTreeNode(name=name, data=data, children=generate_node(node_info.get("children", [])))]
+            elif isinstance(node_info, list):  # A list represents a list of children nodes
+                nodes = []
+                for item in node_info:
+                    if isinstance(item, dict):
+                        nodes.extend(generate_node(
+                            item))  # A dictionary in a list represents a single node or multiple children nodes
+                    else:  # A string in a list represents a single node
+                        nodes.append(BasicTreeNode(name=item))
+                return nodes
+
+        root = BasicTreeNode(name=root_name, children=generate_node(input_dict))
+        return root
 
     def location(self) -> list["BasicTreeNode"]:
         """
@@ -480,15 +505,6 @@ class BasicTreeNode(Generic[T]):
         for child in self.children:
             child.recursive_apply(func, *args, **kwargs)
 
-    # def recursive_apply(self, func: Callable[["BasicTreeNode"], None]):
-    #     """
-    #     Apply a function recursively to all nodes in the tree.
-    #
-    #     :param func: The function to be applied.
-    #     """
-    #     func(self)
-    #     for child in self.children:
-    #         child.recursive_apply(func)
     def get_child(self, child_index_name: Union[int, str]) -> "BasicTreeNode":
         """
         Get a child node by its index or name.
@@ -542,9 +558,10 @@ class BasicTreeNode(Generic[T]):
         elif isinstance(item, int):
             return self.children[item]
         elif isinstance(item, list):
+            if not item:
+                return self
             next_node = self[item[0]]
-            if following := item[1:]:
-                return next_node[following]
+            return next_node[item[1:]]
 
     def __contains__(self, item: Union[str, "BasicTreeNode"]) -> bool:
         """
