@@ -134,7 +134,7 @@ class ExperimentActivityData:
             if result.id.unit:
                 search_results = list(filter(lambda a: a["unit"] == result.id.unit, search_results))
                 if len(search_results) == 0:
-                    raise ValueError("No activity found with the specified unit")
+                    raise ValueError(f"No activity found with the specified unit {self.id}")
             assert len(search_results) == 1, f"results : {len(search_results)}"
             result.bw_activity = search_results[0]
 
@@ -172,19 +172,19 @@ class ExtendedExperimentActivityData:
         Union["ExtendedExperimentActivityOutput", dict[str, "ExtendedExperimentActivityOutput"]]] = None
 
 
-@dataclass(frozen=True)
-class ExperimentHierarchyNode:
-    # name: str
-    children: Union[
-        dict[str, "ExperimentHierarchyNode"],
-        list[ExperimentActivityId],  # any activityId type
-        list[str]]  # activity alias
+# @dataclass(frozen=True)
+# class ExperimentHierarchyNode:
+#     # name: str
+#     children: Union[
+#         dict[str, "ExperimentHierarchyNode"],
+#         list[ExperimentActivityId],  # any activityId type
+#         list[str]]  # activity alias
 
 
-@dataclass(frozen=True)
-class ExperimentHierarchyData:
-    root: ExperimentHierarchyNode
-    name: Optional[str] = None
+# @dataclass(frozen=True)
+# class ExperimentHierarchyData:
+#     root: Union[list,dict]
+#     name: Optional[str] = None
 
 
 @dataclass
@@ -207,17 +207,37 @@ class ExperimentScenarioData:
 
 @dataclass
 class ScenarioConfig:
-    # cool
+    # only used by ExperimentDataIO
+    base_directory: Optional[str] = None
     debug_test_is_valid: bool = True
     debug_test_expected_error_code: Optional[int] = None
 
 
-@dataclass
+ActivitiesDataRows = list[ExperimentActivityData]
+ActivitiesDataTypes = Union[ActivitiesDataRows, dict[str, ExperimentActivityData]]
+MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, ExperimentMethodData]]
+HierarchyDataTypes = Union[list, dict]
+ScenariosDataTypes = Union[list[ExperimentScenarioData], dict[str, ExperimentScenarioData]]
+
+
+@dataclass(config=dict(validate_assignment=True))
 class ExperimentData:
     bw_project: Union[str, ExperimentBWProjectConfig]
     activities_config: ExperimentActivitiesGlobalConf = ExperimentActivitiesGlobalConf()
-    activities: Optional[Union[list[ExperimentActivityData], dict[str, ExperimentActivityData]]] = None
-    methods: Optional[Union[list[ExperimentMethodData], dict[str, ExperimentMethodData]]] = None
-    hierarchy: Optional[Union[ExperimentHierarchyData, list[ExperimentHierarchyData]]] = None
-    scenarios: Optional[Union[list[ExperimentScenarioData], dict[str, ExperimentScenarioData]]] = None
+    activities: Optional[ActivitiesDataTypes] = None
+    methods: Optional[MethodsDataTypes] = None
+    hierarchy: Optional[Union[list, dict]] = None
+    scenarios: Optional[ScenariosDataTypes] = None
     config: Optional[ScenarioConfig] = ScenarioConfig()
+
+
+@dataclass
+class ExperimentDataIO:
+    bw_project: Union[str, ExperimentBWProjectConfig]
+    activities_config: ExperimentActivitiesGlobalConf = ExperimentActivitiesGlobalConf()
+    activities: Optional[Union[ActivitiesDataTypes, str]] = None
+    methods: Optional[Union[MethodsDataTypes, str]] = None
+    hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
+    scenarios: Optional[Union[ScenariosDataTypes, str]] = None
+    config: Optional[ScenarioConfig] = ScenarioConfig()
+

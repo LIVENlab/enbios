@@ -1,7 +1,8 @@
-from enbios2.bw2.bw2i import setup_bw_project
+from enbios2.bw2.bw_autoimporter import setup_bw_project
 from enbios2.const import BASE_DATA_PATH
-from enbios2.models.project import BWProject, BWProjectDatabase
 import bw2data as bd
+
+from enbios2.models.bw_project_models import BWProject, BWProjectDatabase
 
 
 def test_basic_bw():

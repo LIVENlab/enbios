@@ -31,6 +31,7 @@ class BasicTreeNode(Generic[T]):
                  name: str,
                  children: list["BasicTreeNode", dict[str, Any]] = (),
                  data: Optional[T] = None,
+                 data_factory: Optional[Callable[["BasicTreeNode"], T]] = None,
                  **kwargs):
         """
         Initialize the HierarchyNode.
@@ -44,12 +45,14 @@ class BasicTreeNode(Generic[T]):
         self.children: list[BasicTreeNode[T]] = []
         for child in children:
             if isinstance(child, dict):
-                child = BasicTreeNode.from_dict(child)
+                child = BasicTreeNode.from_dict(child, data_factory=data_factory)
             self.add_child(child)
         self.parent: Optional[BasicTreeNode] = None
         self.data: Optional[T] = data
         self._data: dict[str, Any] = kwargs  # this is used for temporary storage of data
         self._id: bytes = self.generate_id()
+        if data_factory:
+            self.data = data_factory(self)
 
     def generate_id(self) -> bytes:
         self._id = b64encode(uuid4().bytes)
@@ -144,31 +147,35 @@ class BasicTreeNode(Generic[T]):
         }
 
     @staticmethod
-    def from_dict(data: dict, *, compact: bool = False) -> "BasicTreeNode":
+    def from_dict(data: dict, *, compact: bool = False, data_factory: Optional[Callable] = None) -> "BasicTreeNode":
         """
         Parse a dict and create a tree from it.
         :param data:
         :param compact: if True, the data is assumed to be in compact format
+        :param data_factory:
         :return: a node containing the whole tree
         """
         # TODO type parameter of BasicTreeNode
         if compact:
-            return BasicTreeNode.from_compact_dict(data)
-        node = BasicTreeNode(**data)
+            return BasicTreeNode.from_compact_dict(data, data_factory=data_factory)
+        node = BasicTreeNode(**data, data_factory=data_factory)
         return node
 
-
     @staticmethod
-    def from_compact_dict(input_dict, root_name='root') -> "BasicTreeNode":
+    def from_compact_dict(input_dict, root_name='root', data_factory: Optional[Callable] = None) -> "BasicTreeNode":
 
         def generate_node(node_info: Union[dict, list]):
             if isinstance(node_info, dict):
                 data = node_info.get("data")
                 name = node_info.get("name")
                 if not name:  # If 'name' is not a key, then node_info represents children nodes
-                    return [BasicTreeNode(name=key, children=generate_node(value)) for key, value in node_info.items()]
+                    return [BasicTreeNode(name=key, children=generate_node(value), data_factory=data_factory) for
+                            key, value in node_info.items()]
                 else:  # If 'name' is a key, then node_info represents a single node with optional 'data' and 'children'
-                    return [BasicTreeNode(name=name, data=data, children=generate_node(node_info.get("children", [])))]
+                    return [BasicTreeNode(name=name,
+                                          data=data,
+                                          children=generate_node(node_info.get("children", [])),
+                                          data_factory=data_factory)]
             elif isinstance(node_info, list):  # A list represents a list of children nodes
                 nodes = []
                 for item in node_info:
@@ -176,10 +183,10 @@ class BasicTreeNode(Generic[T]):
                         nodes.extend(generate_node(
                             item))  # A dictionary in a list represents a single node or multiple children nodes
                     else:  # A string in a list represents a single node
-                        nodes.append(BasicTreeNode(name=item))
+                        nodes.append(BasicTreeNode(name=item, data_factory=data_factory))
                 return nodes
 
-        root = BasicTreeNode(name=root_name, children=generate_node(input_dict))
+        root = BasicTreeNode(name=root_name, children=generate_node(input_dict), data_factory=data_factory)
         return root
 
     def location(self) -> list["BasicTreeNode"]:
@@ -583,7 +590,7 @@ class BasicTreeNode(Generic[T]):
 
         :return: String representation of the object.
         """
-        return f"[{self.name} - {len(self.children)} children{' (' + self.parent.name + ')' if self.parent else ''}]"
+        return f"[{self.name} - {len(self.children)} {'children' if len(self) > 1 else 'child'}{' (' + self.parent.name + ')' if self.parent else ''}]"
 
     def __bool__(self):
         """

@@ -38,7 +38,7 @@ fastjsonschema==2.16.3
 fire==0.5.0
 fonttools==4.39.3
 fqdn==1.5.1
-frictionless==4.0.13
+frictionless==5.13.1
 friendly-data==0.3.3
 friendly-data-registry==20220103
 fs==2.4.16
