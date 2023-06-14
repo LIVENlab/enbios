@@ -5,6 +5,7 @@ from typing import Optional, Union
 import bw2data as bd
 from bw2calc import MultiLCA
 from bw2data.backends import Activity
+from deprecated.classic import deprecated
 from numpy import ndarray
 from pint import UnitRegistry
 
@@ -12,7 +13,7 @@ from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import (ExperimentActivitiesGlobalConf, ExperimentActivityId,
                                               ExtendedExperimentActivityData,
-                                              ExperimentActivityData, BWMethod, ExperimentMethodData,
+                                              BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
                                               ExtendedExperimentActivityOutput, BWCalculationSetup)
 
@@ -103,21 +104,18 @@ class Experiment:
             bd.projects.set_current(raw_data.bw_project)
         self.raw_data = raw_data
         Experiment.ureg = UnitRegistry()
-
-        self.validate_bw_config()
         # alias to activity
         self.activitiesMap: dict[str, ExtendedExperimentActivityData] = {}
-        self.default_activities_outputs: Activity_Outputs = {}
+        # todo, get this from the activitiesMap instead...
+        # self.default_activities_outputs: Activity_Outputs = {}
 
-        output_required = not raw_data.scenarios
-        self.validate_activities(output_required)
+        self.validate_bw_config()
+        self.validate_activities()
+        self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
         self.methods: dict[str, ExperimentMethodData] = self.prepare_methods()
         self.validate_methods(self.methods)
-
         self.scenarios: list[Scenario] = self.validate_scenarios(list(self.activitiesMap.values()))
-
-        self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
     def validate_bw_config(self):
         if self.raw_data.bw_project not in bd.projects:
@@ -129,12 +127,12 @@ class Experiment:
             if self.raw_data.activities_config.default_database not in bd.databases:
                 raise Exception(f"Database {self.raw_data.activities_config.default_database} not found")
 
-    def validate_activities(self, required_output: bool = False):
+    def validate_activities(self):
         """
-
-        :param required_output:
-        :return:
+        Check if all activities exist in the bw database, and check if the given activities are unique
+        In case there is only one scenario, all activities are required to have outputs
         """
+        output_required = not self.raw_data.scenarios
         # check if all activities exist
         activities = self.raw_data.activities
         config: ExperimentActivitiesGlobalConf = self.raw_data.activities_config
@@ -144,31 +142,29 @@ class Experiment:
         default_id_data = ExperimentActivityId(database=config.default_database)
         if isinstance(activities, list):
             logger.debug("activity list")
-            activities_list: list[ExperimentActivityData] = activities
 
-            for activity in activities_list:
-                activity: ExperimentActivityData = activity
-                ext_activity = activity.check_exist(default_id_data, required_output)
+            for activity in activities:
+                ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
                 self.activitiesMap[ext_activity.id.alias] = ext_activity
         elif isinstance(activities, dict):
             logger.debug("activity dict")
-            # activities: dict[str, ExperimentActivity] = activities
             for activity_alias, activity in activities.items():
                 default_id_data.alias = activity_alias
-                ext_activity = activity.check_exist(default_id_data, required_output)
+                ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
                 self.activitiesMap[ext_activity.id.alias] = ext_activity
 
         # all codes should only appear once
         unique_activities = set()
-        for activity in self.activitiesMap.values():
-            activity: ExtendedExperimentActivityData = activity
-            unique_activities.add((activity.id.database, activity.id.code))
-            if activity.output:
-                output = Experiment.validate_output(activity.output, activity)
-                self.default_activities_outputs[activity.bw_activity._document.code] = (activity.bw_activity, output)
+        for ext_activity in self.activitiesMap.values():
+            ext_activity: ExtendedExperimentActivityData = ext_activity
+            unique_activities.add((ext_activity.id.database, ext_activity.id.code))
+
+            if ext_activity.output:
+                ext_activity.default_output_value = Experiment.validate_output(ext_activity.output, ext_activity)
 
         assert len(unique_activities) == len(activities), "Not all activities are unique"
 
+    @deprecated()
     def collect_orig_ids(self) -> list[tuple[ExperimentActivityId, ExtendedExperimentActivityData]]:
         return [(activity.orig_id, activity) for activity in self.activitiesMap.values()]
 
@@ -299,9 +295,11 @@ class Experiment:
             """
             scenario_activities_outputs: Activity_Outputs = validate_activities(scenario)
             for activity in self.activitiesMap.values():
-                activity_code = activity.bw_activity._document.code
+                activity_code = activity.bw_activity["code"]
                 if activity_code not in scenario_activities_outputs:
-                    scenario_activities_outputs[activity_code] = self.default_activities_outputs[activity_code]
+                    scenario_activities_outputs[activity_code] = activity.default_output_value
+                    pass
+                    # scenario_activities_outputs[activity_code] = self.default_activities_outputs[activity_code]
             return Scenario(alias=scenario.alias,
                             activities_outputs=scenario_activities_outputs)
 
