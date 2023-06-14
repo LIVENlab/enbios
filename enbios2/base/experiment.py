@@ -59,6 +59,19 @@ class Scenario:
         recursive_resolve_node(self.result_tree)
 
 
+    @staticmethod
+    def result_tree_serializer(data: ScenarioResultNodeData):
+        return {
+            "_".join(method_tuple): value
+            for method_tuple, value in data.items()
+        }
+
+    def results_to_csv(self, file_path: Path):
+        if not self.result_tree:
+            raise ValueError(f"Scenario '{self.alias}' has no results")
+        self.result_tree.to_csv(file_path, include_data=True, data_serializer=self.result_tree_serializer)
+
+
 class Experiment:
     ureg = UnitRegistry()
 
@@ -342,13 +355,6 @@ class Experiment:
             results[scenario.alias] = self.run_scenario(scenario.alias)
         return results
 
-    @staticmethod
-    def result_tree_serializer(data: ScenarioResultNodeData):
-        return {
-            "_".join(method_tuple): value
-            for method_tuple, value in data.items()
-        }
-
     def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None):
         if not scenario_name:
             if len(self.scenarios) > 1:
@@ -359,9 +365,7 @@ class Experiment:
             assert scenario, f"Scenario '{scenario_name}' not found"
             scenario = next(scenario)
 
-        if not scenario.result_tree:
-            raise ValueError(f"Scenario '{scenario_name}' has no results")
-        scenario.result_tree.to_csv(file_path, include_data=True, data_serializer=Experiment.result_tree_serializer)
+        scenario.results_to_csv(file_path)
 
 
 if __name__ == "__main__":
