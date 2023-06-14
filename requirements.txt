@@ -182,3 +182,9 @@ xmltodict==0.13.0
 xlrd==2.0.1
 XlsxWriter==3.1.0
 zipp==3.15.0
+
+bw2io==0.9.dev17
+bw2data==4.0.dev18
+bw2calc==2.0.dev12
+bw2parameters~=1.1.0
+Deprecated~=1.2.14

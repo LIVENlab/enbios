@@ -346,19 +346,50 @@ class BasicTreeNode(Generic[T]):
 
         return calc_max_depth(self)
 
-    def to_csv(self,
-               file_path: Path,
+    def to_csv(self, csv_file: Path, *,
                include_data: Optional[bool] = False,
-               data_serializer: Optional[Callable[[T], Any]] = None,
-               **kwargs):
-        """
-        Write the hierarchy to a csv file.
+               data_serializer: Optional[Callable[[T], dict]] = None,
+               exclude_data_keys=None, level_names: list[str] = None,
+               merge_first_sub_row: bool = False, repeat_parent_name: bool = False):
 
-        :param file_path: The path to the csv file.
-        :param data_serializer:
-        :param include_data:
-        """
-        tree_to_csv(self.as_dict(include_data, data_serializer), file_path, **kwargs)
+        # Calculate max_depth based on root if not provided
+        include_data_keys = []
+        if include_data:
+            include_data_keys = list(data_serializer(self.data).keys())
+            if exclude_data_keys:
+                include_data_keys = list(set(include_data_keys) - set(exclude_data_keys))
+        _total_level_names = level_names if level_names else []
+
+        def level_name(level: int) -> str:
+            if level >= len(_total_level_names):
+                _total_level_names.append(f"lvl{level}")
+            return _total_level_names[level]
+
+        def rec_add_node_row(node: "BasicTreeNode", current_level: int = 0) -> list[dict[str, Union[str, float]]]:
+            row = {}
+            node_data = data_serializer(node.data)
+            for data_key in include_data_keys:
+                row[data_key] = node_data.get(data_key, "")
+            row[level_name(current_level)] = node.name
+            _sub_rows = []
+            for child in node.children:
+                _sub_rows.extend(rec_add_node_row(child, current_level + 1))
+            if _sub_rows:
+                if merge_first_sub_row:
+                    row = {**row, **_sub_rows[0]}
+                    _sub_rows = _sub_rows[1:]
+                if repeat_parent_name:
+                    for sub_row in _sub_rows:
+                        sub_row[level_name(current_level)] = node.name
+            return [row] + _sub_rows
+
+        # Write rows to csv
+        with csv_file.open('w', newline='') as csvfile:
+            rows = rec_add_node_row(self)
+            headers = _total_level_names + include_data_keys
+            writer = csv.DictWriter(csvfile, headers)
+            writer.writeheader()
+            writer.writerows(rows)
 
     def to_sanky_tree(self, file_path: Path, value_key: str = "value"):
         """

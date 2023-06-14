@@ -6,7 +6,7 @@ import csv
 from typing import Optional, Union
 
 from enbios2.const import BASE_DATA_PATH
-
+from deprecated import deprecated
 
 def build_tree_from_csv(csv_file: Path, level_cols: list[str], attr_maps: dict[str, str]) -> dict:
     # Placeholder for root of the tree
@@ -60,6 +60,7 @@ def build_tree_from_csv(csv_file: Path, level_cols: list[str], attr_maps: dict[s
 import csv
 
 
+@deprecated(reason="Use BasicTreeNode.to_csv")
 def tree_to_csv(root: dict, csv_file: Path, *, include_attrs=None, level_names: list[str] = None,
                 merge_first_sub_row: bool = False, repeat_parent_name: bool = False):
     # Calculate max_depth based on root if not provided
