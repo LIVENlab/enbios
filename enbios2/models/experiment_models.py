@@ -87,7 +87,6 @@ ExperimentActivityOutput = Union[ExperimentActivityOutputDict, ExperimentActivit
 class ExtendedExperimentActivityOutput:
     unit: str
     magnitude: float = 1.0
-    pint_quantity: Optional[Quantity] = None
 
 
 @pydantic_dataclass
