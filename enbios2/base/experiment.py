@@ -35,6 +35,10 @@ class Scenario:
     result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
 
     def add_results_to_technology_tree(self, methods_ids: list[tuple[str]]):
+        """
+        Add results to the technology tree, for each method
+        :param methods_ids: tuple of method identifiers
+        """
         activity_nodes = self.result_tree.get_leaves()
         activities_outputs = list(self.activities_outputs.values())
         for result_index, activity_out in enumerate(activities_outputs):
@@ -43,6 +47,9 @@ class Scenario:
                 activity_node.data[method] = self.results[result_index][method_index]
 
     def resolve_result_tree(self):
+        """
+        Sum up the results in the complete hierarchy
+        """
 
         def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]) -> ScenarioResultNodeData:
             if node.is_leaf:
@@ -55,8 +62,16 @@ class Scenario:
                         node.data[key] = 0
                     node.data[key] += value
 
-        recursive_resolve_node(self.result_tree)
+        # TODO: WHY!?!?
+        # def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]):
+        #     for child in node.children:
+        #         for key, value in child.data.items():
+        #             if node.data.get(key) is None:
+        #                 node.data[key] = 0
+        #             node.data[key] += value
 
+        # self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
+        recursive_resolve_node(self.result_tree)
 
     @staticmethod
     def result_tree_serializer(data: ScenarioResultNodeData):
@@ -384,7 +399,7 @@ if __name__ == "__main__":
                 },
                 "output": [
                     "MWh",
-                    30
+                    1
                 ]
             }
         },
