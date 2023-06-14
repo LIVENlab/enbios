@@ -14,8 +14,7 @@ from enbios2.models.experiment_models import (ExperimentActivitiesGlobalConf, Ex
                                               ExtendedExperimentActivityData,
                                               ExperimentActivityData, BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
-                                              ExtendedExperimentActivityOutput)
-from enbios2.technology_tree import BW_CalculationSetup
+                                              ExtendedExperimentActivityOutput, BWCalculationSetup)
 
 logger = get_logger(__file__)
 
@@ -325,12 +324,12 @@ class Experiment:
                 return scenario
         raise f"Scenario '{scenario_name}' not found"
 
-    def create_bw_calculation_setup(self, scenario: Scenario, register: bool = True) -> BW_CalculationSetup:
+    def create_bw_calculation_setup(self, scenario: Scenario, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
         for act_out in scenario.activities_outputs.values():
             inventory.append({act_out[0]: act_out[1]})
         methods = [m.full_id for m in self.methods.values()]
-        calculation_setup = BW_CalculationSetup(scenario.alias, inventory, methods)
+        calculation_setup = BWCalculationSetup(scenario.alias, inventory, methods)
         if register:
             calculation_setup.register()
         return calculation_setup

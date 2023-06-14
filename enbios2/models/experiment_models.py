@@ -1,16 +1,17 @@
 from copy import copy
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import Optional, Union, Type
 
 import bw2data as bd
+from bw2data import calculation_setups
 from bw2data.backends import Activity
 from pint import Quantity
-from pydantic.dataclasses import dataclass
+from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from enbios2.bw2.util import get_activity
 
 
-@dataclass
+@pydantic_dataclass
 class ExperimentBWProjectConfig:
     index: Optional[str] = None
 
@@ -19,12 +20,12 @@ class Config:
     arbitrary_types_allowed = True
 
 
-@dataclass
+@pydantic_dataclass
 class ExperimentActivitiesGlobalConf:
     default_database: Optional[str] = None
 
 
-@dataclass
+@pydantic_dataclass
 class ExperimentActivityId:
     database: Optional[str] = None
     code: Optional[str] = None
@@ -70,7 +71,7 @@ class ExperimentActivityId:
                     setattr(self, field, kwargs[field])
 
 
-@dataclass
+@pydantic_dataclass
 class ExperimentActivityOutputDict:
     unit: str
     magnitude: float = 1.0
@@ -82,14 +83,14 @@ ExperimentActivityOutputArray: Type = tuple[str, float]
 ExperimentActivityOutput = Union[ExperimentActivityOutputDict, ExperimentActivityOutputArray]
 
 
-@dataclass(config=Config)
+@pydantic_dataclass(config=Config)
 class ExtendedExperimentActivityOutput:
     unit: str
     magnitude: float = 1.0
     pint_quantity: Optional[Quantity] = None
 
 
-@dataclass
+@pydantic_dataclass
 class ExperimentActivityData:
     """
     This is the dataclass for the activities in the experiment.
@@ -145,7 +146,7 @@ class ExperimentActivityData:
         return result
 
 
-@dataclass(frozen=True)
+@pydantic_dataclass(frozen=True)
 class BWMethod:
     description: str
     filename: str
@@ -155,14 +156,14 @@ class BWMethod:
     geocollections: list[str]
 
 
-@dataclass
+@pydantic_dataclass
 class ExperimentMethodData:
     id: Union[list[str], tuple[str, ...]]
     alias: Optional[str] = None
     full_id: Optional[tuple[str, ...]] = None
 
 
-@dataclass(config=Config)
+@pydantic_dataclass(config=Config)
 class ExtendedExperimentActivityData:
     id: ExperimentActivityId
     output: Optional["ExtendedExperimentActivityOutput"] = None
@@ -172,22 +173,7 @@ class ExtendedExperimentActivityData:
         Union["ExtendedExperimentActivityOutput", dict[str, "ExtendedExperimentActivityOutput"]]] = None
 
 
-# @dataclass(frozen=True)
-# class ExperimentHierarchyNode:
-#     # name: str
-#     children: Union[
-#         dict[str, "ExperimentHierarchyNode"],
-#         list[ExperimentActivityId],  # any activityId type
-#         list[str]]  # activity alias
-
-
-# @dataclass(frozen=True)
-# class ExperimentHierarchyData:
-#     root: Union[list,dict]
-#     name: Optional[str] = None
-
-
-@dataclass
+@pydantic_dataclass
 class ExperimentScenarioData:
     # map from activity id to output. id is either as original (tuple) or alias-dict
     activities: Optional[Union[
@@ -205,7 +191,7 @@ class ExperimentScenarioData:
         return f"Scenario {index}"
 
 
-@dataclass
+@pydantic_dataclass
 class ScenarioConfig:
     # only used by ExperimentDataIO
     base_directory: Optional[str] = None
@@ -220,7 +206,7 @@ HierarchyDataTypes = Union[list, dict]
 ScenariosDataTypes = Union[list[ExperimentScenarioData], dict[str, ExperimentScenarioData]]
 
 
-@dataclass(config=dict(validate_assignment=True))
+@pydantic_dataclass(config=dict(validate_assignment=True))
 class ExperimentData:
     bw_project: Union[str, ExperimentBWProjectConfig]
     activities_config: ExperimentActivitiesGlobalConf = ExperimentActivitiesGlobalConf()
@@ -231,7 +217,7 @@ class ExperimentData:
     config: Optional[ScenarioConfig] = ScenarioConfig()
 
 
-@dataclass
+@pydantic_dataclass
 class ExperimentDataIO:
     bw_project: Union[str, ExperimentBWProjectConfig]
     activities_config: ExperimentActivitiesGlobalConf = ExperimentActivitiesGlobalConf()
@@ -241,3 +227,15 @@ class ExperimentDataIO:
     scenarios: Optional[Union[ScenariosDataTypes, str]] = None
     config: Optional[ScenarioConfig] = ScenarioConfig()
 
+
+@dataclass
+class BWCalculationSetup:
+    name: str
+    inv: list[dict[Activity, float]]
+    ia: list[tuple[str]]
+
+    def register(self):
+        calculation_setups[self.name] = {
+            "inv": self.inv,
+            "ia": self.ia
+        }
