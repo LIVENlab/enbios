@@ -325,31 +325,33 @@ class Experiment:
                 return scenario
         raise f"Scenario '{scenario_name}' not found"
 
-    def create_bw_calculation_setup(self, scenario: Scenario) -> BW_CalculationSetup:
+    def create_bw_calculation_setup(self, scenario: Scenario, register: bool = True) -> BW_CalculationSetup:
         inventory: list[dict[Activity, float]] = []
         for act_out in scenario.activities_outputs.values():
             inventory.append({act_out[0]: act_out[1]})
         methods = [m.full_id for m in self.methods.values()]
-
-        return BW_CalculationSetup(scenario.alias, inventory, methods)
+        calculation_setup = BW_CalculationSetup(scenario.alias, inventory, methods)
+        if register:
+            calculation_setup.register()
+        return calculation_setup
 
     def method_ids(self) -> list[tuple[str]]:
         return [m.full_id for m in self.methods.values()]
 
-    def run_scenario(self, scenario_name: str) -> BasicTreeNode[ScenarioResultNodeData]:
+    def run_scenario(self, scenario_name: str) -> dict:
         scenario = self.get_scenario(scenario_name)
 
         logger.info(f"Running scenario '{scenario.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup(scenario)
-        bw_calc_setup.register()
         scenario.results = MultiLCA(bw_calc_setup.name).results
         scenario.result_tree = self.technology_root_node.copy()
 
         scenario.add_results_to_technology_tree(self.method_ids())
         scenario.resolve_result_tree()
-        return scenario.result_tree
 
-    def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
+        return scenario.result_tree.as_dict(include_data=True)
+
+    def run(self) -> dict[str, dict]:
         results = {}
         for scenario in self.scenarios:
             results[scenario.alias] = self.run_scenario(scenario.alias)

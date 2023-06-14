@@ -5,9 +5,11 @@ from pathlib import Path
 from typing import Optional, Any, Literal, Union, Generator, TypeVar, Generic, Callable
 from uuid import uuid4
 
-from enbios2.experiment.tree_transformer import tree_to_csv
+from enbios2.generic.enbios2_logging import get_logger
 
 T = TypeVar("T")
+
+logger = get_logger(__file__)
 
 
 class BasicTreeNode(Generic[T]):
@@ -353,9 +355,20 @@ class BasicTreeNode(Generic[T]):
                merge_first_sub_row: bool = False, repeat_parent_name: bool = False):
 
         # Calculate max_depth based on root if not provided
+        if include_data and not isinstance(self.data, dict) and not data_serializer:
+            raise ValueError("If include_data is True, and data not a dict, data_serializer must be provided")
+
+        if include_data and merge_first_sub_row:
+            logger.warning(
+                "Merging first sub-row and including data is often not recommended, "
+                "as sub-row data will overwrite parent data")
+
         include_data_keys = []
         if include_data:
-            include_data_keys = list(data_serializer(self.data).keys())
+            if data_serializer:
+                include_data_keys = list(data_serializer(self.data).keys())
+            else:
+                include_data_keys = list(self.data.keys())
             if exclude_data_keys:
                 include_data_keys = list(set(include_data_keys) - set(exclude_data_keys))
         _total_level_names = level_names if level_names else []
@@ -367,9 +380,13 @@ class BasicTreeNode(Generic[T]):
 
         def rec_add_node_row(node: "BasicTreeNode", current_level: int = 0) -> list[dict[str, Union[str, float]]]:
             row = {}
-            node_data = data_serializer(node.data)
-            for data_key in include_data_keys:
-                row[data_key] = node_data.get(data_key, "")
+            if include_data:
+                if data_serializer:
+                    node_data = data_serializer(node.data)
+                else:
+                    node_data = node.data
+                for data_key in include_data_keys:
+                    row[data_key] = node_data.get(data_key, "")
             row[level_name(current_level)] = node.name
             _sub_rows = []
             for child in node.children:
@@ -514,7 +531,7 @@ class BasicTreeNode(Generic[T]):
 
     def copy_an_merge(self, child_names: list[str], parent_name: Optional[str] = None) -> "BasicTreeNode":
         """
-        Copy this node (and all children) for any child_name in the list and make them children of one node.
+        Copy this node and all children given in  child_names.
         :param child_names: The names of the children to be copied.
         :param parent_name: The name of the new root node. Default: self.name
         :return: node that contains all "copies" as children.
@@ -548,11 +565,17 @@ class BasicTreeNode(Generic[T]):
 
         return root
 
-    def recursive_apply(self, func: Callable[["BasicTreeNode", ...], Any], *args, **kwargs):
-        func(self, *args, **kwargs)
+    def recursive_apply(self, func: Callable[["BasicTreeNode", ...], Any], depth_first: bool = False, *args, **kwargs) \
+            -> Generator[Any, Any, Any]:
+        if not depth_first:
+            yield func(self, *args, **kwargs)
 
         for child in self.children:
-            child.recursive_apply(func, *args, **kwargs)
+            for res in child.recursive_apply(func, depth_first, *args, **kwargs):
+                yield res
+
+        if depth_first:
+            yield func(self, *args, **kwargs)
 
     def get_child(self, child_index_name: Union[int, str]) -> "BasicTreeNode":
         """
@@ -632,7 +655,7 @@ class BasicTreeNode(Generic[T]):
 
         :return: String representation of the object.
         """
-        return f"[{self.name} - {len(self.children)} {'children' if len(self) > 1 else 'child'}{' (' + self.parent.name + ')' if self.parent else ''}]"
+        return f"[{self.name} - {len(self.children)} {'children' if len(self) != 1 else 'child'}{' (' + self.parent.name + ')' if self.parent else ''}]"
 
     def __bool__(self):
         """
