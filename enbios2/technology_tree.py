@@ -4,7 +4,7 @@ from typing import Union, Literal, Optional
 import bw2data as bd
 from bw2data import Method
 from bw2data.backends import Activity
-from bw2data.meta import CalculationSetups
+from bw2data.meta import CalculationSetups, calculation_setups
 
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 
@@ -42,12 +42,10 @@ class BW_CalculationSetup:
     ia: list[tuple[str]]
 
     def register(self):
-        cs = CalculationSetups()
-        cs[self.name] = {
+        calculation_setups[self.name] = {
             "inv": self.inv,
             "ia": self.ia
         }
-        cs.flush()
 
 
 

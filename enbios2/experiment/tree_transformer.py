@@ -8,6 +8,7 @@ from typing import Optional, Union
 from enbios2.const import BASE_DATA_PATH
 from deprecated import deprecated
 
+
 def build_tree_from_csv(csv_file: Path, level_cols: list[str], attr_maps: dict[str, str]) -> dict:
     # Placeholder for root of the tree
     root = None
@@ -97,7 +98,6 @@ def tree_to_csv(root: dict, csv_file: Path, *, include_attrs=None, level_names: 
         writer = csv.DictWriter(csvfile, headers)
         writer.writeheader()
         writer.writerows(rows)
-
 
 # json_file = BASE_DATA_PATH / "temp/miquel_upscaling/complete.json"
 # print(json_file.exists())

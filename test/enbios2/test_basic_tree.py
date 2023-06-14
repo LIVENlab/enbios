@@ -1,5 +1,7 @@
 import json
+import os
 from copy import copy
+from csv import DictReader
 
 import pytest
 import sys
@@ -83,11 +85,35 @@ def test_remove_child():
 
 
 def test_copy_an_merge():
-    assert False, "not implemented yet"
+    node1 = BasicTreeNode("parent", children=[
+        BasicTreeNode("child")
+    ])
+    node_copy = node1.copy_an_merge(["child"])
+    assert node_copy.name == "parent"
+    assert len(node_copy) == 1
+    assert node_copy.children[0].name == "child"
+    assert node_copy.children[0].parent == node_copy
 
 
 def test_recursive_apply():
-    assert False, "not implemented yet"
+    node1 = BasicTreeNode("parent", children=[
+        BasicTreeNode("child1", [
+            BasicTreeNode("child1-child1"),
+            BasicTreeNode("child1-child2")
+        ]),
+        BasicTreeNode("child2", [
+            BasicTreeNode("child2-child1"),
+        ]),
+    ])
+
+    def apply_func(node):
+        return node.name
+
+    expected_results = ['parent', 'child1', 'child1-child1', 'child1-child2', 'child2', 'child2-child1']
+    assert expected_results == [res for res in node1.recursive_apply(apply_func)]
+
+    expected_results = ['child1-child1', 'child1-child2', 'child1', 'child2-child1', 'child2', 'parent']
+    assert expected_results == [res for res in node1.recursive_apply(apply_func, depth_first=True)]
 
 
 def test_clear():
@@ -239,15 +265,41 @@ def test_depth():
 
 @pytest.fixture
 def csv_file_path(tmp_path):
-    return tmp_path / "test.csv"
+    path = tmp_path / "test.csv"
+    yield path
+    os.remove(path)
 
 
 def test_to_csv(csv_file_path):
-    node1 = BasicTreeNode("node1")
-    node2 = BasicTreeNode("node2")
+    node1 = BasicTreeNode("node1", data={"a": 1, "b": 2})
+    node2 = BasicTreeNode("node2", data={"a": 5, "b": 8})
     node1.add_child(node2)
+
     node1.to_csv(csv_file_path)
     assert csv_file_path.exists()
+    assert [{'lvl0': 'node1', 'lvl1': ''}, {'lvl0': '', 'lvl1': 'node2'}] == list(DictReader(csv_file_path.open()))
+
+    node1.to_csv(csv_file_path, level_names=["main", "sub"])
+    assert [{'main': 'node1', 'sub': ''}, {'main': '', 'sub': 'node2'}] == list(DictReader(csv_file_path.open()))
+
+    node1.to_csv(csv_file_path, merge_first_sub_row=True)
+    assert [{'lvl0': 'node1', 'lvl1': 'node2'}] == list(DictReader(csv_file_path.open()))
+
+    node1.to_csv(csv_file_path, repeat_parent_name=True)
+    assert [{'lvl0': 'node1', 'lvl1': ''}, {'lvl0': 'node1', 'lvl1': 'node2'}] == list(DictReader(csv_file_path.open()))
+
+    node1.to_csv(csv_file_path, include_data=True)
+    assert [{'lvl0': 'node1', 'lvl1': '', "a": "1", "b": "2"},
+            {'lvl0': '', 'lvl1': 'node2', "a": "5", "b": "8"}] == list(
+        DictReader(csv_file_path.open()))
+
+    node1.to_csv(csv_file_path, include_data=True, exclude_data_keys=["b"])
+    assert [{'lvl0': 'node1', 'lvl1': '', "a": "1"}, {'lvl0': '', 'lvl1': 'node2', "a": "5"}] == list(
+        DictReader(csv_file_path.open()))
+
+    node1.to_csv(csv_file_path, include_data=True, merge_first_sub_row=True)
+    assert [{'lvl0': 'node1', 'lvl1': 'node2', "a": "5", "b": "8"}] == list(
+        DictReader(csv_file_path.open()))
 
 
 def test_to_sanky_tree(csv_file_path):
@@ -398,9 +450,10 @@ def test_getitem():
 
 def test_repr():
     root = BasicTreeNode("root", children=[
-        BasicTreeNode("child1"),
-        BasicTreeNode("child2")
+        BasicTreeNode("child1")
     ])
+    assert repr(root) == "[root - 1 child]"
+    root.add_child(BasicTreeNode("child2"))
     assert repr(root) == "[root - 2 children]"
     assert repr(root.children[0]) == "[child1 - 0 children (root)]"
 
