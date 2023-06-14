@@ -565,8 +565,10 @@ class BasicTreeNode(Generic[T]):
 
         return root
 
-    def recursive_apply(self, func: Callable[["BasicTreeNode", ...], Any], depth_first: bool = False, *args, **kwargs) \
-            -> Generator[Any, Any, Any]:
+    def recursive_apply(self,
+                        func: Callable[["BasicTreeNode", ...], Any],
+                        depth_first: bool = False,
+                        *args, **kwargs) -> Generator[Any, Any, Any]:
         if not depth_first:
             yield func(self, *args, **kwargs)
 
