@@ -75,12 +75,21 @@ class Scenario:
 
     @staticmethod
     def result_tree_serializer(data: ScenarioResultNodeData):
+        """
+        :Turn the method ids (tuples) into simple strings
+        :param data:
+        :return:
+        """
         return {
             "_".join(method_tuple): value
             for method_tuple, value in data.items()
         }
 
     def results_to_csv(self, file_path: Path):
+        """
+        Save the results (as tree) to a csv file
+         :param file_path:  path to save the results to
+        """
         if not self.result_tree:
             raise ValueError(f"Scenario '{self.alias}' has no results")
         self.result_tree.to_csv(file_path, include_data=True, data_serializer=self.result_tree_serializer)
@@ -167,13 +176,8 @@ class Experiment:
     def validate_output(target_output: ExtendedExperimentActivityOutput,
                         activity: ExtendedExperimentActivityData) -> float:
         try:
-            pint_target_unit = Experiment.ureg(target_output.unit)
-            pint_target_quantity = target_output.magnitude * pint_target_unit
-            #
-            pint_activity_unit = Experiment.ureg(activity.id.unit)
-            #
-            target_output.pint_quantity = pint_target_quantity.to(pint_activity_unit)
-            return target_output.magnitude
+            target_quantity = Experiment.ureg(target_output.unit) * target_output.magnitude
+            return target_quantity.to(activity.bw_activity['unit']).magnitude
         except Exception as err:
             # todo, change to Exception, and catch that in test too,
             # raise Exception(f"Unit error, {err}; For activity: {activity.id}")
