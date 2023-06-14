@@ -1,5 +1,5 @@
-import json
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional, Union
 
 import bw2data as bd
@@ -80,7 +80,6 @@ class Experiment:
         self.validate_methods(self.methods)
 
         self.scenarios: list[Scenario] = self.validate_scenarios(list(self.activitiesMap.values()))
-        self.next_scenario_index = 0
 
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
@@ -307,8 +306,11 @@ class Experiment:
             leaf._data = self._get_activity(leaf.name)
         return tech_tree
 
-    def get_next_scenario(self) -> Scenario:
-        return self.scenarios[self.next_scenario_index]
+    def get_scenario(self, scenario_name: str) -> Optional[Scenario]:
+        for scenario in self.scenarios:
+            if scenario.alias == scenario_name:
+                return scenario
+        raise f"Scenario '{scenario_name}' not found"
 
     def create_bw_calculation_setup(self, scenario: Scenario) -> BW_CalculationSetup:
         inventory: list[dict[Activity, float]] = []
@@ -321,8 +323,9 @@ class Experiment:
     def method_ids(self) -> list[tuple[str]]:
         return [m.full_id for m in self.methods.values()]
 
-    def run_next_scenario(self) -> BasicTreeNode[ScenarioResultNodeData]:
-        scenario = self.get_next_scenario()
+    def run_scenario(self, scenario_name: str) -> BasicTreeNode[ScenarioResultNodeData]:
+        scenario = self.get_scenario(scenario_name)
+
         logger.info(f"Running scenario '{scenario.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup(scenario)
         bw_calc_setup.register()
@@ -331,8 +334,13 @@ class Experiment:
 
         scenario.add_results_to_technology_tree(self.method_ids())
         scenario.resolve_result_tree()
-        self.next_scenario_index += 1
         return scenario.result_tree
+
+    def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
+        results = {}
+        for scenario in self.scenarios:
+            results[scenario.alias] = self.run_scenario(scenario.alias)
+        return results
 
     @staticmethod
     def result_tree_serializer(data: ScenarioResultNodeData):
@@ -341,14 +349,19 @@ class Experiment:
             for method_tuple, value in data.items()
         }
 
-    def get_results(self, scenario_name: str):
-        scenario = filter(lambda s: s.alias == scenario_name, self.scenarios)
-        assert scenario, f"Scenario '{scenario_name}' not found"
-        scenario = next(scenario)
+    def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None):
+        if not scenario_name:
+            if len(self.scenarios) > 1:
+                raise ValueError("More than one scenario defined, please specify scenario_name")
+            scenario = self.scenarios[0]
+        else:
+            scenario = filter(lambda s: s.alias == scenario_name, self.scenarios)
+            assert scenario, f"Scenario '{scenario_name}' not found"
+            scenario = next(scenario)
+
         if not scenario.result_tree:
             raise ValueError(f"Scenario '{scenario_name}' has no results")
-
-        return scenario.result_tree.as_dict(include_data=True, data_serializer=self.result_tree_serializer)
+        scenario.result_tree.to_csv(file_path, include_data=True, data_serializer=Experiment.result_tree_serializer)
 
 
 if __name__ == "__main__":
@@ -382,19 +395,16 @@ if __name__ == "__main__":
             }
         ],
         "hierarchy": {
-            "root": {
-                "children": {
-                    "energy": {
-                        "children": [
-                            "single_activity"
-                        ]
-                    }
-                }
-            }
+            "energy": [
+                "single_activity"
+            ]
         }
     }
     exp_data = ExperimentData(**scenario_data)
     exp = Experiment(exp_data)
-    result_tree = exp.run_next_scenario()
-    from pathlib import Path
-    result_tree.to_csv(Path("test.csv"), include_data=True, data_serializer=Experiment.result_tree_serializer)
+    result_tree = [(exp.run()).values()][0]
+    # pickle.dump(exp, Path("test.pickle").open("wb"))
+
+    # result_tree = pickle.load(Path("test.pickle").open("rb"))
+    exp.results_to_csv(Path("test.csv"))
+    print("done")

@@ -5,7 +5,7 @@ from typing import Optional, Any
 from enbios2.experiment.tree_transformer import tree_to_csv
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 
-
+@deprecated(reason="Just use BasicTreeNode with type-parameter")
 class HierarchyNode(BasicTreeNode):
     """
 
