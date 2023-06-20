@@ -9,6 +9,7 @@ from deprecated.classic import deprecated
 from numpy import ndarray
 from pint import UnitRegistry
 
+import plotly.graph_objects as go
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import (ExperimentActivitiesGlobalConf, ExperimentActivityId,
@@ -130,7 +131,8 @@ class Experiment:
 
         if self.raw_data.activities_config.default_database:
             if self.raw_data.activities_config.default_database not in bd.databases:
-                raise Exception(f"Database {self.raw_data.activities_config.default_database} not found")
+                raise Exception(f"Database {self.raw_data.activities_config.default_database} "
+                                f"not found. Options are: {list(bd.databases)}")
 
     def validate_activities(self):
         """
@@ -379,17 +381,59 @@ class Experiment:
             results[scenario.alias] = self.run_scenario(scenario.alias)
         return results
 
-    def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None):
+    def select_scenario(self, scenario_name: Optional[str] = None) -> Scenario:
         if not scenario_name:
             if len(self.scenarios) > 1:
-                raise ValueError("More than one scenario defined, please specify scenario_name")
-            scenario = self.scenarios[0]
+                raise ValueError("More than one scenario defined, please specify scenario_name. taking first one")
+            return self.scenarios[0]
         else:
             scenario = filter(lambda s: s.alias == scenario_name, self.scenarios)
             assert scenario, f"Scenario '{scenario_name}' not found"
-            scenario = next(scenario)
+            return next(scenario)
 
+    def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None):
+        scenario = self.select_scenario(scenario_name)
         scenario.results_to_csv(file_path)
+
+    def results_to_plot(self,
+                        method: tuple[str, ...],
+                        scenario_name: Optional[str] = None,
+                        image_file: Optional[Path] = None,
+                        show: bool = False):
+
+        scenario = self.select_scenario(scenario_name)
+
+        all_nodes = list(self.technology_root_node.iter_all_nodes())
+        node_labels = [node.name for node in all_nodes]
+
+        source = []
+        target = []
+        value = []
+        for index, node in enumerate(all_nodes):
+            for child in node.children:
+                source.append(index)
+                target.append(all_nodes.index(child))
+                value.append(child.data[method])
+
+        fig = go.Figure(data=[go.Sankey(
+            node=dict(
+                pad=15,
+                thickness=20,
+                line=dict(color="black", width=0.5),
+                label=node_labels,
+                color="blue"
+            ),
+            link=dict(
+                source=source,
+                target=target,
+                value=value
+            ))])
+
+        fig.update_layout(title_text=f"{scenario.alias} / {'_'.join(method)}", font_size=10)
+        if show:
+            fig.show()
+        if image_file:
+            fig.write_image(image_file.as_posix(), width=1800, height=1600)
 
 
 if __name__ == "__main__":
@@ -434,5 +478,6 @@ if __name__ == "__main__":
     # pickle.dump(exp, Path("test.pickle").open("wb"))
 
     # result_tree = pickle.load(Path("test.pickle").open("rb"))
-    exp.results_to_csv(Path("test.csv"))
+    # exp.results_to_csv(Path("test.csv"))
+    exp.results_to_plot(("Crustal Scarcity Indicator 2020", "material resources: metals/minerals"))
     print("done")
