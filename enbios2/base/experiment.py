@@ -397,13 +397,21 @@ class Experiment:
 
     def results_to_plot(self,
                         method: tuple[str, ...],
+                        *,
                         scenario_name: Optional[str] = None,
                         image_file: Optional[Path] = None,
                         show: bool = False):
 
         scenario = self.select_scenario(scenario_name)
-
-        all_nodes = list(self.technology_root_node.iter_all_nodes())
+        # todo refactor that part out...
+        found = False
+        for _method in self.methods.values():
+            if _method.id == list(method):
+                method = _method.full_id
+                found = True
+        if not found:
+            raise ValueError(f"Method '{method}' not found")
+        all_nodes = list(scenario.result_tree.iter_all_nodes())
         node_labels = [node.name for node in all_nodes]
 
         source = []
@@ -440,7 +448,7 @@ if __name__ == "__main__":
     scenario_data = {
         "bw_project": "uab_bw_ei39",
         "activities_config": {
-            "default_database": "ei391"
+            "default_database": "ei39"
         },
         "activities": {
             "single_activity": {
@@ -479,5 +487,6 @@ if __name__ == "__main__":
 
     # result_tree = pickle.load(Path("test.pickle").open("rb"))
     # exp.results_to_csv(Path("test.csv"))
-    exp.results_to_plot(("Crustal Scarcity Indicator 2020", "material resources: metals/minerals"))
+    exp.results_to_plot(("Crustal Scarcity Indicator 2020", "material resources: metals/minerals"),
+                        image_file= Path("plot.png"))
     print("done")
