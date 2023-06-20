@@ -5,7 +5,6 @@ from typing import Optional, Union, Type
 import bw2data as bd
 from bw2data import calculation_setups
 from bw2data.backends import Activity
-from pint import Quantity
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from enbios2.bw2.util import get_activity
