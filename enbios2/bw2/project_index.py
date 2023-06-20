@@ -33,6 +33,12 @@ def print_bw_index():
 
 
 def get_existing(project_name: str, database_name: str) -> Optional[BWProjectIndex]:
+    """
+    Get an existing index based on the project and database name
+    :param project_name:
+    :param database_name:
+    :return:
+    """
     existing = list(BWProjectIndex.select(BWProjectIndex, EcoinventDataset).join(EcoinventDataset).where(
         (BWProjectIndex.project_name == project_name) &
         (BWProjectIndex.database_name == database_name)))
@@ -110,6 +116,7 @@ if __name__ == "__main__":
     candidates = list(get_ecoinvent_dataset_index(version="3.9.1", system_model="cutoff", xlsx=False))
     # print(list(candidates))
     set_bw_index("ecoi_dbs", "cutoff391", candidates[0])
+
 
 #
 # def add_bw_project_index(project_name: str):
