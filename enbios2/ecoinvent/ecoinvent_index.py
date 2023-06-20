@@ -111,9 +111,19 @@ def is_resolved_database_available(dataset: EcoinventDataset):
     pass
 
 
+def has_bw_project_index(dataset: EcoinventDataset):
+    """
+    Checks if the bw2 project index is available for the given dataset
+    :param dataset:
+    :return:
+    """
+    pass
+
+
 if __name__ == "__main__":
     init_databases()
     analyze_directory(store_to_index_file=True)
+    print(get_ecoinvent_dataset_index())
 
-    print(list(get_ecoinvent_dataset_index(xlsx=True)))
-    print(list(get_ecoinvent_dataset_index(xlsx=True))[0].dataset_path)
+    # print(list(get_ecoinvent_dataset_index(xlsx=True)))
+    # print(list(get_ecoinvent_dataset_index(xlsx=True))[0].dataset_path)
