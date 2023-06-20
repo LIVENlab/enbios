@@ -19,8 +19,10 @@ from enbios2.models.experiment_models import (ExperimentActivitiesGlobalConf, Ex
 
 logger = get_logger(__file__)
 
-# todo there is another type for this, with units...
-Activity_Outputs = dict[str, tuple[Activity, float]]
+ureg = UnitRegistry()
+
+# map from ExtendedExperimentActivityData.alias = (ExtendedExperimentActivityData.id.alias) to outputs
+Activity_Outputs = dict[str, float]
 
 """
 dict of Method tuple, to result-value 
@@ -30,7 +32,9 @@ ScenarioResultNodeData = dict[tuple[str], float]
 
 @dataclass
 class Scenario:
+    experiment: "Experiment"
     alias: Optional[str] = None
+    # this should be a simpler type - just str: float
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     results: Optional[ndarray] = None
     result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
@@ -41,9 +45,11 @@ class Scenario:
         :param methods_ids: tuple of method identifiers
         """
         activity_nodes = self.result_tree.get_leaves()
-        activities_outputs = list(self.activities_outputs.values())
-        for result_index, activity_out in enumerate(activities_outputs):
-            activity_node = next(filter(lambda node: node._data.bw_activity == activity_out[0], activity_nodes))
+        activities_aliases = list(self.activities_outputs.keys())
+
+        for result_index, alias in enumerate(activities_aliases):
+            bw_activity = self.experiment._get_activity(alias).bw_activity
+            activity_node = next(filter(lambda node: node._data.bw_activity == bw_activity, activity_nodes))
             for method_index, method in enumerate(methods_ids):
                 activity_node.data[method] = self.results[result_index][method_index]
 
@@ -103,7 +109,6 @@ class Experiment:
         if raw_data.bw_project in bd.projects:
             bd.projects.set_current(raw_data.bw_project)
         self.raw_data = raw_data
-        Experiment.ureg = UnitRegistry()
         # alias to activity
         self.activitiesMap: dict[str, ExtendedExperimentActivityData] = {}
         # todo, get this from the activitiesMap instead...
@@ -145,13 +150,13 @@ class Experiment:
 
             for activity in activities:
                 ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
-                self.activitiesMap[ext_activity.id.alias] = ext_activity
+                self.activitiesMap[ext_activity.alias] = ext_activity
         elif isinstance(activities, dict):
             logger.debug("activity dict")
             for activity_alias, activity in activities.items():
                 default_id_data.alias = activity_alias
                 ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
-                self.activitiesMap[ext_activity.id.alias] = ext_activity
+                self.activitiesMap[ext_activity.alias] = ext_activity
 
         # all codes should only appear once
         unique_activities = set()
@@ -278,13 +283,13 @@ class Experiment:
                     activity = self._get_activity(activity_id)
                     assert activity
                     output: float = Experiment.validate_output(activity_output, activity)
-                    activity_outputs[activity.bw_activity._document.code] = (activity.bw_activity, output)
+                    activity_outputs[activity.alias] = output
             elif isinstance(activities, dict):
                 for activity_alias, activity_output in activities.items():
                     activity = self._get_activity(activity_alias)
                     assert activity
                     output: float = Experiment.validate_output(activity_output, activity)
-                    activity_outputs[activity.bw_activity._document.code] = (activity.bw_activity, output)
+                    activity_outputs[activity.alias] = output
             return activity_outputs
 
         def validate_scenario(scenario: ExperimentScenarioData) -> Scenario:
@@ -294,13 +299,13 @@ class Experiment:
             :return:
             """
             scenario_activities_outputs: Activity_Outputs = validate_activities(scenario)
+            # fill up the missing activities with default values
             for activity in self.activitiesMap.values():
-                activity_code = activity.bw_activity["code"]
-                if activity_code not in scenario_activities_outputs:
-                    scenario_activities_outputs[activity_code] = activity.default_output_value
-                    pass
-                    # scenario_activities_outputs[activity_code] = self.default_activities_outputs[activity_code]
-            return Scenario(alias=scenario.alias,
+                activity_alias = activity.alias
+                if activity_alias not in scenario_activities_outputs:
+                    scenario_activities_outputs[activity.alias] = activity.default_output_value
+            return Scenario(experiment=self,
+                            alias=scenario.alias,
                             activities_outputs=scenario_activities_outputs)
 
         raw_scenarios = self.raw_data.scenarios
@@ -343,8 +348,9 @@ class Experiment:
 
     def create_bw_calculation_setup(self, scenario: Scenario, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
-        for act_out in scenario.activities_outputs.values():
-            inventory.append({act_out[0]: act_out[1]})
+        for activity_alias, act_out in scenario.activities_outputs.items():
+            bw_activity = self._get_activity(activity_alias).bw_activity
+            inventory.append({bw_activity: act_out})
         methods = [m.full_id for m in self.methods.values()]
         calculation_setup = BWCalculationSetup(scenario.alias, inventory, methods)
         if register:

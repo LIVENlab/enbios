@@ -24,6 +24,7 @@ def test_experiment_config():
             data = ReadPath(file).read_data()
             # print(data)
             exp = ExperimentData(**data)
+            Experiment(exp)
         except Exception as e:
             print()
             print(file)
