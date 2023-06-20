@@ -171,6 +171,12 @@ class ExtendedExperimentActivityData:
     scenario_outputs: Optional[
         Union["ExtendedExperimentActivityOutput", dict[str, "ExtendedExperimentActivityOutput"]]] = None
 
+    def __hash__(self):
+        return self.bw_activity["code"]
+
+    @property
+    def alias(self):
+        return self.id.alias
 
 @pydantic_dataclass
 class ExperimentScenarioData:
