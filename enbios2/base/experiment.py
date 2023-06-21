@@ -280,6 +280,9 @@ class Experiment:
         return scenarios
 
     def create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
+        if not self.raw_data.hierarchy:
+            self.raw_data.hierarchy = list(self.activitiesMap.keys())
+
         tech_tree: BasicTreeNode = BasicTreeNode[ScenarioResultNodeData].from_dict(self.raw_data.hierarchy,
                                                                                    compact=True,
                                                                                    data_factory=lambda e: dict())
@@ -372,7 +375,7 @@ class Experiment:
                 value=value
             ))])
 
-        fig.update_layout(title_text=f"{scenario.alias} / {'_'.join(method)}", font_size=10)
+        fig.update_layout(title_text=f"{scenario.alias} / {'_'.join(method_)}", font_size=10)
         if show:
             fig.show()
         if image_file:
@@ -414,6 +417,32 @@ if __name__ == "__main__":
                 "single_activity"
             ]
         }
+    }
+
+    scenario_data = {
+        "bw_project": "uab_bw_ei39",
+        "activities": [
+            {
+                "id": {
+                    "name": "water production, deionised",
+                    "code": "00c823e4084eb4ee5c7557613568bfd0",
+                    "database": "ei39"
+                },
+                "output": [
+                    "kilogram",
+                    1
+                ]
+            }
+        ],
+        "methods": [
+            {
+                "id": [
+                    "CML v4.8 2016 no LT",
+                    "acidification no LT",
+                    "acidification (incl. fate, average Europe total, A&B) no LT"
+                ]
+            }
+        ]
     }
 
     for index__, method__ in enumerate(scenario_data["methods"]):
