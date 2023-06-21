@@ -137,7 +137,7 @@ class ExperimentActivityData:
             if not result.bw_activity:
                 raise ValueError(f"No activity found for {self.id}")
 
-        result.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "code")],
+        result.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "name")],
                                     **result.bw_activity.as_dict())
         if required_output:
             assert self.output is not None, f"Since there is no scenario, activity output is required: {self.orig_id}"
@@ -212,9 +212,9 @@ ScenariosDataTypes = Union[list[ExperimentScenarioData], dict[str, ExperimentSce
 @pydantic_dataclass(config=dict(validate_assignment=True))
 class ExperimentData:
     bw_project: Union[str, ExperimentBWProjectConfig]
+    activities: ActivitiesDataTypes
+    methods: MethodsDataTypes
     bw_default_database: Optional[str] = None
-    activities: Optional[ActivitiesDataTypes] = None
-    methods: Optional[MethodsDataTypes] = None
     hierarchy: Optional[Union[list, dict]] = None
     scenarios: Optional[ScenariosDataTypes] = None
     config: Optional[ScenarioConfig] = ScenarioConfig()
