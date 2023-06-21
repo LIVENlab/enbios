@@ -114,15 +114,12 @@ class Experiment:
         self.raw_data = raw_data
         # alias to activity
         self.activitiesMap: dict[str, ExtendedExperimentActivityData] = {}
-        # todo, get this from the activitiesMap instead...
-        # self.default_activities_outputs: Activity_Outputs = {}
 
         self.validate_bw_config()
         self.validate_activities()
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
-        self.methods: dict[str, ExperimentMethodData] = self.prepare_methods()
-        self.validate_methods(self.methods)
+        self.methods = self.validate_methods()
         self.scenarios: list[Scenario] = self.validate_scenarios(list(self.activitiesMap.values()))
 
     def validate_bw_config(self):
@@ -151,7 +148,6 @@ class Experiment:
         default_id_data = ExperimentActivityId(database=config.default_database)
         if isinstance(activities, list):
             logger.debug("activity list")
-
             for activity in activities:
                 ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
                 self.activitiesMap[ext_activity.alias] = ext_activity
@@ -188,37 +184,29 @@ class Experiment:
             # raise Exception(f"Unit error, {err}; For activity: {activity.id}")
             assert False, f"Unit error, {err}; For activity: {activity.id}"
 
-    def prepare_methods(self) -> dict[str, ExperimentMethodData]:
-        """
-        give all methods some alias and turn the overall structure to a dict
-        :return: map of alias -> method
-        """
+    def validate_methods(self) -> dict[str, ExperimentMethodData]:
+        method_dict: dict[str, ExperimentMethodData] = {}
         if isinstance(self.raw_data.methods, dict):
-            method_dict: dict[str, ExperimentMethodData] = self.raw_data.methods
-            for method_alias, method in method_dict.items():
-                assert method.alias is None or method_alias == method.alias, f"Method: {method} must either have NO alias or the same as the key"
-                method.alias = method_alias
-            return method_dict
+            method_dict = self.raw_data.methods
+            for method_alias, method_ in method_dict.items():
+                assert method_.alias is None or method_alias == method_.alias, f"Method: {method_} must either have NO alias or the same as the key"
+                method_.alias = method_alias
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
-            method_dict: dict[str, ExperimentMethodData] = {}
-            for method in method_list:
-                if not method.alias:
-                    method.alias = "_".join(method.id)
-                method_dict[method.alias] = method
-            return method_dict
+            for method_ in method_list:
+                if not method_.alias:
+                    method_.alias = "_".join(method_.id)
+                method_dict[method_.alias] = method_
 
-    @staticmethod
-    def validate_methods(methods: dict[str, ExperimentMethodData]):
         # all methods must exist
         all_methods = bd.methods
-
-        for alias, method in methods.items():
+        for alias, method in method_dict.items():
             method.id = tuple(method.id)
             bw_method = all_methods.get(method.id)
             if not bw_method:
                 raise Exception(f"Method with id: {method.id} does not exist")
             method.bw_method = BWMethod(**bw_method)
+        return method_dict
 
     def _get_activity(self, alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityData]:
         if isinstance(alias_or_id, str):
@@ -230,7 +218,6 @@ class Experiment:
 
     def validate_scenarios(self, defined_activities: list[ExtendedExperimentActivityData]) -> list[Scenario]:
         """
-
         :param defined_activities:
         :return:
         """
@@ -357,7 +344,7 @@ class Experiment:
         scenario.results_to_csv(file_path, include_method_units)
 
     def results_to_plot(self,
-                        method: tuple[str, ...],
+                        method: str,
                         *,
                         scenario_name: Optional[str] = None,
                         image_file: Optional[Path] = None,
@@ -365,22 +352,15 @@ class Experiment:
 
         scenario = self.select_scenario(scenario_name)
         # todo refactor that part out...
-        found = False
-        for _method in self.methods.values():
-            if _method.id == list(method):
-                method = _method.full_id
-                found = True
-        if not found:
-            raise ValueError(f"Method '{method}' not found")
         all_nodes = list(scenario.result_tree.iter_all_nodes())
         node_labels = [node.name for node in all_nodes]
 
         source = []
         target = []
         value = []
-        for index, node in enumerate(all_nodes):
+        for index_, node in enumerate(all_nodes):
             for child in node.children:
-                source.append(index)
+                source.append(index_)
                 target.append(all_nodes.index(child))
                 value.append(child.data[method])
 
