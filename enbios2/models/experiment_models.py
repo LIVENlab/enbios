@@ -105,13 +105,12 @@ class ExperimentActivityData:
         :param required_output:
         :return:
         """
-
         result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**asdict(self))
         result.orig_id = copy(self.id)
         if not self.id.database:
+            # assert default_id_attr.database is not None, (f"database must be specified for {self.id} "
+            #                                               f"or default_database set in config")
             result.id.database = default_id_attr.database
-            assert default_id_attr.database is not None, (f"database must be specified for {self.id} "
-                                                          f"or default_database set in config")
         # assert result.id.database in bd.databases,
         # f"activity database does not exist: '{self.id.database}' for {self.id}"
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
@@ -121,21 +120,27 @@ class ExperimentActivityData:
             else:
                 result.bw_activity = get_activity(result.id.code)
         elif result.id.name:
-            assert result.id.database is not None, f"database must be specified for {self.id} or default_database set in config"
+            # assert result.id.database is not None, f"database must be specified for {self.id} or default_database set in config"
             filters = {}
-            if result.id.location:
-                filters["location"] = result.id.location
-                search_results = bd.Database(result.id.database).search(result.id.name, filter=filters)
-            else:
-                search_results = bd.Database(result.id.database).search(result.id.name)
-            # print(len(search_results))
-            # print(search_results)
-            if result.id.unit:
-                search_results = list(filter(lambda a: a["unit"] == result.id.unit, search_results))
-                if len(search_results) == 0:
-                    raise ValueError(f"No activity found with the specified unit {self.id}")
-            assert len(search_results) == 1, f"results : {len(search_results)}"
-            result.bw_activity = search_results[0]
+            search_in_dbs = [result.id.database] if result.id.database else bd.databases
+            for db in search_in_dbs:
+                if result.id.location:
+                    filters["location"] = result.id.location
+                    search_results = bd.Database(db).search(result.id.name, filter=filters)
+                else:
+                    search_results = bd.Database(db).search(result.id.name)
+                # print(len(search_results))
+                # print(search_results)
+                if result.id.unit:
+                    search_results = list(filter(lambda a: a["unit"] == result.id.unit, search_results))
+                #     if len(search_results) == 0:
+                #         raise ValueError(f"No activity found with the specified unit {self.id}")
+                # assert len(search_results) == 1, f"results : {len(search_results)}"
+                if len(search_results) == 1:
+                    result.bw_activity = search_results[0]
+                    break
+            if not result.bw_activity:
+                raise ValueError(f"No activity found for {self.id}")
 
         result.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "code")],
                                     **result.bw_activity.as_dict())

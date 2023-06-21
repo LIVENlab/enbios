@@ -389,7 +389,6 @@ if __name__ == "__main__":
     scenario_data = {
         "bw_project": "uab_bw_ei39",
         "activities_config": {
-            "default_database": "ei39"
         },
         "activities": {
             "single_activity": {
