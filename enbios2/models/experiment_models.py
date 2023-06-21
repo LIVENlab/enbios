@@ -158,7 +158,6 @@ class BWMethod:
 class ExperimentMethodData:
     id: Union[list[str], tuple[str, ...]]
     alias: Optional[str] = None
-    full_id: Optional[tuple[str, ...]] = None
 
 
 @pydantic_dataclass(config=Config)

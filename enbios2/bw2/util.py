@@ -1,5 +1,6 @@
-from typing import Generator, Iterator
+from typing import Generator, Iterator, Union
 
+import bw2data
 from bw2data.backends import Activity, ExchangeDataset, ActivityDataset
 
 
@@ -69,3 +70,51 @@ def get_activity(code: str) -> Activity:
     :return:
     """
     return Activity(ActivityDataset.get(ActivityDataset.code == code))
+
+
+def method_search(project_name: str, method_tuple: tuple[str, ...]) -> (Union[dict,
+tuple[tuple[str, ...], dict[str, str]]]):
+    """
+    Search for a method in a brightway project.
+    Search name can be a incomplete tuple. IT will result the remaining parts in the method-tree
+    In case of a match, it will result the full tuple and the method data
+    todo: this method is weird and does too many things
+    """
+    assert project_name in bw2data.projects, f"Project '{project_name}' does not exist"
+    bw2data.projects.set_current(project_name)
+    all_methods = bw2data.methods
+
+    bw_method = all_methods.get(method_tuple)
+    if bw_method:
+        return tuple(method_tuple), bw_method
+
+    method_tree: dict = {}
+    for bw_method in all_methods.keys():
+        # iter through tuple
+        current = method_tree
+        for part in bw_method:
+            current = current.setdefault(part, {})
+
+    current = method_tree
+
+    result = list(method_tuple)
+    for index, part in enumerate(method_tuple):
+        _next = current.get(part)
+        assert _next, (f"Method not found. Part: '{part}' does not exist for {list(method_tuple)[index - 1]}. "
+                       f"Options are '{current}'")
+        current = _next
+
+    while True:
+        if len(current) > 1:
+            return current.keys()
+        if len(current) == 0:
+            break
+        elif len(current) == 1:
+            _next = list(current.keys())[0]
+            result.append(_next)
+            current = current[_next]
+    bw_method = all_methods.get(tuple(result))
+
+    if bw_method:
+        return tuple(result), bw_method
+    raise ValueError(f"Method does not exist {method_tuple}")
