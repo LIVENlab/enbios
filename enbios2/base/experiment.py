@@ -10,6 +10,8 @@ from numpy import ndarray
 from pint import UnitRegistry
 
 import plotly.graph_objects as go
+
+from enbios2.bw2.util import method_search
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import (ExperimentActivitiesGlobalConf, ExperimentActivityId,
@@ -40,10 +42,10 @@ class Scenario:
     results: Optional[ndarray] = None
     result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
 
-    def add_results_to_technology_tree(self, methods_ids: list[tuple[str]]):
+    def add_results_to_technology_tree(self, methods_aliases: list[str]):
         """
         Add results to the technology tree, for each method
-        :param methods_ids: tuple of method identifiers
+        :param methods_aliases: tuple of method identifiers
         """
         activity_nodes = self.result_tree.get_leaves()
         activities_aliases = list(self.activities_outputs.keys())
@@ -51,7 +53,7 @@ class Scenario:
         for result_index, alias in enumerate(activities_aliases):
             bw_activity = self.experiment._get_activity(alias).bw_activity
             activity_node = next(filter(lambda node: node._data.bw_activity == bw_activity, activity_nodes))
-            for method_index, method in enumerate(methods_ids):
+            for method_index, method in enumerate(methods_aliases):
                 activity_node.data[method] = self.results[result_index][method_index]
 
     def resolve_result_tree(self):
@@ -81,26 +83,26 @@ class Scenario:
         # self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
         recursive_resolve_node(self.result_tree)
 
-    @staticmethod
-    def result_tree_serializer(data: ScenarioResultNodeData):
-        """
-        :Turn the method ids (tuples) into simple strings
-        :param data:
-        :return:
-        """
-        return {
-            "_".join(method_tuple): value
-            for method_tuple, value in data.items()
-        }
-
-    def results_to_csv(self, file_path: Path):
+    def results_to_csv(self, file_path: Path, include_method_units: bool = False):
         """
         Save the results (as tree) to a csv file
          :param file_path:  path to save the results to
+         :param include_method_units:
         """
         if not self.result_tree:
             raise ValueError(f"Scenario '{self.alias}' has no results")
-        self.result_tree.to_csv(file_path, include_data=True, data_serializer=self.result_tree_serializer)
+
+        def data_serializer(data: ScenarioResultNodeData) -> dict:
+            if not include_method_units:
+                return data
+            else:
+                result = {}
+                for method_alias, value in data.items():
+                    final_name = f"{method_alias} ({self.experiment.methods[method_alias].bw_method.unit})"
+                    result[final_name] = value
+                return result
+
+        self.result_tree.to_csv(file_path, include_data=True, data_serializer=data_serializer)
 
 
 class Experiment:
@@ -188,7 +190,7 @@ class Experiment:
 
     def prepare_methods(self) -> dict[str, ExperimentMethodData]:
         """
-        give all methods some alias and turn them into a dict
+        give all methods some alias and turn the overall structure to a dict
         :return: map of alias -> method
         """
         if isinstance(self.raw_data.methods, dict):
@@ -210,51 +212,12 @@ class Experiment:
     def validate_methods(methods: dict[str, ExperimentMethodData]):
         # all methods must exist
         all_methods = bd.methods
-        method_tree: dict[str, dict] = {}
-
-        def build_method_tree():
-            """make a tree search (tuple-part=level)"""
-            if not method_tree:
-                for bw_method in all_methods.keys():
-                    # iter through tuple
-                    current = method_tree
-                    for part in bw_method:
-                        current = current.setdefault(part, {})
-
-        def tree_search(search_method_tuple: tuple[str]) -> dict:
-            """search for a method in the tree. Is used when not all parts of a method are given"""
-            build_method_tree()
-            current = method_tree
-            # print(method_tree)
-
-            result = list(search_method_tuple)
-            for index, part in enumerate(search_method_tuple):
-                _next = current.get(part)
-                assert _next, f"Method not found. Part: '{part}' does not exist for {list(search_method_tuple)[index - 1]}"
-                current = _next
-
-            while True:
-                assert len(
-                    current) <= 1, f"There is not unique method for '{result}', but options are '{current}'"
-                if len(current) == 0:
-                    break
-                elif len(current) == 1:
-                    _next = list(current.keys())[0]
-                    result.append(_next)
-                    current = current[_next]
-
-            return {**all_methods.get(tuple(result)), "full_id": result}
 
         for alias, method in methods.items():
-            method_tuple = tuple(method.id)
-            bw_method = all_methods.get(method_tuple)
-            method.full_id = method_tuple
+            method.id = tuple(method.id)
+            bw_method = all_methods.get(method.id)
             if not bw_method:
-                bw_method = tree_search(method_tuple)
-                if bw_method:
-                    method.full_id = tuple(bw_method["full_id"])
-
-            assert bw_method, f"Method with id: {method_tuple} does not exist"
+                raise Exception(f"Method with id: {method.id} does not exist")
             method.bw_method = BWMethod(**bw_method)
 
     def _get_activity(self, alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityData]:
@@ -353,14 +316,11 @@ class Experiment:
         for activity_alias, act_out in scenario.activities_outputs.items():
             bw_activity = self._get_activity(activity_alias).bw_activity
             inventory.append({bw_activity: act_out})
-        methods = [m.full_id for m in self.methods.values()]
+        methods = [m.id for m in self.methods.values()]
         calculation_setup = BWCalculationSetup(scenario.alias, inventory, methods)
         if register:
             calculation_setup.register()
         return calculation_setup
-
-    def method_ids(self) -> list[tuple[str]]:
-        return [m.full_id for m in self.methods.values()]
 
     def run_scenario(self, scenario_name: str) -> dict:
         scenario = self.get_scenario(scenario_name)
@@ -370,7 +330,8 @@ class Experiment:
         scenario.results = MultiLCA(bw_calc_setup.name).results
         scenario.result_tree = self.technology_root_node.copy()
 
-        scenario.add_results_to_technology_tree(self.method_ids())
+        method_aliases = [m.alias for m in self.methods.values()]
+        scenario.add_results_to_technology_tree(method_aliases)
         scenario.resolve_result_tree()
 
         return scenario.result_tree.as_dict(include_data=True)
@@ -391,9 +352,9 @@ class Experiment:
             assert scenario, f"Scenario '{scenario_name}' not found"
             return next(scenario)
 
-    def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None):
+    def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None, include_method_units: bool = True):
         scenario = self.select_scenario(scenario_name)
-        scenario.results_to_csv(file_path)
+        scenario.results_to_csv(file_path, include_method_units)
 
     def results_to_plot(self,
                         method: tuple[str, ...],
@@ -465,6 +426,7 @@ if __name__ == "__main__":
         },
         "methods": [
             {
+                "alias": "AX",
                 "id": (
                     "Crustal Scarcity Indicator 2020",
                     "material resources: metals/minerals"
@@ -480,13 +442,15 @@ if __name__ == "__main__":
             ]
         }
     }
+
+    for index, method in enumerate(scenario_data["methods"]):
+        scenario_data["methods"][index]["id"] = method_search("uab_bw_ei39", method["id"])[0]
+
     exp_data = ExperimentData(**scenario_data)
     exp = Experiment(exp_data)
     result_tree = [(exp.run()).values()][0]
-    # pickle.dump(exp, Path("test.pickle").open("wb"))
 
-    # result_tree = pickle.load(Path("test.pickle").open("rb"))
-    # exp.results_to_csv(Path("test.csv"))
-    exp.results_to_plot(("Crustal Scarcity Indicator 2020", "material resources: metals/minerals"),
-                        image_file= Path("plot.png"))
+    exp.results_to_csv(Path("test.csv"))
+    # exp.results_to_plot(("Crustal Scarcity Indicator 2020", "material resources: metals/minerals"),
+    #                     image_file= Path("plot.png"))
     print("done")
