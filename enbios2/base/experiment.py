@@ -14,7 +14,7 @@ import plotly.graph_objects as go
 from enbios2.bw2.util import method_search
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
-from enbios2.models.experiment_models import (ExperimentActivitiesGlobalConf, ExperimentActivityId,
+from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExtendedExperimentActivityData,
                                               BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
@@ -98,7 +98,7 @@ class Scenario:
             else:
                 result = {}
                 for method_alias, value in data.items():
-                    final_name = f"{method_alias} ({self.experiment.methods[method_alias].bw_method.unit})"
+                    final_name = f"{method_alias} ({self.experiment.methods[str(method_alias)].bw_method.unit})"
                     result[final_name] = value
                 return result
 
@@ -128,8 +128,8 @@ class Experiment:
         if self.raw_data.bw_project in bd.projects:
             bd.projects.set_current(self.raw_data.bw_project)
 
-        if self.raw_data.activities_config.default_database:
-            if self.raw_data.activities_config.default_database not in bd.databases:
+        if self.raw_data.bw_default_database:
+            if self.raw_data.bw_default_database not in bd.databases:
                 raise Exception(f"Database {self.raw_data.activities_config.default_database} "
                                 f"not found. Options are: {list(bd.databases)}")
 
@@ -141,11 +141,9 @@ class Experiment:
         output_required = not self.raw_data.scenarios
         # check if all activities exist
         activities = self.raw_data.activities
-        config: ExperimentActivitiesGlobalConf = self.raw_data.activities_config
 
-        logger.debug(f"activity-configuration, {config}")
         # if activities is a list, convert validate and convert to dict
-        default_id_data = ExperimentActivityId(database=config.default_database)
+        default_id_data = ExperimentActivityId(database=self.raw_data.bw_default_database)
         if isinstance(activities, list):
             logger.debug("activity list")
             for activity in activities:
@@ -166,7 +164,6 @@ class Experiment:
 
             if ext_activity.output:
                 ext_activity.default_output_value = Experiment.validate_output(ext_activity.output, ext_activity)
-
         assert len(unique_activities) == len(activities), "Not all activities are unique"
 
     @deprecated()
@@ -180,9 +177,7 @@ class Experiment:
             target_quantity = Experiment.ureg(target_output.unit) * target_output.magnitude
             return target_quantity.to(activity.bw_activity['unit']).magnitude
         except Exception as err:
-            # todo, change to Exception, and catch that in test too,
-            # raise Exception(f"Unit error, {err}; For activity: {activity.id}")
-            assert False, f"Unit error, {err}; For activity: {activity.id}"
+            raise Exception(f"Unit error, {err}; For activity: {activity.id}")
 
     def validate_methods(self) -> dict[str, ExperimentMethodData]:
         method_dict: dict[str, ExperimentMethodData] = {}
@@ -344,14 +339,13 @@ class Experiment:
         scenario.results_to_csv(file_path, include_method_units)
 
     def results_to_plot(self,
-                        method: str,
+                        method_: str,
                         *,
                         scenario_name: Optional[str] = None,
                         image_file: Optional[Path] = None,
                         show: bool = False):
 
         scenario = self.select_scenario(scenario_name)
-        # todo refactor that part out...
         all_nodes = list(scenario.result_tree.iter_all_nodes())
         node_labels = [node.name for node in all_nodes]
 
@@ -362,7 +356,7 @@ class Experiment:
             for child in node.children:
                 source.append(index_)
                 target.append(all_nodes.index(child))
-                value.append(child.data[method])
+                value.append(child.data[method_])
 
         fig = go.Figure(data=[go.Sankey(
             node=dict(
@@ -422,8 +416,8 @@ if __name__ == "__main__":
         }
     }
 
-    for index, method in enumerate(scenario_data["methods"]):
-        scenario_data["methods"][index]["id"] = method_search("uab_bw_ei39", method["id"])[0]
+    for index__, method__ in enumerate(scenario_data["methods"]):
+        scenario_data["methods"][index__]["id"] = method_search("uab_bw_ei39", method__["id"])[0]
 
     exp_data = ExperimentData(**scenario_data)
     exp = Experiment(exp_data)

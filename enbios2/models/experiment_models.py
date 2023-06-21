@@ -20,11 +20,6 @@ class Config:
 
 
 @pydantic_dataclass
-class ExperimentActivitiesGlobalConf:
-    default_database: Optional[str] = None
-
-
-@pydantic_dataclass
 class ExperimentActivityId:
     database: Optional[str] = None
     code: Optional[str] = None
@@ -217,7 +212,7 @@ ScenariosDataTypes = Union[list[ExperimentScenarioData], dict[str, ExperimentSce
 @pydantic_dataclass(config=dict(validate_assignment=True))
 class ExperimentData:
     bw_project: Union[str, ExperimentBWProjectConfig]
-    activities_config: ExperimentActivitiesGlobalConf = ExperimentActivitiesGlobalConf()
+    bw_default_database: Optional[str] = None
     activities: Optional[ActivitiesDataTypes] = None
     methods: Optional[MethodsDataTypes] = None
     hierarchy: Optional[Union[list, dict]] = None
@@ -228,7 +223,7 @@ class ExperimentData:
 @pydantic_dataclass
 class ExperimentDataIO:
     bw_project: Union[str, ExperimentBWProjectConfig]
-    activities_config: ExperimentActivitiesGlobalConf = ExperimentActivitiesGlobalConf()
+    bw_default_database: Optional[str] = None
     activities: Optional[Union[ActivitiesDataTypes, str]] = None
     methods: Optional[Union[MethodsDataTypes, str]] = None
     hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
