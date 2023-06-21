@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union
@@ -183,9 +184,8 @@ class Experiment:
         method_dict: dict[str, ExperimentMethodData] = {}
         if isinstance(self.raw_data.methods, dict):
             method_dict = self.raw_data.methods
-            for method_alias, method_ in method_dict.items():
-                assert method_.alias is None or method_alias == method_.alias, f"Method: {method_} must either have NO alias or the same as the key"
-                method_.alias = method_alias
+            for method_alias in method_dict:
+                method_dict[method_alias] = ExperimentMethodData(alias=method_alias, id=method_dict[method_alias])
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
             for method_ in method_list:
@@ -419,6 +419,11 @@ if __name__ == "__main__":
         }
     }
 
+    for index__, method__ in enumerate(scenario_data["methods"]):
+        scenario_data["methods"][index__]["id"] = method_search("uab_bw_ei39", method__["id"])[0]
+
+    # print(json.dumps(scenario_data, indent=2))
+
     scenario_data = {
         "bw_project": "uab_bw_ei39",
         "activities": [
@@ -434,19 +439,15 @@ if __name__ == "__main__":
                 ]
             }
         ],
-        "methods": [
+        "methods":
             {
-                "id": [
+                "CML no LT": [
                     "CML v4.8 2016 no LT",
                     "acidification no LT",
                     "acidification (incl. fate, average Europe total, A&B) no LT"
                 ]
             }
-        ]
     }
-
-    for index__, method__ in enumerate(scenario_data["methods"]):
-        scenario_data["methods"][index__]["id"] = method_search("uab_bw_ei39", method__["id"])[0]
 
     exp_data = ExperimentData(**scenario_data)
     exp = Experiment(exp_data)
