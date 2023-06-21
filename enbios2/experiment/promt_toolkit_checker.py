@@ -280,16 +280,17 @@ class CustomCompleter(Completer):
         json.dump(experiment_data, open("experiment_data.json", "w"))
 
 
-custom_completer = CustomCompleter()
+if __name__ == "__main__":
+    custom_completer = CustomCompleter()
 
-session = PromptSession(completer=custom_completer,
-                        bottom_toolbar=custom_completer.toolbar_msg)
+    session = PromptSession(completer=custom_completer,
+                            bottom_toolbar=custom_completer.toolbar_msg)
 
-while True:
-    try:
-        text = session.prompt(custom_completer.message)
-        custom_completer.set_next(text)
-    except KeyboardInterrupt:
-        text = input("enter 'q' to quit. Anything else to get back to work\n>>> ")
-        if text == "q":
-            break
+    while True:
+        try:
+            text = session.prompt(custom_completer.message)
+            custom_completer.set_next(text)
+        except KeyboardInterrupt:
+            text = input("enter 'q' to quit. Anything else to get back to work\n>>> ")
+            if text == "q":
+                break

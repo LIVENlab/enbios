@@ -666,6 +666,38 @@ class BasicTreeNode(Generic[T]):
         """
         return True
 
+    def to_mermaid_str(self,
+                       arrow_style="---",
+                       markdown_context: bool = False,
+                       leaves_style: str = "fill:#ccc") -> str:
+        """
+        Get a string representation of the tree in mermaid format.
+        :return: String representation of the tree in mermaid format.
+        """
+
+        def safe_name(node: BasicTreeNode):
+            return node.name.replace(' ', '_')
+
+        def node_repr(node: BasicTreeNode):
+            return f"{safe_name(node)}[{node.name}]"
+
+        def style(node: BasicTreeNode):
+            if leaves_style and not node.children:
+                return f":::leaf"
+            else:
+                return ""
+
+        def mm_connection(node: BasicTreeNode):
+            return f"{safe_name(node.parent)} {arrow_style} {node_repr(node)}{style(node)}" if node.parent else ""
+
+        lines = "\n".join([con for con in self.recursive_apply(mm_connection) if con])
+        if leaves_style:
+            lines += f"\nclassDef leaf {leaves_style}"
+        if markdown_context:
+            return f"```mermaid\ngraph BT;\n{lines}\n```"
+        else:
+            return f"graph BT;\n{lines}"
+
 
 if __name__ == "__main__":
     pass

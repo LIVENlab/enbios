@@ -5,6 +5,7 @@ from typing import Optional, Union, Type
 import bw2data as bd
 from bw2data import calculation_setups
 from bw2data.backends import Activity
+from pydantic import Field
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from enbios2.bw2.util import get_activity
@@ -89,8 +90,8 @@ class ExperimentActivityData:
     This is the dataclass for the activities in the experiment.
     the id, is
     """
-    id: ExperimentActivityId
-    output: Optional[ExperimentActivityOutput] = None
+    id: ExperimentActivityId = Field(..., description="The identifies (method to find) an activity")
+    output: Optional[ExperimentActivityOutput] = Field(None, description="The default output of the activity")
 
     def check_exist(self, default_id_attr: Optional[ExperimentActivityId] = None,
                     required_output: bool = False) -> "ExtendedExperimentActivityData":
@@ -176,6 +177,7 @@ class ExtendedExperimentActivityData:
     def alias(self):
         return self.id.alias
 
+
 @pydantic_dataclass
 class ExperimentScenarioData:
     # map from activity id to output. id is either as original (tuple) or alias-dict
@@ -198,26 +200,32 @@ class ExperimentScenarioData:
 class ScenarioConfig:
     # only used by ExperimentDataIO
     base_directory: Optional[str] = None
+    # those are only used for testing
     debug_test_is_valid: bool = True
     debug_test_expected_error_code: Optional[int] = None
 
 
 ActivitiesDataRows = list[ExperimentActivityData]
 ActivitiesDataTypes = Union[ActivitiesDataRows, dict[str, ExperimentActivityData]]
-MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, ExperimentMethodData]]
+MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, Union[list[str], tuple[str, ...]]]]
 HierarchyDataTypes = Union[list, dict]
 ScenariosDataTypes = Union[list[ExperimentScenarioData], dict[str, ExperimentScenarioData]]
 
 
 @pydantic_dataclass(config=dict(validate_assignment=True))
 class ExperimentData:
-    bw_project: Union[str, ExperimentBWProjectConfig]
-    activities: ActivitiesDataTypes
-    methods: MethodsDataTypes
-    bw_default_database: Optional[str] = None
-    hierarchy: Optional[Union[list, dict]] = None
-    scenarios: Optional[ScenariosDataTypes] = None
-    config: Optional[ScenarioConfig] = ScenarioConfig()
+    """
+    This class is used to store the data of an experiment.
+    """
+    bw_project: Union[str, ExperimentBWProjectConfig] = Field(..., description="The brightway project name")
+    activities: ActivitiesDataTypes = Field(..., description="The activities to be used in the experiment")
+    methods: MethodsDataTypes = Field(..., description="The impact methods to be used in the experiment")
+    bw_default_database: Optional[str] = Field(None,
+                                               description="The default database of activities to be used in the experiment")
+    hierarchy: Optional[Union[list, dict]] = Field(None,
+                                                   description="The activity hierarchy to be used in the experiment")
+    scenarios: Optional[ScenariosDataTypes] = Field(None, description="The scenarios for this experiment")
+    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig, description="The configuration of this experiment")
 
 
 @pydantic_dataclass

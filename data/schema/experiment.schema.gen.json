@@ -1,0 +1,369 @@
+{
+  "title": "ExperimentData",
+  "description": "This class is used to store the data of an experiment.",
+  "type": "object",
+  "properties": {
+    "bw_project": {
+      "title": "Bw Project",
+      "description": "The brightway project name",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/ExperimentBWProjectConfig"
+        }
+      ]
+    },
+    "activities": {
+      "title": "Activities",
+      "description": "The activities to be used in the experiment",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ExperimentActivityData"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ExperimentActivityData"
+          }
+        }
+      ]
+    },
+    "methods": {
+      "title": "Methods",
+      "description": "The impact methods to be used in the experiment",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ExperimentMethodData"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "bw_default_database": {
+      "title": "Bw Default Database",
+      "description": "The default database of activities to be used in the experiment",
+      "type": "string"
+    },
+    "hierarchy": {
+      "title": "Hierarchy",
+      "description": "The activity hierarchy to be used in the experiment",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {}
+        },
+        {
+          "type": "object"
+        }
+      ]
+    },
+    "scenarios": {
+      "title": "Scenarios",
+      "description": "The scenarios for this experiment",
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ExperimentScenarioData"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ExperimentScenarioData"
+          }
+        }
+      ]
+    },
+    "config": {
+      "title": "Config",
+      "description": "The configuration of this experiment",
+      "allOf": [
+        {
+          "$ref": "#/definitions/ScenarioConfig"
+        }
+      ]
+    }
+  },
+  "required": [
+    "bw_project",
+    "activities",
+    "methods"
+  ],
+  "definitions": {
+    "ExperimentBWProjectConfig": {
+      "title": "ExperimentBWProjectConfig",
+      "type": "object",
+      "properties": {
+        "index": {
+          "title": "Index",
+          "type": "string"
+        }
+      }
+    },
+    "ExperimentActivityId": {
+      "title": "ExperimentActivityId",
+      "type": "object",
+      "properties": {
+        "database": {
+          "title": "Database",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "location": {
+          "title": "Location",
+          "type": "string"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "alias": {
+          "title": "Alias",
+          "type": "string"
+        }
+      }
+    },
+    "ExperimentActivityOutputDict": {
+      "title": "ExperimentActivityOutputDict",
+      "type": "object",
+      "properties": {
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "magnitude": {
+          "title": "Magnitude",
+          "default": 1.0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "unit"
+      ]
+    },
+    "ExperimentActivityData": {
+      "title": "ExperimentActivityData",
+      "description": "This is the dataclass for the activities in the experiment.\nthe id, is",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "description": "The identifies (method to find) an activity",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ExperimentActivityId"
+            }
+          ]
+        },
+        "output": {
+          "title": "Output",
+          "description": "The default output of the activity",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ExperimentActivityOutputDict"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "ExperimentMethodData": {
+      "title": "ExperimentMethodData",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "alias": {
+          "title": "Alias",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "ExperimentScenarioData": {
+      "title": "ExperimentScenarioData",
+      "type": "object",
+      "properties": {
+        "activities": {
+          "title": "Activities",
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "#/definitions/ExperimentActivityId"
+                      }
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "$ref": "#/definitions/ExperimentActivityOutputDict"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/ExperimentActivityOutputDict"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "methods": {
+          "title": "Methods",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        },
+        "alias": {
+          "title": "Alias",
+          "type": "string"
+        }
+      }
+    },
+    "ScenarioConfig": {
+      "title": "ScenarioConfig",
+      "type": "object",
+      "properties": {
+        "base_directory": {
+          "title": "Base Directory",
+          "type": "string"
+        },
+        "debug_test_is_valid": {
+          "title": "Debug Test Is Valid",
+          "default": true,
+          "type": "boolean"
+        },
+        "debug_test_expected_error_code": {
+          "title": "Debug Test Expected Error Code",
+          "type": "integer"
+        }
+      }
+    }
+  }
+}
