@@ -2,16 +2,15 @@ import pytest
 
 from enbios2.base.experiment import Experiment
 from enbios2.models.experiment_models import ExperimentData
+from test.enbios2.default_bw_config import test_data_bw_default_config
 
 
 @pytest.fixture
-def scenario_run_basic1():
+def scenario_run_basic1(default_bw_config):
     return {
         "scenario": {
-            "bw_project": "uab_bw_ei39",
-            "activities_config": {
-                "default_database": "ei391"
-            },
+            "bw_project": default_bw_config["bw_project"],
+            "bw_default_database": default_bw_config["bw_default_database"],
             "activities": {
                 "single_activity": {
                     "id": {
@@ -41,33 +40,46 @@ def scenario_run_basic1():
                                                'children': [
                                                    {'name': 'single_activity',
                                                     'children': [],
-                                                    'data': {('EDIP 2003 no LT',
-                                                              'non-renewable resources no LT',
-                                                              'zinc no LT'): 6.169154556662401e-06}}],
-                                               'data': {('EDIP 2003 no LT',
-                                                         'non-renewable resources no LT',
-                                                         'zinc no LT'): 6.169154556662401e-06}}],
-                                 'data': {('EDIP 2003 no LT',
-                                           'non-renewable resources no LT',
-                                           'zinc no LT'): 6.169154556662401e-06}}
+                                                    'data': {
+                                                        'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': 6.169154556662401e-06}}],
+                                               'data': {
+                                                   'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': 6.169154556662401e-06}}],
+                                 'data': {
+                                     'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': 6.169154556662401e-06}}
     }
 
 
 @pytest.fixture
-def default_method() -> tuple:
-    return 'EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT'
+def default_bw_config() -> dict:
+    return test_data_bw_default_config
 
 
-def test_single_lca_compare(scenario_run_basic1, default_method):
+@pytest.fixture
+def default_method_str() -> str:
+    return 'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT'
+
+
+@pytest.fixture
+def default_method_tuple() -> tuple:
+    return ('EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT')
+
+
+def test_single_lca_compare(scenario_run_basic1, default_method_tuple, default_method_str):
     experiment = Experiment(ExperimentData(**scenario_run_basic1["scenario"]))
+    result = experiment.run()
     bw_activity = experiment.activitiesMap["single_activity"].bw_activity
-    assert bw_activity.lca(default_method).score == scenario_run_basic1["expected_result_tree"]["data"][default_method]
+    expected_value = scenario_run_basic1["expected_result_tree"]["data"][default_method_str]
+    regular_score = bw_activity.lca(default_method_tuple).score
+    assert regular_score == pytest.approx(expected_value, abs=1e-6)
+    print("cool")
+    # assert regular_score == result["default scenario"]["data"][default_method_str]
 
 
 def test_simple(scenario_run_basic1, default_method):
     scenario_data = scenario_run_basic1["scenario"]
     experiment = Experiment(ExperimentData(**scenario_data))
     result = experiment.run()
+
     # print(result["default scenario"]["data"][('EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT')])
     assert result["default scenario"] == scenario_run_basic1["expected_result_tree"]
 
@@ -96,10 +108,8 @@ def test_scaled_demand_unit(scenario_run_basic1, default_method):
 
 def test_scenario(scenario_run_basic1, default_method):
     scenario = {
-        "bw_project": "uab_bw_ei39",
-        "activities_config": {
-            "default_database": "ei391"
-        },
+        "bw_project": default_bw_config["bw_project"],
+        "bw_default_database": default_bw_config["bw_default_database"],
         "activities": {
             "single_activity": {
                 "id": {

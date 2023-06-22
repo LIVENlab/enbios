@@ -28,6 +28,10 @@ class EcoinventDataset(MainDatabase):
     directory: Path = PathField(null=True)  # Path typehint, so that static checker chills
     identity = TextField(unique=True)
 
+    @property
+    def bw_project_index(self) -> "BWProjectIndex":
+        return BWProjectIndex.get(BWProjectIndex.ecoinvent_dataset == self)
+
     class Meta:
         table_name = "ecoinvent_dataset"
 
@@ -90,6 +94,12 @@ class BWProjectIndex(MainDatabase):
 
     class Meta:
         table_name = "bw_project_index"
+
+    def __repr__(self):
+        return f"BWProjectIndex: {self.project_name} - {self.database_name} ({self.ecoinvent_dataset})"
+
+    def __str__(self):
+        return self.__repr__()
 
 
 class EcoinventDatabaseActivity(Model):

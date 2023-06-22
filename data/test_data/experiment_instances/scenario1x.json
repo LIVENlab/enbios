@@ -3,9 +3,6 @@
   "config": {
     "debug_test_is_valid": false
   },
-  "activities_config": {
-    "default_database": "cutoff39"
-  },
   "activities": {
     "single_activity": {
       "id": {
@@ -21,10 +18,7 @@
   },
   "methods": [
     {
-      "id": [
-        "Crustal Scarcity Indicator 2020",
-        "material resources: metals/minerals"
-      ]
+      "id": ["EDIP 2003 no LT", "non-renewable resources no LT", "zinc no LT"]
     }
   ],
   "scenarios": {

@@ -1,8 +1,5 @@
 {
   "bw_project": "ecoi_dbs",
-  "activities_config": {
-    "default_database": "cutoff39"
-  },
   "activities": {
     "single_activity": {
       "id": {
@@ -19,8 +16,9 @@
   "methods": [
     {
       "id": [
-        "Crustal Scarcity Indicator 2020",
-        "material resources: metals/minerals"
+        "EDIP 2003 no LT",
+        "non-renewable resources no LT",
+        "zinc no LT"
       ]
     }
   ],
@@ -29,7 +27,15 @@
       "activities": {
         "single_activity": [
           "MWh",
-          30
+          10
+        ]
+      }
+    },
+    {
+      "activities": {
+        "single_activity": [
+          "MWh",
+          10
         ]
       }
     }

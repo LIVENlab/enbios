@@ -19,7 +19,6 @@ projects = bw2data.projects
 
 logger = get_logger(__file__)
 
-
 def _read_bw_index_file() -> list[BWProjectIndex]:
     return list(BWProjectIndex.select())
 

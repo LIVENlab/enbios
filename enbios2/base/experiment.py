@@ -1,16 +1,14 @@
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union
 
 import bw2data as bd
+import plotly.graph_objects as go
 from bw2calc import MultiLCA
 from bw2data.backends import Activity
 from deprecated.classic import deprecated
 from numpy import ndarray
 from pint import UnitRegistry
-
-import plotly.graph_objects as go
 
 from enbios2.bw2.util import method_search
 from enbios2.generic.enbios2_logging import get_logger
@@ -42,17 +40,32 @@ class Scenario:
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     results: Optional[ndarray] = None
     result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
+    methods: Optional[list[str]] = None
 
-    def add_results_to_technology_tree(self, methods_aliases: list[str]):
+    def create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
+        inventory: list[dict[Activity, float]] = []
+        for activity_alias, act_out in self.activities_outputs.items():
+            bw_activity = self.experiment.get_activity(activity_alias).bw_activity
+            inventory.append({bw_activity: act_out})
+        if self.methods:
+            methods = [self.experiment.methods[m].id for m in self.methods]
+        else:
+            methods = [m.id for m in self.experiment.methods.values()]
+        calculation_setup = BWCalculationSetup(self.alias, inventory, methods)
+        if register:
+            calculation_setup.register()
+        return calculation_setup
+
+    def add_results_to_technology_tree(self):
         """
         Add results to the technology tree, for each method
-        :param methods_aliases: tuple of method identifiers
         """
         activity_nodes = self.result_tree.get_leaves()
         activities_aliases = list(self.activities_outputs.keys())
 
+        methods_aliases: list[str] = self.methods if self.methods else list(self.experiment.methods.keys())
         for result_index, alias in enumerate(activities_aliases):
-            bw_activity = self.experiment._get_activity(alias).bw_activity
+            bw_activity = self.experiment.get_activity(alias).bw_activity
             activity_node = next(filter(lambda node: node._data.bw_activity == bw_activity, activity_nodes))
             for method_index, method in enumerate(methods_aliases):
                 activity_node.data[method] = self.results[result_index][method_index]
@@ -120,19 +133,19 @@ class Experiment:
         self.validate_activities()
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
-        self.methods = self.validate_methods()
-        self.scenarios: list[Scenario] = self.validate_scenarios(list(self.activitiesMap.values()))
+        self.methods: dict[str, ExperimentMethodData] = self.validate_methods()
+        self.scenarios: list[Scenario] = self.validate_scenarios()
 
     def validate_bw_config(self):
         if self.raw_data.bw_project not in bd.projects:
-            raise Exception(f"Project {self.raw_data.bw_project} not found")
+            raise ValueError(f"Project {self.raw_data.bw_project} not found")
         if self.raw_data.bw_project in bd.projects:
             bd.projects.set_current(self.raw_data.bw_project)
 
         if self.raw_data.bw_default_database:
             if self.raw_data.bw_default_database not in bd.databases:
-                raise Exception(f"Database {self.raw_data.activities_config.default_database} "
-                                f"not found. Options are: {list(bd.databases)}")
+                raise ValueError(f"Database {self.raw_data.bw_default_database} "
+                                 f"not found. Options are: {list(bd.databases)}")
 
     def validate_activities(self):
         """
@@ -203,17 +216,23 @@ class Experiment:
             method.bw_method = BWMethod(**bw_method)
         return method_dict
 
-    def _get_activity(self, alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityData]:
+    def get_activity(self,
+                     alias_or_id: Union[str, ExperimentActivityId],
+                     raise_error_if_missing: bool = True) -> Optional[ExtendedExperimentActivityData]:
         if isinstance(alias_or_id, str):
-            return self.activitiesMap.get(alias_or_id, None)
+            activity = self.activitiesMap.get(alias_or_id, None)
+            if not activity and raise_error_if_missing:
+                raise ValueError(f"Activity with alias {alias_or_id} not found")
+            return activity
         elif isinstance(alias_or_id, ExperimentActivityId):
             for activity in self.activitiesMap.values():
                 if activity.orig_id == alias_or_id:
                     return activity
+            if raise_error_if_missing:
+                raise ValueError(f"Activity with id {alias_or_id} not found")
 
-    def validate_scenarios(self, defined_activities: list[ExtendedExperimentActivityData]) -> list[Scenario]:
+    def validate_scenarios(self) -> list[Scenario]:
         """
-        :param defined_activities:
         :return:
         """
 
@@ -227,13 +246,13 @@ class Experiment:
             if isinstance(activities, list):
                 for activity in activities:
                     activity_id, activity_output = activity
-                    activity = self._get_activity(activity_id)
+                    activity = self.get_activity(activity_id)
                     assert activity
                     output: float = Experiment.validate_output(activity_output, activity)
                     activity_outputs[activity.alias] = output
             elif isinstance(activities, dict):
                 for activity_alias, activity_output in activities.items():
-                    activity = self._get_activity(activity_alias)
+                    activity = self.get_activity(activity_alias)
                     assert activity
                     output: float = Experiment.validate_output(activity_output, activity)
                     activity_outputs[activity.alias] = output
@@ -251,9 +270,19 @@ class Experiment:
                 activity_alias = activity.alias
                 if activity_alias not in scenario_activities_outputs:
                     scenario_activities_outputs[activity.alias] = activity.default_output_value
+            method_ids = self.methods.values()
+            if scenario.methods:
+                for method in scenario.methods:
+                    if isinstance(method, str):
+                        if method not in self.methods:
+                            raise ValueError(f"Method {method} for scenario: {scenario.alias} not found")
+                    else:
+                        if method not in method_ids:
+                            raise ValueError(f"Method {method} for scenario: {scenario.alias} not found")
             return Scenario(experiment=self,
                             alias=scenario.alias,
-                            activities_outputs=scenario_activities_outputs)
+                            activities_outputs=scenario_activities_outputs,
+                            methods=scenario.methods)
 
         raw_scenarios = self.raw_data.scenarios
         scenarios: list[Scenario] = []
@@ -287,7 +316,7 @@ class Experiment:
                                                                                    compact=True,
                                                                                    data_factory=lambda e: dict())
         for leaf in tech_tree.get_leaves():
-            leaf._data = self._get_activity(leaf.name)
+            leaf._data = self.get_activity(leaf.name, True)
         return tech_tree
 
     def get_scenario(self, scenario_name: str) -> Optional[Scenario]:
@@ -299,7 +328,7 @@ class Experiment:
     def create_bw_calculation_setup(self, scenario: Scenario, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
         for activity_alias, act_out in scenario.activities_outputs.items():
-            bw_activity = self._get_activity(activity_alias).bw_activity
+            bw_activity = self.get_activity(activity_alias).bw_activity
             inventory.append({bw_activity: act_out})
         methods = [m.id for m in self.methods.values()]
         calculation_setup = BWCalculationSetup(scenario.alias, inventory, methods)
@@ -311,12 +340,12 @@ class Experiment:
         scenario = self.get_scenario(scenario_name)
 
         logger.info(f"Running scenario '{scenario.alias}'")
-        bw_calc_setup = self.create_bw_calculation_setup(scenario)
+        bw_calc_setup = scenario.create_bw_calculation_setup()
         scenario.results = MultiLCA(bw_calc_setup.name).results
         scenario.result_tree = self.technology_root_node.copy()
 
         method_aliases = [m.alias for m in self.methods.values()]
-        scenario.add_results_to_technology_tree(method_aliases)
+        scenario.add_results_to_technology_tree()
         scenario.resolve_result_tree()
 
         return scenario.result_tree.as_dict(include_data=True)
@@ -385,8 +414,6 @@ class Experiment:
 if __name__ == "__main__":
     scenario_data = {
         "bw_project": "uab_bw_ei39",
-        "activities_config": {
-        },
         "activities": {
             "single_activity": {
                 "id": {
@@ -409,7 +436,7 @@ if __name__ == "__main__":
                 )
             },
             {
-                "id": ('EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT')
+                "id": ["EDIP 2003 no LT", "non-renewable resources no LT", "zinc no LT"]
             }
         ],
         "hierarchy": {
@@ -422,38 +449,40 @@ if __name__ == "__main__":
     for index__, method__ in enumerate(scenario_data["methods"]):
         scenario_data["methods"][index__]["id"] = method_search("uab_bw_ei39", method__["id"])[0]
 
+    exp_data = ExperimentData(**scenario_data)
+
     # print(json.dumps(scenario_data, indent=2))
 
-    scenario_data = {
-        "bw_project": "uab_bw_ei39",
-        "activities": [
-            {
-                "id": {
-                    "name": "water production, deionised",
-                    "code": "00c823e4084eb4ee5c7557613568bfd0",
-                    "database": "ei39"
-                },
-                "output": [
-                    "kilogram",
-                    1
-                ]
-            }
-        ],
-        "methods":
-            {
-                "CML no LT": [
-                    "CML v4.8 2016 no LT",
-                    "acidification no LT",
-                    "acidification (incl. fate, average Europe total, A&B) no LT"
-                ]
-            }
-    }
-
-    exp_data = ExperimentData(**scenario_data)
+    # scenario_data = {
+    #     "bw_project": "uab_bw_ei39",
+    #     "activities": [
+    #         {
+    #             "id": {
+    #                 "name": "water production, deionised",
+    #                 "code": "00c823e4084eb4ee5c7557613568bfd0",
+    #                 "database": "ei39"
+    #             },
+    #             "output": [
+    #                 "kilogram",
+    #                 1
+    #             ]
+    #         }
+    #     ],
+    #     "methods":
+    #         {
+    #             "CML no LT": [
+    #                 "CML v4.8 2016 no LT",
+    #                 "acidification no LT",
+    #                 "acidification (incl. fate, average Europe total, A&B) no LT"
+    #             ]
+    #         }
+    # }
+    #
+    # exp_data = ExperimentData(**scenario_data)
     exp = Experiment(exp_data)
-    result_tree = [(exp.run()).values()][0]
-
-    exp.results_to_csv(Path("test.csv"))
-    # exp.results_to_plot(("Crustal Scarcity Indicator 2020", "material resources: metals/minerals"),
-    #                     image_file= Path("plot.png"))
-    print("done")
+    # result_tree = [(exp.run()).values()][0]
+    #
+    # exp.results_to_csv(Path("test.csv"))
+    # # exp.results_to_plot(("Crustal Scarcity Indicator 2020", "material resources: metals/minerals"),
+    # #                     image_file= Path("plot.png"))
+    # print("done")

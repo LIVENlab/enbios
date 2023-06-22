@@ -4,7 +4,7 @@ import pytest
 
 from enbios2.base.experiment import Experiment
 from enbios2.const import BASE_TEST_DATA_PATH
-from enbios2.generic.files import DataPath, ReadPath
+from enbios2.generic.files import ReadPath
 from enbios2.models.experiment_models import ExperimentData
 
 
@@ -16,17 +16,41 @@ def experiment_files(tmp_path):
     return list((BASE_TEST_DATA_PATH / "experiment_instances").glob("*.json"))
 
 
-# @pytest.mark.parametrize("experiment_files", indirect=["experiment_file"])
-def test_experiment_config():
-    experiment_files = list(Path(BASE_TEST_DATA_PATH / "experiment_instances").glob("*.json"))
-    for file in experiment_files:
-        try:
-            data = ReadPath(file).read_data()
-            # print(data)
-            exp = ExperimentData(**data)
-            Experiment(exp)
-        except Exception as e:
-            print()
-            print(file)
-            print(e)
+def experiments_data():
+    for file in (BASE_TEST_DATA_PATH / "experiment_instances").glob("*.json"):
+        yield ReadPath(file).read_data()
 
+
+def experiment_data_file_names():
+    for file in (BASE_TEST_DATA_PATH / "experiment_instances").glob("*.json"):
+        yield file.name
+
+
+def fix_experiment_data(data: dict, bw_project: str, bw_default_database: str = None):
+    data["bw_project"] = bw_project
+    if "bw_default_database" in data and bw_default_database is not None:
+        data["bw_default_database"] = bw_default_database
+
+
+@pytest.mark.parametrize('experiment_data', argvalues=experiments_data(), ids=experiment_data_file_names())
+def test_experiment_data(experiment_data):
+    if replace_conf := experiment_data.get("config", {}).get("debug_test_replace_bw_config", True):
+        if isinstance(replace_conf, list):
+            fix_experiment_data(experiment_data, *replace_conf)
+        else:
+            fix_experiment_data(experiment_data, "uab_bw_ei39", "ei39")
+    if not experiment_data.get("config", {}).get("debug_test_is_valid", True):
+        with pytest.raises(Exception):
+            exp_model = ExperimentData(**experiment_data)
+            exp = Experiment(exp_model)
+            if exp_model.config.debug_test_run:
+                exp.run()
+    else:
+        exp_model = ExperimentData(**experiment_data)
+        exp = Experiment(exp_model)
+        if exp_model.config.debug_test_run:
+            exp.run()
+
+
+def test_csv_setup():
+    pass
