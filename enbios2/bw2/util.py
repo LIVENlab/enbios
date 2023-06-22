@@ -72,8 +72,35 @@ def get_activity(code: str) -> Activity:
     return Activity(ActivityDataset.get(ActivityDataset.code == code))
 
 
-def method_search(project_name: str, method_tuple: tuple[str, ...]) -> (Union[dict,
-tuple[tuple[str, ...], dict[str, str]]]):
+def full_duplicate(activity: Activity, code=None, **kwargs) -> Activity:
+    """
+    Make a copy of an activity with its upstream exchanges
+    (Otherwise, you cannot calculate the lca of the copy)
+    :param activity: the activity to copy
+    :param code: code of the new activity
+    :param kwargs: other data for the copy
+    :return: new activity
+    """
+    activity_copy = activity.copy(code, kwargs)
+    for upstream in activity.upstream():
+        upstream.output.new_exchange(input=activity_copy, type=upstream["type"], amount=upstream.amount).save()
+    activity_copy.save()
+    return activity_copy
+
+
+def clean_delete(activity: Activity):
+    """
+    Delete an activity and its upstream exchanges.
+    Otherwise, the system will be corrupted
+    :param activity: The activity to delete
+    """
+    for link in activity.upstream():
+        link.delete()
+    activity.delete()
+
+
+def method_search(project_name: str, method_tuple: tuple[str, ...]) -> Union[
+    dict, tuple[tuple[str, ...], dict[str, str]]]:
     """
     Search for a method in a brightway project.
     Search name can be a incomplete tuple. IT will result the remaining parts in the method-tree

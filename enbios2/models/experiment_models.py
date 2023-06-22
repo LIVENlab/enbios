@@ -5,7 +5,7 @@ from typing import Optional, Union, Type
 import bw2data as bd
 from bw2data import calculation_setups
 from bw2data.backends import Activity
-from pydantic import Field
+from pydantic import Field, Extra
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from enbios2.bw2.util import get_activity
@@ -16,11 +16,17 @@ class ExperimentBWProjectConfig:
     index: Optional[str] = None
 
 
-class Config:
+class StrictInputConfig:
+    validate_assignment = True
+    extra = Extra.forbid
+
+
+class OperationConfig:
+    validate_assignment = True
     arbitrary_types_allowed = True
 
 
-@pydantic_dataclass
+@pydantic_dataclass(config=StrictInputConfig)
 class ExperimentActivityId:
     database: Optional[str] = None
     code: Optional[str] = None
@@ -66,7 +72,7 @@ class ExperimentActivityId:
                     setattr(self, field, kwargs[field])
 
 
-@pydantic_dataclass
+@pydantic_dataclass(config=StrictInputConfig)
 class ExperimentActivityOutputDict:
     unit: str
     magnitude: float = 1.0
@@ -78,13 +84,13 @@ ExperimentActivityOutputArray: Type = tuple[str, float]
 ExperimentActivityOutput = Union[ExperimentActivityOutputDict, ExperimentActivityOutputArray]
 
 
-@pydantic_dataclass(config=Config)
+@pydantic_dataclass(config=StrictInputConfig)
 class ExtendedExperimentActivityOutput:
     unit: str
     magnitude: float = 1.0
 
 
-@pydantic_dataclass
+@pydantic_dataclass(config=StrictInputConfig)
 class ExperimentActivityData:
     """
     This is the dataclass for the activities in the experiment.
@@ -145,6 +151,7 @@ class ExperimentActivityData:
         return result
 
 
+# TODO are we using this?
 @pydantic_dataclass(frozen=True)
 class BWMethod:
     description: str
@@ -155,13 +162,13 @@ class BWMethod:
     geocollections: list[str]
 
 
-@pydantic_dataclass
+@pydantic_dataclass(config=StrictInputConfig)
 class ExperimentMethodData:
-    id: Union[list[str], tuple[str, ...]]
+    id: tuple[str, ...]
     alias: Optional[str] = None
 
 
-@pydantic_dataclass(config=Config)
+@pydantic_dataclass(config=OperationConfig)
 class ExtendedExperimentActivityData:
     id: ExperimentActivityId
     output: Optional["ExtendedExperimentActivityOutput"] = None
@@ -178,7 +185,7 @@ class ExtendedExperimentActivityData:
         return self.id.alias
 
 
-@pydantic_dataclass
+@pydantic_dataclass(config=StrictInputConfig)
 class ExperimentScenarioData:
     # map from activity id to output. id is either as original (tuple) or alias-dict
     activities: Optional[Union[
@@ -188,7 +195,7 @@ class ExperimentScenarioData:
             ExperimentActivityOutput]]]] = None  # alias to output, null means default-output (check exists)
 
     # either the alias, or the id of any method. not method means running them all
-    methods: Optional[list[Union[str, list[str], tuple[str, ...]]]] = None
+    methods: Optional[list[Union[str, tuple[str, ...]]]] = None
     alias: Optional[str] = None
 
     @staticmethod
@@ -196,23 +203,25 @@ class ExperimentScenarioData:
         return f"Scenario {index}"
 
 
-@pydantic_dataclass
+@pydantic_dataclass(config=StrictInputConfig)
 class ScenarioConfig:
     # only used by ExperimentDataIO
     base_directory: Optional[str] = None
     # those are only used for testing
     debug_test_is_valid: bool = True
+    debug_test_replace_bw_config: Union[bool, list[str]] = True  # standard replacement, or bw-project, bw-database
     debug_test_expected_error_code: Optional[int] = None
+    debug_test_run: Optional[bool] = False
 
 
 ActivitiesDataRows = list[ExperimentActivityData]
 ActivitiesDataTypes = Union[ActivitiesDataRows, dict[str, ExperimentActivityData]]
-MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, Union[list[str], tuple[str, ...]]]]
+MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
 HierarchyDataTypes = Union[list, dict]
 ScenariosDataTypes = Union[list[ExperimentScenarioData], dict[str, ExperimentScenarioData]]
 
 
-@pydantic_dataclass(config=dict(validate_assignment=True))
+@pydantic_dataclass(config=StrictInputConfig)
 class ExperimentData:
     """
     This class is used to store the data of an experiment.
@@ -225,7 +234,8 @@ class ExperimentData:
     hierarchy: Optional[Union[list, dict]] = Field(None,
                                                    description="The activity hierarchy to be used in the experiment")
     scenarios: Optional[ScenariosDataTypes] = Field(None, description="The scenarios for this experiment")
-    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig, description="The configuration of this experiment")
+    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig,
+                                             description="The configuration of this experiment")
 
 
 @pydantic_dataclass

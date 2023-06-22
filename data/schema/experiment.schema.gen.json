@@ -115,6 +115,7 @@
     "activities",
     "methods"
   ],
+  "additionalProperties": false,
   "definitions": {
     "ExperimentBWProjectConfig": {
       "title": "ExperimentBWProjectConfig",
