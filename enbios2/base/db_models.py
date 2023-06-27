@@ -6,8 +6,6 @@ from playhouse.sqlite_ext import FTSModel, JSONField
 
 from enbios2.base.db_fields import TupleJSONField, PathField
 from enbios2.const import MAIN_DATABASE_PATH
-from enbios2.ecoinvent.ecoinvent_consts import valid_ecoinvent_versions, valid_ecoinvent_system_models, \
-    valid_ecoinvent_datatypes
 
 
 class MainDatabase(Model):
@@ -28,10 +26,13 @@ class EcoinventDataset(MainDatabase):
     directory: Path = PathField(null=True)  # Path typehint, so that static checker chills
     identity = TextField(unique=True)
 
+    _valid_ecoinvent_versions = {"3.8", "3.9", "3.9.1"}
+    _valid_ecoinvent_system_models = {"cutoff", "consequential", "apos"}
+    _valid_ecoinvent_datatypes = {"default", "lci", "lcia"}
+
     @property
     def bw_project_index(self) -> Optional["BWProjectIndex"]:
         return self.bw_project_db.get_or_none()
-
 
     class Meta:
         table_name = "ecoinvent_dataset"
@@ -41,8 +42,9 @@ class EcoinventDataset(MainDatabase):
         self.identity = f"{self.system_model}_{self.version}_{self.type}{'_xlsx' if self.xlsx else ''}"
 
     def save(self, *args, **kwargs):
-        check_fields = [("version", valid_ecoinvent_versions), ("system_model", valid_ecoinvent_system_models),
-                        ("type", valid_ecoinvent_datatypes)]
+        check_fields = [("version", EcoinventDataset._valid_ecoinvent_versions),
+                        ("system_model", EcoinventDataset.valid_ecoinvent_system_models),
+                        ("type", EcoinventDataset._valid_ecoinvent_datatypes)]
         for field, valid_values in check_fields:
             if getattr(self, field) not in valid_values:
                 raise ValueError(
