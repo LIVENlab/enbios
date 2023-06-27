@@ -230,7 +230,8 @@ class ExperimentData:
     activities: ActivitiesDataTypes = Field(..., description="The activities to be used in the experiment")
     methods: MethodsDataTypes = Field(..., description="The impact methods to be used in the experiment")
     bw_default_database: Optional[str] = Field(None,
-                                               description="The default database of activities to be used in the experiment")
+                                               description="The default database of activities to be used "
+                                                           "in the experiment")
     hierarchy: Optional[Union[list, dict]] = Field(None,
                                                    description="The activity hierarchy to be used in the experiment")
     scenarios: Optional[ScenariosDataTypes] = Field(None, description="The scenarios for this experiment")

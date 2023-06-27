@@ -37,6 +37,7 @@ Pint==0.22
 platformdirs==3.6.0
 plotly==5.15.0
 pluggy==1.0.0
+prompt-toolkit==3.0.38
 pydantic==1.10.9
 pyparsing==3.1.0
 PyPrind==2.11.3

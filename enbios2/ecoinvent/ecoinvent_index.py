@@ -1,8 +1,11 @@
 from pathlib import Path
 from typing import Optional, Union
 
+import bw2data
+import bw2io
+
 from enbios2.base.databases import init_databases
-from enbios2.base.db_models import EcoinventDataset
+from enbios2.base.db_models import EcoinventDataset, BWProjectIndex
 from enbios2.const import BASE_ECOINVENT_DATASETS_PATH
 from enbios2.generic.enbios2_logging import get_logger
 
@@ -111,19 +114,74 @@ def is_resolved_database_available(dataset: EcoinventDataset):
     pass
 
 
-def has_bw_project_index(dataset: EcoinventDataset):
+def auto_import(eods: EcoinventDataset,
+                project_name: Optional[str] = "ecoinvent",
+                database_name: Optional[str] = None) -> Optional[bw2io.SingleOutputEcospold2Importer]:
     """
-    Checks if the bw2 project index is available for the given dataset
-    :param dataset:
+    Automatically imports the given ecoinvent dataset into a new project and database.
+    Also creates the BWProjectIndex
+    YOU SHOULD MAKE SURE THAT BRIGHTWAY DATA CAN DEAL WITH THAT PARTICULAR VERSION OF ECOINVENT.
+
+    :param eods: eoinvent dataset (should be indexed)
+    :param project_name:
+    :param database_name:
     :return:
     """
-    pass
+    if eods.xlsx or not eods.type == "default":
+        raise ValueError(f"Only default datasets and non xlsx are supported. Passed: {eods}")
+    exists = get_ecoinvent_dataset_index(version=eods.version, system_model=eods.system_model, type=eods.type, xlsx=eods.xlsx)
+    if not exists:
+        eods.save()
+    else:
+        eods = exists[0]
+    if eods.bw_project_index:
+        logger.info(f"Already imported and indexed: {eods.bw_project_index}")
+        return
+    if project_name in bw2data.projects:
+        logger.debug(f"Project already exists: {project_name}. switching to it.")
+        bw2data.projects.set_current(project_name)
+    else:
+        logger.debug(f"Creating new project. {project_name}")
+        bw2data.projects.create_project(project_name)
+        bw2data.projects.set_current(project_name)
+        bw2io.bw2setup()
+
+    if not database_name:
+        database_name = eods.identity
+    if database_name in bw2data.databases:
+        raise ValueError(f"Database already exists: {database_name}")
+    logger.info(f"Importing ecoinvent dataset to {project_name}/{database_name}")
+    importer = bw2io.SingleOutputEcospold2Importer(eods.dataset_path.as_posix(), database_name)
+    importer.apply_strategies()
+    importer.statistics()
+    if importer.statistics()[2] == 0:
+        importer.write_database()
+        BWProjectIndex.create(project_name=project_name, database_name=database_name, ecoinvent_dataset=eods)
+    else:
+        print("There are unlinked exchanges. Database will not be written. Method returns importer "
+              "(you can inspect, manipulable and write it manually).")
+    return importer
+
+
+def analyse_and_import():
+    """
+    analyse the ecoinvent directory and import all datasets
+    """
+    init_databases()
+    analyze_directory(store_to_index_file=True)
+    indexes = get_ecoinvent_dataset_index()
+    for index in indexes:
+        if index.version.startswith("3.9"):
+            try:
+                auto_import(index)
+            except ValueError as e:
+                logger.warning(e)
 
 
 if __name__ == "__main__":
-    init_databases()
-    analyze_directory(store_to_index_file=True)
-    print(get_ecoinvent_dataset_index())
+    analyse_and_import()
+
+    # bw2data.projects.delete_project("ecoinvent", True)
 
     # print(list(get_ecoinvent_dataset_index(xlsx=True)))
     # print(list(get_ecoinvent_dataset_index(xlsx=True))[0].dataset_path)

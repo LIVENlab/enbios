@@ -145,3 +145,17 @@ def method_search(project_name: str, method_tuple: tuple[str, ...]) -> Union[
     if bw_method:
         return tuple(result), bw_method
     raise ValueError(f"Method does not exist {method_tuple}")
+
+
+def report():
+    projects = list(bw2data.projects)
+    for project in projects:
+        print(project)
+        bw2data.projects.set_current(project.name)
+        databases = list(bw2data.databases)
+        print(databases)
+
+
+if __name__ == '__main__':
+    report()
+    # bw2data.projects.purge_deleted_directories()
