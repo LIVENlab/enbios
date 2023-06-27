@@ -77,6 +77,13 @@ class BasicTreeNode(Generic[T]):
         """
         return len(self.location()) - 1
 
+    def temp_data(self) ->  dict[str, Any]:
+        """
+        Additional data that can be used for temporary storage
+        :return:
+        """
+        return self._data
+
     @property
     def name(self) -> str:
         """

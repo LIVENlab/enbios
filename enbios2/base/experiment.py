@@ -69,7 +69,7 @@ class Scenario:
         methods_aliases: list[str] = self.methods if self.methods else list(self.experiment.methods.keys())
         for result_index, alias in enumerate(activities_aliases):
             bw_activity = self.experiment.get_activity(alias).bw_activity
-            activity_node = next(filter(lambda node: node._data.bw_activity == bw_activity, activity_nodes))
+            activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
             for method_index, method in enumerate(methods_aliases):
                 activity_node.data[method] = self.results[result_index][method_index]
 
@@ -155,17 +155,17 @@ class Experiment:
 
         else:
             simple_index: EcoInventSimpleIndex = self.raw_data.bw_project
-            eoidb = get_ecoinvent_dataset_index(version=simple_index.version,
-                                                system_model=simple_index.system_model,
-                                                type_="default")
-            if eoidb:
-                eoidb = eoidb[0]
+            ecoinvent_index = get_ecoinvent_dataset_index(version=simple_index.version,
+                                                          system_model=simple_index.system_model,
+                                                          type_="default")
+            if ecoinvent_index:
+                ecoinvent_index = ecoinvent_index[0]
             else:
                 raise ValueError(f"Ecoinvent index {self.raw_data.bw_project} not found")
 
-            bw_project_index: BWProjectIndex = eoidb.bw_project_index
+            bw_project_index: BWProjectIndex = ecoinvent_index.bw_project_index
             if not bw_project_index:
-                raise ValueError(f"Ecoinvent index {eoidb}, has not BWProject index")
+                raise ValueError(f"Ecoinvent index {ecoinvent_index}, has not BWProject index")
             validate_bw_project_bw_database(bw_project_index.project_name, bw_project_index.database_name)
 
     def validate_activities(self):
