@@ -76,13 +76,13 @@ def add_dataset_index(version: str,
 def get_ecoinvent_dataset_index(*,
                                 version: Optional[Union[str, list[str]]] = None,
                                 system_model: Optional[Union[str, list[str]]] = None,
-                                type: Optional[Union[str, list[str]]] = None,
+                                type_: Optional[Union[str, list[str]]] = None,
                                 xlsx: Optional[bool] = None) -> list[EcoinventDataset]:
     """
     Get the dataset index for the given parameters
     :param version:
     :param system_model:
-    :param type:
+    :param type_:
     :param xlsx:
     :return:
     """
@@ -97,8 +97,8 @@ def get_ecoinvent_dataset_index(*,
             system_model = [system_model]
         query = query.where(EcoinventDataset.system_model.in_(system_model))
     if type:
-        if isinstance(type, str):
-            type_ = [type]
+        if isinstance(type_, str):
+            type_ = [type_]
         query = query.where(EcoinventDataset.type.in_(type_))
     if xlsx is not None:
         query = query.where(EcoinventDataset.xlsx == xlsx)
@@ -129,7 +129,10 @@ def auto_import(eods: EcoinventDataset,
     """
     if eods.xlsx or not eods.type == "default":
         raise ValueError(f"Only default datasets and non xlsx are supported. Passed: {eods}")
-    exists = get_ecoinvent_dataset_index(version=eods.version, system_model=eods.system_model, type=eods.type, xlsx=eods.xlsx)
+    exists = get_ecoinvent_dataset_index(version=eods.version,
+                                         system_model=eods.system_model,
+                                         type_=eods.type,
+                                         xlsx=eods.xlsx)
     if not exists:
         eods.save()
     else:

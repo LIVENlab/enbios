@@ -1,3 +1,7 @@
+"""
+Mostly deprecated, because we use the indexers now.
+"""
+
 import importlib
 import inspect
 from pathlib import Path

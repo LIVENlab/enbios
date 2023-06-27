@@ -12,8 +12,9 @@ from enbios2.bw2.util import get_activity
 
 
 @pydantic_dataclass
-class ExperimentBWProjectConfig:
-    index: Optional[str] = None
+class EcoInventSimpleIndex:
+    version: str
+    system_model: str
 
 
 class StrictInputConfig:
@@ -226,7 +227,7 @@ class ExperimentData:
     """
     This class is used to store the data of an experiment.
     """
-    bw_project: Union[str, ExperimentBWProjectConfig] = Field(..., description="The brightway project name")
+    bw_project: Union[str, EcoInventSimpleIndex] = Field(..., description="The brightway project name")
     activities: ActivitiesDataTypes = Field(..., description="The activities to be used in the experiment")
     methods: MethodsDataTypes = Field(..., description="The impact methods to be used in the experiment")
     bw_default_database: Optional[str] = Field(None,
@@ -241,7 +242,7 @@ class ExperimentData:
 
 @pydantic_dataclass
 class ExperimentDataIO:
-    bw_project: Union[str, ExperimentBWProjectConfig]
+    bw_project: Union[str, EcoInventSimpleIndex]
     bw_default_database: Optional[str] = None
     activities: Optional[Union[ActivitiesDataTypes, str]] = None
     methods: Optional[Union[MethodsDataTypes, str]] = None

@@ -10,14 +10,17 @@ from deprecated.classic import deprecated
 from numpy import ndarray
 from pint import UnitRegistry
 
+from enbios2.base.db_models import BWProjectIndex
 from enbios2.bw2.util import method_search
+from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExtendedExperimentActivityData,
                                               BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
-                                              ExtendedExperimentActivityOutput, BWCalculationSetup)
+                                              ExtendedExperimentActivityOutput, BWCalculationSetup,
+                                              EcoInventSimpleIndex)
 
 logger = get_logger(__file__)
 
@@ -123,8 +126,6 @@ class Experiment:
     ureg = UnitRegistry()
 
     def __init__(self, raw_data: ExperimentData):
-        if raw_data.bw_project in bd.projects:
-            bd.projects.set_current(raw_data.bw_project)
         self.raw_data = raw_data
         # alias to activity
         self.activitiesMap: dict[str, ExtendedExperimentActivityData] = {}
@@ -137,15 +138,35 @@ class Experiment:
         self.scenarios: list[Scenario] = self.validate_scenarios()
 
     def validate_bw_config(self):
-        if self.raw_data.bw_project not in bd.projects:
-            raise ValueError(f"Project {self.raw_data.bw_project} not found")
-        if self.raw_data.bw_project in bd.projects:
-            bd.projects.set_current(self.raw_data.bw_project)
 
-        if self.raw_data.bw_default_database:
-            if self.raw_data.bw_default_database not in bd.databases:
-                raise ValueError(f"Database {self.raw_data.bw_default_database} "
-                                 f"not found. Options are: {list(bd.databases)}")
+        def validate_bw_project_bw_database(bw_project: str, bw_default_database: Optional[str] = None):
+            if bw_project not in bd.projects:
+                raise ValueError(f"Project {bw_project} not found")
+            if bw_project in bd.projects:
+                bd.projects.set_current(bw_project)
+
+            if bw_default_database:
+                if bw_default_database not in bd.databases:
+                    raise ValueError(f"Database {bw_default_database} "
+                                     f"not found. Options are: {list(bd.databases)}")
+
+        if isinstance(self.raw_data.bw_project, str):
+            validate_bw_project_bw_database(self.raw_data.bw_project, self.raw_data.bw_default_database)
+
+        else:
+            simple_index: EcoInventSimpleIndex = self.raw_data.bw_project
+            eoidb = get_ecoinvent_dataset_index(version=simple_index.version,
+                                                system_model=simple_index.system_model,
+                                                type_="default")
+            if eoidb:
+                eoidb = eoidb[0]
+            else:
+                raise ValueError(f"Ecoinvent index {self.raw_data.bw_project} not found")
+
+            bw_project_index: BWProjectIndex = eoidb.bw_project_index
+            if not bw_project_index:
+                raise ValueError(f"Ecoinvent index {eoidb}, has not BWProject index")
+            validate_bw_project_bw_database(bw_project_index.project_name, bw_project_index.database_name)
 
     def validate_activities(self):
         """
@@ -188,7 +209,8 @@ class Experiment:
     def validate_output(target_output: ExtendedExperimentActivityOutput,
                         activity: ExtendedExperimentActivityData) -> float:
         try:
-            target_quantity = Experiment.ureg(target_output.unit) * target_output.magnitude
+            target_quantity = Experiment.ureg.parse_expression(
+                target_output.unit, case_sensitive=False) * target_output.magnitude
             return target_quantity.to(activity.bw_activity['unit']).magnitude
         except Exception as err:
             raise Exception(f"Unit error, {err}; For activity: {activity.id}")
@@ -198,7 +220,7 @@ class Experiment:
         if isinstance(self.raw_data.methods, dict):
             method_dict = self.raw_data.methods
             for method_alias in method_dict:
-                method_dict[method_alias] = ExperimentMethodData(alias=method_alias, id=method_dict[method_alias])
+                method_dict[method_alias] = ExperimentMethodData(alias=method_alias, id=method_dict[method_alias].id)
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
             for method_ in method_list:
