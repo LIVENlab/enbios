@@ -119,7 +119,7 @@ class ExperimentActivityData:
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
         if result.id.code:
             if result.id.database:
-                result.bw_activity = bd.Database(result.id.database).get(result.id.code)
+                result.bw_activity = bd.Database(result.id.database).get_node(result.id.code)
             else:
                 result.bw_activity = get_activity(result.id.code)
         elif result.id.name:
@@ -196,7 +196,7 @@ class ExperimentScenarioData:
             ExperimentActivityOutput]]]] = None  # alias to output, null means default-output (check exists)
 
     # either the alias, or the id of any method. not method means running them all
-    methods: Optional[list[Union[str, tuple[str, ...]]]] = None
+    methods: Optional[Union[list[Union[ExperimentMethodData, str]], dict[str, tuple[str, ...]]]] = None
     alias: Optional[str] = None
 
     @staticmethod
@@ -213,6 +213,7 @@ class ScenarioConfig:
     debug_test_replace_bw_config: Union[bool, list[str]] = True  # standard replacement, or bw-project, bw-database
     debug_test_expected_error_code: Optional[int] = None
     debug_test_run: Optional[bool] = False
+    note: Optional[str] = None
 
 
 ActivitiesDataRows = list[ExperimentActivityData]

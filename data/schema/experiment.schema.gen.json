@@ -11,7 +11,7 @@
           "type": "string"
         },
         {
-          "$ref": "#/definitions/ExperimentBWProjectConfig"
+          "$ref": "#/definitions/EcoInventSimpleIndex"
         }
       ]
     },
@@ -46,20 +46,10 @@
         {
           "type": "object",
           "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       ]
@@ -117,15 +107,23 @@
   ],
   "additionalProperties": false,
   "definitions": {
-    "ExperimentBWProjectConfig": {
-      "title": "ExperimentBWProjectConfig",
+    "EcoInventSimpleIndex": {
+      "title": "EcoInventSimpleIndex",
       "type": "object",
       "properties": {
-        "index": {
-          "title": "Index",
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
+        "system_model": {
+          "title": "System Model",
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "version",
+        "system_model"
+      ]
     },
     "ExperimentActivityId": {
       "title": "ExperimentActivityId",
@@ -155,7 +153,8 @@
           "title": "Alias",
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ExperimentActivityOutputDict": {
       "title": "ExperimentActivityOutputDict",
@@ -173,7 +172,8 @@
       },
       "required": [
         "unit"
-      ]
+      ],
+      "additionalProperties": false
     },
     "ExperimentActivityData": {
       "title": "ExperimentActivityData",
@@ -214,7 +214,8 @@
       },
       "required": [
         "id"
-      ]
+      ],
+      "additionalProperties": false
     },
     "ExperimentMethodData": {
       "title": "ExperimentMethodData",
@@ -222,20 +223,10 @@
       "properties": {
         "id": {
           "title": "Id",
-          "anyOf": [
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          ]
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "alias": {
           "title": "Alias",
@@ -244,7 +235,8 @@
       },
       "required": [
         "id"
-      ]
+      ],
+      "additionalProperties": false
     },
     "ExperimentScenarioData": {
       "title": "ExperimentScenarioData",
@@ -320,32 +312,37 @@
         },
         "methods": {
           "title": "Methods",
-          "type": "array",
-          "items": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/ExperimentMethodData"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
                 "type": "array",
                 "items": {
                   "type": "string"
                 }
               }
-            ]
-          }
+            }
+          ]
         },
         "alias": {
           "title": "Alias",
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ScenarioConfig": {
       "title": "ScenarioConfig",
@@ -360,11 +357,36 @@
           "default": true,
           "type": "boolean"
         },
+        "debug_test_replace_bw_config": {
+          "title": "Debug Test Replace Bw Config",
+          "default": true,
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
         "debug_test_expected_error_code": {
           "title": "Debug Test Expected Error Code",
           "type": "integer"
+        },
+        "debug_test_run": {
+          "title": "Debug Test Run",
+          "default": false,
+          "type": "boolean"
+        },
+        "note": {
+          "title": "Note",
+          "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     }
   }
 }
