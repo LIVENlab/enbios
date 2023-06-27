@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 from peewee import Model, TextField, FloatField, BooleanField, SqliteDatabase, ForeignKeyField
 from playhouse.sqlite_ext import FTSModel, JSONField
@@ -29,8 +29,9 @@ class EcoinventDataset(MainDatabase):
     identity = TextField(unique=True)
 
     @property
-    def bw_project_index(self) -> "BWProjectIndex":
-        return BWProjectIndex.get(BWProjectIndex.ecoinvent_dataset == self)
+    def bw_project_index(self) -> Optional["BWProjectIndex"]:
+        return self.bw_project_db.get_or_none()
+
 
     class Meta:
         table_name = "ecoinvent_dataset"

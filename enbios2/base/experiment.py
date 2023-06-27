@@ -270,15 +270,17 @@ class Experiment:
                 activity_alias = activity.alias
                 if activity_alias not in scenario_activities_outputs:
                     scenario_activities_outputs[activity.alias] = activity.default_output_value
-            method_ids = self.methods.values()
             if scenario.methods:
                 for method in scenario.methods:
                     if isinstance(method, str):
                         if method not in self.methods:
                             raise ValueError(f"Method {method} for scenario: {scenario.alias} not found")
                     else:
-                        if method not in method_ids:
-                            raise ValueError(f"Method {method} for scenario: {scenario.alias} not found")
+                        method_ = tuple(method)
+                        bw_method = bd.methods.get(method_)
+                        if not bw_method:
+                            raise ValueError(f"Method {method_} for scenario: {scenario.alias} not found")
+
             return Scenario(experiment=self,
                             alias=scenario.alias,
                             activities_outputs=scenario_activities_outputs,
@@ -344,7 +346,6 @@ class Experiment:
         scenario.results = MultiLCA(bw_calc_setup.name).results
         scenario.result_tree = self.technology_root_node.copy()
 
-        method_aliases = [m.alias for m in self.methods.values()]
         scenario.add_results_to_technology_tree()
         scenario.resolve_result_tree()
 
