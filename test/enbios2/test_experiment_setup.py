@@ -6,6 +6,7 @@ from enbios2.base.experiment import Experiment
 from enbios2.const import BASE_TEST_DATA_PATH
 from enbios2.generic.files import ReadPath
 from enbios2.models.experiment_models import ExperimentData
+from test.enbios2.test_project_fixture import TEST_BW_DATABASE, TEST_BW_PROJECT
 
 
 # This fixture scans a directory and returns all files in the directory.
@@ -38,7 +39,7 @@ def test_experiment_data(experiment_data):
         if isinstance(replace_conf, list):
             fix_experiment_data(experiment_data, *replace_conf)
         else:
-            fix_experiment_data(experiment_data, "uab_bw_ei39", "ei39")
+            fix_experiment_data(experiment_data, TEST_BW_PROJECT, TEST_BW_DATABASE)
     if not experiment_data.get("config", {}).get("debug_test_is_valid", True):
         with pytest.raises(Exception):
             exp_model = ExperimentData(**experiment_data)
