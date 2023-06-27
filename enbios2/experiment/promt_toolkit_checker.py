@@ -191,22 +191,32 @@ class CustomCompleter(Completer):
         elif self.state.state == State.IN_PROJECT:
             if text == State.DATABASE.value:
                 self.set_status(State.DATABASE)
-                self.set_message(
-                    f"There are {len(self.state.current_candidates)} databases. "
-                    f"Select any number of candidates one by one")
+                if not self.state.current_candidates:
+                    print("There are no databases...")
+                    self.set_status(State.IN_PROJECT)
+                else:
+                    self.set_message(
+                        f"There are {len(self.state.current_candidates)} databases. "
+                        f"Select any number of candidates one by one")
             elif text == State.METHOD.value:
                 self.set_status(State.METHOD)
-                self.set_message(
-                    f"There are {len(self.state.current_candidates)} methods. Select any number of "
-                    f"candidates one by one")
+                if not self.state.current_candidates:
+                    print("There are no methods...")
+                    self.set_status(State.IN_PROJECT)
+                else:
+                    self.set_message(
+                        f"There are {len(self.state.current_candidates)} methods. Select any number of "
+                        f"candidates one by one")
             elif text == STORE_DATA:
                 self.store_data()
             else:
                 print(f"command: {text} not found")
         elif self.state.state == State.DATABASE:
-            print("loading database...")
+            if self.back_check(text, State.IN_PROJECT):
+                return
             if text not in bw2data.databases:
                 return
+            print("loading database...")
             self.set_status(State.IN_DATABASE, text)
             self.set_message(
                 f"There are {len(self.state.current_candidates)} activities. Select any number of candidates one by one")

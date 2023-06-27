@@ -20,7 +20,7 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
                                               ExtendedExperimentActivityOutput, BWCalculationSetup,
-                                              EcoInventSimpleIndex)
+                                              EcoInventSimpleIndex, MethodsDataTypes, ExperimentActivityOutput)
 
 logger = get_logger(__file__)
 
@@ -43,17 +43,15 @@ class Scenario:
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     results: Optional[ndarray] = None
     result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
-    methods: Optional[list[str]] = None
+    methods: Optional[dict[str, ExperimentMethodData]] = None
 
     def create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
         for activity_alias, act_out in self.activities_outputs.items():
             bw_activity = self.experiment.get_activity(activity_alias).bw_activity
             inventory.append({bw_activity: act_out})
-        if self.methods:
-            methods = [self.experiment.methods[m].id for m in self.methods]
-        else:
-            methods = [m.id for m in self.experiment.methods.values()]
+
+        methods = [m.id for m in self.get_methods().values()]
         calculation_setup = BWCalculationSetup(self.alias, inventory, methods)
         if register:
             calculation_setup.register()
@@ -66,12 +64,28 @@ class Scenario:
         activity_nodes = self.result_tree.get_leaves()
         activities_aliases = list(self.activities_outputs.keys())
 
-        methods_aliases: list[str] = self.methods if self.methods else list(self.experiment.methods.keys())
+        methods_aliases: list[str] = list(self.get_methods().keys())
         for result_index, alias in enumerate(activities_aliases):
             bw_activity = self.experiment.get_activity(alias).bw_activity
             activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
             for method_index, method in enumerate(methods_aliases):
                 activity_node.data[method] = self.results[result_index][method_index]
+
+    def get_methods(self) -> Optional[dict[str, ExperimentMethodData]]:
+        if self.methods:
+            return self.methods
+        else:
+            return self.experiment.methods
+
+    def run(self):
+        if not self.get_methods():
+            raise ValueError(f"Scenario '{self.alias}' has no methods")
+        logger.info(f"Running scenario '{self.alias}'")
+        bw_calc_setup = self.create_bw_calculation_setup()
+        self.results = MultiLCA(bw_calc_setup.name).results
+        self.result_tree = self.experiment.technology_root_node.copy()
+        self.add_results_to_technology_tree()
+        self.resolve_result_tree()
 
     def resolve_result_tree(self):
         """
@@ -134,8 +148,35 @@ class Experiment:
         self.validate_activities()
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
-        self.methods: dict[str, ExperimentMethodData] = self.validate_methods()
+        self.methods: dict[str, ExperimentMethodData] = self.validate_methods(self.prepare_methods())
         self.scenarios: list[Scenario] = self.validate_scenarios()
+
+    @staticmethod
+    def create(bw_project: str):
+        return Experiment(ExperimentData(bw_project=bw_project, activities=[], methods=[]))
+
+    def add_activity(self, activity: Activity, default_demand: Optional[ExperimentActivityOutput] = None):
+        if len(self.scenarios) == 1 and not default_demand:
+            raise ValueError("No default demand specified / and no scenarios added yet")
+        alias = activity["name"]
+        if alias in self.activitiesMap:
+            raise ValueError(f"Activity with alias {alias} already exists")
+        self.activitiesMap[alias] = ExtendedExperimentActivityData(
+            id=ExperimentActivityId(
+                alias=alias,
+                code=activity["code"],
+                database=activity["database"]
+            ),
+            output=default_demand,
+            bw_activity=activity
+        )
+
+    def add_method(self, method: tuple[str, ...], alias: Optional[str] = None):
+        if not alias:
+            alias = "_".join(method)
+        m_data = ExperimentMethodData(id=method, alias=alias)
+        self.validate_method(m_data)
+        self.methods[m_data.alias] = m_data
 
     def validate_bw_config(self):
 
@@ -150,6 +191,7 @@ class Experiment:
                     raise ValueError(f"Database {bw_default_database} "
                                      f"not found. Options are: {list(bd.databases)}")
 
+        # print("validate_bw_config***************", self.raw_data.bw_project)
         if isinstance(self.raw_data.bw_project, str):
             validate_bw_project_bw_database(self.raw_data.bw_project, self.raw_data.bw_default_database)
 
@@ -215,27 +257,32 @@ class Experiment:
         except Exception as err:
             raise Exception(f"Unit error, {err}; For activity: {activity.id}")
 
-    def validate_methods(self) -> dict[str, ExperimentMethodData]:
+    def prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExperimentMethodData]:
+        if not methods:
+            methods = self.raw_data.methods
         method_dict: dict[str, ExperimentMethodData] = {}
-        if isinstance(self.raw_data.methods, dict):
-            method_dict = self.raw_data.methods
-            for method_alias in method_dict:
-                method_dict[method_alias] = ExperimentMethodData(alias=method_alias, id=method_dict[method_alias].id)
+        if isinstance(methods, dict):
+            for method_alias in methods:
+                method_dict[method_alias] = ExperimentMethodData(alias=method_alias, id=methods[method_alias])
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
             for method_ in method_list:
                 if not method_.alias:
                     method_.alias = "_".join(method_.id)
                 method_dict[method_.alias] = method_
+        return method_dict
 
+    def validate_method(self, method: ExperimentMethodData):
+        method.id = tuple(method.id)
+        bw_method = bd.methods.get(method.id)
+        if not bw_method:
+            raise Exception(f"Method with id: {method.id} does not exist")
+        method.bw_method = BWMethod(**bw_method)
+
+    def validate_methods(self, method_dict: dict[str, ExperimentMethodData]) -> dict[str, ExperimentMethodData]:
         # all methods must exist
-        all_methods = bd.methods
-        for alias, method in method_dict.items():
-            method.id = tuple(method.id)
-            bw_method = all_methods.get(method.id)
-            if not bw_method:
-                raise Exception(f"Method with id: {method.id} does not exist")
-            method.bw_method = BWMethod(**bw_method)
+        for method in method_dict.values():
+            self.validate_method(method)
         return method_dict
 
     def get_activity(self,
@@ -292,16 +339,14 @@ class Experiment:
                 activity_alias = activity.alias
                 if activity_alias not in scenario_activities_outputs:
                     scenario_activities_outputs[activity.alias] = activity.default_output_value
+
             if scenario.methods:
-                for method in scenario.methods:
-                    if isinstance(method, str):
-                        if method not in self.methods:
-                            raise ValueError(f"Method {method} for scenario: {scenario.alias} not found")
-                    else:
-                        method_ = tuple(method)
-                        bw_method = bd.methods.get(method_)
-                        if not bw_method:
-                            raise ValueError(f"Method {method_} for scenario: {scenario.alias} not found")
+                if isinstance(scenario.methods, list):
+                    for index_, method_ in enumerate(scenario.methods):
+                        if isinstance(method_, str):
+                            global_method = self.methods.get(method_)
+                            scenario.methods[index_] = global_method
+                scenario.methods = self.prepare_methods(scenario.methods)
 
             return Scenario(experiment=self,
                             alias=scenario.alias,
@@ -362,15 +407,7 @@ class Experiment:
 
     def run_scenario(self, scenario_name: str) -> dict:
         scenario = self.get_scenario(scenario_name)
-
-        logger.info(f"Running scenario '{scenario.alias}'")
-        bw_calc_setup = scenario.create_bw_calculation_setup()
-        scenario.results = MultiLCA(bw_calc_setup.name).results
-        scenario.result_tree = self.technology_root_node.copy()
-
-        scenario.add_results_to_technology_tree()
-        scenario.resolve_result_tree()
-
+        scenario.run()
         return scenario.result_tree.as_dict(include_data=True)
 
     def run(self) -> dict[str, dict]:

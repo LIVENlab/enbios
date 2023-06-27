@@ -1,7 +1,8 @@
 {
   "bw_project": "ecoi_dbs",
   "config": {
-    "debug_test_is_valid": false
+    "debug_test_is_valid": false,
+    "note": "strange unit"
   },
   "activities": {
     "single_activity": {
@@ -11,7 +12,7 @@
         "unit": "kilowatt hour"
       },
       "output": [
-        "Mwh",
+        "Mwd",
         30
       ]
     }
