@@ -48,7 +48,7 @@ class EcoinventDataset(MainDatabase):
 
     def save(self, *args, **kwargs):
         check_fields = [("version", EcoinventDataset._valid_ecoinvent_versions),
-                        ("system_model", EcoinventDataset.valid_ecoinvent_system_models),
+                        ("system_model", EcoinventDataset._valid_ecoinvent_system_models),
                         ("type", EcoinventDataset._valid_ecoinvent_datatypes)]
         for field, valid_values in check_fields:
             if getattr(self, field) not in valid_values:
