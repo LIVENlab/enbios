@@ -14,6 +14,7 @@ logger = get_logger(__file__)
 
 
 class DataPath(Path):
+    _flavour = Path('.')._flavour
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls, BASE_DATA_PATH, *args, **kwargs)
 

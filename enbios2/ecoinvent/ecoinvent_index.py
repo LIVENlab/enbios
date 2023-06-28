@@ -96,7 +96,7 @@ def get_ecoinvent_dataset_index(*,
         if isinstance(system_model, str):
             system_model = [system_model]
         query = query.where(EcoinventDataset.system_model.in_(system_model))
-    if type:
+    if type_:
         if isinstance(type_, str):
             type_ = [type_]
         query = query.where(EcoinventDataset.type.in_(type_))
