@@ -11,7 +11,6 @@ from numpy import ndarray
 from pint import UnitRegistry
 
 from enbios2.base.db_models import BWProjectIndex
-from enbios2.bw2.util import method_search
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
@@ -32,7 +31,12 @@ Activity_Outputs = dict[str, float]
 """
 dict of Method tuple, to result-value 
 """
-ScenarioResultNodeData = dict[tuple[str], float]
+
+
+@dataclass
+class ScenarioResultNodeData:
+    output: Optional[tuple[str, float]] = None
+    results: dict[tuple[str], float] = field(default_factory=dict)
 
 
 @dataclass
@@ -40,8 +44,8 @@ class Scenario:
     experiment: "Experiment"
     alias: Optional[str] = None
     # this should be a simpler type - just str: float
+    orig_outputs: Optional[dict[str, float]] = field(default_factory=dict)  # output declaration before conversion
     activities_outputs: Activity_Outputs = field(default_factory=dict)
-    results: Optional[ndarray] = None
     result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
     methods: Optional[dict[str, ExperimentMethodData]] = None
 
@@ -57,10 +61,40 @@ class Scenario:
             calculation_setup.register()
         return calculation_setup
 
-    def add_results_to_technology_tree(self):
+    def create_results_to_technology_tree(self, results: ndarray):
         """
         Add results to the technology tree, for each method
         """
+
+        def resolve_result_tree():
+            """
+            Sum up the results in the complete hierarchy
+            """
+
+            def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]) -> ScenarioResultNodeData:
+                if node.is_leaf:
+                    return node.data.results
+                for child in node.children:
+                    recursive_resolve_node(child)
+                for child in node.children:
+                    for key, value in child.data.results.items():
+                        if node.data.results.get(key) is None:
+                            node.data.results[key] = 0
+                        node.data.results[key] += value
+
+            # TODO: WHY!?!?
+            # def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]):
+            #     for child in node.children:
+            #         for key, value in child.data.items():
+            #             if node.data.get(key) is None:
+            #                 node.data[key] = 0
+            #             node.data[key] += value
+
+            # self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
+            recursive_resolve_node(self.result_tree)
+
+        self.result_tree = self.experiment.technology_root_node.copy()
+        # todo should be the same set of activities
         activity_nodes = self.result_tree.get_leaves()
         activities_aliases = list(self.activities_outputs.keys())
 
@@ -68,8 +102,12 @@ class Scenario:
         for result_index, alias in enumerate(activities_aliases):
             bw_activity = self.experiment.get_activity(alias).bw_activity
             activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
+            activity_node.data = ScenarioResultNodeData(
+                output=(bw_activity['unit'], self.activities_outputs[alias])
+            )
             for method_index, method in enumerate(methods_aliases):
-                activity_node.data[method] = self.results[result_index][method_index]
+                activity_node.data.results[method] = results[result_index][method_index]
+        resolve_result_tree()
 
     def get_methods(self) -> Optional[dict[str, ExperimentMethodData]]:
         if self.methods:
@@ -82,37 +120,8 @@ class Scenario:
             raise ValueError(f"Scenario '{self.alias}' has no methods")
         logger.info(f"Running scenario '{self.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup()
-        self.results = MultiLCA(bw_calc_setup.name).results
-        self.result_tree = self.experiment.technology_root_node.copy()
-        self.add_results_to_technology_tree()
-        self.resolve_result_tree()
-
-    def resolve_result_tree(self):
-        """
-        Sum up the results in the complete hierarchy
-        """
-
-        def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]) -> ScenarioResultNodeData:
-            if node.is_leaf:
-                return node.data
-            for child in node.children:
-                recursive_resolve_node(child)
-            for child in node.children:
-                for key, value in child.data.items():
-                    if node.data.get(key) is None:
-                        node.data[key] = 0
-                    node.data[key] += value
-
-        # TODO: WHY!?!?
-        # def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]):
-        #     for child in node.children:
-        #         for key, value in child.data.items():
-        #             if node.data.get(key) is None:
-        #                 node.data[key] = 0
-        #             node.data[key] += value
-
-        # self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
-        recursive_resolve_node(self.result_tree)
+        results = MultiLCA(bw_calc_setup.name).results
+        self.create_results_to_technology_tree(results)
 
     def results_to_csv(self, file_path: Path, include_method_units: bool = False):
         """
@@ -124,11 +133,14 @@ class Scenario:
             raise ValueError(f"Scenario '{self.alias}' has no results")
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
+            result = {}
+            if data.output:
+                result["unit"] = data.output[0]
+                result['amount'] = data.output[1]
             if not include_method_units:
-                return data
+                return result | data.results
             else:
-                result = {}
-                for method_alias, value in data.items():
+                for method_alias, value in data.results.items():
                     final_name = f"{method_alias} ({self.experiment.methods[str(method_alias)].bw_method.unit})"
                     result[final_name] = value
                 return result
@@ -383,7 +395,8 @@ class Experiment:
 
         tech_tree: BasicTreeNode = BasicTreeNode[ScenarioResultNodeData].from_dict(self.raw_data.hierarchy,
                                                                                    compact=True,
-                                                                                   data_factory=lambda e: dict())
+                                                                                   data_factory=lambda
+                                                                                       e: ScenarioResultNodeData())
         for leaf in tech_tree.get_leaves():
             leaf._data = self.get_activity(leaf.name, True)
         return tech_tree
@@ -469,80 +482,3 @@ class Experiment:
             fig.show()
         if image_file:
             fig.write_image(image_file.as_posix(), width=1800, height=1600)
-
-
-if __name__ == "__main__":
-    scenario_data = {
-        "bw_project": "uab_bw_ei39",
-        "activities": {
-            "single_activity": {
-                "id": {
-                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit": "kilowatt hour",
-                    "location": "DK"
-                },
-                "output": [
-                    "MWh",
-                    1
-                ]
-            }
-        },
-        "methods": [
-            {
-                "alias": "AX",
-                "id": (
-                    "Crustal Scarcity Indicator 2020",
-                    "material resources: metals/minerals"
-                )
-            },
-            {
-                "id": ["EDIP 2003 no LT", "non-renewable resources no LT", "zinc no LT"]
-            }
-        ],
-        "hierarchy": {
-            "energy": [
-                "single_activity"
-            ]
-        }
-    }
-
-    for index__, method__ in enumerate(scenario_data["methods"]):
-        scenario_data["methods"][index__]["id"] = method_search("uab_bw_ei39", method__["id"])[0]
-
-    exp_data = ExperimentData(**scenario_data)
-
-    # print(json.dumps(scenario_data, indent=2))
-
-    # scenario_data = {
-    #     "bw_project": "uab_bw_ei39",
-    #     "activities": [
-    #         {
-    #             "id": {
-    #                 "name": "water production, deionised",
-    #                 "code": "00c823e4084eb4ee5c7557613568bfd0",
-    #                 "database": "ei39"
-    #             },
-    #             "output": [
-    #                 "kilogram",
-    #                 1
-    #             ]
-    #         }
-    #     ],
-    #     "methods":
-    #         {
-    #             "CML no LT": [
-    #                 "CML v4.8 2016 no LT",
-    #                 "acidification no LT",
-    #                 "acidification (incl. fate, average Europe total, A&B) no LT"
-    #             ]
-    #         }
-    # }
-    #
-    # exp_data = ExperimentData(**scenario_data)
-    exp = Experiment(exp_data)
-    # result_tree = [(exp.run()).values()][0]
-    #
-    # exp.results_to_csv(Path("test.csv"))
-    # # exp.results_to_plot(("Crustal Scarcity Indicator 2020", "material resources: metals/minerals"),
-    # #                     image_file= Path("plot.png"))
-    # print("done")

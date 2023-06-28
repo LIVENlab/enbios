@@ -29,7 +29,7 @@ default_log_config = {
     "loggers": {
     },
     "root": {
-        "level": "DEBUG",
+        "level": "INFO",
         "handlers": ["console"]
     }
 }
