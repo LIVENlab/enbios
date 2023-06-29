@@ -20,12 +20,15 @@ The example are given in YAML, tho the ExperimentData objects are created from o
 ## Activities
 
 The activities should be defined in a object, where the keys are the "aliases" (arbitrary names for the activities).
-The values are objects as well with one mandatory key `id` and an optional `output' key, which should be a list of 2 items:
+The values are objects as well with one mandatory key `id` and an optional `output' key, which should be a list of 2
+items:
 The output unit and the output amount. Whenever a scenario does not define an output, the default output will be used.
 
 The `id` is an object that takes any combination of the following keys:
-code, database, name, location, unit, (alias). Think of them as identifier, that must always allow to uniquely identify an activity.
-When a code is given, uniqueness is guaranteed. If no code is given, the combination of the other keys must be unique (name, location unit).
+code, database, name, location, unit, (alias). Think of them as identifier, that must always allow to uniquely identify
+an activity.
+When a code is given, uniqueness is guaranteed. If no code is given, the combination of the other keys must be unique (
+name, location unit).
 Enbios2 will perform database searches and filtering to find the activities.
 
 An example:
@@ -33,17 +36,17 @@ An example:
 ```yaml
 activities:
   water production CH:
-    id: 
+    id:
       code: 00c823e4084eb4ee5c7557613568bfd0
-    output: [kg, 1]
+    output: [ kg, 1 ]
 ```
 
-or 
+or
 
 ```yaml
 activities:
   water production CH:
-    id: 
+    id:
       name: water production
       location: CH
       unit: kg
@@ -52,16 +55,48 @@ activities:
 ## Methods
 
 Methods in brightway are defined as tuples of strings.
-In enbios2 the methods can be defined by an object, where the keys are the "aliases" (arbitrary names for the methods) and the values, the lists/tuples that identify the methods.
+In enbios2 the methods can be defined by an object, where the keys are the "aliases" (arbitrary names for the methods)
+and the values, the lists/tuples that identify the methods.
 
 ```yaml
 methods:
-    CML no LT: [
-        CML v4.8 2016 no LT,
-        acidification no LT,
-        acidification (incl. fate, average Europe total, A&B) no LT
-        ]
+  CML no LT: [
+    CML v4.8 2016 no LT,
+    acidification no LT,
+    acidification (incl. fate, average Europe total, A&B) no LT
+  ]
 ```
+
+## Hierarchy:
+
+The hierarchy is options and defined a hierarchy of technologies, which will be used to create tree-like structures in
+the results. The bottom nodes of the tree (leaves) are activities and all other nodes scores will be calculated from
+by summing up the scores of its children.
+
+The hierarchy is describes in a dictionary/list structure, where all keys are names of nodes. On the last level, there
+needs to be a list of strings, which are activity-aliases.
+
+The example is more clear in json format:
+```json
+{
+  "hierarchy": {
+    "renewable energy": {
+      "solar": [],
+      "wind": [
+        "onshore",
+        "offshore"
+      ],
+      "hydro": []
+    },
+    "fossil energy": [
+      "coal"
+    ]
+  }
+}
+```
+
+```yaml 
+
 
 All fundamental elements (activities, methods, scenarios) have aliases, which can be part of the definition or will be
 calculated in the following way:
