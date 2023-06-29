@@ -1,15 +1,20 @@
 import json
-from typing import Tuple
+from typing import Tuple, Optional
 
-from bw2data import Database, projects
-from bw2data.backends import ActivityDataset, ExchangeDataset
-
-from enbios2.bw2.util import iter_activities_by_codes
+import bw2data
+import networkx
+import numpy
+import orjson as orjson
+from bw2data.backends import ActivityDataset, ExchangeDataset, Activity
+from networkx import DiGraph
+from playhouse.shortcuts import model_to_dict
 
 # print(projects)
-projects.set_current("ecoi_dbs")
-db = Database("cutoff391")
+# projects.set_current("ecoi_dbs")
+# db = Database("cutoff391")
 
+from enbios2.bw2.project_index import print_bw_index, set_bw_current_project
+from enbios2.const import BASE_DATA_PATH
 
 
 def check_unique_codes():
@@ -72,9 +77,9 @@ def get_tree(code: str,
 
 
 def get_tree_with_levels(code: str,
-                         keep_exchange_type: list[str] = None,
-                         check_unique_code: bool = True,
-                         max_level: int = -1) -> Tuple[list[tuple[str, int]], list[int]]:
+                         keep_exchange_type: Optional[list[str]] = None,
+                         check_unique_code: Optional[bool] = True,
+                         max_level: Optional[int] = -1) -> Tuple[dict[str, int], dict[str, set[str]], list[int]]:
     """
     Get all nodes that are connected to the given node. (as inputs)
     :param code: root code
@@ -142,23 +147,66 @@ def get_tree_with_levels(code: str,
     # sort by the second element of the tuple (level)
     return level, inputs, all_exchanges
 
-# random_act = db.random()
-random_act = db.get("46875148bb5fbac9cad7452d020a80de")
-print(random_act)
-# print(info_exchanges(random_act))
 
-calc = True
-# 'non-ionic surfactant production, ethylene oxide derivate' (kilogram, GLO, None)
+if __name__ == "__main__":
+    print_bw_index()
+    set_bw_current_project("cutoff", "3.9.1")
+    print(list(bw2data.databases))
+    # random_act = db.random()
+    db = bw2data.Database("cutoff_3.9.1_default")
+    random_act: Activity = db.get_node("46875148bb5fbac9cad7452d020a80de")
+    print(random_act)
+    # # print(info_exchanges(random_act))
+    #
+    calc = True
+    # 'non-ionic surfactant production, ethylene oxide derivate' (kilogram, GLO, None)
 
-if calc:
-    levels, inputs, exchanges = get_tree_with_levels(random_act["code"], max_level=3)
-    # json.dump((list(visited_with_levels), list(exchanges)), open("temp.json", "w"))
-else:
-    visited_with_levels, exchanges = json.load(open("temp.json", "r"))
+    if calc:
+        levels, inputs, exchanges = get_tree_with_levels(random_act["code"])
+        # json.dump((list(visited_with_levels), list(exchanges)), open("temp.json", "w"))
+    else:
+        visited_with_levels, exchanges = json.load(open("temp.json", "r"))
 
-# visited, levels = zip(*visited_with_levels)
-# activity_iter = iter_activities_by_codes(iter(visited))
 
-# graph = grap_nodes(activity_iter, iter_exchange_by_ids(iter(exchanges)), level_infos=levels)
-# json.dumps(graph)
-# json.dump(graph, open("/home/ra/PycharmProjects/enbios2/node_viz/sigma.js/examples/layouts/data.json", "w"))
+    # visited, levels = zip(*visited_with_levels)
+    # activity_iter = iter_activities_by_codes(iter(visited))
+
+    # graph = grap_nodes(activity_iter, iter_exchange_by_ids(iter(exchanges)), level_infos=levels)
+    # json.dumps(graph)
+
+    def default(obj):
+        if isinstance(obj, set):
+            return list(obj)
+        if isinstance(obj, numpy.ndarray):
+            return list(obj)
+        raise TypeError
+
+
+    (BASE_DATA_PATH / "fast_tree_data.json").write_text(str(orjson.dumps({
+        "levels": levels,
+        "inputs": inputs,
+        "exchanges": exchanges
+    }, default=default)), encoding="utf-8")
+
+    activities = list(ActivityDataset.select().where(ActivityDataset.code.in_(list((levels.keys())))))
+    (BASE_DATA_PATH / "fast_tree_activities_data.json").write_text(str(orjson.dumps(
+        [[a.key, a.id, a.name, a.location, a.product, a.type, a.data.get("unit")] for a in activities],
+        default=default)), encoding="utf-8")
+
+    uuid2id = {a.code: a.id for a in activities}
+
+    (BASE_DATA_PATH / "fast_tree_activities_data_keyed.json").write_text(str(orjson.dumps(
+        {str(a.id): [a.database, a.id, a.name, a.location, a.product, a.type, a.data.get("unit"),
+                     [uuid2id[i] for i in inputs[a.code]]] for a in activities},
+        default=default)), encoding="utf-8")
+
+    graph = DiGraph()
+    graph.add_nodes_from([(act.id, {"name": act.name}) for act in activities])
+    for act in activities:
+        for i in inputs[act.code]:
+            graph.add_edge(uuid2id[i], act.id)
+
+    # this will take a long time...
+    pos = networkx.spring_layout(graph)
+    (BASE_DATA_PATH / "fast_tree_graph_positions.json").write_text(str(orjson.dumps({str(k): v for k, v in pos.items()},
+                                                                                    default=default)), encoding="utf-8")
