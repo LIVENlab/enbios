@@ -1,9 +1,8 @@
 from copy import copy
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from typing import Optional, Union, Type
 
 import bw2data as bd
-from bw2data import calculation_setups
 from bw2data.backends import Activity
 from pydantic import Field, Extra
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -60,7 +59,8 @@ class ExperimentActivityId:
             if len(search_results) > 1:
                 if allow_multiple:
                     return search_results
-                assert False, f"results : {len(search_results)} for brightway activity-search: {(self.name, self.location, self.unit)}. Results are: {search_results}"
+                assert False, (f"results : {len(search_results)} for brightway activity-search:"
+                               f" {(self.name, self.location, self.unit)}. Results are: {search_results}")
             return search_results[0]
 
     def fill_empty_fields(self, fields: list[Union[str, tuple[str, str]]] = (), **kwargs):
@@ -116,6 +116,7 @@ class ExperimentActivityData:
             result.id.database = default_id_attr.database
         # assert result.id.database in bd.databases,
         # f"activity database does not exist: '{self.id.database}' for {self.id}"
+        # todo, is the needed?
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
         if result.id.code:
             if result.id.database:
@@ -250,16 +251,3 @@ class ExperimentDataIO:
     hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
     scenarios: Optional[Union[ScenariosDataTypes, str]] = None
     config: Optional[ScenarioConfig] = ScenarioConfig()
-
-
-@dataclass
-class BWCalculationSetup:
-    name: str
-    inv: list[dict[Activity, float]]
-    ia: list[tuple[str]]
-
-    def register(self):
-        calculation_setups[self.name] = {
-            "inv": self.inv,
-            "ia": self.ia
-        }
