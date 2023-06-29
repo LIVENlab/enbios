@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Union, Optional
 
 from peewee import Model, TextField, FloatField, BooleanField, SqliteDatabase, ForeignKeyField
+from playhouse.shortcuts import model_to_dict
 from playhouse.sqlite_ext import FTSModel, JSONField
 
 from enbios2.base.db_fields import TupleJSONField, PathField
@@ -74,6 +75,23 @@ class EcoinventDataset(MainDatabase):
             return self.directory / f"datasets"
 
     __repr__ = __str__ = lambda self: f"EcoinventDataset: {self.identity}"
+
+    @staticmethod
+    def dump_database(entries: Optional[list["EcoinventDataset"]] = None,
+                      redact_dir: Optional[bool] = True) -> list[dict]:
+        """
+        Dump the database to a JSON file
+        :return:
+        """
+        res = []
+        for entry in entries if entries else EcoinventDataset.select():
+            d = model_to_dict(entry)
+            if redact_dir:
+                d["directory"] = "***/" + entry.directory.name
+            if bwp := entry.bw_project_db.get_or_none():
+                d["bw_project"] = [bwp.project_name, bwp.database_name]
+            res.append(d)
+        return res
 
 
 class EcoinventResolvedDataset(MainDatabase):
