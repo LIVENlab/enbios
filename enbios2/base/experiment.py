@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from bw2calc import MultiLCA
 from bw2data.backends import Activity
 from numpy import ndarray
-from pint import UnitRegistry
+from pint import UnitRegistry, DimensionalityError
 
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
@@ -19,7 +19,7 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExperimentScenarioData, ExperimentData,
                                               ExtendedExperimentActivityOutput,
                                               EcoInventSimpleIndex, MethodsDataTypes, ExperimentActivityOutput,
-                                              ActivitiesDataTypes)
+                                              ActivitiesDataTypes, BWCalculationSetup)
 
 logger = get_logger(__file__)
 
@@ -35,8 +35,8 @@ dict of Method tuple, to result-value
 
 @dataclass
 class ScenarioResultNodeData:
-    output: Optional[tuple[str, float]] = None
-    results: dict[tuple[str], float] = field(default_factory=dict)
+    output: tuple[str, Optional[float]] = ("", None)
+    results: dict[Union[tuple[str], str], float] = field(default_factory=dict)
 
 
 @dataclass
@@ -47,7 +47,6 @@ class Scenario:
     # todo not used yet
     orig_outputs: Optional[dict[str, float]] = field(default_factory=dict)  # output declaration before conversion
     activities_outputs: Activity_Outputs = field(default_factory=dict)
-    results: Optional[ndarray] = None
     result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
     methods: Optional[dict[str, ExperimentMethodData]] = None
 
@@ -63,55 +62,31 @@ class Scenario:
             calculation_setup.register()
         return calculation_setup
 
-    def create_results_to_technology_tree(self, results: ndarray):
+    def create_results_to_technology_tree(self, results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
         """
         Add results to the technology tree, for each method
         """
 
-        def resolve_result_tree():
-            """
-            Sum up the results in the complete hierarchy
-            """
+        def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]):
+            for child in node.children:
+                for key, value in child.data.results.items():
+                    if node.data.results.get(key) is None:
+                        node.data.results[key] = 0
+                    node.data.results[key] += value
 
-            def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]) -> ScenarioResultNodeData:
-                if node.is_leaf:
-                    return node.data.results
-                for child in node.children:
-                    recursive_resolve_node(child)
-                for child in node.children:
-                    for key, value in child.data.results.items():
-                        if node.data.results.get(key) is None:
-                            node.data.results[key] = 0
-                        node.data.results[key] += value
-
-            # TODO: WHY!?!?
-            # def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]):
-            #     for child in node.children:
-            #         for key, value in child.data.items():
-            #             if node.data.get(key) is None:
-            #                 node.data[key] = 0
-            #             node.data[key] += value
-
-            # self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
-            recursive_resolve_node(self.result_tree)
-
-        self.result_tree = self.experiment.technology_root_node.copy()
-        # todo should be the same set of activities
         activity_nodes = self.result_tree.get_leaves()
+        # todo should be the same set of activities
         activities_aliases = list(self.activities_outputs.keys())
 
         methods_aliases: list[str] = list(self.get_methods().keys())
         for result_index, alias in enumerate(activities_aliases):
             bw_activity = self.experiment.get_activity(alias).bw_activity
             activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
-            # todo should already been that type. just fill in the numbers
-            # todo recusrively calculate output
-            activity_node.data = ScenarioResultNodeData(
-                output=(bw_activity['unit'], self.activities_outputs[alias])
-            )
             for method_index, method in enumerate(methods_aliases):
                 activity_node.data.results[method] = results[result_index][method_index]
-        resolve_result_tree()
+
+        self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
+        return self.result_tree
 
     def get_methods(self) -> Optional[dict[str, ExperimentMethodData]]:
         if self.methods:
@@ -124,8 +99,40 @@ class Scenario:
             raise ValueError(f"Scenario '{self.alias}' has no methods")
         logger.info(f"Running scenario '{self.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup()
-        results = MultiLCA(bw_calc_setup.name).results
-        self.create_results_to_technology_tree(results)
+
+        self.result_tree = self.experiment.technology_root_node.copy()
+        activity_nodes = self.result_tree.get_leaves()
+        activities_aliases = list(self.activities_outputs.keys())
+        for result_index, alias in enumerate(activities_aliases):
+            bw_activity = self.experiment.get_activity(alias).bw_activity
+            activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
+            # todo this does not consider magnitude...
+            activity_node.data.output = (bw_activity['unit'].replace(" ", "_"), self.activities_outputs[alias])
+
+        results: ndarray = MultiLCA(bw_calc_setup.name).results
+
+        def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData]):
+            if node.is_leaf:
+                return
+            node_output = None
+            for child in node.children:
+                output = ureg.parse_expression(child.data.output[0]) * child.data.output[1]
+                try:
+                    if not node_output:
+                        node_output = output
+                    else:
+                        node_output += output
+                except DimensionalityError as err:
+                    logger.warning(f"Cannot aggregate output to parent: {node.name}. "
+                                   f"From earlier children the base unit is {node_output.to_base_units()} "
+                                   f"and from {child.name} it is {output.units}."
+                                   f" {err}")
+            node_output = node_output.to_compact()
+            node.data.output = (str(node_output.units), node_output.magnitude)
+
+        self.result_tree.recursive_apply(recursive_resolve_outputs, depth_first=True)
+
+        return self.create_results_to_technology_tree(results)
 
     def results_to_csv(self, file_path: Path, include_method_units: bool = False):
         """
@@ -153,6 +160,7 @@ class Scenario:
 
 
 class Experiment:
+    DEFAULT_SCENARIO_ALIAS = "default scenario"
 
     def __init__(self, raw_data: ExperimentData):
         self.raw_data = raw_data
@@ -379,7 +387,7 @@ class Experiment:
                 _scenario.alias = alias
                 scenarios.append(validate_scenario(_scenario))
         elif not raw_scenarios:
-            default_scenario = ExperimentScenarioData(alias="default scenario")
+            default_scenario = ExperimentScenarioData(alias=Experiment.DEFAULT_SCENARIO_ALIAS)
             scenarios.append(validate_scenario(default_scenario))
 
         return scenarios
@@ -388,10 +396,10 @@ class Experiment:
         if not self.raw_data.hierarchy:
             self.raw_data.hierarchy = list(self.activitiesMap.keys())
 
-        tech_tree: BasicTreeNode = BasicTreeNode[ScenarioResultNodeData].from_dict(self.raw_data.hierarchy,
-                                                                                   compact=True,
-                                                                                   data_factory=lambda
-                                                                                       e: ScenarioResultNodeData())
+        tech_tree: BasicTreeNode[ScenarioResultNodeData] = (BasicTreeNode.from_dict(self.raw_data.hierarchy,
+                                                                                    compact=True,
+                                                                                    data_factory=lambda
+                                                                                        _: ScenarioResultNodeData()))
         for leaf in tech_tree.get_leaves():
             leaf._data = self.get_activity(leaf.name, True)
         return tech_tree
@@ -412,6 +420,12 @@ class Experiment:
         return results
 
     def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None, include_method_units: bool = True):
+        """
+        :param file_path:
+        :param scenario_name:
+        :param include_method_units:  (Include the units of the methods in the header)
+        :return:
+        """
         if scenario_name:
             scenario = self.get_scenario(scenario_name)
         else:

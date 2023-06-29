@@ -1,8 +1,9 @@
 from copy import copy
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from typing import Optional, Union, Type
 
 import bw2data as bd
+from bw2data import calculation_setups
 from bw2data.backends import Activity
 from pydantic import Field, Extra
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -251,3 +252,16 @@ class ExperimentDataIO:
     hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
     scenarios: Optional[Union[ScenariosDataTypes, str]] = None
     config: Optional[ScenarioConfig] = ScenarioConfig()
+
+
+@dataclass
+class BWCalculationSetup:
+    name: str
+    inv: list[dict[Activity, float]]
+    ia: list[tuple[str]]
+
+    def register(self):
+        calculation_setups[self.name] = {
+            "inv": self.inv,
+            "ia": self.ia
+        }

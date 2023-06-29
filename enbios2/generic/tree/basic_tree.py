@@ -144,6 +144,7 @@ class BasicTreeNode(Generic[T]):
 
     def as_dict(self,
                 include_data: bool = False,
+                include_temp_data: bool = False,
                 data_serializer: Optional[Callable[[T], Any]] = None) -> dict[str, Any]:
         """
         Convert the hierarchy from this node down into a dictionary.
@@ -158,6 +159,8 @@ class BasicTreeNode(Generic[T]):
         }
         if include_data:
             result["data"] = data_serializer(self.data) if data_serializer else self.data
+        if include_temp_data:
+            result["data"] = self._data
         return result
 
     @staticmethod
@@ -572,19 +575,42 @@ class BasicTreeNode(Generic[T]):
 
         return root
 
-    def recursive_apply(self,
-                        func: Callable[["BasicTreeNode", ...], Any],
-                        depth_first: bool = False,
-                        *args, **kwargs) -> Generator[Any, Any, Any]:
+    def recursive_apply_eager(self,
+                              func: Callable[["BasicTreeNode", ...], Any],
+                              depth_first: bool = False,
+                              *args, **kwargs):
+        if not depth_first:
+            func(self, *args, **kwargs)
+
+        for child in self.children:
+            child.recursive_apply_eager(func, depth_first, *args, **kwargs)
+
+        if depth_first:
+            func(self, *args, **kwargs)
+
+    def recursive_apply_lazy(self,
+                             func: Callable[["BasicTreeNode", ...], Any],
+                             depth_first: bool = False,
+                             *args, **kwargs) -> Generator[Any, Any, Any]:
         if not depth_first:
             yield func(self, *args, **kwargs)
 
         for child in self.children:
-            for res in child.recursive_apply(func, depth_first, *args, **kwargs):
+            for res in child.recursive_apply_lazy(func, depth_first, *args, **kwargs):
                 yield res
 
         if depth_first:
             yield func(self, *args, **kwargs)
+
+    def recursive_apply(self,
+                        func: Callable[["BasicTreeNode", ...], Any],
+                        depth_first: bool = False,
+                        lazy: bool = False,
+                        *args, **kwargs):
+        if lazy:
+            return self.recursive_apply_lazy(func, depth_first, *args, **kwargs)
+        else:
+            self.recursive_apply_eager(func, depth_first, *args, **kwargs)
 
     def get_child(self, child_index_name: Union[int, str]) -> "BasicTreeNode":
         """
