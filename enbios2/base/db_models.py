@@ -27,6 +27,10 @@ class EcoinventDataset(MainDatabase):
     directory: Path = PathField(null=True)  # Path typehint, so that static checker chills
     identity = TextField(unique=True)
 
+    _V391 = "3.9.1"
+    _SM_CUTOFF = "cutoff"
+    _SM_CONSEQUENTIAL = "consequential"
+    _SM_APOS = "apos"
     _valid_ecoinvent_versions = {"3.8", "3.9", "3.9.1"}
     _valid_ecoinvent_system_models = {"cutoff", "consequential", "apos"}
     _valid_ecoinvent_datatypes = {"default", "lci", "lcia"}

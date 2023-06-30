@@ -108,7 +108,7 @@ def get_ecoinvent_dataset_index(*,
     if has_bw_project is not None:
         query = query.select().join(BWProjectIndex, JOIN.LEFT_OUTER).where(
             BWProjectIndex.ecoinvent_dataset.is_null(not has_bw_project))
-        return list(query)
+    return list(query)
 
     def is_resolved_database_available(dataset: EcoinventDataset):
         """

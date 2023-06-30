@@ -1,0 +1,1 @@
+from .project_index import set_bw_current_project
