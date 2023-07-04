@@ -4,13 +4,21 @@ from pathlib import Path
 import bw2data
 import networkx as nx
 from bw2data.backends import ActivityDataset, ExchangeDataset
+from networkx import topological_sort, cycle_basis, dominating_set
 from tqdm import tqdm
 from playhouse.shortcuts import model_to_dict
+
+from enbios2.bw2.project_index import set_bw_current_project
+from enbios2.const import BASE_DATA_PATH
+from enbios2.generic.files import DataPath
 
 # Create an empty graph
 G = nx.DiGraph()
 
-bw2data.projects.set_current("ecoi_dbs")
+set_bw_current_project("cutoff", "3.9.1")
+# print(list(bw2data.databases))
+# random_act = db.random()
+db = bw2data.Database("cutoff_3.9.1_default")
 activities = ActivityDataset.select()
 
 # g_node_data = []
@@ -42,3 +50,15 @@ def serialize(graph: nx.Graph, path: Path):
 
 def deserialize(path: Path) -> nx.Graph:
     return pickle.load(path.open("rb"))
+
+# serialize(G, (BASE_DATA_PATH / "graph.nx"))
+
+# does not work for directed graphs
+# ordered = topological_sort(G)
+# with (BASE_DATA_PATH / "topolical_order.txt").open("w") as fout:
+#     for node in ordered:
+#         fout.write(node + "\n")
+
+
+
+D = dominating_set(G)
