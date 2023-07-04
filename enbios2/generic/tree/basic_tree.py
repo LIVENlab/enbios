@@ -31,7 +31,7 @@ class BasicTreeNode(Generic[T]):
 
     def __init__(self,
                  name: str,
-                 children: list["BasicTreeNode", dict[str, Any]] = (),
+                 children: Optional[list[Union["BasicTreeNode", dict[str, Any]]]] = None,
                  data: Optional[T] = None,
                  data_factory: Optional[Callable[["BasicTreeNode"], T]] = None,
                  **kwargs):
@@ -43,13 +43,15 @@ class BasicTreeNode(Generic[T]):
         """
         if not name:
             raise ValueError("name must be a non-empty string")
+
         self._name: str = name
         self.children: list[BasicTreeNode[T]] = []
-        for child in children:
-            if isinstance(child, dict):
-                child = BasicTreeNode.from_dict(child, data_factory=data_factory)
-            self.add_child(child)
-        self.parent: Optional[BasicTreeNode] = None
+        if children:
+            for child in children:
+                if isinstance(child, dict):
+                    child = BasicTreeNode.from_dict(child, data_factory=data_factory)
+                self.add_child(child)
+        self.parent: Optional[BasicTreeNode[T]] = None
         self.data: Optional[T] = data
         self._data: dict[str, Any] = kwargs  # this is used for temporary storage of data
         self._id: bytes = self.generate_id()
@@ -77,7 +79,7 @@ class BasicTreeNode(Generic[T]):
         """
         return len(self.location()) - 1
 
-    def temp_data(self) ->  dict[str, Any]:
+    def temp_data(self) -> dict[str, Any]:
         """
         Additional data that can be used for temporary storage
         :return:
@@ -144,7 +146,6 @@ class BasicTreeNode(Generic[T]):
 
     def as_dict(self,
                 include_data: bool = False,
-                include_temp_data: bool = False,
                 data_serializer: Optional[Callable[[T], Any]] = None) -> dict[str, Any]:
         """
         Convert the hierarchy from this node down into a dictionary.
@@ -154,13 +155,11 @@ class BasicTreeNode(Generic[T]):
         result = {
             "name": self.name,
             "children": [
-                child.as_dict(include_data, data_serializer) for child in self.children
+                child.as_dict(include_data, data_serializer=data_serializer) for child in self.children
             ]
         }
-        if include_data:
+        if include_data and self.data:
             result["data"] = data_serializer(self.data) if data_serializer else self.data
-        if include_temp_data:
-            result["data"] = self._data
         return result
 
     @staticmethod
@@ -206,17 +205,18 @@ class BasicTreeNode(Generic[T]):
         root = BasicTreeNode(name=root_name, children=generate_node(input_dict), data_factory=data_factory)
         return root
 
-    def location(self) -> list["BasicTreeNode"]:
+    def location(self) -> list["BasicTreeNode[T]"]:
         """
         Get the path from the root to this node.
 
         :return: List of nodes representing the path from the root to this node.
         """
-        nodes: list[BasicTreeNode] = []
+        nodes: list[BasicTreeNode[T]] = []
         current = self
-        while current is not None:
+        while True:
             nodes.append(current)
-            current = current.parent
+            if current.parent is None:
+                break
         return list(reversed(nodes))
 
     def location_names(self) -> list[str]:
@@ -229,6 +229,8 @@ class BasicTreeNode(Generic[T]):
         current = self
         while current:
             nodes.append(current.name)
+            if not current.parent:
+                break
             current = current.parent
         return list(reversed(nodes))
 
@@ -240,7 +242,7 @@ class BasicTreeNode(Generic[T]):
         """
         return "_".join(self.location_names())
 
-    def assert_all_names_unique(self):
+    def assert_all_names_unique(self) -> Literal[True]:
         """
         Assert that all names in the tree are unique. Throws an exception
         if any name is found more than once.
@@ -256,6 +258,7 @@ class BasicTreeNode(Generic[T]):
                 rec_assert_unique_name(child)
 
         rec_assert_unique_name(self)
+        return True
 
     def make_names_unique(self, strategy: Literal["parent_name"] = "parent_name"):
         """
@@ -265,7 +268,7 @@ class BasicTreeNode(Generic[T]):
         """
 
         if strategy == "parent_name":
-            name_map: dict[str, list[BasicTreeNode]] = {}
+            name_map: dict[str, list[BasicTreeNode[T]]] = {}
             for node in self.iter_all_nodes():
                 node._data["orig_name"] = node.name
                 name_map.setdefault(node.name, []).append(node)
@@ -284,6 +287,7 @@ class BasicTreeNode(Generic[T]):
                         new_name = node.name
                         p = node
                         for i in range(parent_level):
+                            assert p.parent is not None
                             p = p.parent
                             new_name = f"{p._data['orig_name']}_{new_name}"
                         node.name = new_name
@@ -311,13 +315,14 @@ class BasicTreeNode(Generic[T]):
         :return: The node if found, None otherwise.
         """
 
-        def rec_find_child(node: BasicTreeNode) -> Optional["BasicTreeNode"]:
+        def rec_find_child(node: BasicTreeNode[T]) -> Optional["BasicTreeNode[T]"]:
             if node.name == name:
                 return node
             for child in node.children:
                 found_node = rec_find_child(child)
                 if found_node:
                     return found_node
+            return None
 
         if not recursive:
             for node in [self] + self.children:
@@ -361,7 +366,8 @@ class BasicTreeNode(Generic[T]):
     def to_csv(self, csv_file: Path, *,
                include_data: Optional[bool] = False,
                data_serializer: Optional[Callable[[T], dict]] = None,
-               exclude_data_keys=None, level_names: list[str] = None,
+               exclude_data_keys: Optional[list[str]] = None,
+               level_names: Optional[list[str]] = None,
                merge_first_sub_row: bool = False, repeat_parent_name: bool = False):
 
         # Calculate max_depth based on root if not provided
@@ -374,11 +380,12 @@ class BasicTreeNode(Generic[T]):
                 "as sub-row data will overwrite parent data")
 
         include_data_keys = []
-        if include_data:
+        if include_data and self.data:
             if data_serializer:
                 include_data_keys = list(data_serializer(self.data).keys())
             else:
-                include_data_keys = list(self.data.keys())
+                if isinstance(self.data, dict):
+                    include_data_keys = list(self.data.keys())
             if exclude_data_keys:
                 include_data_keys = list(set(include_data_keys) - set(exclude_data_keys))
         _total_level_names = level_names if level_names else []
@@ -388,19 +395,24 @@ class BasicTreeNode(Generic[T]):
                 _total_level_names.append(f"lvl{level}")
             return _total_level_names[level]
 
-        def rec_add_node_row(node: "BasicTreeNode", current_level: int = 0) -> list[dict[str, Union[str, float]]]:
+        def rec_add_node_row(node: "BasicTreeNode[T]",
+                             include_data_: Optional[bool] = False,
+                             current_level: int = 0) -> list[dict[str, Union[str, float]]]:
             row = {}
-            if include_data:
+            if include_data_ and node.data:
+                node_data: dict[str, Any] = {}
                 if data_serializer:
                     node_data = data_serializer(node.data)
-                else:
+                elif isinstance(node.data, dict):
                     node_data = node.data
                 for data_key in include_data_keys:
                     row[data_key] = node_data.get(data_key, "")
+                else:
+                    logger.warning(f"Data is not a dict and no data_serializer provided, skipping data")
             row[level_name(current_level)] = node.name
             _sub_rows = []
             for child in node.children:
-                _sub_rows.extend(rec_add_node_row(child, current_level + 1))
+                _sub_rows.extend(rec_add_node_row(child, include_data_, current_level + 1))
             if _sub_rows:
                 if merge_first_sub_row:
                     row = {**row, **_sub_rows[0]}
@@ -412,7 +424,7 @@ class BasicTreeNode(Generic[T]):
 
         # Write rows to csv
         with csv_file.open('w', newline='') as csvfile:
-            rows = rec_add_node_row(self)
+            rows = rec_add_node_row(self, include_data)
             headers = _total_level_names + include_data_keys
             writer = csv.DictWriter(csvfile, headers)
             writer.writeheader()
@@ -474,19 +486,19 @@ class BasicTreeNode(Generic[T]):
         :return: The subtree.
         """
 
-        def rec_get_sub_tree(node: BasicTreeNode, max_level: int, **kwargs) -> BasicTreeNode:
+        def rec_get_sub_tree(node: BasicTreeNode[T], max_level: int, **kwargs) -> BasicTreeNode[T]:
 
             if max_level == 0:
-                return BasicTreeNode(node.name, **{k: getattr(node, k) for k in kwargs})
+                return BasicTreeNode[T](node.name, **{k: getattr(node, k) for k in kwargs})
             else:
-                sub_tree = BasicTreeNode(node.name)
+                sub_tree = BasicTreeNode[T](node.name)
                 for child in node.children:
                     sub_tree.add_child(child.get_sub_tree(max_level - 1))
                 return sub_tree
 
         return rec_get_sub_tree(self, max_level)
 
-    def iter_all_nodes(self) -> Generator["BasicTreeNode", None, None]:
+    def iter_all_nodes(self) -> Generator["BasicTreeNode[T]", None, None]:
         """
         iterates all nodes of the tree. (Depth-First Search)
         :return: Generator of all nodes.
@@ -539,44 +551,52 @@ class BasicTreeNode(Generic[T]):
         reset_parents(node)
         return node
 
-    def copy_an_merge(self, child_names: list[str], parent_name: Optional[str] = None) -> "BasicTreeNode":
+    def copy_an_merge(self, child_names: list[str], parent_name: Optional[str] = None) -> "BasicTreeNode[T]":
         """
         Copy this node and all children given in  child_names.
         :param child_names: The names of the children to be copied.
         :param parent_name: The name of the new root node. Default: self.name
         :return: node that contains all "copies" as children.
         """
-        _root = BasicTreeNode(parent_name if parent_name else self.name)
+        _root = BasicTreeNode[T](parent_name if parent_name else self.name)
         for child_name in child_names:
             _root.add_child(self.copy(child_name))
         return _root
 
     @staticmethod
     def from_csv(csv_file: Path,
-                 node_columns: list[str] = None,
-                 merged_first_sub_row: bool = True) -> "BasicTreeNode":
+                 node_columns: Optional[list[str]] = None,
+                 merged_first_sub_row: Optional[bool] = True) -> "BasicTreeNode[T]":
         reader: csv.DictReader = csv.DictReader(csv_file.open("r", encoding="utf-8"))
         if not node_columns:
-            node_columns = reader.fieldnames
+            if reader.fieldnames:
+                node_columns = list(reader.fieldnames)
+            else:
+                raise ValueError("No fieldnames in csv.")
 
-        root: Optional["BasicTreeNode"] = None
-        current_node: Optional["BasicTreeNode"] = None
+        root: Optional["BasicTreeNode[T]"] = None
+        current_node: Optional["BasicTreeNode[T]"] = None
         for row in reader:
             for index, lvl_name in enumerate(node_columns):
                 if row[lvl_name].strip() == "":
                     continue
                 if index == 0 and not root:
-                    root = BasicTreeNode(row[reader.fieldnames[0]])
+                    root = BasicTreeNode[T](row[node_columns[0]])
                     current_node = root
                     continue
-                if current_node.level >= index:
+                if current_node and current_node.level >= index:
                     current_node = current_node.level_up(current_node.level - index + 1)
+                else:
+                    raise ValueError(f"Cannot level up from {current_node}/level: {current_node}. ")
                 current_node = current_node.add_child(BasicTreeNode(row[lvl_name]))
 
-        return root
+        if not root:
+            raise ValueError("Could not generate tree from csv.")
+        else:
+            return root
 
     def recursive_apply_eager(self,
-                              func: Callable[["BasicTreeNode", ...], Any],
+                              func: Callable[["BasicTreeNode", Any], Any],
                               depth_first: bool = False,
                               *args, **kwargs):
         if not depth_first:
@@ -589,7 +609,7 @@ class BasicTreeNode(Generic[T]):
             func(self, *args, **kwargs)
 
     def recursive_apply_lazy(self,
-                             func: Callable[["BasicTreeNode", ...], Any],
+                             func: Callable[["BasicTreeNode", Any], Any],
                              depth_first: bool = False,
                              *args, **kwargs) -> Generator[Any, Any, Any]:
         if not depth_first:
@@ -603,7 +623,7 @@ class BasicTreeNode(Generic[T]):
             yield func(self, *args, **kwargs)
 
     def recursive_apply(self,
-                        func: Callable[["BasicTreeNode", ...], Any],
+                        func: Callable[["BasicTreeNode", Optional[Any]], Any],
                         depth_first: bool = False,
                         lazy: bool = False,
                         *args, **kwargs):
@@ -678,6 +698,7 @@ class BasicTreeNode(Generic[T]):
         """
         # print(item)
         if isinstance(item, BasicTreeNode) or issubclass(type(item), BasicTreeNode):
+            assert not isinstance(item, str)
             item = item.name
         for child_name in self.get_child_names():
             if child_name == item:
@@ -720,7 +741,7 @@ class BasicTreeNode(Generic[T]):
             else:
                 return ""
 
-        def mm_connection(node: BasicTreeNode):
+        def mm_connection(node: BasicTreeNode[T], _=None):
             return f"{safe_name(node.parent)} {arrow_style} {node_repr(node)}{style(node)}" if node.parent else ""
 
         lines = "\n".join([con for con in self.recursive_apply(mm_connection) if con])

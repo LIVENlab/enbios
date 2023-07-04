@@ -24,8 +24,9 @@ class EcoinventDataset(MainDatabase):
     system_model = TextField()  # cutoff, consequential, apos
     type = TextField(default="default")  # ecoinvent_dataset_types
     xlsx = BooleanField(default=False)
-    directory: Path = PathField(null=True)  # Path typehint, so that static checker chills
+    directory: Path = PathField(null=True)  # Path typehint, so that static checker chills; # type: ignore
     identity = TextField(unique=True)
+    # bw_project_db = ForeignKeyField("BWProjectIndex", backref="ecoinvent_dataset", null=True, unique=True)
 
     _V391 = "3.9.1"
     _SM_CUTOFF = "cutoff"
@@ -37,7 +38,7 @@ class EcoinventDataset(MainDatabase):
 
     @property
     def bw_project_index(self) -> Optional["BWProjectIndex"]:
-        return self.bw_project_db.get_or_none()
+        return BWProjectIndex.select().where(BWProjectIndex.ecoinvent_dataset == self).get_or_none()
 
     class Meta:
         table_name = "ecoinvent_dataset"
@@ -78,7 +79,11 @@ class EcoinventDataset(MainDatabase):
         else:
             return self.directory / f"datasets"
 
-    __repr__ = __str__ = lambda self: f"EcoinventDataset: {self.identity}"
+    def __repr__(self):
+        return f"EcoinventDataset: {self.identity}"
+
+    def __str__(self):
+        return self.__repr__()
 
     @staticmethod
     def dump_database(entries: Optional[list["EcoinventDataset"]] = None,
@@ -120,8 +125,12 @@ class BWProjectIndex(MainDatabase):
     class Meta:
         table_name = "bw_project_index"
 
+    @property
+    def get_ecoinvent_dataset(self) -> Optional[EcoinventDataset]:
+        return EcoinventDataset.get_or_none(EcoinventDataset == self.ecoinvent_dataset)
+
     def __repr__(self):
-        return f"BWProjectIndex: {self.project_name} - {self.database_name} ({self.ecoinvent_dataset})"
+        return f"BWProjectIndex: {self.project_name} - {self.database_name} ({self.get_ecoinvent_dataset})"
 
     def __str__(self):
         return self.__repr__()

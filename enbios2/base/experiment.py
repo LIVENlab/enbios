@@ -1,13 +1,13 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import bw2data as bd
 import plotly.graph_objects as go
 from bw2calc import MultiLCA
 from bw2data.backends import Activity
 from numpy import ndarray
-from pint import UnitRegistry, DimensionalityError
+from pint import UnitRegistry, DimensionalityError, Quantity
 
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
@@ -35,20 +35,32 @@ dict of Method tuple, to result-value
 
 @dataclass
 class ScenarioResultNodeData:
-    output: tuple[str, Optional[float]] = ("", None)
+    output: tuple[str, float]
     results: dict[Union[tuple[str], str], float] = field(default_factory=dict)
 
 
 @dataclass
 class Scenario:
     experiment: "Experiment"
-    alias: Optional[str] = None
+    alias: str
     # this should be a simpler type - just str: float
     # todo not used yet
-    orig_outputs: Optional[dict[str, float]] = field(default_factory=dict)  # output declaration before conversion
+    orig_outputs: Optional[dict[str, float]] = field(
+        default_factory=dict[str, float])  # output declaration before conversion
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
     methods: Optional[dict[str, ExperimentMethodData]] = None
+
+    def prepare_tree(self):
+        self.result_tree = self.experiment.technology_root_node.copy()
+        activity_nodes = self.result_tree.get_leaves()
+        activities_aliases = list(self.activities_outputs.keys())
+        for result_index, alias in enumerate(activities_aliases):
+            bw_activity = self.experiment.get_activity(alias).bw_activity
+            activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
+            # todo this does not consider magnitude...
+            activity_node.data = ScenarioResultNodeData(output=(bw_activity['unit'].replace(" ", "_"),
+                                                                self.activities_outputs[alias]))
 
     def create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
@@ -69,10 +81,11 @@ class Scenario:
 
         def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]):
             for child in node.children:
-                for key, value in child.data.results.items():
-                    if node.data.results.get(key) is None:
-                        node.data.results[key] = 0
-                    node.data.results[key] += value
+                if child.data:
+                    for key, value in child.data.results.items():
+                        if node.data.results.get(key) is None:
+                            node.data.results[key] = 0
+                        node.data.results[key] += value
 
         activity_nodes = self.result_tree.get_leaves()
         # todo should be the same set of activities
@@ -88,7 +101,7 @@ class Scenario:
         self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
         return self.result_tree
 
-    def get_methods(self) -> Optional[dict[str, ExperimentMethodData]]:
+    def get_methods(self) -> dict[str, ExperimentMethodData]:
         if self.methods:
             return self.methods
         else:
@@ -99,17 +112,6 @@ class Scenario:
             raise ValueError(f"Scenario '{self.alias}' has no methods")
         logger.info(f"Running scenario '{self.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup()
-
-        self.result_tree = self.experiment.technology_root_node.copy()
-        activity_nodes = self.result_tree.get_leaves()
-        activities_aliases = list(self.activities_outputs.keys())
-        for result_index, alias in enumerate(activities_aliases):
-            bw_activity = self.experiment.get_activity(alias).bw_activity
-            activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
-            # todo this does not consider magnitude...
-            activity_node.data.output = (bw_activity['unit'].replace(" ", "_"), self.activities_outputs[alias])
-
-        results: ndarray = MultiLCA(bw_calc_setup.name).results
 
         def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData]):
             if node.is_leaf:
@@ -128,10 +130,10 @@ class Scenario:
                                    f"and from {child.name} it is {output.units}."
                                    f" {err}")
             node_output = node_output.to_compact()
-            node.data.output = (str(node_output.units), node_output.magnitude)
+            node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
 
+        results: ndarray = MultiLCA(bw_calc_setup.name).results
         self.result_tree.recursive_apply(recursive_resolve_outputs, depth_first=True)
-
         return self.create_results_to_technology_tree(results)
 
     def results_to_csv(self, file_path: Path, include_method_units: bool = False):
@@ -144,7 +146,7 @@ class Scenario:
             raise ValueError(f"Scenario '{self.alias}' has no results")
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
-            result = {}
+            result: dict[str, Union[str, float]] = {}
             if data.output:
                 result["unit"] = data.output[0]
                 result['amount'] = data.output[1]
@@ -266,7 +268,7 @@ class Experiment:
     def validate_output(target_output: ExtendedExperimentActivityOutput,
                         activity: ExtendedExperimentActivityData) -> float:
         try:
-            target_quantity = ureg.parse_expression(
+            target_quantity: Quantity = ureg.parse_expression(
                 target_output.unit, case_sensitive=False) * target_output.magnitude
             return target_quantity.to(activity.bw_activity['unit']).magnitude
         except Exception as err:
@@ -302,20 +304,23 @@ class Experiment:
             Experiment.validate_method(method)
         return method_dict
 
-    def get_activity(self,
-                     alias_or_id: Union[str, ExperimentActivityId],
-                     raise_error_if_missing: bool = True) -> Optional[ExtendedExperimentActivityData]:
+    def has_activity(self,
+                     alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityData]:
         if isinstance(alias_or_id, str):
             activity = self.activitiesMap.get(alias_or_id, None)
-            if not activity and raise_error_if_missing:
-                raise ValueError(f"Activity with alias {alias_or_id} not found")
             return activity
         elif isinstance(alias_or_id, ExperimentActivityId):
             for activity in self.activitiesMap.values():
                 if activity.orig_id == alias_or_id:
                     return activity
-            if raise_error_if_missing:
-                raise ValueError(f"Activity with id {alias_or_id} not found")
+            return None
+
+    def get_activity(self,
+                     alias_or_id: Union[str, ExperimentActivityId]) -> ExtendedExperimentActivityData:
+        activity = self.has_activity(alias_or_id)
+        if not activity:
+            raise ValueError(f"Activity with id {alias_or_id} not found")
+        return activity
 
     def validate_scenarios(self) -> list[Scenario]:
         """
@@ -342,10 +347,11 @@ class Experiment:
                     activity_outputs[activity.alias] = output
             return activity_outputs
 
-        def validate_scenario(scenario: ExperimentScenarioData) -> Scenario:
+        def validate_scenario(scenario: ExperimentScenarioData, _scenario_alias: str) -> Scenario:
             """
             Validate one scenario
             :param scenario:
+            :param _scenario_alias:
             :return:
             """
             scenario_activities_outputs: Activity_Outputs = validate_activities(scenario)
@@ -364,7 +370,7 @@ class Experiment:
                 scenario.methods = self.prepare_methods(scenario.methods)
 
             return Scenario(experiment=self,
-                            alias=scenario.alias,
+                            alias=_scenario_alias,
                             activities_outputs=scenario_activities_outputs,
                             methods=scenario.methods)
 
@@ -373,23 +379,24 @@ class Experiment:
 
         # from Union, list or dict
         if isinstance(raw_scenarios, list):
-            raw_scenarios: list[ExperimentScenarioData] = self.raw_data.scenarios
-            for index, _scenario in enumerate(raw_scenarios):
-                if not _scenario.alias:
-                    _scenario.alias = ExperimentScenarioData.alias_factory(index)
-                scenarios.append(validate_scenario(_scenario))
+            raw_list_scenarios: list[ExperimentScenarioData] = self.raw_data.scenarios
+            for index, _scenario in enumerate(raw_list_scenarios):
+                _scenario_alias = _scenario.alias if _scenario.alias else ExperimentScenarioData.alias_factory(index)
+                scenarios.append(validate_scenario(_scenario, _scenario_alias))
         elif isinstance(self.raw_data.scenarios, dict):
-            raw_scenarios: dict[str, ExperimentScenarioData] = self.raw_data.scenarios
-            for alias, _scenario in raw_scenarios.items():
+            raw_dict_scenarios: dict[str, ExperimentScenarioData] = self.raw_data.scenarios
+            for alias, _scenario in raw_dict_scenarios.items():
                 if _scenario.alias is not None and _scenario.alias != alias:
                     assert False, (f"Scenario defines alias as dict-key: {alias} but "
                                    f"also in the scenario object: {_scenario.alias}")
                 _scenario.alias = alias
-                scenarios.append(validate_scenario(_scenario))
+                scenarios.append(validate_scenario(_scenario, alias))
         elif not raw_scenarios:
-            default_scenario = ExperimentScenarioData(alias=Experiment.DEFAULT_SCENARIO_ALIAS)
-            scenarios.append(validate_scenario(default_scenario))
+            default_scenario = ExperimentScenarioData()
+            scenarios.append(validate_scenario(default_scenario, Experiment.DEFAULT_SCENARIO_ALIAS))
 
+        for scenario in scenarios:
+            scenario.prepare_tree()
         return scenarios
 
     def create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
@@ -397,24 +404,22 @@ class Experiment:
             self.raw_data.hierarchy = list(self.activitiesMap.keys())
 
         tech_tree: BasicTreeNode[ScenarioResultNodeData] = (BasicTreeNode.from_dict(self.raw_data.hierarchy,
-                                                                                    compact=True,
-                                                                                    data_factory=lambda
-                                                                                        _: ScenarioResultNodeData()))
+                                                                                    compact=True))
         for leaf in tech_tree.get_leaves():
-            leaf._data = self.get_activity(leaf.name, True)
+            leaf._data = self.get_activity(leaf.name)
         return tech_tree
 
     def get_scenario(self, scenario_name: str) -> Scenario:
         for scenario in self.scenarios:
             if scenario.alias == scenario_name:
                 return scenario
-        raise f"Scenario '{scenario_name}' not found"
+        raise ValueError(f"Scenario '{scenario_name}' not found")
 
-    def run_scenario(self, scenario_name: str) -> dict:
+    def run_scenario(self, scenario_name: str) -> dict[str, Any]:
         return self.get_scenario(scenario_name).run().as_dict(include_data=True)
 
-    def run(self) -> dict[str, dict]:
-        results = {}
+    def run(self) -> dict[str, dict[str, Any]]:
+        results: dict[str, dict[str, Any]] = {}
         for scenario in self.scenarios:
             results[scenario.alias] = self.run_scenario(scenario.alias)
         return results
@@ -440,6 +445,9 @@ class Experiment:
                         show: bool = False):
 
         scenario = self.get_scenario(scenario_name) if scenario_name else self.scenarios[0]
+        if not scenario.result_tree:
+            logger.info(f"Scenario '{scenario.alias}' has no results to plot")
+            return
         all_nodes = list(scenario.result_tree.iter_all_nodes())
         node_labels = [node.name for node in all_nodes]
 

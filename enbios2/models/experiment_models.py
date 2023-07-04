@@ -64,7 +64,9 @@ class ExperimentActivityId:
                                f" {(self.name, self.location, self.unit)}. Results are: {search_results}")
             return search_results[0]
 
-    def fill_empty_fields(self, fields: list[Union[str, tuple[str, str]]] = (), **kwargs):
+    def fill_empty_fields(self, fields: list[Union[str, tuple[str, str]]] = None, **kwargs):
+        if not fields:
+            fields = []
         for field in fields:
             if isinstance(field, tuple):
                 if not getattr(self, field[0]):
@@ -81,7 +83,7 @@ class ExperimentActivityOutputDict:
 
 
 # this is just for the schema to accept an array.
-ExperimentActivityOutputArray: Type = tuple[str, float]
+ExperimentActivityOutputArray = tuple[str, float]
 
 ExperimentActivityOutput = Union[ExperimentActivityOutputDict, ExperimentActivityOutputArray]
 
@@ -258,7 +260,7 @@ class ExperimentDataIO:
 class BWCalculationSetup:
     name: str
     inv: list[dict[Activity, float]]
-    ia: list[tuple[str]]
+    ia: list[tuple[str, ...]]
 
     def register(self):
         calculation_setups[self.name] = {

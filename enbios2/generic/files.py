@@ -1,7 +1,7 @@
 import json
 from csv import DictReader
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Union
 
 import openpyxl
 import xmltodict
@@ -52,7 +52,7 @@ class ReadPath(Path):
         elif self.suffix == ".xml":
             return xmltodict.parse(self.read_text(encoding="utf-8"))
 
-    def iter_data(self) -> Generator[dict, None, dict]:
+    def iter_data(self) -> Union[dict,Generator[dict, None, dict]]:
         if self.suffix == ".json":
             logger.warning("Reading json completely not as iterator")
             return json.loads(self.read_text(encoding="utf-8"))

@@ -1,7 +1,11 @@
 from typing import Generator, Iterator, Union
 
-import bw2data
+from bw2data import databases as bw_databases
+from bw2data import methods as bw_methods
+from bw2data.project import projects as bw_projects
+
 from bw2data.backends import Activity, ExchangeDataset, ActivityDataset
+from deprecated.classic import deprecated
 
 
 def info_exchanges(act: Activity) -> dict:
@@ -15,8 +19,7 @@ def info_exchanges(act: Activity) -> dict:
         print(exc)
     for exc in act.upstream():
         print(exc)
-    # print(exchanges)
-    # return {exc.input: exc for exc in act.exchanges()}
+    return {exc.input: exc for exc in act.exchanges()}
 
 
 def iter_exchange_by_ids(ids: Iterator[int], batch_size: int = 1000) -> Generator[ExchangeDataset, None, None]:
@@ -99,6 +102,7 @@ def clean_delete(activity: Activity):
     activity.delete()
 
 
+@deprecated
 def method_search(project_name: str, method_tuple: tuple[str, ...]) -> Union[
     dict, tuple[tuple[str, ...], dict[str, str]]]:
     """
@@ -107,9 +111,10 @@ def method_search(project_name: str, method_tuple: tuple[str, ...]) -> Union[
     In case of a match, it will result the full tuple and the method data
     todo: this method is weird and does too many things
     """
-    assert project_name in bw2data.projects, f"Project '{project_name}' does not exist"
-    bw2data.projects.set_current(project_name)
-    all_methods = bw2data.methods
+    # type: ignore[start]
+    assert project_name in bw_projects, f"Project '{project_name}' does not exist"
+    bw_projects.set_current(project_name)
+    all_methods = bw_methods
 
     bw_method = all_methods.get(method_tuple)
     if bw_method:
@@ -145,14 +150,16 @@ def method_search(project_name: str, method_tuple: tuple[str, ...]) -> Union[
     if bw_method:
         return tuple(result), bw_method
     raise ValueError(f"Method does not exist {method_tuple}")
+    # type: ignore[end]
+
 
 
 def report():
-    projects = list(bw2data.projects)
+    projects = list(bw_projects)
     for project in projects:
         print(project)
-        bw2data.projects.set_current(project.name)
-        databases = list(bw2data.databases)
+        bw_projects.set_current(project.name)
+        databases = list(bw_databases)
         print(databases)
 
 
