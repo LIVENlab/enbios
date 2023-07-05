@@ -1,6 +1,6 @@
 from copy import copy
-from dataclasses import asdict, dataclass
-from typing import Optional, Union, Type
+from dataclasses import asdict, dataclass, field
+from typing import Optional, Union
 
 import bw2data as bd
 from bw2data import calculation_setups
@@ -170,7 +170,21 @@ class BWMethod:
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentMethodData:
     id: tuple[str, ...]
-    alias: Optional[str] = None
+    alias: str
+
+    def __init__(self, id: tuple[str, ...], alias: Optional[str] = None):
+        self.id = id
+        if not alias:
+            self.alias = "_".join(id)
+
+
+@pydantic_dataclass(config=StrictInputConfig)
+class ExperimentMethodPrepData:
+    id: tuple[str, ...]
+    alias: str
+    bw_method: BWMethod
+
+
 
 
 @pydantic_dataclass(config=OperationConfig)
@@ -267,3 +281,13 @@ class BWCalculationSetup:
             "inv": self.inv,
             "ia": self.ia
         }
+
+
+@dataclass
+class ScenarioResultNodeData:
+    output: tuple[str, float]
+    results: dict[tuple[str], float] = field(default_factory=dict)
+
+
+# map from ExtendedExperimentActivityData.alias = (ExtendedExperimentActivityData.id.alias) to outputs
+Activity_Outputs = dict[str, float]

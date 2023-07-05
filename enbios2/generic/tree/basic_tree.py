@@ -52,11 +52,12 @@ class BasicTreeNode(Generic[T]):
                     child = BasicTreeNode.from_dict(child, data_factory=data_factory)
                 self.add_child(child)
         self.parent: Optional[BasicTreeNode[T]] = None
-        self.data: Optional[T] = data
         self._data: dict[str, Any] = kwargs  # this is used for temporary storage of data
         self._id: bytes = self.generate_id()
+        if data:
+            self.data: T = data
         if data_factory:
-            self.data = data_factory(self)
+            self.data: T = data_factory(self)
 
     def generate_id(self) -> bytes:
         self._id = b64encode(uuid4().bytes)
@@ -217,6 +218,8 @@ class BasicTreeNode(Generic[T]):
             nodes.append(current)
             if current.parent is None:
                 break
+            else:
+                current = current.parent
         return list(reversed(nodes))
 
     def location_names(self) -> list[str]:

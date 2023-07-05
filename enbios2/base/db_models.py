@@ -58,14 +58,12 @@ class EcoinventDataset(MainDatabase):
         super(EcoinventDataset, self).save(*args, **kwargs)
 
     @classmethod
-    def identity_exists(cls, identity: Union["EcoinventDataset", str]) -> bool:
+    def identity_exists(cls, identity: str) -> bool:
         """
         Check if the given identity exists in the database
-        :param identity: identity string or EcoinventDataset instance
+        :param identity: identity string
         :return: True, if exists
         """
-        if isinstance(identity, EcoinventDataset):
-            identity = identity.identity
         return cls.select().where(cls.identity == identity).exists()
 
     @property
