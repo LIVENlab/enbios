@@ -63,8 +63,10 @@ class ExperimentActivityId:
                 assert False, (f"results : {len(search_results)} for brightway activity-search:"
                                f" {(self.name, self.location, self.unit)}. Results are: {search_results}")
             return search_results[0]
+        else:
+            raise ValueError("No code or name specified")
 
-    def fill_empty_fields(self, fields: list[Union[str, tuple[str, str]]] = None, **kwargs):
+    def fill_empty_fields(self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs):
         if not fields:
             fields = []
         for field in fields:
@@ -77,19 +79,20 @@ class ExperimentActivityId:
 
 
 @pydantic_dataclass(config=StrictInputConfig)
-class ExperimentActivityOutputDict:
-    unit: str
-    magnitude: float = 1.0
+class SimpleScenarioActivityId:
+    name: str
+    code: str
+    alias: str
 
 
 # this is just for the schema to accept an array.
 ExperimentActivityOutputArray = tuple[str, float]
 
-ExperimentActivityOutput = Union[ExperimentActivityOutputDict, ExperimentActivityOutputArray]
+ExperimentActivityOutput = Union["ActivityOutput", ExperimentActivityOutputArray]
 
 
 @pydantic_dataclass(config=StrictInputConfig)
-class ExtendedExperimentActivityOutput:
+class ActivityOutput:
     unit: str
     magnitude: float = 1.0
 
@@ -111,49 +114,51 @@ class ExperimentActivityData:
         :param required_output:
         :return:
         """
-        result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**asdict(self))
-        result.orig_id = copy(self.id)
+        orig_id: ExperimentActivityId = copy(self.id)
+        bw_activity: Optional[Activity] = None
+
         if not self.id.database:
-            # assert default_id_attr.database is not None, (f"database must be specified for {self.id} "
-            #                                               f"or default_database set in config")
-            result.id.database = default_id_attr.database
+            if default_id_attr:
+                self.id.database = default_id_attr.database
         # assert result.id.database in bd.databases,
         # f"activity database does not exist: '{self.id.database}' for {self.id}"
         # todo, is the needed?
-        result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
-        if result.id.code:
-            if result.id.database:
-                result.bw_activity = bd.Database(result.id.database).get_node(result.id.code)
+        default_dict = asdict(default_id_attr) if default_id_attr else {}
+        self.id.fill_empty_fields(["alias"], **default_dict)
+        if self.id.code:
+            if self.id.database:
+                bw_activity = bd.Database(self.id.database).get_node(self.id.code)
             else:
-                result.bw_activity = get_activity(result.id.code)
-        elif result.id.name:
+                bw_activity = get_activity(self.id.code)
+        elif self.id.name:
             # assert result.id.database is not None, f"database must be specified for {self.id} or default_database set in config"
             filters = {}
-            search_in_dbs = [result.id.database] if result.id.database else bd.databases
+            search_in_dbs = [self.id.database] if self.id.database else bd.databases
             for db in search_in_dbs:
-                if result.id.location:
-                    filters["location"] = result.id.location
-                    search_results = bd.Database(db).search(result.id.name, filter=filters)
+                if self.id.location:
+                    filters["location"] = self.id.location
+                    search_results = bd.Database(db).search(self.id.name, filter=filters)
                 else:
-                    search_results = bd.Database(db).search(result.id.name)
+                    search_results = bd.Database(db).search(self.id.name)
                 # print(len(search_results))
                 # print(search_results)
-                if result.id.unit:
-                    search_results = list(filter(lambda a: a["unit"] == result.id.unit, search_results))
+                if self.id.unit:
+                    search_results = list(filter(lambda a: a["unit"] == self.id.unit, search_results))
                 #     if len(search_results) == 0:
                 #         raise ValueError(f"No activity found with the specified unit {self.id}")
                 # assert len(search_results) == 1, f"results : {len(search_results)}"
                 if len(search_results) == 1:
-                    result.bw_activity = search_results[0]
+                    bw_activity = search_results[0]
                     break
-            if not result.bw_activity:
-                raise ValueError(f"No activity found for {self.id}")
+        if not bw_activity:
+            raise ValueError(f"No activity found for {self.id}")
+        self.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "name")],
+                                  **bw_activity.as_dict())
 
-        result.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "name")],
-                                    **result.bw_activity.as_dict())
-        if required_output:
-            assert self.output is not None, f"Since there is no scenario, activity output is required: {self.orig_id}"
-        return result
+        # if required_output:
+        #     assert self.output is not None,
+        #     (f"Since there is no scenario, activity output is required: {result.orig_id}")
+        return ExtendedExperimentActivityData(**asdict(self), orig_id=orig_id, bw_activity=bw_activity)
 
 
 # TODO are we using this?
@@ -185,19 +190,30 @@ class ExperimentMethodPrepData:
     bw_method: BWMethod
 
 
-
-
 @pydantic_dataclass(config=OperationConfig)
 class ExtendedExperimentActivityData:
     id: ExperimentActivityId
-    output: Optional["ExtendedExperimentActivityOutput"] = None
-    orig_id: Optional[ExperimentActivityId] = None
-    bw_activity: Optional[Activity] = None
-    scenario_outputs: Optional[
-        Union["ExtendedExperimentActivityOutput", dict[str, "ExtendedExperimentActivityOutput"]]] = None
+    orig_id: ExperimentActivityId
+    output: "ActivityOutput"
+    bw_activity: Activity
+    default_output_value: Optional[float] = 1.0
 
     def __hash__(self):
         return self.bw_activity["code"]
+
+    @property
+    def alias(self):
+        return self.id.alias
+
+
+@pydantic_dataclass(config=OperationConfig)
+class ExtendedExperimentActivityPrepData:
+    id: ExperimentActivityId
+    orig_id: ExperimentActivityId
+    output: "ActivityOutput"
+    default_output_value: float
+    bw_activity: Activity
+    scenario_outputs: dict[str, "ActivityOutput"] = Field(default_factory=dict)
 
     @property
     def alias(self):
@@ -210,8 +226,7 @@ class ExperimentScenarioData:
     activities: Optional[Union[
         list[
             tuple[Union[str, ExperimentActivityId], ExperimentActivityOutput]],  # alias or id to output
-        dict[str, Optional[
-            ExperimentActivityOutput]]]] = None  # alias to output, null means default-output (check exists)
+        dict[str, ExperimentActivityOutput]]] = None  # alias to output, null means default-output (check exists)
 
     # either the alias, or the id of any method. not method means running them all
     methods: Optional[Union[list[Union[ExperimentMethodData, str]], dict[str, tuple[str, ...]]]] = None
@@ -220,6 +235,12 @@ class ExperimentScenarioData:
     @staticmethod
     def alias_factory(index: int):
         return f"Scenario {index}"
+
+
+@pydantic_dataclass(config=StrictInputConfig)
+class ExperimentScenarioPrepData:
+    activities: dict[SimpleScenarioActivityId, ExperimentActivityOutput] = Field(default_factory=dict)
+    methods: list[ExperimentMethodData] = Field(default_factory=list)
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -290,4 +311,6 @@ class ScenarioResultNodeData:
 
 
 # map from ExtendedExperimentActivityData.alias = (ExtendedExperimentActivityData.id.alias) to outputs
-Activity_Outputs = dict[str, float]
+# Activity_Outputs = dict[str, float]
+Activity_Outputs = dict[
+    SimpleScenarioActivityId, float]

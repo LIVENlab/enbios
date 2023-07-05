@@ -16,10 +16,11 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExtendedExperimentActivityData,
                                               BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
-                                              ExtendedExperimentActivityOutput,
+                                              ActivityOutput,
                                               EcoInventSimpleIndex, MethodsDataTypes, ExperimentActivityOutput,
                                               ActivitiesDataTypes, ScenarioResultNodeData, ExperimentMethodPrepData,
-                                              Activity_Outputs)
+                                              ExtendedExperimentActivityPrepData,
+                                              SimpleScenarioActivityId, Activity_Outputs)
 
 logger = get_logger(__file__)
 
@@ -36,43 +37,43 @@ class Experiment:
     def __init__(self, raw_data: ExperimentData):
         self.raw_data = raw_data
         # alias to activity
-        self.activitiesMap: dict[str, ExtendedExperimentActivityData] = {}
 
         self.validate_bw_config()
-        self.validate_activities(self.raw_data.activities)
+        self.activitiesMap: dict[str, ExtendedExperimentActivityPrepData] = self.validate_activities(
+            self.raw_data.activities)
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
         self.methods: dict[str, ExperimentMethodPrepData] = Experiment.validate_methods(self.prepare_methods())
         self.scenarios: list[Scenario] = self.validate_scenarios()
 
-    @staticmethod
-    def create(bw_project: str):
-        return Experiment(ExperimentData(bw_project=bw_project, activities=[], methods=[]))
+    # @staticmethod
+    # def create(bw_project: str):
+    #     return Experiment(ExperimentData(bw_project=bw_project, activities=[], methods=[]))
+    #
+    # def add_activity(self, activity: Activity, default_demand: Optional[ExperimentActivityOutput] = None):
+    #     if len(self.scenarios) == 1 and not default_demand:
+    #         raise ValueError("No default demand specified / and no scenarios added yet")
+    #     alias = activity["name"]
+    #     if alias in self.activitiesMap:
+    #         raise ValueError(f"Activity with alias {alias} already exists")
+    #     self.activitiesMap[alias] = ExtendedExperimentActivityData(
+    #         id=ExperimentActivityId(
+    #             alias=alias,
+    #             code=activity["code"],
+    #             database=activity["database"]
+    #         ),
+    #         output=default_demand,
+    #         bw_activity=activity
+    #     )
+    #
+    # def add_method(self, method: tuple[str, ...], alias: Optional[str] = None):
+    #     if not alias:
+    #         alias = "_".join(method)
+    #     m_data = ExperimentMethodData(id=method, alias=alias)
+    #     bw_method = Experiment.validate_method(m_data)
+    #     self.methods[alias] = ExperimentMethodPrepData(id=method, alias=alias, bw_method=bw_method)
 
-    def add_activity(self, activity: Activity, default_demand: Optional[ExperimentActivityOutput] = None):
-        if len(self.scenarios) == 1 and not default_demand:
-            raise ValueError("No default demand specified / and no scenarios added yet")
-        alias = activity["name"]
-        if alias in self.activitiesMap:
-            raise ValueError(f"Activity with alias {alias} already exists")
-        self.activitiesMap[alias] = ExtendedExperimentActivityData(
-            id=ExperimentActivityId(
-                alias=alias,
-                code=activity["code"],
-                database=activity["database"]
-            ),
-            output=default_demand,
-            bw_activity=activity
-        )
-
-    def add_method(self, method: tuple[str, ...], alias: Optional[str] = None):
-        if not alias:
-            alias = "_".join(method)
-        m_data = ExperimentMethodData(id=method, alias=alias)
-        bw_method = Experiment.validate_method(m_data)
-        self.methods[alias] = ExperimentMethodPrepData(id=method, alias=alias, bw_method=bw_method)
-
-    def validate_bw_config(self):
+    def validate_bw_config(self) -> None:
 
         def validate_bw_project_bw_database(bw_project: str, bw_default_database: Optional[str] = None):
             if bw_project not in bd.projects:
@@ -99,47 +100,65 @@ class Experiment:
             else:
                 raise ValueError(f"Ecoinvent index {self.raw_data.bw_project} not found")
 
-            bw_project_index: BWProjectIndex = ecoinvent_index.bw_project_index
-            if not bw_project_index:
+            if not ecoinvent_index.bw_project_index:
                 raise ValueError(f"Ecoinvent index {ecoinvent_index}, has not BWProject index")
+            bw_project_index: BWProjectIndex = ecoinvent_index.bw_project_index
             validate_bw_project_bw_database(bw_project_index.project_name, bw_project_index.database_name)
 
-    def validate_activities(self, activities: ActivitiesDataTypes, output_required: bool = False):
+    def validate_activities(self, activities: ActivitiesDataTypes, output_required: bool = False) -> dict[
+        str, ExtendedExperimentActivityPrepData]:
         """
         Check if all activities exist in the bw database, and check if the given activities are unique
         In case there is only one scenario, all activities are required to have outputs
         """
         # if activities is a list, convert validate and convert to dict
         default_id_data = ExperimentActivityId(database=self.raw_data.bw_default_database)
+
+        identified_activities: dict[str, ExtendedExperimentActivityData] = {}
+
         if isinstance(activities, list):
             logger.debug("activity list")
             for activity in activities:
                 ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
-                self.activitiesMap[ext_activity.alias] = ext_activity
+                identified_activities[ext_activity.alias] = ext_activity
         elif isinstance(activities, dict):
             logger.debug("activity dict")
             for activity_alias, activity in activities.items():
                 default_id_data.alias = activity_alias
-                ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
-                self.activitiesMap[ext_activity.alias] = ext_activity
+                ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data,  # type: ignore
+                                                                                    output_required)
+                identified_activities[ext_activity.alias] = ext_activity
 
         # all codes should only appear once
         unique_activities = set()
-        for ext_activity_ in self.activitiesMap.values():
-            ext_activity_: ExtendedExperimentActivityData = ext_activity_
+        for ext_activity_ in identified_activities.values():
             unique_activities.add((ext_activity_.id.database, ext_activity_.id.code))
-
             if ext_activity_.output:
-                ext_activity_.default_output_value = Experiment.validate_output(ext_activity.output, ext_activity_)
+                ext_activity_.default_output_value = Experiment.validate_output(ext_activity_.output,
+                                                                                # type: ignore
+                                                                                ext_activity_)
         assert len(unique_activities) == len(activities), "Not all activities are unique"
 
+        return {
+            alias: ExtendedExperimentActivityPrepData(**asdict(act))
+            for alias, act in identified_activities.items()
+        }
+
     @staticmethod
-    def validate_output(target_output: ExtendedExperimentActivityOutput,
-                        activity: ExtendedExperimentActivityData) -> float:
+    def validate_output(target_output: ActivityOutput,
+                        activity: Union[ExtendedExperimentActivityData,
+                        ExtendedExperimentActivityPrepData]) -> float:
+        """
+        validate and convert to the bw-activity unit
+        :param target_output:
+        :param activity:
+        :return:
+        """
         try:
             target_quantity: Quantity = ureg.parse_expression(
                 target_output.unit, case_sensitive=False) * target_output.magnitude
-            return target_quantity.to(activity.bw_activity['unit']).magnitude
+            bw_activity_unit = activity.bw_activity['unit']
+            return target_quantity.to(bw_activity_unit).magnitude
         except Exception as err:
             raise Exception(f"Unit error, {err}; For activity: {activity.id}")
 
@@ -173,7 +192,7 @@ class Experiment:
         }
 
     def has_activity(self,
-                     alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityData]:
+                     alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityPrepData]:
         if isinstance(alias_or_id, str):
             activity = self.activitiesMap.get(alias_or_id, None)
             return activity
@@ -184,7 +203,7 @@ class Experiment:
             return None
 
     def get_activity(self,
-                     alias_or_id: Union[str, ExperimentActivityId]) -> ExtendedExperimentActivityData:
+                     alias_or_id: Union[str, ExperimentActivityId]) -> ExtendedExperimentActivityPrepData:
         activity = self.has_activity(alias_or_id)
         if not activity:
             raise ValueError(f"Activity with id {alias_or_id} not found")
@@ -195,23 +214,36 @@ class Experiment:
         :return:
         """
 
-        def validate_activities(scenario: ExperimentScenarioData) -> Activity_Outputs:
-            activities = scenario.activities
-            # two Union types,
-            # 1. list of tuple: alias | ActivityIds -> unit
-            # 2. dict: alias -> unit
-            # turn to alias dict
-            activity_outputs: Activity_Outputs = {}
-            if isinstance(activities, list):
-                for activity in activities:
-                    activity_id, activity_output = activity
-                    activity = self.get_activity(activity_id)
-                    activity_outputs[activity.id.alias] = Experiment.validate_output(activity_output, activity)
-            elif isinstance(activities, dict):
-                for activity_alias, activity_output in activities.items():
-                    activity_: ExtendedExperimentActivityData = self.get_activity(activity_alias)
-                    activity_outputs[activity_.id.alias] = Experiment.validate_output(activity_output, activity_)
-            return activity_outputs
+        def validate_activity_id(activity_id: Union[str, ExperimentActivityId]) -> SimpleScenarioActivityId:
+            activity = self.get_activity(activity_id)
+            id_ = activity.id
+            assert id_.name and id_.code and id_.alias
+            return SimpleScenarioActivityId(name=id_.name,
+                                            alias=id_.alias,
+                                            code=id_.code)
+
+        def validate_activities(scenario_: ExperimentScenarioData) -> Activity_Outputs:
+            activities = scenario_.activities
+            result: dict[SimpleScenarioActivityId, float] = {}
+
+            def convert_output(output) -> ActivityOutput:
+                if isinstance(output, tuple):
+                    return ActivityOutput(unit=activity.bw_activity['unit'],
+                                          magnitude=output[1])
+                else:
+                    return output  # type: ignore
+
+            if not activities:
+                return result
+
+            scenarios_activities = activities if isinstance(activities, list) else activities.items()
+            for activity_id, activity_output in scenarios_activities:
+                activity = self.get_activity(activity_id)
+                simple_id = validate_activity_id(activity_id)
+                output_ = convert_output(activity_output)
+                scenario_output = Experiment.validate_output(output_, activity)
+                result[simple_id] = scenario_output
+            return result
 
         def validate_scenario(scenario: ExperimentScenarioData, _scenario_alias: str) -> Scenario:
             """
@@ -221,7 +253,7 @@ class Experiment:
             :return:
             """
             scenario_activities_outputs: Activity_Outputs = validate_activities(scenario)
-            prepared_methods: dict[str, ExperimentMethodData] = {}
+            # prepared_methods: dict[str, ExperimentMethodData] = {}
             # fill up the missing activities with default values
             for activity in self.activitiesMap.values():
                 activity_alias = activity.alias

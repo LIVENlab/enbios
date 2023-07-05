@@ -13,8 +13,8 @@ from enbios2.generic.enbios2_logging import get_logger
 if TYPE_CHECKING:
     from enbios2.base.experiment import Experiment
 from enbios2.generic.tree.basic_tree import BasicTreeNode
-from enbios2.models.experiment_models import BWCalculationSetup, Activity_Outputs, \
-    ScenarioResultNodeData, ExperimentMethodPrepData
+from enbios2.models.experiment_models import (BWCalculationSetup,
+                                              ScenarioResultNodeData, ExperimentMethodPrepData, Activity_Outputs)
 
 logger = get_logger(__file__)
 ureg = UnitRegistry()
@@ -47,7 +47,7 @@ class Scenario:
     def create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
         for activity_alias, act_out in self.activities_outputs.items():
-            bw_activity = self.experiment.get_activity(activity_alias).bw_activity
+            bw_activity = self.experiment.get_activity(activity_alias.alias).bw_activity
             inventory.append({bw_activity: act_out})
 
         methods = [m.id for m in self.get_methods().values()]
