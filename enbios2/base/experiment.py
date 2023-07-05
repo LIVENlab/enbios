@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from bw2calc import MultiLCA
 from bw2data.backends import Activity
 from numpy import ndarray
-from pint import UnitRegistry, DimensionalityError
+from pint import UnitRegistry, DimensionalityError, UndefinedUnitError
 
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
@@ -116,7 +116,16 @@ class Scenario:
                 return
             node_output = None
             for child in node.children:
-                output = ureg.parse_expression(child.data.output[0]) * child.data.output[1]
+                activity_output = child.data.output[0]
+                units = set([activity_output, activity_output.replace("_", " ")])
+                for ao in units:
+                    try:
+                        output = ureg.parse_expression(ao) * child.data.output[1]
+                        break
+                    except UndefinedUnitError as err:
+                        pass
+                if not output:
+                    raise ValueError(f"Cannot parse output unit {activity_output} of activity {child.name}. {err}")
                 try:
                     if not node_output:
                         node_output = output
