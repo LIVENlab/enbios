@@ -7,9 +7,10 @@ import plotly.graph_objects as go
 from bw2calc import MultiLCA
 from bw2data.backends import Activity
 from numpy import ndarray
-from pint import UnitRegistry, DimensionalityError, UndefinedUnitError
+from pint import DimensionalityError, UndefinedUnitError
 
 from enbios2.base.db_models import BWProjectIndex
+from enbios2.base.unit_registry import ureg
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
@@ -22,8 +23,6 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ActivitiesDataTypes, BWCalculationSetup)
 
 logger = get_logger(__file__)
-
-ureg = UnitRegistry()
 
 # map from ExtendedExperimentActivityData.alias = (ExtendedExperimentActivityData.id.alias) to outputs
 Activity_Outputs = dict[str, float]
@@ -74,14 +73,18 @@ class Scenario:
                         node.data.results[key] = 0
                     node.data.results[key] += value
 
-        activity_nodes = self.result_tree.get_leaves()
+        activity_nodes = list(self.result_tree.get_leaves())
         # todo should be the same set of activities
         activities_aliases = list(self.activities_outputs.keys())
 
         methods_aliases: list[str] = list(self.get_methods().keys())
         for result_index, alias in enumerate(activities_aliases):
             bw_activity = self.experiment.get_activity(alias).bw_activity
-            activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
+            try:
+                activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
+            except StopIteration:
+                raise ValueError(f"Activity {alias} not found in the technology tree [TODO: this should not happen]")
+
             for method_index, method in enumerate(methods_aliases):
                 activity_node.data.results[method] = results[result_index][method_index]
 
@@ -101,11 +104,15 @@ class Scenario:
         bw_calc_setup = self.create_bw_calculation_setup()
 
         self.result_tree = self.experiment.technology_root_node.copy()
-        activity_nodes = self.result_tree.get_leaves()
+        activity_nodes = list(self.result_tree.get_leaves())
         activities_aliases = list(self.activities_outputs.keys())
         for result_index, alias in enumerate(activities_aliases):
             bw_activity = self.experiment.get_activity(alias).bw_activity
-            activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
+            try:
+                activity_node = next(filter(lambda node: node.temp_data().bw_activity == bw_activity, activity_nodes))
+            except StopIteration:
+                raise ValueError(f"Activity {alias} not found in the technology tree [TODO: this should not happen]")
+
             # todo this does not consider magnitude...
             activity_node.data.output = (bw_activity['unit'].replace(" ", "_"), self.activities_outputs[alias])
 
@@ -123,6 +130,9 @@ class Scenario:
                         output = ureg.parse_expression(ao) * child.data.output[1]
                         break
                     except UndefinedUnitError as err:
+                        logger.error(
+                            f"Cannot parse output unit '{ao}'- {activity_output} of activity {child.name}. {err}. "
+                            f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
                         pass
                 if not output:
                     raise ValueError(f"Cannot parse output unit {activity_output} of activity {child.name}. {err}")
@@ -279,6 +289,9 @@ class Experiment:
                 target_output.unit, case_sensitive=False) * target_output.magnitude
             return target_quantity.to(activity.bw_activity['unit']).magnitude
         except Exception as err:
+            logger.error(
+                f"Cannot parse output unit '{target_output.unit}'- of activity {activity}. {err}. "
+                f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
             raise Exception(f"Unit error, {err}; For activity: {activity.id}")
 
     def prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExperimentMethodData]:
