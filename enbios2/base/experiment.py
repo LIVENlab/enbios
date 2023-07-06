@@ -4,9 +4,7 @@ from typing import Optional, Union, Any
 
 import bw2data as bd
 import plotly.graph_objects as go
-from bw2data.backends import Activity
 from pint import UnitRegistry, Quantity
-
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
@@ -258,7 +256,12 @@ class Experiment:
             for activity in self.activitiesMap.values():
                 activity_alias = activity.alias
                 if activity_alias not in scenario_activities_outputs:
-                    scenario_activities_outputs[activity.alias] = activity.default_output_value
+                    # print(activity)
+                    id = SimpleScenarioActivityId(
+                        name=str(activity.id.name),
+                        code=str(activity.id.code),
+                        alias=activity.alias)
+                    scenario_activities_outputs[id] = activity.default_output_value
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
             if scenario.methods:
@@ -274,10 +277,11 @@ class Experiment:
                         resolved_methods[md.alias] = ExperimentMethodPrepData(**asdict(md),
                                                                               bw_method=self.validate_method(md))
 
-            return Scenario(experiment=self,
+            return Scenario(experiment=self,  # type: ignore
                             alias=_scenario_alias,
                             activities_outputs=scenario_activities_outputs,
-                            methods=resolved_methods)
+                            methods=resolved_methods,
+                            result_tree= self.technology_root_node.copy())
 
         raw_scenarios = self.raw_data.scenarios
         scenarios: list[Scenario] = []

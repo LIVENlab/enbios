@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING, Any
 
 from bw2calc import MultiLCA
 from bw2data.backends import Activity
@@ -24,25 +24,28 @@ ureg = UnitRegistry()
 class Scenario:
     experiment: "Experiment"
     alias: str
+    result_tree: BasicTreeNode[ScenarioResultNodeData]
     # this should be a simpler type - just str: float
     # todo not used yet
     orig_outputs: Optional[dict[str, float]] = field(
         default_factory=dict[str, float])  # output declaration before conversion
     activities_outputs: Activity_Outputs = field(default_factory=dict)
-    result_tree: Optional[BasicTreeNode[ScenarioResultNodeData]] = None
     methods: Optional[dict[str, ExperimentMethodPrepData]] = None
 
+    def __post_init__(self):
+        self.prepare_tree()
+
     def prepare_tree(self):
-        self.result_tree = self.experiment.technology_root_node.copy()
         activity_nodes = self.result_tree.get_leaves()
-        activities_aliases = list(self.activities_outputs.keys())
-        for result_index, alias in enumerate(activities_aliases):
+        activities_simple_ids = list(self.activities_outputs.keys())
+        for result_index, simple_id in enumerate(activities_simple_ids):
+            alias = simple_id.alias
             bw_activity = self.experiment.get_activity(alias).bw_activity
             activity_node = next(
                 filter(lambda node: node.temp_data()["activity"].bw_activity == bw_activity, activity_nodes))
             # todo this does not consider magnitude...
             activity_node.data = ScenarioResultNodeData(output=(bw_activity['unit'].replace(" ", "_"),
-                                                                self.activities_outputs[alias]))
+                                                                self.activities_outputs[simple_id]))
 
     def create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
@@ -69,12 +72,15 @@ class Scenario:
                             node.data.results[key] = 0
                         node.data.results[key] += value
 
+        if not self.result_tree:
+            raise ValueError(f"Scenario '{self.alias}' has no tree...")
         activity_nodes = list(self.result_tree.get_leaves())
         # todo should be the same set of activities
-        activities_aliases = list(self.activities_outputs.keys())
+        activities_simple_ids = list(self.activities_outputs.keys())
 
         methods_aliases: list[str] = list(self.get_methods().keys())
-        for result_index, alias in enumerate(activities_aliases):
+        for result_index, simple_id in enumerate(activities_simple_ids):
+            alias = simple_id.alias
             bw_activity = self.experiment.get_activity(alias).bw_activity
             activity_node = next(
                 filter(lambda node: node.temp_data()["activity"].bw_activity == bw_activity, activity_nodes))
@@ -96,7 +102,7 @@ class Scenario:
         logger.info(f"Running scenario '{self.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup()
 
-        def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData]):
+        def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
             if node.is_leaf:
                 return
             node_output = None

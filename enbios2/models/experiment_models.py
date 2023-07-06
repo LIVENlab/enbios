@@ -84,6 +84,9 @@ class SimpleScenarioActivityId:
     code: str
     alias: str
 
+    def __hash__(self):
+        return hash(self.code)
+
 
 # this is just for the schema to accept an array.
 ExperimentActivityOutputArray = tuple[str, float]
@@ -155,10 +158,11 @@ class ExperimentActivityData:
         self.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "name")],
                                   **bw_activity.as_dict())
 
-        # if required_output:
-        #     assert self.output is not None,
-        #     (f"Since there is no scenario, activity output is required: {result.orig_id}")
-        return ExtendedExperimentActivityData(**asdict(self), orig_id=orig_id, bw_activity=bw_activity)
+        if not self.output:
+            self.output = ActivityOutput(unit=bw_activity["unit"], magnitude=1.0)
+        return ExtendedExperimentActivityData(**asdict(self),
+                                              orig_id=orig_id,
+                                              bw_activity=bw_activity)
 
 
 # TODO are we using this?
