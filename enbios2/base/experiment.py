@@ -5,6 +5,8 @@ from typing import Optional, Union, Any
 import bw2data as bd
 import plotly.graph_objects as go
 from pint import UnitRegistry, Quantity
+
+from enbios2.base.StackedMultiLCA import StackedMultiLCA
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
@@ -43,6 +45,7 @@ class Experiment:
 
         self.methods: dict[str, ExperimentMethodPrepData] = Experiment.validate_methods(self.prepare_methods())
         self.scenarios: list[Scenario] = self.validate_scenarios()
+        self.lca: Optional[StackedMultiLCA] = None
 
     # @staticmethod
     # def create(bw_project: str):
