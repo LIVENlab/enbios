@@ -1,17 +1,19 @@
 import itertools
-from dataclasses import asdict
+from copy import copy
+from dataclasses import asdict, fields
 from pathlib import Path
 from typing import Optional, Union, Any, cast
 
 import bw2data as bd
 import plotly.graph_objects as go
 from bw2data.backends import Activity
-from pint import Quantity
+from pint import Quantity, UndefinedUnitError, DimensionalityError
 
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
 from enbios2.base.stacked_MultiLCA import StackedMultiLCA
 from enbios2.base.unit_registry import ureg
+from enbios2.bw2.util import get_activity
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
@@ -22,7 +24,7 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               EcoInventSimpleIndex, MethodsDataTypes, ActivitiesDataTypes,
                                               ExtendedExperimentActivityPrepData, ScenarioResultNodeData,
                                               ExperimentMethodPrepData, ActivityOutput, SimpleScenarioActivityId,
-                                              Activity_Outputs, BWCalculationSetup)
+                                              Activity_Outputs, BWCalculationSetup, ExperimentActivityData)
 
 logger = get_logger(__file__)
 
@@ -35,8 +37,8 @@ class Experiment:
         # alias to activity
 
         self.validate_bw_config()
-        self.activitiesMap: dict[str, ExtendedExperimentActivityPrepData] = self.validate_activities(
-            self.raw_data.activities)
+        self.activitiesMap: dict[str, ExtendedExperimentActivityPrepData] = Experiment.validate_activities(
+            self.raw_data.activities, self.raw_data.bw_default_database)
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
         self.methods: dict[str, ExperimentMethodPrepData] = Experiment.validate_methods(self.prepare_methods())
@@ -102,44 +104,105 @@ class Experiment:
             bw_project_index: BWProjectIndex = ecoinvent_index.bw_project_index
             validate_bw_project_bw_database(bw_project_index.project_name, bw_project_index.database_name)
 
-    def validate_activities(self, activities: ActivitiesDataTypes, output_required: bool = False) -> dict[
-        str, ExtendedExperimentActivityPrepData]:
+    @staticmethod
+    def validate_activities(activities: ActivitiesDataTypes, bw_default_database: str,
+                            output_required: bool = False) -> [str,
+                                                               ExtendedExperimentActivityData]:
         """
         Check if all activities exist in the bw database, and check if the given activities are unique
         In case there is only one scenario, all activities are required to have outputs
         """
         # if activities is a list, convert validate and convert to dict
-        default_id_data = ExperimentActivityId(database=self.raw_data.bw_default_database)
-
-        identified_activities: dict[str, ExtendedExperimentActivityData] = {}
-
+        default_id_data = ExperimentActivityId(database=bw_default_database)
+        activities_map: [str, ExtendedExperimentActivityData] = {}
+        raw_activities_list: list[ExperimentActivityData] = []
         if isinstance(activities, list):
-            logger.debug("activity list")
-            for activity in activities:
-                ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
-                identified_activities[ext_activity.alias] = ext_activity
-        elif isinstance(activities, dict):
-            logger.debug("activity dict")
-            for activity_alias, activity in activities.items():
-                default_id_data.alias = activity_alias
-                ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data,  # type: ignore
-                                                                                    output_required)
-                identified_activities[ext_activity.alias] = ext_activity
+            raw_activities_list = activities
 
+        elif isinstance(activities, dict):
+            for activity_alias, activity in activities.items():
+                if activity_alias == activity.alias:
+                    raise (f"Activity in activities-dict declared with alias: '{activity_alias}', "
+                           f"different than in the activity.id: '{activity.alias}'")
+                activity.id.alias = activity_alias
+                raw_activities_list.append(activity)
+
+        for activity in raw_activities_list:
+            ext_activity: ExtendedExperimentActivityData = Experiment.validate_activity(activity,
+                                                                                        default_id_data,
+                                                                                        output_required)
+            if ext_activity.alias in activities_map:
+                raise Exception(f"Activity-alias '{ext_activity.alias}' passed more then once")
+            activities_map[ext_activity.alias] = ext_activity
         # all codes should only appear once
         unique_activities = set()
-        for ext_activity_ in identified_activities.values():
-            unique_activities.add((ext_activity_.id.database, ext_activity_.id.code))
-            if ext_activity_.output:
-                ext_activity_.default_output_value = Experiment.validate_output(ext_activity_.output,
-                                                                                # type: ignore
-                                                                                ext_activity_)
+        for ext_activity in activities_map.values():
+            unique_activities.add((ext_activity.id.database, ext_activity.id.code))
+            if ext_activity.output:
+                ext_activity.default_output_value = Experiment.validate_output(ext_activity.output, ext_activity)
         assert len(unique_activities) == len(activities), "Not all activities are unique"
+        return activities_map
 
-        return {
-            alias: ExtendedExperimentActivityPrepData(**asdict(act))
-            for alias, act in identified_activities.items()
-        }
+    @staticmethod
+    def validate_activity(activity: ExperimentActivityData,
+                          default_id_attr: Optional[ExperimentActivityId] = None,
+                          required_output: bool = False) -> "ExtendedExperimentActivityData":
+        """
+        This method checks if the activity exists in the database by several ways.
+        :param activity:
+        :param default_id_attr:
+        :param required_output:
+        :return:
+        """
+
+        orig_id = copy(activity.id)
+        database = activity.id.database if activity.id.database else default_id_attr.database
+        # assert result.id.database in bd.databases,
+        # f"activity database does not exist: '{self.id.database}' for {self.id}"
+        # todo, is the needed?
+
+        if orig_id.code:
+            if orig_id.database:
+                bw_activity = bd.Database(orig_id.database).get_node(orig_id.code)
+            else:
+                bw_activity = get_activity(orig_id.code)
+        elif orig_id.name:
+            filters = {}
+            search_in_dbs = [orig_id.database] if orig_id.database else bd.databases
+            for db in search_in_dbs:
+                if orig_id.location:
+                    filters["location"] = orig_id.location
+                    search_results = bd.Database(db).search(orig_id.name, filter=filters)
+                else:
+                    search_results = bd.Database(db).search(orig_id.name)
+                # print(len(search_results))
+                # print(search_results)
+                if orig_id.unit:
+                    search_results = list(filter(lambda a: a["unit"] == orig_id.unit, search_results))
+                #     if len(search_results) == 0:
+                #         raise ValueError(f"No activity found with the specified unit {self.id}")
+                # assert len(search_results) == 1, f"results : {len(search_results)}"
+                if len(search_results) == 1:
+                    bw_activity = search_results[0]
+                    break
+            if not bw_activity:
+                raise ValueError(f"No activity found for {activity.id}")
+
+        if not activity.output:
+            activity.output = ActivityOutput(unit=bw_activity["unit"])
+        result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**asdict(activity),
+                                                                                orig_id=orig_id,
+                                                                                database=database,
+                                                                                bw_activity=bw_activity,
+                                                                                default_output=activity.output)
+        result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
+
+        result.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "name")],
+                                    **result.bw_activity.as_dict())
+        if required_output:
+            assert activity.output is not None, (
+                f"Since there is no scenario, activity output is required: {activity.orig_id}")
+        return result
 
     @staticmethod
     def validate_output(target_output: ActivityOutput,
@@ -155,8 +218,16 @@ class Experiment:
                 target_output.unit, case_sensitive=False) * target_output.magnitude
             bw_activity_unit = activity.bw_activity['unit']
             return target_quantity.to(bw_activity_unit).magnitude
-        except Exception as err:
+        except UndefinedUnitError as err:
+            logger.error(
+                f"Cannot parse output unit '{target_output.unit}'- of activity {activity.id}. {err}. "
+                f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
             raise Exception(f"Unit error, {err}; For activity: {activity.id}")
+        except DimensionalityError as err:
+            logger.error(
+                f"Cannot convert output of activity {activity.id}. -From- \n{target_output}\n-To-"
+                f"\n{activity.bw_activity['unit']} (brightway unit)")
+            raise Exception(f"Unit error for activity: {activity.id}")
 
     def prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExperimentMethodData]:
         if not methods:
@@ -201,7 +272,14 @@ class Experiment:
             return activity
         elif isinstance(alias_or_id, ExperimentActivityId):
             for activity in self.activitiesMap.values():
-                if activity.orig_id == alias_or_id:
+                found = True
+                for field in fields(ExperimentActivityId):
+                    if field != "alias":
+                        continue
+                    if activity.orig_id != alias_or_id:
+                        found = False
+                        break
+                if found:
                     return activity
             return None
 
@@ -345,7 +423,7 @@ class Experiment:
                 bw_activity = scenario.experiment.get_activity(activity_alias.alias).bw_activity
                 inventory.append({bw_activity: act_out})
             inventories.append(inventory)
-        calculation_setup = BWCalculationSetup("experiment",  list(itertools.chain(*inventories)), methods)
+        calculation_setup = BWCalculationSetup("experiment", list(itertools.chain(*inventories)), methods)
         results = StackedMultiLCA(calculation_setup).results
         return results
 

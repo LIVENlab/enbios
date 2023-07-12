@@ -138,6 +138,10 @@ class ExperimentActivityData:
     id: ExperimentActivityId = Field(..., description="The identifies (method to find) an activity")
     output: Optional[ExperimentActivityOutput] = Field(None, description="The default output of the activity")
 
+    @property
+    def alias(self):
+        return self.id.alias
+
     def check_exist(self, default_id_attr: Optional[ExperimentActivityId] = None,
                     required_output: bool = False) -> "ExtendedExperimentActivityData":
         """
@@ -297,7 +301,7 @@ class ExperimentDataIO:
     methods: Optional[Union[MethodsDataTypes, str]] = None
     hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
     scenarios: Optional[Union[ScenariosDataTypes, str]] = None
-    config: Optional[ScenarioConfig] = ScenarioConfig()
+    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
 
 
 @dataclass

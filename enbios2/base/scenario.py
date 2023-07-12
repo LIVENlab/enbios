@@ -4,7 +4,7 @@ from typing import Optional, Union, TYPE_CHECKING, Any
 
 from bw2data.backends import Activity
 from numpy import ndarray
-from pint import DimensionalityError, Quantity
+from pint import DimensionalityError, Quantity, UndefinedUnitError
 from pint.facets.plain import PlainQuantity
 
 from enbios2.base.stacked_MultiLCA import StackedMultiLCA
@@ -108,18 +108,27 @@ class Scenario:
                 return
             node_output: Optional[Union[Quantity, PlainQuantity]] = None
             for child in node.children:
-                output = ureg.parse_expression(child.data.output[0]) * child.data.output[1]
-                try:
-                    if not node_output:
-                        node_output = output
-                    else:
-                        node_output += output
-                except DimensionalityError as err:
-                    existing_output = node_output.to_base_units() if node_output else "NOTHING YET"
-                    logger.warning(f"Cannot aggregate output to parent: {node.name}. "
-                                   f"From earlier children the base unit is {existing_output} "
-                                   f"and from {child.name} it is {output.units}."
-                                   f" {err}")
+                activity_output = child.data.output[0]
+                units = {activity_output, activity_output.replace("_", " ")}
+                for ao in units:
+                    output: Optional[Quantity] = None
+                    try:
+                        output = ureg.parse_expression(ao) * child.data.output[1]
+                        if not node_output:
+                            node_output = output
+                        else:
+                            node_output += output
+                        break
+                    except UndefinedUnitError as err:
+                        logger.error(
+                            f"Cannot parse output unit '{ao}'- {activity_output} of activity {child.name}. {err}. "
+                            f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
+                    except DimensionalityError as err:
+                        logger.warning(f"Cannot aggregate output to parent: {node.name}. "
+                                       f"From earlier children the base unit is {node_output.to_base_units()} "
+                                       f"and from {child.name} it is {output}."
+                                       f" {err}")
+
             if node_output:
                 node_output = node_output.to_compact()
                 node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
