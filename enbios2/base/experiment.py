@@ -1,9 +1,11 @@
+import itertools
 from dataclasses import asdict
 from pathlib import Path
 from typing import Optional, Union, Any, cast
 
 import bw2data as bd
 import plotly.graph_objects as go
+from bw2data.backends import Activity
 from pint import Quantity
 
 from enbios2.base.db_models import BWProjectIndex
@@ -20,7 +22,7 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               EcoInventSimpleIndex, MethodsDataTypes, ActivitiesDataTypes,
                                               ExtendedExperimentActivityPrepData, ScenarioResultNodeData,
                                               ExperimentMethodPrepData, ActivityOutput, SimpleScenarioActivityId,
-                                              Activity_Outputs)
+                                              Activity_Outputs, BWCalculationSetup)
 
 logger = get_logger(__file__)
 
@@ -141,8 +143,7 @@ class Experiment:
 
     @staticmethod
     def validate_output(target_output: ActivityOutput,
-                        activity: Union[ExtendedExperimentActivityData,
-                        ExtendedExperimentActivityPrepData]) -> float:
+                        activity: Union[ExtendedExperimentActivityData, ExtendedExperimentActivityPrepData]) -> float:
         """
         validate and convert to the bw-activity unit
         :param target_output:
@@ -186,8 +187,7 @@ class Experiment:
         return ExperimentMethodPrepData(id=method.id, alias=method.alias, bw_method=BWMethod(**bw_method))
 
     @staticmethod
-    def validate_methods(method_dict: dict[str, ExperimentMethodData]) -> dict[
-        str, ExperimentMethodPrepData]:
+    def validate_methods(method_dict: dict[str, ExperimentMethodData]) -> dict[str, ExperimentMethodPrepData]:
         # all methods must exist
         return {
             alias: Experiment.validate_method(method, alias)
@@ -279,7 +279,7 @@ class Experiment:
                 else:
                     method_dict: dict[str, tuple[str, ...]] = cast(dict[str, tuple[str, ...]], scenario.methods)
                     for method_alias, method_ in method_dict.items():  # type: ignore
-                        md = ExperimentMethodData(id=cast(tuple[str, ...],method_))
+                        md = ExperimentMethodData(id=cast(tuple[str, ...], method_))
                         prep_method = self.validate_method(md, method_alias)
                         resolved_methods[prep_method.alias] = prep_method
 
@@ -335,8 +335,18 @@ class Experiment:
 
     def run(self) -> dict[str, dict[str, Any]]:
         results: dict[str, dict[str, Any]] = {}
+        methods = [m.id for m in self.methods.values()]
+        inventories: list[list[dict[Activity, float]]] = []
         for scenario in self.scenarios:
-            results[scenario.alias] = self.run_scenario(scenario.alias)
+            if scenario.methods:
+                raise ValueError(f"Scenario cannot have individual methods. '{scenario.alias}'")
+            inventory: list[dict[Activity, float]] = []
+            for activity_alias, act_out in scenario.activities_outputs.items():
+                bw_activity = scenario.experiment.get_activity(activity_alias.alias).bw_activity
+                inventory.append({bw_activity: act_out})
+            inventories.append(inventory)
+        calculation_setup = BWCalculationSetup("experiment",  list(itertools.chain(*inventories)), methods)
+        results = StackedMultiLCA(calculation_setup).results
         return results
 
     def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None, include_method_units: bool = True):

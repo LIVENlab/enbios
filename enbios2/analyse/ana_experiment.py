@@ -28,7 +28,7 @@ class ColumnMapper:
     value: str
 
 
-class Experiment:
+class AnaExperiment:
     """
     Enbios experiment result-plotter class
     """
