@@ -4,7 +4,7 @@ from typing import Optional, Union, Any
 
 import bw2data as bd
 import plotly.graph_objects as go
-from pint import UnitRegistry, Quantity
+from pint import Quantity
 
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
@@ -18,8 +18,7 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
     # ExtendedExperimentActivityOutput,
-                                              EcoInventSimpleIndex, MethodsDataTypes, ExperimentActivityOutput,
-                                              ActivitiesDataTypes, BWCalculationSetup,
+                                              EcoInventSimpleIndex, MethodsDataTypes, ActivitiesDataTypes,
                                               ExtendedExperimentActivityPrepData, ScenarioResultNodeData,
                                               ExperimentMethodPrepData, ActivityOutput, SimpleScenarioActivityId,
                                               Activity_Outputs)
@@ -280,7 +279,8 @@ class Experiment:
                             assert global_method
                             resolved_methods[global_method.alias] = global_method
                 else:
-                    for method_alias, method_ in scenario.methods.items():
+                    method_dict: dict[str, tuple[str, ...]] = scenario.methods
+                    for method_alias, method_ in method_dict.items():
                         md = ExperimentMethodData(method_)
                         resolved_methods[md.alias] = ExperimentMethodPrepData(**asdict(md),
                                                                               bw_method=self.validate_method(md))

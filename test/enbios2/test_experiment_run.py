@@ -152,7 +152,8 @@ def test_scaled_demand_unit(scenario_run_basic1, default_method_str: str):
     result = Experiment(ExperimentData(**scenario_data)).run()
     # print(result["default scenario"]["data"][method])
     # print(result["default scenario"]["data"][method] / expected_value)
-    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]["data"].results[default_method_str] == pytest.approx(expected_value, abs=1e-7)
+    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]["data"].results[default_method_str] == pytest.approx(
+        expected_value, abs=1e-7)
 
 
 def test_scenario(scenario_run_basic1: dict, default_bw_config: dict, default_method_str: str):
