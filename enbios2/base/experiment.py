@@ -174,7 +174,7 @@ class Experiment:
         method_dict: dict[str, ExperimentMethodData] = {}
         if isinstance(methods, dict):
             for method_alias in methods:
-                method_dict[method_alias] = ExperimentMethodData(alias=method_alias, id=methods[method_alias])
+                method_dict[method_alias] = ExperimentMethodData(methods[method_alias], method_alias)
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
             for method_ in method_list:

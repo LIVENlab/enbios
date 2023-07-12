@@ -183,7 +183,9 @@ class ExperimentMethodData:
 
     def __init__(self, id: tuple[str, ...], alias: Optional[str] = None):
         self.id = id
-        if not alias:
+        if alias:
+            self.alias = alias
+        else:
             self.alias = "_".join(id)
 
 
