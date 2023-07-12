@@ -117,7 +117,6 @@ def test_pickle(scenario_run_basic1):
 def test_temp_load_pickle():
     experiment = pickle.load(open(BASE_DATA_PATH / "temp/test_pickle.pickle", "rb"))
     assert experiment
-
     def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData]):
         print("******")
         print(node.name)

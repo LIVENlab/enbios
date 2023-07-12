@@ -37,7 +37,7 @@ class Experiment:
             self.raw_data.activities)
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
-        self.methods: dict[str, ExtendedExperimentMethodData] = Experiment.validate_methods(self.prepare_methods())
+        self.methods: dict[str, ExperimentMethodPrepData] = Experiment.validate_methods(self.prepare_methods())
         self.scenarios: list[Scenario] = self.validate_scenarios()
         self.lca: Optional[StackedMultiLCA] = None
 
@@ -167,7 +167,8 @@ class Experiment:
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
             for method_ in method_list:
-                method_dict[method_.alias] = ExtendedExperimentMethodData(method_.id, method_.alias)
+                method__ = ExtendedExperimentMethodData(method_.id, method_.alias)
+                method_dict[method__.alias] = method__
         return method_dict
 
     @staticmethod
@@ -180,7 +181,7 @@ class Experiment:
 
     @staticmethod
     def validate_methods(method_dict: dict[str, ExtendedExperimentMethodData]) -> dict[
-        str, ExtendedExperimentMethodData]:
+        str, ExperimentMethodPrepData]:
         # all methods must exist
         return {
             alias: ExperimentMethodPrepData(id=method.id, alias=alias, bw_method=Experiment.validate_method(method))

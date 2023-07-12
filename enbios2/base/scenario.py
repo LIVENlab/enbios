@@ -4,7 +4,8 @@ from typing import Optional, Union, TYPE_CHECKING, Any
 
 from bw2data.backends import Activity
 from numpy import ndarray
-from pint import DimensionalityError
+from pint import DimensionalityError, Quantity
+from pint.facets.plain import PlainQuantity
 
 from enbios2.base.stacked_MultiLCA import StackedMultiLCA
 from enbios2.base.unit_registry import ureg
@@ -31,7 +32,7 @@ class Scenario:
     orig_outputs: Optional[dict[str, float]] = field(
         default_factory=dict[str, float])  # output declaration before conversion
     activities_outputs: Activity_Outputs = field(default_factory=dict)
-    methods: Optional[dict[str, ExtendedExperimentMethodData]] = None
+    methods: Optional[dict[str, ExperimentMethodPrepData]] = None
 
     def __post_init__(self):
         self.prepare_tree()
@@ -65,7 +66,7 @@ class Scenario:
         Add results to the technology tree, for each method
         """
 
-        def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData]):
+        def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData], _: Any = None):
             for child in node.children:
                 if child.data:
                     for key, value in child.data.results.items():
@@ -91,7 +92,7 @@ class Scenario:
         self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
         return self.result_tree
 
-    def get_methods(self) -> dict[str, ExtendedExperimentMethodData]:
+    def get_methods(self) -> dict[str, ExperimentMethodPrepData]:
         if self.methods:
             return self.methods
         else:
@@ -106,7 +107,7 @@ class Scenario:
         def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
             if node.is_leaf:
                 return
-            node_output = None
+            node_output: Optional[Union[Quantity, PlainQuantity]] = None
             for child in node.children:
                 output = ureg.parse_expression(child.data.output[0]) * child.data.output[1]
                 try:
@@ -115,12 +116,16 @@ class Scenario:
                     else:
                         node_output += output
                 except DimensionalityError as err:
+                    existing_output = node_output.to_base_units() if node_output else "NOTHING YET"
                     logger.warning(f"Cannot aggregate output to parent: {node.name}. "
-                                   f"From earlier children the base unit is {node_output.to_base_units()} "
+                                   f"From earlier children the base unit is {existing_output} "
                                    f"and from {child.name} it is {output.units}."
                                    f" {err}")
-            node_output = node_output.to_compact()
-            node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
+            if node_output:
+                node_output = node_output.to_compact()
+                node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
+            else:
+                logger.warning(f"No output for node: {node.name}")
 
         if not self.experiment.lca:
             results: ndarray = StackedMultiLCA(bw_calc_setup).results

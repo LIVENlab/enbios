@@ -2,7 +2,7 @@ from copy import copy
 from dataclasses import asdict, dataclass, field
 from typing import Optional, Union
 
-import bw2data as bd
+import bw2data
 from bw2data import calculation_setups
 from bw2data.backends import Activity
 from pydantic import Field, Extra
@@ -44,15 +44,15 @@ class ExperimentActivityId:
             if not self.database:
                 return get_activity(self.code)
             else:
-                return bd.Database(self.database).get(self.code)
+                return bw2data.Database(self.database).get(self.code)
         elif self.name:
             filters = {}
             if self.location:
                 filters["location"] = self.location
-                assert self.database in bd.databases, f"database {self.database} not found"
-                search_results = bd.Database(self.database).search(self.name, filter=filters)
+                assert self.database in bw2data.databases, f"database {self.database} not found"
+                search_results = bw2data.Database(self.database).search(self.name, filter=filters)
             else:
-                search_results = bd.Database(self.database).search(self.name)
+                search_results = bw2data.Database(self.database).search(self.name)
             if self.unit:
                 search_results = list(filter(lambda a: a["unit"] == self.unit, search_results))
             assert len(search_results) == 0, (f"No results for brightway activity-search:"
@@ -88,16 +88,16 @@ class SimpleScenarioActivityId:
         return hash(self.code)
 
 
-# this is just for the schema to accept an array.
-ExperimentActivityOutputArray = tuple[str, float]
-
-ExperimentActivityOutput = Union["ActivityOutput", ExperimentActivityOutputArray]
-
-
 @pydantic_dataclass(config=StrictInputConfig)
 class ActivityOutput:
     unit: str
     magnitude: float = 1.0
+
+
+# this is just for the schema to accept an array.
+ExperimentActivityOutputArray = tuple[str, float]
+
+ExperimentActivityOutput = Union[ActivityOutput, ExperimentActivityOutputArray]
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -130,19 +130,19 @@ class ExperimentActivityData:
         self.id.fill_empty_fields(["alias"], **default_dict)
         if self.id.code:
             if self.id.database:
-                bw_activity = bd.Database(self.id.database).get_node(self.id.code)
+                bw_activity = bw2data.Database(self.id.database).get_node(self.id.code)
             else:
                 bw_activity = get_activity(self.id.code)
         elif self.id.name:
             # assert result.id.database is not None, f"database must be specified for {self.id} or default_database set in config"
             filters = {}
-            search_in_dbs = [self.id.database] if self.id.database else bd.databases
+            search_in_dbs = [self.id.database] if self.id.database else bw2data.databases
             for db in search_in_dbs:
                 if self.id.location:
                     filters["location"] = self.id.location
-                    search_results = bd.Database(db).search(self.id.name, filter=filters)
+                    search_results = bw2data.Database(db).search(self.id.name, filter=filters)
                 else:
-                    search_results = bd.Database(db).search(self.id.name)
+                    search_results = bw2data.Database(db).search(self.id.name)
                 # print(len(search_results))
                 # print(search_results)
                 if self.id.unit:
@@ -200,6 +200,7 @@ class ExtendedExperimentMethodData:
             self.alias = alias
         else:
             self.alias = "_".join(id)
+
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentMethodPrepData:
@@ -325,10 +326,7 @@ class BWCalculationSetup:
 @dataclass
 class ScenarioResultNodeData:
     output: tuple[str, float]
-    results: dict[tuple[str], float] = field(default_factory=dict)
+    results: dict[str, float] = field(default_factory=dict)
 
 
-# map from ExtendedExperimentActivityData.alias = (ExtendedExperimentActivityData.id.alias) to outputs
-# Activity_Outputs = dict[str, float]
-Activity_Outputs = dict[
-    SimpleScenarioActivityId, float]
+Activity_Outputs = dict[SimpleScenarioActivityId, float]
