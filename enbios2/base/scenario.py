@@ -16,8 +16,7 @@ if TYPE_CHECKING:
     from enbios2.base.experiment import Experiment
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import (BWCalculationSetup,
-                                              ScenarioResultNodeData, ExperimentMethodPrepData, Activity_Outputs,
-                                              ExtendedExperimentMethodData)
+                                              ScenarioResultNodeData, ExperimentMethodPrepData, Activity_Outputs)
 
 logger = get_logger(__file__)
 

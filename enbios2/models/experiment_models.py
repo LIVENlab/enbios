@@ -3,7 +3,6 @@ from dataclasses import asdict, dataclass, field
 from typing import Optional, Union
 
 import bw2data
-from bw2data import calculation_setups
 from bw2data.backends import Activity
 from pydantic import Field, Extra
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -25,6 +24,12 @@ class StrictInputConfig:
 class OperationConfig:
     validate_assignment = True
     arbitrary_types_allowed = True
+
+
+@pydantic_dataclass(config=StrictInputConfig)
+class ActivityOutput:
+    unit: str
+    magnitude: float = 1.0
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -78,6 +83,36 @@ class ExperimentActivityId:
                     setattr(self, field, kwargs[field])
 
 
+@pydantic_dataclass(config=OperationConfig)
+class ExtendedExperimentActivityData:
+    id: ExperimentActivityId
+    orig_id: ExperimentActivityId
+    output: "ActivityOutput"
+    bw_activity: Activity
+    default_output_value: Optional[float] = 1.0
+
+    def __hash__(self):
+        return self.bw_activity["code"]
+
+    @property
+    def alias(self):
+        return self.id.alias
+
+
+@pydantic_dataclass(config=OperationConfig)
+class ExtendedExperimentActivityPrepData:
+    id: ExperimentActivityId
+    orig_id: ExperimentActivityId
+    output: "ActivityOutput"
+    default_output_value: float
+    bw_activity: Activity
+    scenario_outputs: dict[str, "ActivityOutput"] = Field(default_factory=dict)
+
+    @property
+    def alias(self):
+        return self.id.alias
+
+
 @pydantic_dataclass(config=StrictInputConfig)
 class SimpleScenarioActivityId:
     name: str
@@ -86,12 +121,6 @@ class SimpleScenarioActivityId:
 
     def __hash__(self):
         return hash(self.code)
-
-
-@pydantic_dataclass(config=StrictInputConfig)
-class ActivityOutput:
-    unit: str
-    magnitude: float = 1.0
 
 
 # this is just for the schema to accept an array.
@@ -188,18 +217,9 @@ class ExperimentMethodData:
         else:
             self.alias = "_".join(id)
 
-
-@pydantic_dataclass(config=StrictInputConfig)
-class ExtendedExperimentMethodData:
-    id: tuple[str, ...]
-    alias: str
-
-    def __init__(self, id: tuple[str, ...], alias: Optional[str] = None):
-        self.id = id
-        if alias:
-            self.alias = alias
-        else:
-            self.alias = "_".join(id)
+    @property
+    def alias_(self) -> str:
+        return str(self.alias)
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -207,36 +227,6 @@ class ExperimentMethodPrepData:
     id: tuple[str, ...]
     alias: str
     bw_method: BWMethod
-
-
-@pydantic_dataclass(config=OperationConfig)
-class ExtendedExperimentActivityData:
-    id: ExperimentActivityId
-    orig_id: ExperimentActivityId
-    output: "ActivityOutput"
-    bw_activity: Activity
-    default_output_value: Optional[float] = 1.0
-
-    def __hash__(self):
-        return self.bw_activity["code"]
-
-    @property
-    def alias(self):
-        return self.id.alias
-
-
-@pydantic_dataclass(config=OperationConfig)
-class ExtendedExperimentActivityPrepData:
-    id: ExperimentActivityId
-    orig_id: ExperimentActivityId
-    output: "ActivityOutput"
-    default_output_value: float
-    bw_activity: Activity
-    scenario_outputs: dict[str, "ActivityOutput"] = Field(default_factory=dict)
-
-    @property
-    def alias(self):
-        return self.id.alias
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -317,7 +307,7 @@ class BWCalculationSetup:
     ia: list[tuple[str, ...]]
 
     def register(self):
-        calculation_setups[self.name] = {
+        bw2data.calculation_setups[self.name] = {
             "inv": self.inv,
             "ia": self.ia
         }

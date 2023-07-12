@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, cast
 
 import bw2data as bd
 import plotly.graph_objects as go
@@ -20,7 +20,7 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               EcoInventSimpleIndex, MethodsDataTypes, ActivitiesDataTypes,
                                               ExtendedExperimentActivityPrepData, ScenarioResultNodeData,
                                               ExperimentMethodPrepData, ActivityOutput, SimpleScenarioActivityId,
-                                              Activity_Outputs, ExtendedExperimentMethodData)
+                                              Activity_Outputs)
 
 logger = get_logger(__file__)
 
@@ -157,34 +157,40 @@ class Experiment:
         except Exception as err:
             raise Exception(f"Unit error, {err}; For activity: {activity.id}")
 
-    def prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExtendedExperimentMethodData]:
+    def prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExperimentMethodData]:
         if not methods:
             methods = self.raw_data.methods
-        method_dict: dict[str, ExtendedExperimentMethodData] = {}
+        method_dict: dict[str, ExperimentMethodData] = {}
         if isinstance(methods, dict):
             for method_alias in methods:
-                method_dict[method_alias] = ExtendedExperimentMethodData(methods[method_alias], method_alias)
+                method_dict[method_alias] = ExperimentMethodData(methods[method_alias], method_alias)
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
             for method_ in method_list:
-                method__ = ExtendedExperimentMethodData(method_.id, method_.alias)
-                method_dict[method__.alias] = method__
+                method__ = ExperimentMethodData(method_.id, method_.alias)
+                method_dict[method__.alias_] = method__
         return method_dict
 
     @staticmethod
-    def validate_method(method: Union[ExperimentMethodData, ExtendedExperimentMethodData]) -> BWMethod:
+    def validate_method(method: ExperimentMethodData,
+                        alias: str) -> ExperimentMethodPrepData:
         method.id = tuple(method.id)
         bw_method = bd.methods.get(method.id)
         if not bw_method:
             raise Exception(f"Method with id: {method.id} does not exist")
-        return BWMethod(**bw_method)
+        if method.alias:
+            if method.alias != alias:
+                raise Exception(f"Method alias: {method.alias} does not match with the given alias: {alias}")
+        else:
+            method.alias = alias
+        return ExperimentMethodPrepData(id=method.id, alias=method.alias, bw_method=BWMethod(**bw_method))
 
     @staticmethod
-    def validate_methods(method_dict: dict[str, ExtendedExperimentMethodData]) -> dict[
+    def validate_methods(method_dict: dict[str, ExperimentMethodData]) -> dict[
         str, ExperimentMethodPrepData]:
         # all methods must exist
         return {
-            alias: ExperimentMethodPrepData(id=method.id, alias=alias, bw_method=Experiment.validate_method(method))
+            alias: Experiment.validate_method(method, alias)
             for alias, method in method_dict.items()
         }
 
@@ -271,11 +277,11 @@ class Experiment:
                             assert global_method
                             resolved_methods[global_method.alias] = global_method
                 else:
-                    method_dict: dict[str, tuple[str, ...]] = scenario.methods
-                    for method_alias, method_ in method_dict.items():
-                        md = ExperimentMethodData(method_)
-                        resolved_methods[md.alias] = ExperimentMethodPrepData(**asdict(md),
-                                                                              bw_method=self.validate_method(md))
+                    method_dict: dict[str, tuple[str, ...]] = cast(dict[str, tuple[str, ...]], scenario.methods)
+                    for method_alias, method_ in method_dict.items():  # type: ignore
+                        md = ExperimentMethodData(id=cast(tuple[str, ...],method_))
+                        prep_method = self.validate_method(md, method_alias)
+                        resolved_methods[prep_method.alias] = prep_method
 
             return Scenario(experiment=self,  # type: ignore
                             alias=_scenario_alias,
@@ -347,7 +353,7 @@ class Experiment:
         scenario.results_to_csv(file_path, include_method_units)
 
     def results_to_plot(self,
-                        method_: tuple[str, ...],
+                        method_: str,
                         *,
                         scenario_name: Optional[str] = None,
                         image_file: Optional[Path] = None,
