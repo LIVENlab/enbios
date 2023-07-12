@@ -15,7 +15,8 @@ if TYPE_CHECKING:
     from enbios2.base.experiment import Experiment
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import (BWCalculationSetup,
-                                              ScenarioResultNodeData, ExperimentMethodPrepData, Activity_Outputs)
+                                              ScenarioResultNodeData, ExperimentMethodPrepData, Activity_Outputs,
+                                              ExtendedExperimentMethodData)
 
 logger = get_logger(__file__)
 
@@ -30,7 +31,7 @@ class Scenario:
     orig_outputs: Optional[dict[str, float]] = field(
         default_factory=dict[str, float])  # output declaration before conversion
     activities_outputs: Activity_Outputs = field(default_factory=dict)
-    methods: Optional[dict[str, ExperimentMethodPrepData]] = None
+    methods: Optional[dict[str, ExtendedExperimentMethodData]] = None
 
     def __post_init__(self):
         self.prepare_tree()
@@ -90,7 +91,7 @@ class Scenario:
         self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
         return self.result_tree
 
-    def get_methods(self) -> dict[str, ExperimentMethodPrepData]:
+    def get_methods(self) -> dict[str, ExtendedExperimentMethodData]:
         if self.methods:
             return self.methods
         else:

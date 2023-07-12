@@ -1,11 +1,11 @@
 from typing import Generator, Iterator, Union
 
+import bw2data
 from bw2data import databases as bw_databases
 from bw2data import methods as bw_methods
 from bw2data.project import projects as bw_projects
 
 from bw2data.backends import Activity, ExchangeDataset, ActivityDataset
-from deprecated.classic import deprecated
 
 
 def info_exchanges(act: Activity) -> dict:
@@ -114,3 +114,8 @@ def report():
 if __name__ == '__main__':
     report()
     # bw2data.projects.purge_deleted_directories()
+    bw2data.projects.set_current("ecoinvent")
+    bw2data.Database("seeds").delete_instance()
+    # exc = ExchangeDataset.select().where(
+    #     ExchangeDataset.input_database == "seeds" | ExchangeDataset.output_database == "seeds")
+    # print(exc)
