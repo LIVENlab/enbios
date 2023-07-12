@@ -32,6 +32,7 @@ class ReadPath(Path):
         return instance
 
     def read_data(self):
+    def read_data(self, config: Optional[dict] = None):
         """
         Read data from file. Formats supported: json, csv, excel
         - json is read straight into a dict
@@ -43,7 +44,7 @@ class ReadPath(Path):
         if self.suffix == ".json":
             return json.loads(self.read_text(encoding="utf-8"))
         elif self.suffix == ".csv":
-            return list(DictReader(self.open(encoding="utf-8")))
+            return list(DictReader(self.open(encoding="utf-8"), **config))
         # excel
         elif self.suffix == ".xlsx":
             workbook = openpyxl.load_workbook(self, read_only=True, data_only=True)

@@ -24,9 +24,8 @@ class EcoinventDataset(MainDatabase):
     system_model = TextField()  # cutoff, consequential, apos
     type = TextField(default="default")  # ecoinvent_dataset_types
     xlsx = BooleanField(default=False)
-    directory: Path = PathField(null=True)  # Path typehint, so that static checker chills; # type: ignore
+    directory: Path = PathField(null=True)  # Path typehint, so that static checker chills
     identity = TextField(unique=True)
-    # bw_project_db = ForeignKeyField("BWProjectIndex", backref="ecoinvent_dataset", null=True, unique=True)
 
     _V391 = "3.9.1"
     _SM_CUTOFF = "cutoff"

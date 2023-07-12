@@ -16,15 +16,21 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExtendedExperimentActivityData,
                                               BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
+                                              ExtendedExperimentActivityOutput,
+                                              EcoInventSimpleIndex, MethodsDataTypes, ExperimentActivityOutput,
+                                              ActivitiesDataTypes, BWCalculationSetup)
+
+logger = get_logger(__file__)
+
+# map from ExtendedExperimentActivityData.alias = (ExtendedExperimentActivityData.id.alias) to outputs
+Activity_Outputs = dict[str, float]
                                               ActivityOutput,
                                               EcoInventSimpleIndex, MethodsDataTypes, ExperimentActivityOutput,
                                               ActivitiesDataTypes, ScenarioResultNodeData, ExperimentMethodPrepData,
                                               ExtendedExperimentActivityPrepData,
                                               SimpleScenarioActivityId, Activity_Outputs)
 
-logger = get_logger(__file__)
 
-ureg = UnitRegistry()
 
 """
 dict of Method tuple, to result-value 
