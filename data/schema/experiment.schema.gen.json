@@ -234,8 +234,7 @@
         }
       },
       "required": [
-        "id",
-        "alias"
+        "id"
       ],
       "additionalProperties": false
     },

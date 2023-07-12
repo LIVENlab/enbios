@@ -17,22 +17,12 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExtendedExperimentActivityData,
                                               BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
-    # ExtendedExperimentActivityOutput,
                                               EcoInventSimpleIndex, MethodsDataTypes, ActivitiesDataTypes,
                                               ExtendedExperimentActivityPrepData, ScenarioResultNodeData,
                                               ExperimentMethodPrepData, ActivityOutput, SimpleScenarioActivityId,
-                                              Activity_Outputs)
+                                              Activity_Outputs, ExtendedExperimentMethodData)
 
 logger = get_logger(__file__)
-
-# map from ExtendedExperimentActivityData.alias = (ExtendedExperimentActivityData.id.alias) to outputs
-# Activity_Outputs = dict[str, float]
-
-
-
-"""
-dict of Method tuple, to result-value 
-"""
 
 
 class Experiment:
@@ -47,7 +37,7 @@ class Experiment:
             self.raw_data.activities)
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
-        self.methods: dict[str, ExperimentMethodPrepData] = Experiment.validate_methods(self.prepare_methods())
+        self.methods: dict[str, ExtendedExperimentMethodData] = Experiment.validate_methods(self.prepare_methods())
         self.scenarios: list[Scenario] = self.validate_scenarios()
         self.lca: Optional[StackedMultiLCA] = None
 
@@ -167,21 +157,21 @@ class Experiment:
         except Exception as err:
             raise Exception(f"Unit error, {err}; For activity: {activity.id}")
 
-    def prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExperimentMethodData]:
+    def prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExtendedExperimentMethodData]:
         if not methods:
             methods = self.raw_data.methods
-        method_dict: dict[str, ExperimentMethodData] = {}
+        method_dict: dict[str, ExtendedExperimentMethodData] = {}
         if isinstance(methods, dict):
             for method_alias in methods:
-                method_dict[method_alias] = ExperimentMethodData(methods[method_alias], method_alias)
+                method_dict[method_alias] = ExtendedExperimentMethodData(methods[method_alias], method_alias)
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
             for method_ in method_list:
-                method_dict[method_.alias] = method_
+                method_dict[method_.alias] = ExtendedExperimentMethodData(method_.id, method_.alias)
         return method_dict
 
     @staticmethod
-    def validate_method(method: ExperimentMethodData) -> BWMethod:
+    def validate_method(method: Union[ExperimentMethodData, ExtendedExperimentMethodData]) -> BWMethod:
         method.id = tuple(method.id)
         bw_method = bd.methods.get(method.id)
         if not bw_method:
@@ -189,7 +179,8 @@ class Experiment:
         return BWMethod(**bw_method)
 
     @staticmethod
-    def validate_methods(method_dict: dict[str, ExperimentMethodData]) -> dict[str, ExperimentMethodPrepData]:
+    def validate_methods(method_dict: dict[str, ExtendedExperimentMethodData]) -> dict[
+        str, ExtendedExperimentMethodData]:
         # all methods must exist
         return {
             alias: ExperimentMethodPrepData(id=method.id, alias=alias, bw_method=Experiment.validate_method(method))
@@ -289,7 +280,7 @@ class Experiment:
                             alias=_scenario_alias,
                             activities_outputs=scenario_activities_outputs,
                             methods=resolved_methods,
-                            result_tree= self.technology_root_node.copy())
+                            result_tree=self.technology_root_node.copy())
 
         raw_scenarios = self.raw_data.scenarios
         scenarios: list[Scenario] = []

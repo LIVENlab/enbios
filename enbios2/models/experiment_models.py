@@ -179,7 +179,7 @@ class BWMethod:
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentMethodData:
     id: tuple[str, ...]
-    alias: str
+    alias: Optional[str] = None
 
     def __init__(self, id: tuple[str, ...], alias: Optional[str] = None):
         self.id = id
@@ -188,6 +188,18 @@ class ExperimentMethodData:
         else:
             self.alias = "_".join(id)
 
+
+@pydantic_dataclass(config=StrictInputConfig)
+class ExtendedExperimentMethodData:
+    id: tuple[str, ...]
+    alias: str
+
+    def __init__(self, id: tuple[str, ...], alias: Optional[str] = None):
+        self.id = id
+        if alias:
+            self.alias = alias
+        else:
+            self.alias = "_".join(id)
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentMethodPrepData:
