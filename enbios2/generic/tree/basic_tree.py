@@ -581,17 +581,18 @@ class BasicTreeNode(Generic[T]):
         current_node: Optional["BasicTreeNode[T]"] = None
         for row in reader:
             for index, lvl_name in enumerate(node_columns):
-                if row[lvl_name].strip() == "":
+                if not row[lvl_name] or (clean_value := row[lvl_name].strip()) == "":
                     continue
                 if index == 0 and not root:
-                    root = BasicTreeNode[T](row[node_columns[0]])
+                    root = BasicTreeNode[T](clean_value)
                     current_node = root
                     continue
-                if current_node and current_node.level >= index:
-                    current_node = current_node.level_up(current_node.level - index + 1)
-                else:
-                    raise ValueError(f"Cannot level up from {current_node}/level: {current_node}. ")
-                current_node = current_node.add_child(BasicTreeNode(row[lvl_name]))
+                if current_node:
+                    if current_node.level < index - 1:
+                        raise ValueError(f"There are nodes missing inbetween {current_node.name} and {clean_value}")
+                    elif current_node.level >= index:
+                        current_node = current_node.level_up(current_node.level - index + 1)
+                    current_node = current_node.add_child(BasicTreeNode(clean_value))
 
         if not root:
             raise ValueError("Could not generate tree from csv.")
@@ -630,6 +631,15 @@ class BasicTreeNode(Generic[T]):
                         depth_first: bool = False,
                         lazy: bool = False,
                         *args, **kwargs):
+        """
+        note that only when lazy is set to True, the function will return a generator.
+        :param func: the function to apply to all nodes
+        :param depth_first:
+        :param lazy: does not evaluate the function until the generator is iterated.
+        :param args:
+        :param kwargs:
+        :return:
+        """
         if lazy:
             return self.recursive_apply_lazy(func, depth_first, *args, **kwargs)
         else:

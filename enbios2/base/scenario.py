@@ -2,12 +2,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union, TYPE_CHECKING, Any
 
-from bw2calc import MultiLCA
 from bw2data.backends import Activity
 from numpy import ndarray
-from pint import DimensionalityError, UnitRegistry
+from pint import DimensionalityError
 
 from enbios2.base.stacked_MultiLCA import StackedMultiLCA
+from enbios2.base.unit_registry import ureg
 from enbios2.generic.enbios2_logging import get_logger
 
 # for type hinting
@@ -18,7 +18,6 @@ from enbios2.models.experiment_models import (BWCalculationSetup,
                                               ScenarioResultNodeData, ExperimentMethodPrepData, Activity_Outputs)
 
 logger = get_logger(__file__)
-ureg = UnitRegistry()
 
 
 @dataclass

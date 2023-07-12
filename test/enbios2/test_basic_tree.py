@@ -110,10 +110,10 @@ def test_recursive_apply():
         return node.name
 
     expected_results = ['parent', 'child1', 'child1-child1', 'child1-child2', 'child2', 'child2-child1']
-    assert expected_results == [res for res in node1.recursive_apply(apply_func)]
+    assert expected_results == [res for res in node1.recursive_apply(apply_func, lazy=True)]
 
     expected_results = ['child1-child1', 'child1-child2', 'child1', 'child2-child1', 'child2', 'parent']
-    assert expected_results == [res for res in node1.recursive_apply(apply_func, depth_first=True)]
+    assert expected_results == [res for res in node1.recursive_apply(apply_func, depth_first=True, lazy=True)]
 
 
 def test_clear():
@@ -379,6 +379,29 @@ root,child1,grandchild1
     assert len(root.children[0].children) == 1
     assert root.children[1].name == "child2"
     assert len(root.children[1].children) == 0
+
+    csv_content = """level1,level2,level3
+    root,child1,grandchild1
+        ,child2,grandchild2
+        ,       ,grandchild3
+    """
+    with open(csv_file_path, "w") as csv_file:
+        csv_file.write(csv_content)
+    root = BasicTreeNode.from_csv(csv_file_path)
+
+    assert root.name == "root"
+    assert len(root.children) == 2
+    assert len(root.children[0].children) == 1
+    assert len(root.children[1].children) == 2
+
+    with pytest.raises(ValueError):
+        csv_content = """level1,level2,level3
+        root,,grandchild1
+            ,child2,
+        """
+        with open(csv_file_path, "w") as csv_file:
+            csv_file.write(csv_content)
+        root = BasicTreeNode.from_csv(csv_file_path)
 
 
 def test_get_child():

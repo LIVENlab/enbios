@@ -6,9 +6,10 @@ import bw2data as bd
 import plotly.graph_objects as go
 from pint import UnitRegistry, Quantity
 
-from enbios2.base.StackedMultiLCA import StackedMultiLCA
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
+from enbios2.base.stacked_MultiLCA import StackedMultiLCA
+from enbios2.base.unit_registry import ureg
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.tree.basic_tree import BasicTreeNode
@@ -16,19 +17,17 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExtendedExperimentActivityData,
                                               BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
-                                              ExtendedExperimentActivityOutput,
+    # ExtendedExperimentActivityOutput,
                                               EcoInventSimpleIndex, MethodsDataTypes, ExperimentActivityOutput,
-                                              ActivitiesDataTypes, BWCalculationSetup)
+                                              ActivitiesDataTypes, BWCalculationSetup,
+                                              ExtendedExperimentActivityPrepData, ScenarioResultNodeData,
+                                              ExperimentMethodPrepData, ActivityOutput, SimpleScenarioActivityId,
+                                              Activity_Outputs)
 
 logger = get_logger(__file__)
 
 # map from ExtendedExperimentActivityData.alias = (ExtendedExperimentActivityData.id.alias) to outputs
-Activity_Outputs = dict[str, float]
-                                              ActivityOutput,
-                                              EcoInventSimpleIndex, MethodsDataTypes, ExperimentActivityOutput,
-                                              ActivitiesDataTypes, ScenarioResultNodeData, ExperimentMethodPrepData,
-                                              ExtendedExperimentActivityPrepData,
-                                              SimpleScenarioActivityId, Activity_Outputs)
+# Activity_Outputs = dict[str, float]
 
 
 
