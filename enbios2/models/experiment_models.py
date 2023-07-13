@@ -251,8 +251,7 @@ class ExperimentDataIO:
     methods: Optional[Union[MethodsDataTypes, str]] = None
     hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
     scenarios: Optional[Union[ScenariosDataTypes, str]] = None
-    config: Optional[ScenarioConfig] = ScenarioConfig()
-
+    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
 
 @dataclass
 class BWCalculationSetup:

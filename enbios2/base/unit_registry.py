@@ -12,15 +12,16 @@ if not ecoinvent_units_file_path.exists():
 
 ureg.load_definitions(ecoinvent_units_file_path)
 
-data_path: DataPath = DataPath("ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/MasterData/Units.xml")
-res = parse_xml(data_path, "unit", [], ["name", "comment"])
+if __name__ == "__main__":
+    data_path: DataPath = DataPath("ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/MasterData/Units.xml")
+    res = parse_xml(data_path, "unit", [], ["name", "comment"])
 
-for unit in res:
-    u = str(unit["name"])
-    try:
-        p = ureg.parse_expression(u)
-    except Exception as e:
-        print(e)
-        print(unit["comment"])
-        print("******")
-        continue
+    for unit in res:
+        u = str(unit["name"])
+        try:
+            p = ureg.parse_expression(u)
+        except Exception as e:
+            print(e)
+            print(unit["comment"])
+            print("******")
+            continue
