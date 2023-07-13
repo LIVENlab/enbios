@@ -137,6 +137,7 @@ class ExperimentActivityData:
     """
     id: ExperimentActivityId = Field(..., description="The identifies (method to find) an activity")
     output: Optional[ExperimentActivityOutput] = Field(None, description="The default output of the activity")
+    orig_id: Optional[ExperimentActivityId] = Field(None, description="Temporary copy of the id")
 
     @property
     def alias(self):

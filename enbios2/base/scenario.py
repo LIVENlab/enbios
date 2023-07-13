@@ -135,8 +135,7 @@ class Scenario:
             else:
                 logger.warning(f"No output for node: {node.name}")
 
-        if not self.experiment.lca:
-            results: ndarray = StackedMultiLCA(bw_calc_setup).results
+        results: ndarray = StackedMultiLCA(bw_calc_setup).results
         self.result_tree.recursive_apply(recursive_resolve_outputs, depth_first=True)
         return self.create_results_to_technology_tree(results)
 

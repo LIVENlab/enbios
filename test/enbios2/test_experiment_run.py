@@ -117,6 +117,7 @@ def test_pickle(scenario_run_basic1):
 def test_temp_load_pickle():
     experiment = pickle.load(open(BASE_DATA_PATH / "temp/test_pickle.pickle", "rb"))
     assert experiment
+
     def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData]):
         print("******")
         print(node.name)
@@ -153,6 +154,67 @@ def test_scaled_demand_unit(scenario_run_basic1, default_method_str: str):
     # print(result["default scenario"]["data"][method] / expected_value)
     assert result[Experiment.DEFAULT_SCENARIO_ALIAS]["data"].results[default_method_str] == pytest.approx(
         expected_value, abs=1e-7)
+
+
+def test_stacked_lca():
+    """
+    ,
+            {
+                "id": ["Cumulative Exergy Demand (CExD)", "energy resources: renewable, solar", "exergy content"]
+            }
+    """
+
+    experiment = {
+        "bw_project": "ecoinvent",
+        "bw_default_database": "cutoff_3.9.1_default",
+        "activities": {
+            "single_activity": {
+                "id": {
+                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit": "kilowatt hour",
+                    "location": "DK"
+                },
+                "output": [
+                    "kWh",
+                    1
+                ]
+            },
+            "2nd": {
+                "id": {
+                    "name": "concentrated solar power plant construction, solar tower power plant, 20 MW",
+                    "code": "19978cf531d88e55aed33574e1087d78",
+                    "database": "cutoff_3.9.1_default"
+                },
+                "output": [
+                    "unit",
+                    1
+                ]
+            }
+        },
+        "methods": [
+            {
+                "id": ['EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT']
+            }
+        ],
+        "hierarchy": {
+            "energy": [
+                "single_activity",
+                "2nd"
+            ]
+        },
+        "scenarios": [
+            {
+                "activities": {"single_activity": ["kWh", 3]}
+            },
+            {
+                "activities": {"single_activity": ["kWh", 4]}
+            },
+            {
+                "activities": {"single_activity": ["kWh", 5]}
+            }
+        ]
+    }
+    Experiment(ExperimentData(**experiment)).run()
 
 
 def test_scenario(scenario_run_basic1: dict, default_bw_config: dict, default_method_str: str):

@@ -5,9 +5,11 @@ from pathlib import Path
 from typing import Optional, Union, Any, cast
 
 import bw2data as bd
+import numpy as np
 import plotly.graph_objects as go
 from bw2data.backends import Activity
 from pint import Quantity, UndefinedUnitError, DimensionalityError
+from pint.facets.plain import PlainQuantity
 
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
@@ -38,7 +40,7 @@ class Experiment:
 
         self.validate_bw_config()
         self.activitiesMap: dict[str, ExtendedExperimentActivityPrepData] = Experiment.validate_activities(
-            self.raw_data.activities, self.raw_data.bw_default_database)
+            self.prepare_activities(self.raw_data.activities), self.raw_data.bw_default_database)
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
         self.methods: dict[str, ExperimentMethodPrepData] = Experiment.validate_methods(self.prepare_methods())
@@ -105,7 +107,25 @@ class Experiment:
             validate_bw_project_bw_database(bw_project_index.project_name, bw_project_index.database_name)
 
     @staticmethod
-    def validate_activities(activities: ActivitiesDataTypes, bw_default_database: str,
+    def prepare_activities(activities: ActivitiesDataTypes) -> list[ExperimentActivityData]:
+        raw_activities_list: list[ExperimentActivityData] = []
+        if isinstance(activities, list):
+            raw_activities_list = activities
+            for activity in raw_activities_list:
+                activity.orig_id = copy(activity.id)
+
+        elif isinstance(activities, dict):
+            for activity_alias, activity in activities.items():
+                if activity_alias == activity.alias:
+                    raise (f"Activity in activities-dict declared with alias: '{activity_alias}', "
+                           f"different than in the activity.id: '{activity.alias}'")
+                activity.orig_id = copy(activity.id)
+                activity.id.alias = activity_alias
+                raw_activities_list.append(activity)
+        return raw_activities_list
+
+    @staticmethod
+    def validate_activities(activities: list[ExperimentActivityData], bw_default_database: str,
                             output_required: bool = False) -> [str,
                                                                ExtendedExperimentActivityData]:
         """
@@ -115,25 +135,16 @@ class Experiment:
         # if activities is a list, convert validate and convert to dict
         default_id_data = ExperimentActivityId(database=bw_default_database)
         activities_map: [str, ExtendedExperimentActivityData] = {}
-        raw_activities_list: list[ExperimentActivityData] = []
-        if isinstance(activities, list):
-            raw_activities_list = activities
-
-        elif isinstance(activities, dict):
-            for activity_alias, activity in activities.items():
-                if activity_alias == activity.alias:
-                    raise (f"Activity in activities-dict declared with alias: '{activity_alias}', "
-                           f"different than in the activity.id: '{activity.alias}'")
-                activity.id.alias = activity_alias
-                raw_activities_list.append(activity)
-
-        for activity in raw_activities_list:
+        # validate
+        for activity in activities:
             ext_activity: ExtendedExperimentActivityData = Experiment.validate_activity(activity,
                                                                                         default_id_data,
                                                                                         output_required)
+            # check unique aliases
             if ext_activity.alias in activities_map:
                 raise Exception(f"Activity-alias '{ext_activity.alias}' passed more then once")
             activities_map[ext_activity.alias] = ext_activity
+
         # all codes should only appear once
         unique_activities = set()
         for ext_activity in activities_map.values():
@@ -155,43 +166,34 @@ class Experiment:
         :return:
         """
 
-        orig_id = copy(activity.id)
+        id_ = activity.id
         database = activity.id.database if activity.id.database else default_id_attr.database
-        # assert result.id.database in bd.databases,
-        # f"activity database does not exist: '{self.id.database}' for {self.id}"
-        # todo, is the needed?
-
-        if orig_id.code:
-            if orig_id.database:
-                bw_activity = bd.Database(orig_id.database).get_node(orig_id.code)
+        bw_activity: Optional[Activity] = None
+        if id_.code:
+            if id_.database:
+                bw_activity = bd.Database(id_.database).get_node(id_.code)
             else:
-                bw_activity = get_activity(orig_id.code)
-        elif orig_id.name:
+                bw_activity = get_activity(id_.code)
+        elif id_.name:
             filters = {}
-            search_in_dbs = [orig_id.database] if orig_id.database else bd.databases
+            search_in_dbs = [id_.database] if id_.database else bd.databases
             for db in search_in_dbs:
-                if orig_id.location:
-                    filters["location"] = orig_id.location
-                    search_results = bd.Database(db).search(orig_id.name, filter=filters)
+                if id_.location:
+                    filters["location"] = id_.location
+                    search_results = bd.Database(db).search(id_.name, filter=filters)
                 else:
-                    search_results = bd.Database(db).search(orig_id.name)
-                # print(len(search_results))
-                # print(search_results)
-                if orig_id.unit:
-                    search_results = list(filter(lambda a: a["unit"] == orig_id.unit, search_results))
-                #     if len(search_results) == 0:
-                #         raise ValueError(f"No activity found with the specified unit {self.id}")
-                # assert len(search_results) == 1, f"results : {len(search_results)}"
+                    search_results = bd.Database(db).search(id_.name)
+                if id_.unit:
+                    search_results = list(filter(lambda a: a["unit"] == id_.unit, search_results))
                 if len(search_results) == 1:
                     bw_activity = search_results[0]
                     break
-            if not bw_activity:
-                raise ValueError(f"No activity found for {activity.id}")
+        if not bw_activity:
+            raise ValueError(f"No activity found for {activity.id}")
 
         if not activity.output:
             activity.output = ActivityOutput(unit=bw_activity["unit"])
         result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**asdict(activity),
-                                                                                orig_id=orig_id,
                                                                                 database=database,
                                                                                 bw_activity=bw_activity,
                                                                                 default_output=activity.output)
@@ -272,14 +274,7 @@ class Experiment:
             return activity
         elif isinstance(alias_or_id, ExperimentActivityId):
             for activity in self.activitiesMap.values():
-                found = True
-                for field in fields(ExperimentActivityId):
-                    if field != "alias":
-                        continue
-                    if activity.orig_id != alias_or_id:
-                        found = False
-                        break
-                if found:
+                if activity.orig_id == alias_or_id:
                     return activity
             return None
 
@@ -294,7 +289,6 @@ class Experiment:
         """
         :return:
         """
-
         def validate_activity_id(activity_id: Union[str, ExperimentActivityId]) -> SimpleScenarioActivityId:
             activity = self.get_activity(activity_id)
             id_ = activity.id
@@ -425,6 +419,44 @@ class Experiment:
             inventories.append(inventory)
         calculation_setup = BWCalculationSetup("experiment", list(itertools.chain(*inventories)), methods)
         results = StackedMultiLCA(calculation_setup).results
+
+        def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
+            if node.is_leaf:
+                return
+            node_output: Optional[Union[Quantity, PlainQuantity]] = None
+            for child in node.children:
+                activity_output = child.data.output[0]
+                units = {activity_output, activity_output.replace("_", " ")}
+                for ao in units:
+                    output: Optional[Quantity] = None
+                    try:
+                        output = ureg.parse_expression(ao) * child.data.output[1]
+                        if not node_output:
+                            node_output = output
+                        else:
+                            node_output += output
+                        break
+                    except UndefinedUnitError as err:
+                        logger.error(
+                            f"Cannot parse output unit '{ao}'- {activity_output} of activity {child.name}. {err}. "
+                            f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
+                    except DimensionalityError as err:
+                        logger.warning(f"Cannot aggregate output to parent: {node.name}. "
+                                       f"From earlier children the base unit is {node_output.to_base_units()} "
+                                       f"and from {child.name} it is {output}."
+                                       f" {err}")
+
+            if node_output:
+                node_output = node_output.to_compact()
+                node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
+            else:
+                logger.warning(f"No output for node: {node.name}")
+
+        scenario_results = np.split(results, len(self.scenarios))
+        for index, scenario in enumerate(self.scenarios):
+            scenario.result_tree.recursive_apply(recursive_resolve_outputs, depth_first=True)
+            scenario.create_results_to_technology_tree(scenario_results[index])
+        print("***")
         return results
 
     def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None, include_method_units: bool = True):
