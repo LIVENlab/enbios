@@ -84,7 +84,7 @@ def full_duplicate(activity: Activity, code=None, **kwargs) -> Activity:
     :param kwargs: other data for the copy
     :return: new activity
     """
-    activity_copy = activity.copy(code, kwargs)
+    activity_copy = activity.copy(code, **kwargs)
     for upstream in activity.upstream():
         upstream.output.new_exchange(input=activity_copy, type=upstream["type"], amount=upstream.amount).save()
     activity_copy.save()
@@ -104,18 +104,15 @@ def clean_delete(activity: Activity):
 
 def report():
     projects = list(bw_projects)
+    current_ = bw2data.projects.current
+    projects = list(bw2data.projects)
     for project in projects:
         print(project)
         bw_projects.set_current(project.name)
         databases = list(bw_databases)
         print(databases)
-
+    bw2data.projects.set_current(current_)
 
 if __name__ == '__main__':
     report()
     # bw2data.projects.purge_deleted_directories()
-    bw2data.projects.set_current("ecoinvent")
-    bw2data.Database("seeds").delete_instance()
-    # exc = ExchangeDataset.select().where(
-    #     ExchangeDataset.input_database == "seeds" | ExchangeDataset.output_database == "seeds")
-    # print(exc)
