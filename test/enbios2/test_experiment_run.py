@@ -50,15 +50,15 @@ def scenario_run_basic1(default_bw_config):
                                                         ScenarioResultNodeData(
                                                             output=("kilowatt_hour", 1.0),
                                                             results={
-                                                                'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': 6.169154556662401e-06})}],
+                                                                'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': 6.19570577675737e-06})}],
                                                'data': ScenarioResultNodeData(
                                                    output=("kilowatt_hour", 1.0),
                                                    results={
-                                                       'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': 6.169154556662401e-06})}],
+                                                       'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': 6.19570577675737e-06})}],
                                  'data': ScenarioResultNodeData(
                                      output=("kilowatt_hour", 1.0),
                                      results={
-                                         'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': 6.169154556662401e-06})}
+                                         'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': 6.19570577675737e-06})}
     }
 
 
