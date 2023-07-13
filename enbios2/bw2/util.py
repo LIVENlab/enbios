@@ -148,13 +148,14 @@ def method_search(project_name: str, method_tuple: tuple[str, ...]) -> Union[
 
 
 def report():
+    current_ = bw2data.projects.current
     projects = list(bw2data.projects)
     for project in projects:
         print(project)
         bw2data.projects.set_current(project.name)
         databases = list(bw2data.databases)
         print(databases)
-
+    bw2data.projects.set_current(current_)
 
 if __name__ == '__main__':
     report()
