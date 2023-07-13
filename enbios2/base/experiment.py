@@ -405,8 +405,7 @@ class Experiment:
     def run_scenario(self, scenario_name: str) -> dict[str, Any]:
         return self.get_scenario(scenario_name).run().as_dict(include_data=True)
 
-    def run(self) -> dict[str, dict[str, Any]]:
-        results: dict[str, dict[str, Any]] = {}
+    def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         methods = [m.id for m in self.methods.values()]
         inventories: list[list[dict[Activity, float]]] = []
         for scenario in self.scenarios:
@@ -417,46 +416,14 @@ class Experiment:
                 bw_activity = scenario.experiment.get_activity(activity_alias.alias).bw_activity
                 inventory.append({bw_activity: act_out})
             inventories.append(inventory)
+
         calculation_setup = BWCalculationSetup("experiment", list(itertools.chain(*inventories)), methods)
-        results = StackedMultiLCA(calculation_setup).results
-
-        def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
-            if node.is_leaf:
-                return
-            node_output: Optional[Union[Quantity, PlainQuantity]] = None
-            for child in node.children:
-                activity_output = child.data.output[0]
-                units = {activity_output, activity_output.replace("_", " ")}
-                for ao in units:
-                    output: Optional[Quantity] = None
-                    try:
-                        output = ureg.parse_expression(ao) * child.data.output[1]
-                        if not node_output:
-                            node_output = output
-                        else:
-                            node_output += output
-                        break
-                    except UndefinedUnitError as err:
-                        logger.error(
-                            f"Cannot parse output unit '{ao}'- {activity_output} of activity {child.name}. {err}. "
-                            f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
-                    except DimensionalityError as err:
-                        logger.warning(f"Cannot aggregate output to parent: {node.name}. "
-                                       f"From earlier children the base unit is {node_output.to_base_units()} "
-                                       f"and from {child.name} it is {output}."
-                                       f" {err}")
-
-            if node_output:
-                node_output = node_output.to_compact()
-                node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
-            else:
-                logger.warning(f"No output for node: {node.name}")
-
-        scenario_results = np.split(results, len(self.scenarios))
+        raw_results = StackedMultiLCA(calculation_setup).results
+        scenario_results = np.split(raw_results, len(self.scenarios))
+        results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
         for index, scenario in enumerate(self.scenarios):
-            scenario.result_tree.recursive_apply(recursive_resolve_outputs, depth_first=True)
-            scenario.create_results_to_technology_tree(scenario_results[index])
-        print("***")
+            scenario.result_tree.recursive_apply(Scenario.recursive_resolve_outputs, depth_first=True)
+            results[scenario.alias] = scenario.create_results_to_technology_tree(scenario_results[index])
         return results
 
     def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None, include_method_units: bool = True):

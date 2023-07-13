@@ -104,7 +104,7 @@ def test_simple(scenario_run_basic1):
     scenario_data = scenario_run_basic1["scenario"]
     experiment = Experiment(ExperimentData(**scenario_data))
     results = experiment.run()[Experiment.DEFAULT_SCENARIO_ALIAS]
-    assert results == scenario_run_basic1["expected_result_tree"]
+    assert results.as_dict(True) == scenario_run_basic1["expected_result_tree"]
 
 
 def test_pickle(scenario_run_basic1):

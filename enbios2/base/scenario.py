@@ -97,46 +97,46 @@ class Scenario:
         else:
             return self.experiment.methods
 
+    @staticmethod
+    def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
+        if node.is_leaf:
+            return
+        node_output: Optional[Union[Quantity, PlainQuantity]] = None
+        for child in node.children:
+            activity_output = child.data.output[0]
+            units = {activity_output, activity_output.replace("_", " ")}
+            for ao in units:
+                output: Optional[Quantity] = None
+                try:
+                    output = ureg.parse_expression(ao) * child.data.output[1]
+                    if not node_output:
+                        node_output = output
+                    else:
+                        node_output += output
+                    break
+                except UndefinedUnitError as err:
+                    logger.error(
+                        f"Cannot parse output unit '{ao}'- {activity_output} of activity {child.name}. {err}. "
+                        f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
+                except DimensionalityError as err:
+                    logger.warning(f"Cannot aggregate output to parent: {node.name}. "
+                                   f"From earlier children the base unit is {node_output.to_base_units()} "
+                                   f"and from {child.name} it is {output}."
+                                   f" {err}")
+
+        if node_output:
+            node_output = node_output.to_compact()
+            node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
+        else:
+            logger.warning(f"No output for node: {node.name}")
+
     def run(self) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self.get_methods():
             raise ValueError(f"Scenario '{self.alias}' has no methods")
         logger.info(f"Running scenario '{self.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup()
-
-        def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
-            if node.is_leaf:
-                return
-            node_output: Optional[Union[Quantity, PlainQuantity]] = None
-            for child in node.children:
-                activity_output = child.data.output[0]
-                units = {activity_output, activity_output.replace("_", " ")}
-                for ao in units:
-                    output: Optional[Quantity] = None
-                    try:
-                        output = ureg.parse_expression(ao) * child.data.output[1]
-                        if not node_output:
-                            node_output = output
-                        else:
-                            node_output += output
-                        break
-                    except UndefinedUnitError as err:
-                        logger.error(
-                            f"Cannot parse output unit '{ao}'- {activity_output} of activity {child.name}. {err}. "
-                            f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
-                    except DimensionalityError as err:
-                        logger.warning(f"Cannot aggregate output to parent: {node.name}. "
-                                       f"From earlier children the base unit is {node_output.to_base_units()} "
-                                       f"and from {child.name} it is {output}."
-                                       f" {err}")
-
-            if node_output:
-                node_output = node_output.to_compact()
-                node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
-            else:
-                logger.warning(f"No output for node: {node.name}")
-
         results: ndarray = StackedMultiLCA(bw_calc_setup).results
-        self.result_tree.recursive_apply(recursive_resolve_outputs, depth_first=True)
+        self.result_tree.recursive_apply(Scenario.recursive_resolve_outputs, depth_first=True)
         return self.create_results_to_technology_tree(results)
 
     def results_to_csv(self, file_path: Path, include_method_units: bool = False):
