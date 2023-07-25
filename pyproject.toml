@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+
+
+[project]
+name = "enbios2"
+version = "0.1.0"
+description = "Enbios 2"
+authors = [
+    { name = "Ramin Soleymani" },
+]
+license = { text = "MIT License" }
+
+
+dependencies = [
+    "appdirs==1.4.4",
+    "asteval==0.9.30",
+    "astunparse==1.6.3",
+]
+
+[tool.setuptools]
+packages = ["enbios2"]
