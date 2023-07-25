@@ -69,7 +69,10 @@ def get_activity(code: str) -> Activity:
     :param code:
     :return:
     """
-    return Activity(ActivityDataset.get(ActivityDataset.code == code))
+    activity_ds = ActivityDataset.get_or_none(ActivityDataset.code == code)
+    if not activity_ds:
+        raise ValueError(f"Activity with code '{code}' does not exist")
+    return Activity(activity_ds)
 
 
 def full_duplicate(activity: Activity, code=None, **kwargs) -> Activity:
