@@ -8,7 +8,7 @@ from bw2data.backends import Activity
 from pydantic import Field, Extra
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-from enbios2.bw2.util import get_activity
+from enbios2.bw2.util import get_activity, report
 
 
 @pydantic_dataclass
@@ -19,7 +19,7 @@ class EcoInventSimpleIndex:
 
 class StrictInputConfig:
     validate_assignment = True
-    extra = Extra.forbid
+    extra = "allow"
 
 
 class OperationConfig:
@@ -109,7 +109,12 @@ class ExperimentActivityData:
         :param required_output:
         :return:
         """
-        result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**asdict(self))
+        activity_dict = asdict(self)
+        if output := activity_dict.get("output"):
+            if isinstance(output, tuple):
+                activity_dict["output"] = asdict(ExperimentActivityOutputDict(unit=output[0], magnitude=output[1]))
+
+        result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**activity_dict)
         result.orig_id = copy(self.id)
         if not self.id.database:
             # assert default_id_attr.database is not None, (f"database must be specified for {self.id} "
@@ -117,7 +122,6 @@ class ExperimentActivityData:
             result.id.database = default_id_attr.database
         # assert result.id.database in bd.databases,
         # f"activity database does not exist: '{self.id.database}' for {self.id}"
-        # todo, is the needed?
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
         if result.id.code:
             if result.id.database:
@@ -253,6 +257,7 @@ class ExperimentDataIO:
     hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
     scenarios: Optional[Union[ScenariosDataTypes, str]] = None
     config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
+
 
 @dataclass
 class BWCalculationSetup:

@@ -110,10 +110,10 @@ def test_recursive_apply():
         return node.name
 
     expected_results = ['parent', 'child1', 'child1-child1', 'child1-child2', 'child2', 'child2-child1']
-    assert expected_results == [res for res in node1.recursive_apply(apply_func)]
+    assert expected_results == [res for res in node1.recursive_apply(apply_func, lazy=True)]
 
     expected_results = ['child1-child1', 'child1-child2', 'child1', 'child2-child1', 'child2', 'parent']
-    assert expected_results == [res for res in node1.recursive_apply(apply_func, depth_first=True)]
+    assert expected_results == [res for res in node1.recursive_apply(apply_func, lazy=True, depth_first=True)]
 
 
 def test_clear():

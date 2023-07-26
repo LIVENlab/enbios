@@ -283,7 +283,7 @@ class Experiment:
             unique_activities.add((ext_activity.id.database, ext_activity.id.code))
 
             if ext_activity.output:
-                ext_activity.default_output_value = Experiment.validate_output(ext_activity.output, ext_activity)
+                ext_activity.output = Experiment.validate_output(ext_activity.output, ext_activity)
         assert len(unique_activities) == len(activities), "Not all activities are unique"
 
     @staticmethod
