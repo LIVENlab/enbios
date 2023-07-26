@@ -6,14 +6,14 @@ from pandas import DataFrame
 
 # import Experiment but just for type hinting
 if TYPE_CHECKING:
-    from enbios2.analyse.experiment import Experiment
+    from enbios2.analyse.vizprevexperiment import VizPrevExperiment
 
 # from const import processor_col, value_col
 
 
 class ExperimentExporter:
 
-    def __init__(self, experiment: Experiment):
+    def __init__(self, experiment: VizPrevExperiment):
         self.experiment = experiment
 
     def build_simple_tree(self, scenario: str, indicator: str, save: bool = True) -> Dict[str, any]:

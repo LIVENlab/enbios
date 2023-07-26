@@ -92,7 +92,7 @@ def temp_csv_file() -> Path:
 def test_single_lca_compare(scenario_run_basic1, default_method_tuple, default_method_str):
     experiment = Experiment(ExperimentData(**scenario_run_basic1["scenario"]))
     result = experiment.run()
-    bw_activity = experiment.activitiesMap["single_activity"].bw_activity
+    bw_activity = experiment.activities["single_activity"].bw_activity
     expected_value = scenario_run_basic1["expected_result_tree"]["data"].results[default_method_str]
     regular_score = bw_activity.lca(default_method_tuple).score
     assert regular_score == pytest.approx(expected_value, abs=1e-6)

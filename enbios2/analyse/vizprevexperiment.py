@@ -28,7 +28,7 @@ class ColumnMapper:
     value: str
 
 
-class Experiment:
+class VizPrevExperiment:
     """
     Enbios experiment result-plotter class
     """

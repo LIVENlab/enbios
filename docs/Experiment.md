@@ -95,7 +95,6 @@ The example is more clear in json format:
 }
 ```
 
-```yaml 
 
 
 All fundamental elements (activities, methods, scenarios) have aliases, which can be part of the definition or will be

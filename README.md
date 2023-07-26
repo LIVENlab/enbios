@@ -20,5 +20,5 @@ Go into the enbios2 directory and create a new virtual environment (with pip or 
 Activate the environment with `conda activate enbios2` or `source venv/bin/activate`
 
 Then install the dependencies with
-`python3 -m pip install -r requirements.txt`
+`pip install .` or `python3 -m pip install .`
 
