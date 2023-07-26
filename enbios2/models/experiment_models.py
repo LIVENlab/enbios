@@ -18,7 +18,7 @@ class EcoInventSimpleIndex:
 
 class StrictInputConfig:
     validate_assignment = True
-    extra = Extra.forbid
+    extra = "forbid"
 
 
 class OperationConfig:
@@ -215,12 +215,12 @@ class ExperimentMethodData:
     id: tuple[str, ...]
     alias: Optional[str] = None
 
-    def __init__(self, id: tuple[str, ...], alias: Optional[str] = None):
-        self.id = id
-        if alias:
-            self.alias = alias
-        else:
-            self.alias = "_".join(id)
+    # def __init__(self, id: tuple[str, ...], alias: Optional[str] = None):
+    #     self.id = id
+    #     if alias:
+    #         self.alias = alias
+    #     else:
+    #         self.alias = "_".join(id)
 
     @property
     def alias_(self) -> str:

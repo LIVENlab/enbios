@@ -6,7 +6,6 @@ from typing import Optional, Union, Any, cast
 
 import bw2data as bd
 import numpy as np
-import plotly.graph_objects as go
 from bw2data.backends import Activity
 from pint import Quantity, UndefinedUnitError, DimensionalityError
 from pint.facets.plain import PlainQuantity
@@ -193,7 +192,12 @@ class Experiment:
 
         if not activity.output:
             activity.output = ActivityOutput(unit=bw_activity["unit"])
-        result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**asdict(activity),
+
+        activity_dict = asdict(activity)
+        if output := activity_dict.get("output"):
+            if isinstance(output, tuple):
+                activity_dict["output"] = asdict(ActivityOutput(unit=output[0], magnitude=output[1]))
+        result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**activity_dict,
                                                                                 database=database,
                                                                                 bw_activity=bw_activity,
                                                                                 default_output=activity.output)
@@ -237,11 +241,14 @@ class Experiment:
         method_dict: dict[str, ExperimentMethodData] = {}
         if isinstance(methods, dict):
             for method_alias in methods:
+                if (def_alias := methods[method_alias].alias) and def_alias != method_alias:
+                    raise Exception(f"Method alias: {def_alias} does not match with the given alias: {method_alias}")
                 method_dict[method_alias] = ExperimentMethodData(methods[method_alias], method_alias)
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
             for method_ in method_list:
-                method__ = ExperimentMethodData(method_.id, method_.alias)
+                alias = method_.alias if method_.alias else "_".join(method_.id)
+                method__ = ExperimentMethodData(method_.id, alias)
                 method_dict[method__.alias_] = method__
         return method_dict
 
@@ -289,6 +296,7 @@ class Experiment:
         """
         :return:
         """
+
         def validate_activity_id(activity_id: Union[str, ExperimentActivityId]) -> SimpleScenarioActivityId:
             activity = self.get_activity(activity_id)
             id_ = activity.id
@@ -438,49 +446,3 @@ class Experiment:
         else:
             scenario = self.scenarios[0]
         scenario.results_to_csv(file_path, include_method_units)
-
-    def results_to_plot(self,
-                        method_: str,
-                        *,
-                        scenario_name: Optional[str] = None,
-                        image_file: Optional[Path] = None,
-                        show: bool = False):
-
-        scenario = self.get_scenario(scenario_name) if scenario_name else self.scenarios[0]
-        if not scenario.result_tree:
-            logger.info(f"Scenario '{scenario.alias}' has no results to plot")
-            return
-        all_nodes = list(scenario.result_tree.iter_all_nodes())
-        node_labels = [node.name for node in all_nodes]
-
-        source = []
-        target = []
-        value = []
-        for index_, node in enumerate(all_nodes):
-            for child in node.children:
-                source.append(index_)
-                target.append(all_nodes.index(child))
-                if child.data:
-                    value.append(child.data.results[method_])
-                else:
-                    raise ValueError(f"Node '{child.name}' has no data")
-
-        fig = go.Figure(data=[go.Sankey(
-            node=dict(
-                pad=15,
-                thickness=20,
-                line=dict(color="black", width=0.5),
-                label=node_labels,
-                color="blue"
-            ),
-            link=dict(
-                source=source,
-                target=target,
-                value=value
-            ))])
-
-        fig.update_layout(title_text=f"{scenario.alias} / {'_'.join(method_)}", font_size=10)
-        if show:
-            fig.show()
-        if image_file:
-            fig.write_image(image_file.as_posix(), width=1800, height=1600)
