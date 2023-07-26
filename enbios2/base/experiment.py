@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Optional, Union
 
 import bw2data as bd
-import plotly.graph_objects as go
+
 from bw2calc import MultiLCA
 from bw2data.backends import Activity
 from numpy import ndarray
-from pint import DimensionalityError, UndefinedUnitError
+from pint import DimensionalityError, UndefinedUnitError, Quantity
 
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.unit_registry import ureg
@@ -124,7 +124,8 @@ class Scenario:
             node_output = None
             for child in node.children:
                 activity_output = child.data.output[0]
-                units = set([activity_output, activity_output.replace("_", " ")])
+                units = {[activity_output, activity_output.replace("_", " ")]}
+                output: Optional[Quantity] = None
                 for ao in units:
                     try:
                         output = ureg.parse_expression(ao) * child.data.output[1]
@@ -336,7 +337,7 @@ class Experiment:
             if not activity and raise_error_if_missing:
                 raise ValueError(f"Activity with alias {alias_or_id} not found")
             return activity
-        elif isinstance(alias_or_id, ExperimentActivityId):
+        else:  # isinstance(alias_or_id, ExperimentActivityId):
             for activity in self.activities.values():
                 if activity.orig_id == alias_or_id:
                     return activity
@@ -464,43 +465,3 @@ class Experiment:
 
     def __repr__(self):
         pass
-
-    def results_to_plot(self,
-                        method_: str,
-                        *,
-                        scenario_name: Optional[str] = None,
-                        image_file: Optional[Path] = None,
-                        show: bool = False):
-
-        scenario = self.get_scenario(scenario_name) if scenario_name else self.scenarios[0]
-        all_nodes = list(scenario.result_tree.iter_all_nodes())
-        node_labels = [node.name for node in all_nodes]
-
-        source = []
-        target = []
-        value = []
-        for index_, node in enumerate(all_nodes):
-            for child in node.children:
-                source.append(index_)
-                target.append(all_nodes.index(child))
-                value.append(child.data[method_])
-
-        fig = go.Figure(data=[go.Sankey(
-            node=dict(
-                pad=15,
-                thickness=20,
-                line=dict(color="black", width=0.5),
-                label=node_labels,
-                color="blue"
-            ),
-            link=dict(
-                source=source,
-                target=target,
-                value=value
-            ))])
-
-        fig.update_layout(title_text=f"{scenario.alias} / {'_'.join(method_)}", font_size=10)
-        if show:
-            fig.show()
-        if image_file:
-            fig.write_image(image_file.as_posix(), width=1800, height=1600)

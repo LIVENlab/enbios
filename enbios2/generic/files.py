@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Generator, Optional
 
 import openpyxl
-import xmltodict
+
 import yaml
 
 from enbios2.const import BASE_DATA_PATH
@@ -51,6 +51,10 @@ class ReadPath(Path):
             return {sheet.title: list(sheet.values) for sheet in workbook.worksheets}
         # xml
         elif self.suffix == ".xml":
+            try:
+                import xmltodict
+            except ImportError:
+                raise ImportError("xmltodict not installed")
             return xmltodict.parse(self.read_text(encoding="utf-8"))
 
     def iter_data(self) -> Generator[dict, None, dict]:
