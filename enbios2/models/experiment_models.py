@@ -208,6 +208,7 @@ class ExperimentScenarioData:
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ScenarioConfig:
+    warn_default_demand: bool = True
     # only used by ExperimentDataIO
     base_directory: Optional[str] = None
     # those are only used for testing

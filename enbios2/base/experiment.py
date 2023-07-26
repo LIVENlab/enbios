@@ -181,10 +181,14 @@ class Scenario:
 class Experiment:
     DEFAULT_SCENARIO_ALIAS = "default scenario"
 
-    def __init__(self, raw_data: ExperimentData):
-        self.raw_data = raw_data
+    def __init__(self, raw_data: Union[ExperimentData, dict]):
+        if isinstance(raw_data, dict):
+            input_data = ExperimentData(**raw_data)
+        else:
+            input_data = raw_data
+        self.raw_data = input_data
         # alias to activity
-        self.activitiesMap: dict[str, ExtendedExperimentActivityData] = {}
+        self.activities: dict[str, ExtendedExperimentActivityData] = {}
 
         self.validate_bw_config()
         self.validate_activities(self.raw_data.activities)
@@ -201,9 +205,9 @@ class Experiment:
         if len(self.scenarios) == 1 and not default_demand:
             raise ValueError("No default demand specified / and no scenarios added yet")
         alias = activity["name"]
-        if alias in self.activitiesMap:
+        if alias in self.activities:
             raise ValueError(f"Activity with alias {alias} already exists")
-        self.activitiesMap[alias] = ExtendedExperimentActivityData(
+        self.activities[alias] = ExtendedExperimentActivityData(
             id=ExperimentActivityId(
                 alias=alias,
                 code=activity["code"],
@@ -263,17 +267,17 @@ class Experiment:
             logger.debug("activity list")
             for activity in activities:
                 ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
-                self.activitiesMap[ext_activity.alias] = ext_activity
+                self.activities[ext_activity.alias] = ext_activity
         elif isinstance(activities, dict):
             logger.debug("activity dict")
             for activity_alias, activity in activities.items():
                 default_id_data.alias = activity_alias
                 ext_activity: ExtendedExperimentActivityData = activity.check_exist(default_id_data, output_required)
-                self.activitiesMap[ext_activity.alias] = ext_activity
+                self.activities[ext_activity.alias] = ext_activity
 
         # all codes should only appear once
         unique_activities = set()
-        for ext_activity in self.activitiesMap.values():
+        for ext_activity in self.activities.values():
             ext_activity: ExtendedExperimentActivityData = ext_activity
             unique_activities.add((ext_activity.id.database, ext_activity.id.code))
 
@@ -328,12 +332,12 @@ class Experiment:
                      alias_or_id: Union[str, ExperimentActivityId],
                      raise_error_if_missing: bool = True) -> Optional[ExtendedExperimentActivityData]:
         if isinstance(alias_or_id, str):
-            activity = self.activitiesMap.get(alias_or_id, None)
+            activity = self.activities.get(alias_or_id, None)
             if not activity and raise_error_if_missing:
                 raise ValueError(f"Activity with alias {alias_or_id} not found")
             return activity
         elif isinstance(alias_or_id, ExperimentActivityId):
-            for activity in self.activitiesMap.values():
+            for activity in self.activities.values():
                 if activity.orig_id == alias_or_id:
                     return activity
             if raise_error_if_missing:
@@ -372,10 +376,14 @@ class Experiment:
             """
             scenario_activities_outputs: Activity_Outputs = validate_activities(scenario)
             # fill up the missing activities with default values
-            for activity in self.activitiesMap.values():
+            for activity in self.activities.values():
                 activity_alias = activity.alias
                 if activity_alias not in scenario_activities_outputs:
-                    scenario_activities_outputs[activity.alias] = activity.default_output_value
+                    scenario_activities_outputs[activity.alias] = 1
+                    if self.raw_data.config.warn_default_demand:
+                        logger.warning(
+                            f"Activity: '{activity_alias}' has no output for scenario {scenario.alias} "
+                            f"and will be set to 1")
 
             if scenario.methods:
                 if isinstance(scenario.methods, list):
@@ -416,7 +424,7 @@ class Experiment:
 
     def create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self.raw_data.hierarchy:
-            self.raw_data.hierarchy = list(self.activitiesMap.keys())
+            self.raw_data.hierarchy = list(self.activities.keys())
 
         tech_tree: BasicTreeNode[ScenarioResultNodeData] = (BasicTreeNode.from_dict(self.raw_data.hierarchy,
                                                                                     compact=True,
@@ -453,6 +461,9 @@ class Experiment:
         else:
             scenario = self.scenarios[0]
         scenario.results_to_csv(file_path, include_method_units)
+
+    def __repr__(self):
+        pass
 
     def results_to_plot(self,
                         method_: str,
