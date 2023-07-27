@@ -8,7 +8,6 @@ from typing import Optional
 import bw2data
 import yaml
 from bw2data.backends import SQLiteBackend
-from peewee import SqliteDatabase
 
 from enbios2.base.databases import init_databases
 from enbios2.base.db_models import BWProjectIndex, EcoinventDataset

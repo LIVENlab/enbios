@@ -3,3 +3,17 @@
 /test/enbios2/test_project_fixture.py
 /venv/
 /.idea/
+/data/temp/
+/dist/enbios2-0.1.0.tar.gz
+/dist/enbios2-0.1.0-py3-none-any.whl
+/projects/
+/enbios2.egg-info/
+/.pypirc
+/dist/
+/enbios2/enbios2.egg-info/
+/venv_build/
+/enbios2/experiment/gnn/features/edges.jsonl
+/enbios2/experiment/gnn/features/names.jsonl
+/enbios2/experiment/gnn/features/product.jsonl
+/enbios2/experiment/gnn/base.py
+/enbios2/experiment/class_static_me.py

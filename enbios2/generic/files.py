@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Generator, Optional
 
 import openpyxl
+import xmltodict as xmltodict
 
 import yaml
 

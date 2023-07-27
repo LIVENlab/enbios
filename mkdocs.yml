@@ -1,0 +1,6 @@
+site_name: Enbios2
+theme:
+  name: material
+  palette:
+    primary: orange
+    accent: green

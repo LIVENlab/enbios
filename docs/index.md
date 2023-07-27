@@ -1,4 +1,4 @@
-# Enbios 2
+# Getting started
 
 This a ground up new implementation of enbios.
 
