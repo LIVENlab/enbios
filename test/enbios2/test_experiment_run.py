@@ -320,7 +320,6 @@ def test_multi_activity_usage(scenario_run_basic1, default_bw_config: dict, defa
     }
     exp = Experiment(scenario)
     exp.run()
-    exp.results_to_csv("test.csv", "scenario2")
     method_str = "_".join(default_method_tuple)
     expected_value1 = scenario_run_basic1["expected_result_tree"]["data"].results[method_str]
     assert expected_value1 == exp.scenarios[0].result_tree[0].data.results[method_str]
