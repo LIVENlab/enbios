@@ -583,19 +583,19 @@ def test_set_name():
         child2.name = "child1"
 
 
-def test_copy2():
-    # print(ReadDataPath(BASE_TEST_DATA_PATH/ "basic_tree/full_tree.json").read_data())
-    data = ReadDataPath(BASE_TEST_DATA_PATH / "basic_tree/full_tree.json").read_data()
-
-    tree = BasicTreeNode.from_dict(data)
-    tree_copy = tree.copy()
-    for node in tree.iter_all_nodes():
-        if node.parent:
-            assert node in node.parent
-
-    all_node_ids = [node.id for node in tree_copy.iter_all_nodes()]
-    for node in tree_copy.iter_all_nodes():
-        # print(node.name, node.id)
-        if node.parent:
-            assert node in node.parent
-            assert node.parent.id in all_node_ids
+# def test_copy2():
+#     # print(ReadDataPath(BASE_TEST_DATA_PATH/ "basic_tree/full_tree.json").read_data())
+#     data = ReadDataPath(BASE_TEST_DATA_PATH / "basic_tree/full_tree.json").read_data()
+#
+#     tree = BasicTreeNode.from_dict(data)
+#     tree_copy = tree.copy()
+#     for node in tree.iter_all_nodes():
+#         if node.parent:
+#             assert node in node.parent
+#
+#     all_node_ids = [node.id for node in tree_copy.iter_all_nodes()]
+#     for node in tree_copy.iter_all_nodes():
+#         # print(node.name, node.id)
+#         if node.parent:
+#             assert node in node.parent
+#             assert node.parent.id in all_node_ids

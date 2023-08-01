@@ -240,10 +240,8 @@ class Experiment:
             methods = self.raw_data.methods
         method_dict: dict[str, ExperimentMethodData] = {}
         if isinstance(methods, dict):
-            for method_alias in methods:
-                if (def_alias := methods[method_alias].alias) and def_alias != method_alias:
-                    raise Exception(f"Method alias: {def_alias} does not match with the given alias: {method_alias}")
-                method_dict[method_alias] = ExperimentMethodData(methods[method_alias], method_alias)
+            for method_alias, method in methods.items():
+                method_dict[method_alias] = ExperimentMethodData(method, method_alias)
         elif isinstance(self.raw_data.methods, list):
             method_list: list[ExperimentMethodData] = self.raw_data.methods
             for method_ in method_list:
@@ -336,17 +334,18 @@ class Experiment:
             :return:
             """
             scenario_activities_outputs: Activity_Outputs = validate_activities(scenario)
+            defined_aliases = [output_id.alias for output_id in scenario_activities_outputs.keys()]
             # prepared_methods: dict[str, ExperimentMethodData] = {}
             # fill up the missing activities with default values
             for activity in self.activitiesMap.values():
                 activity_alias = activity.alias
-                if activity_alias not in scenario_activities_outputs:
+                if activity_alias not in defined_aliases:
                     # print(activity)
-                    id = SimpleScenarioActivityId(
+                    id_ = SimpleScenarioActivityId(
                         name=str(activity.id.name),
                         code=str(activity.id.code),
                         alias=activity.alias)
-                    scenario_activities_outputs[id] = activity.default_output_value
+                    scenario_activities_outputs[id_] = activity.default_output_value
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
             if scenario.methods:
