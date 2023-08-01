@@ -6,6 +6,7 @@ from typing import Optional, Any, Literal, Union, Generator, TypeVar, Generic, C
 from uuid import uuid4
 
 from enbios2.generic.enbios2_logging import get_logger
+from enbios2.generic.files import PathLike
 
 T = TypeVar("T")
 
@@ -366,7 +367,7 @@ class BasicTreeNode(Generic[T]):
 
         return calc_max_depth(self)
 
-    def to_csv(self, csv_file: Path, *,
+    def to_csv(self, csv_file: PathLike, *,
                include_data: Optional[bool] = False,
                data_serializer: Optional[Callable[[T], dict]] = None,
                exclude_data_keys: Optional[list[str]] = None,
@@ -426,7 +427,7 @@ class BasicTreeNode(Generic[T]):
             return [row] + _sub_rows
 
         # Write rows to csv
-        with csv_file.open('w', newline='') as csvfile:
+        with Path(csv_file).open('w', newline='') as csvfile:
             rows = rec_add_node_row(self, include_data)
             headers = _total_level_names + include_data_keys
             writer = csv.DictWriter(csvfile, headers)

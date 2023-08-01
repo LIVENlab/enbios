@@ -2,6 +2,8 @@ import json
 import os
 from copy import copy
 from csv import DictReader
+from pathlib import Path
+from typing import Generator
 
 import pytest
 import sys
@@ -264,7 +266,7 @@ def test_depth():
 
 
 @pytest.fixture
-def csv_file_path(tmp_path):
+def csv_file_path(tmp_path) -> Generator[Path, None, None]:
     path = tmp_path / "test.csv"
     yield path
     os.remove(path)
@@ -297,7 +299,7 @@ def test_to_csv(csv_file_path):
     assert [{'lvl0': 'node1', 'lvl1': '', "a": "1"}, {'lvl0': '', 'lvl1': 'node2', "a": "5"}] == list(
         DictReader(csv_file_path.open()))
 
-    node1.to_csv(csv_file_path, include_data=True, merge_first_sub_row=True)
+    node1.to_csv(csv_file_path.as_posix(), include_data=True, merge_first_sub_row=True)
     assert [{'lvl0': 'node1', 'lvl1': 'node2', "a": "5", "b": "8"}] == list(
         DictReader(csv_file_path.open()))
 

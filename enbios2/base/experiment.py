@@ -17,6 +17,7 @@ from enbios2.base.unit_registry import ureg
 from enbios2.bw2.util import get_activity
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
+from enbios2.generic.files import PathLike
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExtendedExperimentActivityData,
@@ -33,7 +34,9 @@ logger = get_logger(__file__)
 class Experiment:
     DEFAULT_SCENARIO_ALIAS = "default scenario"
 
-    def __init__(self, raw_data: ExperimentData):
+    def __init__(self, raw_data: Union[ExperimentData, dict]):
+        if isinstance(raw_data, dict):
+            raw_data = ExperimentData(**raw_data)
         self.raw_data = raw_data
         # alias to activity
 
@@ -150,7 +153,7 @@ class Experiment:
             unique_activities.add((ext_activity.id.database, ext_activity.id.code))
             if ext_activity.output:
                 ext_activity.default_output_value = Experiment.validate_output(ext_activity.output, ext_activity)
-        assert len(unique_activities) == len(activities), "Not all activities are unique"
+        # assert len(unique_activities) == len(activities), "Not all activities are unique"
         return activities_map
 
     @staticmethod
@@ -433,7 +436,7 @@ class Experiment:
             results[scenario.alias] = scenario.create_results_to_technology_tree(scenario_results[index])
         return results
 
-    def results_to_csv(self, file_path: Path, scenario_name: Optional[str] = None, include_method_units: bool = True):
+    def results_to_csv(self, file_path: PathLike, scenario_name: Optional[str] = None, include_method_units: bool = True):
         """
         :param file_path:
         :param scenario_name:

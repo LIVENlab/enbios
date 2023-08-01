@@ -10,6 +10,7 @@ from pint.facets.plain import PlainQuantity
 from enbios2.base.stacked_MultiLCA import StackedMultiLCA
 from enbios2.base.unit_registry import ureg
 from enbios2.generic.enbios2_logging import get_logger
+from enbios2.generic.files import PathLike
 
 # for type hinting
 if TYPE_CHECKING:
@@ -74,17 +75,18 @@ class Scenario:
                         node.data.results[key] += value
 
         if not self.result_tree:
-            raise ValueError(f"Scenario '{self.alias}' has no tree...")
-        activity_nodes = list(self.result_tree.get_leaves())
+            raise ValueError(f"Scenario '{self.alias}' has no results...")
+        # activity_nodes = list(self.result_tree.get_leaves())
         # todo should be the same set of activities
         activities_simple_ids = list(self.activities_outputs.keys())
 
         methods_aliases: list[str] = list(self.get_methods().keys())
         for result_index, simple_id in enumerate(activities_simple_ids):
             alias = simple_id.alias
-            bw_activity = self.experiment.get_activity(alias).bw_activity
-            activity_node = next(
-                filter(lambda node: node.temp_data()["activity"].bw_activity == bw_activity, activity_nodes))
+            activity_node = self.result_tree.find_child_by_name(alias)
+            # bw_activity = self.experiment.get_activity(alias).bw_activity
+            # activity_node = next(
+            #     filter(lambda node: node.temp_data()["activity"].bw_activity == bw_activity, activity_nodes))
             for method_index, method in enumerate(methods_aliases):
                 activity_node.data.results[method] = results[result_index][method_index]
 
@@ -139,7 +141,25 @@ class Scenario:
         self.result_tree.recursive_apply(Scenario.recursive_resolve_outputs, depth_first=True)
         return self.create_results_to_technology_tree(results)
 
-    def results_to_csv(self, file_path: Path, include_method_units: bool = False):
+    # def _wrapper_data_serializer(self, node: BasicTreeNode[ScenarioResultNodeData], include_method_units: bool = False):
+    #
+    #     def _data_serializer(data: ScenarioResultNodeData) -> dict:
+    #         result: dict[str, Union[str, float]] = {}
+    #         if data.output:
+    #             result["unit"] = data.output[0]
+    #             result['amount'] = data.output[1]
+    #         if not include_method_units:
+    #             return result | data.results
+    #         else:
+    #             for method_alias, value in data.results.items():
+    #                 final_name = f"{method_alias} ({self.experiment.methods[str(method_alias)].bw_method.unit})"
+    #                 result[final_name] = value
+    #             return result
+    #
+    #     node_data = _data_serializer(node.data)
+    #     return _data_serializer
+
+    def results_to_csv(self, file_path: PathLike, include_method_units: bool = False):
         """
         Save the results (as tree) to a csv file
          :param file_path:  path to save the results to
@@ -162,3 +182,6 @@ class Scenario:
                 return result
 
         self.result_tree.to_csv(file_path, include_data=True, data_serializer=data_serializer)
+
+    # def result_to_dict(self, include_method_units: bool = False):
+    #     self.result_tree.copy().recursive_apply(self._wrapper_data_serializer())

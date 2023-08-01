@@ -1,4 +1,5 @@
 import json
+import os
 from csv import DictReader
 from pathlib import Path
 from typing import Generator, Union, Optional
@@ -82,3 +83,6 @@ class ReadDataPath(ReadPath):
         if not instance.exists():
             raise FileNotFoundError(f"File {instance} does not exist")
         return instance
+
+
+PathLike = Union[str, bytes, os.PathLike]

@@ -267,10 +267,10 @@ def test_scenario(scenario_run_basic1: dict, default_bw_config: dict, default_me
     expected_value1 = scenario_run_basic1["expected_result_tree"]["data"].results[default_method_str]
     assert result["scenario1"].data.results[default_method_str] == expected_value1
     expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
-    # assert result["scenario2"].data.results[default_method_str] == pytest.approx(expected_value2, abs=1e-9)
+    assert result["scenario2"].data.results[default_method_str] == pytest.approx(expected_value2, abs=1e-9)
 
 
-def test_multi_activity_usage(default_bw_config: dict, default_method_tuple: tuple[str, ...]):
+def test_multi_activity_usage(scenario_run_basic1, default_bw_config: dict, default_method_tuple: tuple[str, ...]):
     scenario = {
         "bw_project": default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
@@ -318,4 +318,18 @@ def test_multi_activity_usage(default_bw_config: dict, default_method_tuple: tup
             }
         }
     }
-    result = Experiment(ExperimentData(**scenario)).run()
+    exp = Experiment(scenario)
+    exp.run()
+    exp.results_to_csv("test.csv", "scenario2")
+    method_str = "_".join(default_method_tuple)
+    expected_value1 = scenario_run_basic1["expected_result_tree"]["data"].results[method_str]
+    assert expected_value1 == exp.scenarios[0].result_tree[0].data.results[method_str]
+    # scenario 2, single_activity
+    expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
+    assert exp.scenarios[1].result_tree[0].data.results[method_str] == pytest.approx(expected_value2, abs=1e-12)
+    # scenario 2, single_activity_2
+    expected_value3 = expected_value1 * 20
+    assert exp.scenarios[1].result_tree[1].data.results[method_str] == pytest.approx(expected_value3, abs=1e-14)
+    # scenario 2, total
+    expected_value4 = expected_value2 + expected_value3
+    assert exp.scenarios[1].result_tree.data.results[method_str] == pytest.approx(expected_value4, abs=1e-12)

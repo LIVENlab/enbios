@@ -215,13 +215,6 @@ class ExperimentMethodData:
     id: tuple[str, ...]
     alias: Optional[str] = None
 
-    # def __init__(self, id: tuple[str, ...], alias: Optional[str] = None):
-    #     self.id = id
-    #     if alias:
-    #         self.alias = alias
-    #     else:
-    #         self.alias = "_".join(id)
-
     @property
     def alias_(self) -> str:
         return str(self.alias)
@@ -322,6 +315,7 @@ class BWCalculationSetup:
 class ScenarioResultNodeData:
     output: tuple[str, float]
     results: dict[str, float] = field(default_factory=dict)
+
 
 
 Activity_Outputs = dict[SimpleScenarioActivityId, float]
