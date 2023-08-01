@@ -1,6 +1,10 @@
 from typing import Generator, Iterator, Union
 
 import bw2data
+from bw2data import databases as bw_databases
+from bw2data import methods as bw_methods
+from bw2data.project import projects as bw_projects
+
 from bw2data.backends import Activity, ExchangeDataset, ActivityDataset
 
 
@@ -15,8 +19,7 @@ def info_exchanges(act: Activity) -> dict:
         print(exc)
     for exc in act.upstream():
         print(exc)
-    # print(exchanges)
-    # return {exc.input: exc for exc in act.exchanges()}
+    return {exc.input: exc for exc in act.exchanges()}
 
 
 def iter_exchange_by_ids(ids: Iterator[int], batch_size: int = 1000) -> Generator[ExchangeDataset, None, None]:
@@ -102,62 +105,16 @@ def clean_delete(activity: Activity):
     activity.delete()
 
 
-def method_search(project_name: str, method_tuple: tuple[str, ...]) -> Union[
-    dict, tuple[tuple[str, ...], dict[str, str]]]:
-    """
-    Search for a method in a brightway project.
-    Search name can be a incomplete tuple. IT will result the remaining parts in the method-tree
-    In case of a match, it will result the full tuple and the method data
-    todo: this method is weird and does too many things
-    """
-    assert project_name in bw2data.projects, f"Project '{project_name}' does not exist"
-    bw2data.projects.set_current(project_name)
-    all_methods = bw2data.methods
-
-    bw_method = all_methods.get(method_tuple)
-    if bw_method:
-        return tuple(method_tuple), bw_method
-
-    method_tree: dict = {}
-    for bw_method in all_methods.keys():
-        # iter through tuple
-        current = method_tree
-        for part in bw_method:
-            current = current.setdefault(part, {})
-
-    current = method_tree
-
-    result = list(method_tuple)
-    for index, part in enumerate(method_tuple):
-        _next = current.get(part)
-        assert _next, (f"Method not found. Part: '{part}' does not exist for {list(method_tuple)[index - 1]}. "
-                       f"Options are '{current}'")
-        current = _next
-
-    while True:
-        if len(current) > 1:
-            return current.keys()
-        if len(current) == 0:
-            break
-        elif len(current) == 1:
-            _next = list(current.keys())[0]
-            result.append(_next)
-            current = current[_next]
-    bw_method = all_methods.get(tuple(result))
-
-    if bw_method:
-        return tuple(result), bw_method
-    raise ValueError(f"Method does not exist {method_tuple}")
-
-
 def report():
+    projects = list(bw_projects)
+    current_ = bw2data.projects.current
     projects = list(bw2data.projects)
     for project in projects:
         print(project)
-        bw2data.projects.set_current(project.name)
-        databases = list(bw2data.databases)
+        bw_projects.set_current(project.name)
+        databases = list(bw_databases)
         print(databases)
-
+    bw2data.projects.set_current(current_)
 
 if __name__ == '__main__':
     report()

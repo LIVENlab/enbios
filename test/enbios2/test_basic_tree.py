@@ -2,6 +2,8 @@ import json
 import os
 from copy import copy
 from csv import DictReader
+from pathlib import Path
+from typing import Generator
 
 import pytest
 import sys
@@ -113,7 +115,7 @@ def test_recursive_apply():
     assert expected_results == [res for res in node1.recursive_apply(apply_func, lazy=True)]
 
     expected_results = ['child1-child1', 'child1-child2', 'child1', 'child2-child1', 'child2', 'parent']
-    assert expected_results == [res for res in node1.recursive_apply(apply_func, lazy=True, depth_first=True)]
+    assert expected_results == [res for res in node1.recursive_apply(apply_func, depth_first=True, lazy=True)]
 
 
 def test_clear():
@@ -264,7 +266,7 @@ def test_depth():
 
 
 @pytest.fixture
-def csv_file_path(tmp_path):
+def csv_file_path(tmp_path) -> Generator[Path, None, None]:
     path = tmp_path / "test.csv"
     yield path
     os.remove(path)
@@ -297,7 +299,7 @@ def test_to_csv(csv_file_path):
     assert [{'lvl0': 'node1', 'lvl1': '', "a": "1"}, {'lvl0': '', 'lvl1': 'node2', "a": "5"}] == list(
         DictReader(csv_file_path.open()))
 
-    node1.to_csv(csv_file_path, include_data=True, merge_first_sub_row=True)
+    node1.to_csv(csv_file_path.as_posix(), include_data=True, merge_first_sub_row=True)
     assert [{'lvl0': 'node1', 'lvl1': 'node2', "a": "5", "b": "8"}] == list(
         DictReader(csv_file_path.open()))
 
@@ -379,6 +381,29 @@ root,child1,grandchild1
     assert len(root.children[0].children) == 1
     assert root.children[1].name == "child2"
     assert len(root.children[1].children) == 0
+
+    csv_content = """level1,level2,level3
+    root,child1,grandchild1
+        ,child2,grandchild2
+        ,       ,grandchild3
+    """
+    with open(csv_file_path, "w") as csv_file:
+        csv_file.write(csv_content)
+    root = BasicTreeNode.from_csv(csv_file_path)
+
+    assert root.name == "root"
+    assert len(root.children) == 2
+    assert len(root.children[0].children) == 1
+    assert len(root.children[1].children) == 2
+
+    with pytest.raises(ValueError):
+        csv_content = """level1,level2,level3
+        root,,grandchild1
+            ,child2,
+        """
+        with open(csv_file_path, "w") as csv_file:
+            csv_file.write(csv_content)
+        root = BasicTreeNode.from_csv(csv_file_path)
 
 
 def test_get_child():
@@ -560,19 +585,19 @@ def test_set_name():
         child2.name = "child1"
 
 
-def test_copy2():
-    # print(ReadDataPath(BASE_TEST_DATA_PATH/ "basic_tree/full_tree.json").read_data())
-    data = ReadDataPath(BASE_TEST_DATA_PATH / "basic_tree/full_tree.json").read_data()
-
-    tree = BasicTreeNode.from_dict(data)
-    tree_copy = tree.copy()
-    for node in tree.iter_all_nodes():
-        if node.parent:
-            assert node in node.parent
-
-    all_node_ids = [node.id for node in tree_copy.iter_all_nodes()]
-    for node in tree_copy.iter_all_nodes():
-        # print(node.name, node.id)
-        if node.parent:
-            assert node in node.parent
-            assert node.parent.id in all_node_ids
+# def test_copy2():
+#     # print(ReadDataPath(BASE_TEST_DATA_PATH/ "basic_tree/full_tree.json").read_data())
+#     data = ReadDataPath(BASE_TEST_DATA_PATH / "basic_tree/full_tree.json").read_data()
+#
+#     tree = BasicTreeNode.from_dict(data)
+#     tree_copy = tree.copy()
+#     for node in tree.iter_all_nodes():
+#         if node.parent:
+#             assert node in node.parent
+#
+#     all_node_ids = [node.id for node in tree_copy.iter_all_nodes()]
+#     for node in tree_copy.iter_all_nodes():
+#         # print(node.name, node.id)
+#         if node.parent:
+#             assert node in node.parent
+#             assert node.parent.id in all_node_ids

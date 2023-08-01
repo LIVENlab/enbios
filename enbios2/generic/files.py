@@ -1,7 +1,8 @@
 import json
+import os
 from csv import DictReader
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Generator, Union, Optional
 
 import openpyxl
 import xmltodict as xmltodict
@@ -15,7 +16,7 @@ logger = get_logger(__file__)
 
 
 class DataPath(Path):
-    _flavour = Path('.')._flavour
+    _flavour = Path('.')._flavour  # type: ignore
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls, BASE_DATA_PATH, *args, **kwargs)
@@ -25,7 +26,7 @@ class ReadPath(Path):
     """
     Checks on instantiation that the file exists
     """
-    _flavour = Path('.')._flavour
+    _flavour = Path('.')._flavour  # type: ignore
 
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls, *args, **kwargs)
@@ -45,6 +46,8 @@ class ReadPath(Path):
         if self.suffix == ".json":
             return json.loads(self.read_text(encoding="utf-8"))
         elif self.suffix == ".csv":
+            if not config:
+                config = {}
             return list(DictReader(self.open(encoding="utf-8"), **config))
         # excel
         elif self.suffix == ".xlsx":
@@ -58,12 +61,12 @@ class ReadPath(Path):
                 raise ImportError("xmltodict not installed")
             return xmltodict.parse(self.read_text(encoding="utf-8"))
 
-    def iter_data(self) -> Generator[dict, None, dict]:
+    def iter_data(self) -> Union[dict, Generator[dict, None, Optional[dict]]]:
         if self.suffix == ".json":
             logger.warning("Reading json completely not as iterator")
             return json.loads(self.read_text(encoding="utf-8"))
         elif self.suffix in [".yaml", ".yml"]:
-            yaml.load(self.read_text(encoding="utf-8"))
+            return yaml.load(self.read_text(encoding="utf-8"))
         elif self.suffix == ".csv":
             reader = DictReader(self.open(encoding="utf-8"))
             for row in reader:
@@ -76,6 +79,7 @@ class ReadPath(Path):
         elif self.suffix == ".xml":
             logger.info("Reading xml completely not as iterator")
             return dict(xmltodict.parse(self.read_text(encoding="utf-8")))
+        return None
 
 
 class ReadDataPath(ReadPath):
@@ -84,3 +88,6 @@ class ReadDataPath(ReadPath):
         if not instance.exists():
             raise FileNotFoundError(f"File {instance} does not exist")
         return instance
+
+
+PathLike = Union[str, bytes, os.PathLike]

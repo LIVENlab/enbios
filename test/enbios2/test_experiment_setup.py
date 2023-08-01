@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -27,7 +28,7 @@ def experiment_data_file_names():
         yield file.name
 
 
-def fix_experiment_data(data: dict, bw_project: str, bw_default_database: str = None):
+def fix_experiment_data(data: dict, bw_project: str, bw_default_database: Optional[str] = None):
     data["bw_project"] = bw_project
     if "bw_default_database" in data and bw_default_database is not None:
         data["bw_default_database"] = bw_default_database
@@ -35,6 +36,27 @@ def fix_experiment_data(data: dict, bw_project: str, bw_default_database: str = 
 
 @pytest.mark.parametrize('experiment_data', argvalues=experiments_data(), ids=experiment_data_file_names())
 def test_experiment_data(experiment_data):
+    if replace_conf := experiment_data.get("config", {}).get("debug_test_replace_bw_config", True):
+        if isinstance(replace_conf, list):
+            fix_experiment_data(experiment_data, *replace_conf)
+        else:
+            fix_experiment_data(experiment_data, TEST_BW_PROJECT, TEST_BW_DATABASE)
+    if not experiment_data.get("config", {}).get("debug_test_is_valid", True):
+        with pytest.raises(Exception):
+            exp_model = ExperimentData(**experiment_data)
+            exp = Experiment(exp_model)
+            if exp_model.config.debug_test_run:
+                exp.run()
+    else:
+        exp_model = ExperimentData(**experiment_data)
+        exp = Experiment(exp_model)
+        if exp_model.config.debug_test_run:
+            exp.run()
+
+
+def test_one_experiment_data():
+    filename = "scenario2.json"
+    experiment_data = ReadPath(BASE_TEST_DATA_PATH / "experiment_instances"/ filename).read_data()
     if replace_conf := experiment_data.get("config", {}).get("debug_test_replace_bw_config", True):
         if isinstance(replace_conf, list):
             fix_experiment_data(experiment_data, *replace_conf)

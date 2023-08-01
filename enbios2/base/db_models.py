@@ -37,7 +37,7 @@ class EcoinventDataset(MainDatabase):
 
     @property
     def bw_project_index(self) -> Optional["BWProjectIndex"]:
-        return self.bw_project_db.get_or_none()
+        return BWProjectIndex.select().where(BWProjectIndex.ecoinvent_dataset == self).get_or_none()
 
     class Meta:
         table_name = "ecoinvent_dataset"
@@ -57,14 +57,12 @@ class EcoinventDataset(MainDatabase):
         super(EcoinventDataset, self).save(*args, **kwargs)
 
     @classmethod
-    def identity_exists(cls, identity: Union["EcoinventDataset", str]) -> bool:
+    def identity_exists(cls, identity: str) -> bool:
         """
         Check if the given identity exists in the database
-        :param identity: identity string or EcoinventDataset instance
+        :param identity: identity string
         :return: True, if exists
         """
-        if isinstance(identity, EcoinventDataset):
-            identity = identity.identity
         return cls.select().where(cls.identity == identity).exists()
 
     @property
@@ -78,7 +76,11 @@ class EcoinventDataset(MainDatabase):
         else:
             return self.directory / f"datasets"
 
-    __repr__ = __str__ = lambda self: f"EcoinventDataset: {self.identity}"
+    def __repr__(self):
+        return f"EcoinventDataset: {self.identity}"
+
+    def __str__(self):
+        return self.__repr__()
 
     @staticmethod
     def dump_database(entries: Optional[list["EcoinventDataset"]] = None,
@@ -120,8 +122,12 @@ class BWProjectIndex(MainDatabase):
     class Meta:
         table_name = "bw_project_index"
 
+    @property
+    def get_ecoinvent_dataset(self) -> Optional[EcoinventDataset]:
+        return EcoinventDataset.get_or_none(EcoinventDataset == self.ecoinvent_dataset)
+
     def __repr__(self):
-        return f"BWProjectIndex: {self.project_name} - {self.database_name} ({self.ecoinvent_dataset})"
+        return f"BWProjectIndex: {self.project_name} - {self.database_name} ({self.get_ecoinvent_dataset})"
 
     def __str__(self):
         return self.__repr__()

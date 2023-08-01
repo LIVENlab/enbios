@@ -2,6 +2,7 @@ import logging.config
 import json
 import os
 from pathlib import Path
+from typing import Optional, Any
 
 import appdirs
 
@@ -43,8 +44,8 @@ new_logger_default_config = {
 
 class EnbiosLogger:
     initialized = False
-    log_config_file: Path = None
-    config_data: dict = None
+    log_config_file: Optional[Path] = None
+    config_data: dict[str, Any] = {}
 
     @classmethod
     def init_logger(cls):

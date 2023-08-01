@@ -26,7 +26,7 @@ def generate_levensthein_name_map(names_a: list[str], names_b: list[str]) -> dic
     return names_map
 
 
-def generate_levensthein_dict_map(names_a: list[str, dict], dicts: list[dict], dict_key: str) -> dict[str, dict]:
+def generate_levensthein_dict_map(names_a: list[str], dicts: list[dict], dict_key: str) -> dict[str, dict]:
     try:
         from Levenshtein import ratio
     except ImportError:

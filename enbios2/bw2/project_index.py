@@ -42,6 +42,7 @@ def get_existing(project_name: str, database_name: str) -> Optional[BWProjectInd
         (BWProjectIndex.database_name == database_name)))
     if existing:
         return existing[0]
+    return None
 
 
 def set_bw_index(project_name: str, database_name: str, ecoinvent_dataset: EcoinventDataset) -> BWProjectIndex:
@@ -105,6 +106,7 @@ def get_bw_database(system_model: str, version: str) -> Optional[SQLiteBackend]:
     bwp = set_bw_current_project(system_model, version)
     if bwp:
         return bw2data.Database(bwp.database_name)
+    return None
 
 
 if __name__ == "__main__":

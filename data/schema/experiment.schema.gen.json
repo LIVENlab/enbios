@@ -156,8 +156,8 @@
       },
       "additionalProperties": false
     },
-    "ExperimentActivityOutputDict": {
-      "title": "ExperimentActivityOutputDict",
+    "ActivityOutput": {
+      "title": "ActivityOutput",
       "type": "object",
       "properties": {
         "unit": {
@@ -194,7 +194,7 @@
           "description": "The default output of the activity",
           "anyOf": [
             {
-              "$ref": "#/definitions/ExperimentActivityOutputDict"
+              "$ref": "#/definitions/ActivityOutput"
             },
             {
               "type": "array",
@@ -265,7 +265,7 @@
                   {
                     "anyOf": [
                       {
-                        "$ref": "#/definitions/ExperimentActivityOutputDict"
+                        "$ref": "#/definitions/ActivityOutput"
                       },
                       {
                         "type": "array",
@@ -290,7 +290,7 @@
               "additionalProperties": {
                 "anyOf": [
                   {
-                    "$ref": "#/definitions/ExperimentActivityOutputDict"
+                    "$ref": "#/definitions/ActivityOutput"
                   },
                   {
                     "type": "array",
