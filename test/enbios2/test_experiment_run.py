@@ -6,14 +6,30 @@ from deprecated.classic import deprecated
 
 from enbios2.base.experiment import Experiment, ScenarioResultNodeData
 from enbios2.const import BASE_DATA_PATH
+from enbios2.generic.files import ReadPath
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import ExperimentData
 from test.enbios2.test_project_fixture import TEST_BW_PROJECT, TEST_BW_DATABASE
 
 
 @pytest.fixture
-def scenario_run_basic1(default_bw_config):
-    _impact = 6.292564044222079e-06
+def default_method_str() -> str:
+    return 'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT'
+
+
+@pytest.fixture
+def default_method_tuple() -> tuple:
+    return 'EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT'
+
+
+@pytest.fixture
+def default_result_score() -> float:
+    return 6.292564044222079e-06
+
+
+@pytest.fixture
+def scenario_run_basic1(default_bw_config, default_method_str: str, default_result_score: float):
+    _impact = default_result_score
 
     return {
         "scenario": {
@@ -52,15 +68,15 @@ def scenario_run_basic1(default_bw_config):
                                                         ScenarioResultNodeData(
                                                             output=("kilowatt_hour", 1.0),
                                                             results={
-                                                                'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': _impact})}],
+                                                                default_method_str: _impact})}],
                                                'data': ScenarioResultNodeData(
                                                    output=("kilowatt_hour", 1.0),
                                                    results={
-                                                       'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': _impact})}],
+                                                       default_method_str: _impact})}],
                                  'data': ScenarioResultNodeData(
                                      output=("kilowatt_hour", 1.0),
                                      results={
-                                         'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT': _impact})}
+                                         default_method_str: _impact})}
     }
 
 
@@ -71,16 +87,6 @@ def default_bw_config() -> dict:
         "bw_project": TEST_BW_PROJECT,
         "bw_default_database": TEST_BW_DATABASE
     }
-
-
-@pytest.fixture
-def default_method_str() -> str:
-    return 'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT'
-
-
-@pytest.fixture
-def default_method_tuple() -> tuple:
-    return 'EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT'
 
 
 @pytest.fixture
@@ -127,11 +133,33 @@ def test_temp_load_pickle():
     experiment.scenarios[0].result_tree.recursive_apply(recursive_resolve_outputs, depth_first=True, lazy=False)
 
 
-def test_csv_output(scenario_run_basic1, temp_csv_file):
+def test_csv_output(scenario_run_basic1, temp_csv_file, default_method_str, default_result_score):
     scenario_data = scenario_run_basic1["scenario"]
     experiment = Experiment(ExperimentData(**scenario_data))
     experiment.run()
-    experiment.results_to_csv(temp_csv_file, Experiment.DEFAULT_SCENARIO_ALIAS)
+    experiment.results_to_csv(temp_csv_file, Experiment.DEFAULT_SCENARIO_ALIAS, include_method_units=False)
+    assert temp_csv_file.exists()
+    csv_data = ReadPath(temp_csv_file).read_data()
+    expected_data = [{'lvl0': 'root',
+                      'lvl1': '',
+                      'lvl2': '',
+                      'unit': 'kilowatt_hour',
+                      'amount': '1.0',
+                      default_method_str: str(default_result_score)},
+                     {'lvl0': '',
+                      'lvl1': 'energy',
+                      'lvl2': '',
+                      'unit': 'kilowatt_hour',
+                      'amount': '1.0',
+                      default_method_str: str(default_result_score)},
+                     {'lvl0': '',
+                      'lvl1': '',
+                      'lvl2': 'single_activity',
+                      'unit': 'kilowatt_hour',
+                      'amount': '1.0',
+                      default_method_str: str(default_result_score)}]
+    assert csv_data == expected_data
+    # todo we could try other hierarchies here and include the methods units again
 
 
 def test_scaled_demand(scenario_run_basic1, default_method_str: str):
