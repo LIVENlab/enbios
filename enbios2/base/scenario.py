@@ -48,6 +48,7 @@ class Scenario:
             # todo this does not consider magnitude...
             activity_node.data = ScenarioResultNodeData(output=(bw_activity['unit'].replace(" ", "_"),
                                                                 self.activities_outputs[simple_id]))
+        self.result_tree.recursive_apply(Scenario.recursive_resolve_outputs, depth_first=True)
 
     def create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
@@ -136,7 +137,6 @@ class Scenario:
         logger.info(f"Running scenario '{self.alias}'")
         bw_calc_setup = self.create_bw_calculation_setup()
         results: ndarray = StackedMultiLCA(bw_calc_setup).results
-        self.result_tree.recursive_apply(Scenario.recursive_resolve_outputs, depth_first=True)
         return self.create_results_to_technology_tree(results)
 
     # def _wrapper_data_serializer(self, node: BasicTreeNode[ScenarioResultNodeData], include_method_units: bool = False):

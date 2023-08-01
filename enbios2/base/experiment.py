@@ -427,12 +427,12 @@ class Experiment:
                 inventory.append({bw_activity: act_out})
             inventories.append(inventory)
 
+        # run experiment
         calculation_setup = BWCalculationSetup("experiment", list(itertools.chain(*inventories)), methods)
         raw_results = StackedMultiLCA(calculation_setup).results
         scenario_results = np.split(raw_results, len(self.scenarios))
         results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
         for index, scenario in enumerate(self.scenarios):
-            scenario.result_tree.recursive_apply(Scenario.recursive_resolve_outputs, depth_first=True)
             results[scenario.alias] = scenario.create_results_to_technology_tree(scenario_results[index])
         return results
 
