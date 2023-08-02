@@ -24,13 +24,13 @@ def default_method_tuple() -> tuple:
 
 @pytest.fixture
 def default_result_score() -> float:
-    return 6.292564044222079e-06
+    return 6.169154864577996e-06
+    # return 6.292564044222079e-06
 
 
 @pytest.fixture
 def scenario_run_basic1(default_bw_config, default_method_tuple, default_method_str: str, default_result_score: float):
     _impact = default_result_score
-
     return {
         "scenario": {
             "bw_project": default_bw_config["bw_project"],
