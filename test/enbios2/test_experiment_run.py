@@ -28,7 +28,7 @@ def default_result_score() -> float:
 
 
 @pytest.fixture
-def scenario_run_basic1(default_bw_config, default_method_str: str, default_result_score: float):
+def scenario_run_basic1(default_bw_config, default_method_tuple, default_method_str: str, default_result_score: float):
     _impact = default_result_score
 
     return {
@@ -50,7 +50,7 @@ def scenario_run_basic1(default_bw_config, default_method_str: str, default_resu
             },
             "methods": [
                 {
-                    "id": ('EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT')
+                    "id": default_method_tuple
                 }
             ],
             "hierarchy": {
@@ -193,7 +193,7 @@ def test_stacked_lca():
                 "id": ["Cumulative Exergy Demand (CExD)", "energy resources: renewable, solar", "exergy content"]
             }
     """
-
+    # todo this test should be vigorous
     experiment = {
         "bw_project": "ecoinvent",
         "bw_default_database": "cutoff_3.9.1_default",
@@ -247,7 +247,7 @@ def test_stacked_lca():
     Experiment(ExperimentData(**experiment)).run()
 
 
-def test_scenario(scenario_run_basic1: dict, default_bw_config: dict, default_method_str: str):
+def test_scenario(scenario_run_basic1: dict, default_bw_config: dict, default_method_tuple, default_method_str: str):
     scenario = {
         "bw_project": default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
@@ -262,7 +262,7 @@ def test_scenario(scenario_run_basic1: dict, default_bw_config: dict, default_me
         },
         "methods": [
             {
-                "id": ('EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT')
+                "id": default_method_tuple
             }
         ],
         "hierarchy": {
