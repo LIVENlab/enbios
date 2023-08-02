@@ -283,7 +283,7 @@ class Experiment:
             activity = self.activitiesMap.get(alias_or_id, None)
             return activity
         else:  # isinstance(alias_or_id, ExperimentActivityId):
-            for activity in self.activities.values():
+            for activity in self.activitiesMap.values():
                 if activity.orig_id == alias_or_id:
                     return activity
             return None
@@ -342,7 +342,7 @@ class Experiment:
             defined_aliases = [output_id.alias for output_id in scenario_activities_outputs.keys()]
             # prepared_methods: dict[str, ExperimentMethodData] = {}
             # fill up the missing activities with default values
-            for activity in self.activities.values():
+            for activity in self.activitiesMap.values():
                 activity_alias = activity.alias
                 if activity_alias not in defined_aliases:
                     # print(activity)
@@ -400,7 +400,7 @@ class Experiment:
 
     def create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self.raw_data.hierarchy:
-            self.raw_data.hierarchy = list(self.activities.keys())
+            self.raw_data.hierarchy = list(self.activitiesMap.keys())
 
         tech_tree: BasicTreeNode[ScenarioResultNodeData] = (BasicTreeNode.from_dict(self.raw_data.hierarchy,
                                                                                     compact=True))

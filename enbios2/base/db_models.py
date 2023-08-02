@@ -46,18 +46,29 @@ class EcoinventDataset(MainDatabase):
         super(EcoinventDataset, self).__init__(*args, **kwargs)
         self.identity = f"{self.system_model}_{self.version}_{self.type}{'_xlsx' if self.xlsx else ''}"
 
-    def save(self, *args, **kwargs):
+    def validate(self):
         check_fields = [("version", EcoinventDataset._valid_ecoinvent_versions),
                         ("system_model", EcoinventDataset._valid_ecoinvent_system_models),
                         ("type", EcoinventDataset._valid_ecoinvent_datatypes)]
         for field, valid_values in check_fields:
             if getattr(self, field) not in valid_values:
                 raise ValueError(
-                    f"EcoinventIndex entry '{field}' is not valid: {getattr(self, field)}. Must be of {valid_values}")
+                    f"EcoinventIndex entry '{field}' is not valid: '{getattr(self, field)}'. Must be of {valid_values}"
+                    f" ('{self.identity}'/ {self.directory})")
+
+    @classmethod
+    def exising_or_new(cls, *args, **kwargs) -> "EcoinventDataset":
+        index = EcoinventDataset(*args, **kwargs)
+        if EcoinventDataset.exists(index.identity):
+            return EcoinventDataset.get_or_none(EcoinventDataset.identity == index.identity)
+        return index
+
+    def save(self, *args, **kwargs):
+        self.validate()
         super(EcoinventDataset, self).save(*args, **kwargs)
 
     @classmethod
-    def identity_exists(cls, identity: str) -> bool:
+    def exists(cls, identity: str) -> bool:
         """
         Check if the given identity exists in the database
         :param identity: identity string
@@ -77,7 +88,8 @@ class EcoinventDataset(MainDatabase):
             return self.directory / f"datasets"
 
     def __repr__(self):
-        return f"EcoinventDataset: {self.identity}"
+        return (f"EcoinventDataset: {self.identity} "
+                f"({str(self.bw_project_index) if self.bw_project_index else 'no BW2 project index'})")
 
     def __str__(self):
         return self.__repr__()
@@ -126,11 +138,14 @@ class BWProjectIndex(MainDatabase):
     def get_ecoinvent_dataset(self) -> Optional[EcoinventDataset]:
         return EcoinventDataset.get_or_none(EcoinventDataset == self.ecoinvent_dataset)
 
+    def delete(self):
+        self.delete()
+
     def __repr__(self):
-        return f"BWProjectIndex: {self.project_name} - {self.database_name} ({self.get_ecoinvent_dataset})"
+        return f"BWProjectIndex: {self.project_name} - {self.database_name} ({self.ecoinvent_dataset})"
 
     def __str__(self):
-        return self.__repr__()
+        return f"BWProjectIndex: {self.project_name} - {self.database_name}"
 
 
 class EcoinventDatabaseActivity(Model):

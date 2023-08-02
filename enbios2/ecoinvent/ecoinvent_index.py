@@ -22,6 +22,7 @@ def analyze_directory(directory: Optional[Path] = None,
     :param store_to_index_file:
     :return:
     """
+    init_databases()
     if not directory:
         directory = BASE_ECOINVENT_DATASETS_PATH
     indexes: list[EcoinventDataset] = []
@@ -34,19 +35,30 @@ def analyze_directory(directory: Optional[Path] = None,
             system_model = parts[2]
             type_ = parts[-2] if parts[-2] in ["lci", "lcia"] else "default"
             xlsx = parts[-1] == "xlsx"
-            indexes.append(EcoinventDataset(version=version,
+            index = EcoinventDataset.exising_or_new(version=version,
                                             system_model=system_model,
                                             type=type_,
                                             xlsx=xlsx,
-                                            directory=directory))
+                                            directory=directory)
+
+            indexes.append(index)
+
+    result_indexes: list[EcoinventDataset] = []
+    for index in indexes:
+        try:
+            index.validate()
+            result_indexes.append(index)
+        except ValueError as e:
+            logger.warning(f"directory format not valid: {e}")
+
     if store_to_index_file:
-        for index in indexes:
-            if EcoinventDataset.identity_exists(index.identity):
+        for index in result_indexes:
+            if EcoinventDataset.exists(index.identity):
                 logger.debug(f"Ecoinvent dataset '{index.identity}' already indexed and will not be added")
                 continue
             index.save()
             logger.info(f"Added ecoinvent dataset '{index.identity}'")
-    return indexes
+    return result_indexes
 
 
 def add_dataset_index(version: str,
@@ -68,7 +80,7 @@ def add_dataset_index(version: str,
                           type=type,
                           xlsx=xlsx,
                           directory=directory)
-    if EcoinventDataset.identity_exists(ds.identity):
+    if EcoinventDataset.exists(ds.identity):
         logger.debug(f"Ecoinvent dataset '{ds.identity}' already indexed and will not be added")
         return
     ds.save()
@@ -176,7 +188,7 @@ def analyse_and_import():
     """
     analyse the ecoinvent directory and import all datasets
     """
-    init_databases()
+
     analyze_directory(store_to_index_file=True)
     indexes = get_ecoinvent_dataset_index()
     for index in indexes:

@@ -77,8 +77,6 @@ class Scenario:
 
         if not self.result_tree:
             raise ValueError(f"Scenario '{self.alias}' has no results...")
-        # activity_nodes = list(self.result_tree.get_leaves())
-        # todo should be the same set of activities
         activities_simple_ids = list(self.activities_outputs.keys())
 
         methods_aliases: list[str] = list(self.get_methods().keys())

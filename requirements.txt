@@ -7,7 +7,7 @@ bw-migrations==0.2
 bw-processing==0.8.3
 bw2analyzer==0.11.5
 bw2calc==2.0.dev13
-bw2data==4.0.dev20
+bw2data==4.0.dev19
 bw2io==0.9.dev19
 bw2parameters==1.1.0
 certifi==2023.7.22
