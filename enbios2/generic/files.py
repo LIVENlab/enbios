@@ -4,6 +4,10 @@ from csv import DictReader
 from pathlib import Path
 from typing import Generator, Union, Optional
 
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 import openpyxl
 import xmltodict as xmltodict
 
@@ -66,7 +70,7 @@ class ReadPath(Path):
             logger.warning("Reading json completely not as iterator")
             return json.loads(self.read_text(encoding="utf-8"))
         elif self.suffix in [".yaml", ".yml"]:
-            return yaml.load(self.read_text(encoding="utf-8"))
+            return yaml.load(self.read_text(encoding="utf-8"), Loader=Loader)
         elif self.suffix == ".csv":
             reader = DictReader(self.open(encoding="utf-8"))
             for row in reader:

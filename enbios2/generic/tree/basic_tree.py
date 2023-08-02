@@ -409,10 +409,10 @@ class BasicTreeNode(Generic[T]):
                     node_data = data_serializer(node.data)
                 elif isinstance(node.data, dict):
                     node_data = node.data
-                for data_key in include_data_keys:
-                    row[data_key] = node_data.get(data_key, "")
                 else:
                     logger.warning(f"Data is not a dict and no data_serializer provided, skipping data")
+                for data_key in include_data_keys:
+                    row[data_key] = node_data.get(data_key, "")
             row[level_name(current_level)] = node.name
             _sub_rows = []
             for child in node.children:

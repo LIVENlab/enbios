@@ -42,14 +42,14 @@ class Experiment:
         self.raw_data = input_data
         # alias to activity
 
-        self.validate_bw_config()
-        self.activitiesMap: dict[str, ExtendedExperimentActivityPrepData] = Experiment.validate_activities(
-            self.prepare_activities(self.raw_data.activities), self.raw_data.bw_default_database)
+        self._validate_bw_config()
+        self.activitiesMap: dict[str, ExtendedExperimentActivityPrepData] = Experiment._validate_activities(
+            self._prepare_activities(self.raw_data.activities), self.raw_data.bw_default_database)
         self._user_defined_hierarchy: bool = True
-        self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
+        self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self._create_technology_tree()
 
-        self.methods: dict[str, ExperimentMethodPrepData] = Experiment.validate_methods(self.prepare_methods())
-        self.scenarios: list[Scenario] = self.validate_scenarios()
+        self.methods: dict[str, ExperimentMethodPrepData] = Experiment._validate_methods(self._prepare_methods())
+        self.scenarios: list[Scenario] = self._validate_scenarios()
         self.lca: Optional[StackedMultiLCA] = None
 
     # @staticmethod
@@ -79,7 +79,7 @@ class Experiment:
     #     bw_method = Experiment.validate_method(m_data)
     #     self.methods[alias] = ExperimentMethodPrepData(id=method, alias=alias, bw_method=bw_method)
 
-    def validate_bw_config(self) -> None:
+    def _validate_bw_config(self) -> None:
 
         def validate_bw_project_bw_database(bw_project: str, bw_default_database: Optional[str] = None):
             if bw_project not in bd.projects:
@@ -112,7 +112,7 @@ class Experiment:
             validate_bw_project_bw_database(bw_project_index.project_name, bw_project_index.database_name)
 
     @staticmethod
-    def prepare_activities(activities: ActivitiesDataTypes) -> list[ExperimentActivityData]:
+    def _prepare_activities(activities: ActivitiesDataTypes) -> list[ExperimentActivityData]:
         raw_activities_list: list[ExperimentActivityData] = []
         if isinstance(activities, list):
             raw_activities_list = activities
@@ -130,9 +130,9 @@ class Experiment:
         return raw_activities_list
 
     @staticmethod
-    def validate_activities(activities: list[ExperimentActivityData], bw_default_database: str,
-                            output_required: bool = False) -> [str,
-                                                               ExtendedExperimentActivityData]:
+    def _validate_activities(activities: list[ExperimentActivityData], bw_default_database: str,
+                             output_required: bool = False) -> [str,
+                                                                ExtendedExperimentActivityData]:
         """
         Check if all activities exist in the bw database, and check if the given activities are unique
         In case there is only one scenario, all activities are required to have outputs
@@ -142,9 +142,9 @@ class Experiment:
         activities_map: [str, ExtendedExperimentActivityData] = {}
         # validate
         for activity in activities:
-            ext_activity: ExtendedExperimentActivityData = Experiment.validate_activity(activity,
-                                                                                        default_id_data,
-                                                                                        output_required)
+            ext_activity: ExtendedExperimentActivityData = Experiment._validate_activity(activity,
+                                                                                         default_id_data,
+                                                                                         output_required)
             # check unique aliases
             if ext_activity.alias in activities_map:
                 raise Exception(
@@ -157,14 +157,14 @@ class Experiment:
         for ext_activity in activities_map.values():
             unique_activities.add((ext_activity.id.database, ext_activity.id.code))
             if ext_activity.output:
-                ext_activity.default_output_value = Experiment.validate_output(ext_activity.output, ext_activity)
+                ext_activity.default_output_value = Experiment._validate_output(ext_activity.output, ext_activity)
         assert len(activities_map) > 0, "There are no activities in the experiment"
         return activities_map
 
     @staticmethod
-    def validate_activity(activity: ExperimentActivityData,
-                          default_id_attr: Optional[ExperimentActivityId] = None,
-                          required_output: bool = False) -> "ExtendedExperimentActivityData":
+    def _validate_activity(activity: ExperimentActivityData,
+                           default_id_attr: Optional[ExperimentActivityId] = None,
+                           required_output: bool = False) -> "ExtendedExperimentActivityData":
         """
         This method checks if the activity exists in the database by several ways.
         :param activity:
@@ -227,8 +227,8 @@ class Experiment:
         return result
 
     @staticmethod
-    def validate_output(target_output: ActivityOutput,
-                        activity: Union[ExtendedExperimentActivityData, ExtendedExperimentActivityPrepData]) -> float:
+    def _validate_output(target_output: ActivityOutput,
+                         activity: Union[ExtendedExperimentActivityData, ExtendedExperimentActivityPrepData]) -> float:
         """
         validate and convert to the bw-activity unit
         :param target_output:
@@ -252,7 +252,7 @@ class Experiment:
                 f"\n{err}")
             raise Exception(f"Unit error for activity: {activity.id}")
 
-    def prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExperimentMethodData]:
+    def _prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExperimentMethodData]:
         if not methods:
             methods = self.raw_data.methods
         method_dict: dict[str, ExperimentMethodData] = {}
@@ -268,8 +268,8 @@ class Experiment:
         return method_dict
 
     @staticmethod
-    def validate_method(method: ExperimentMethodData,
-                        alias: str) -> ExperimentMethodPrepData:
+    def _validate_method(method: ExperimentMethodData,
+                         alias: str) -> ExperimentMethodPrepData:
         method.id = tuple(method.id)
         bw_method = bd.methods.get(method.id)
         if not bw_method:
@@ -282,15 +282,15 @@ class Experiment:
         return ExperimentMethodPrepData(id=method.id, alias=method.alias, bw_method=BWMethod(**bw_method))
 
     @staticmethod
-    def validate_methods(method_dict: dict[str, ExperimentMethodData]) -> dict[str, ExperimentMethodPrepData]:
+    def _validate_methods(method_dict: dict[str, ExperimentMethodData]) -> dict[str, ExperimentMethodPrepData]:
         # all methods must exist
         return {
-            alias: Experiment.validate_method(method, alias)
+            alias: Experiment._validate_method(method, alias)
             for alias, method in method_dict.items()
         }
 
-    def has_activity(self,
-                     alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityPrepData]:
+    def _has_activity(self,
+                      alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityPrepData]:
         if isinstance(alias_or_id, str):
             activity = self.activitiesMap.get(alias_or_id, None)
             return activity
@@ -302,12 +302,12 @@ class Experiment:
 
     def get_activity(self,
                      alias_or_id: Union[str, ExperimentActivityId]) -> ExtendedExperimentActivityPrepData:
-        activity = self.has_activity(alias_or_id)
+        activity = self._has_activity(alias_or_id)
         if not activity:
             raise ValueError(f"Activity with id {alias_or_id} not found")
         return activity
 
-    def validate_scenarios(self) -> list[Scenario]:
+    def _validate_scenarios(self) -> list[Scenario]:
         """
         :return:
         """
@@ -339,7 +339,7 @@ class Experiment:
                 activity = self.get_activity(activity_id)
                 simple_id = validate_activity_id(activity_id)
                 output_ = convert_output(activity_output)
-                scenario_output = Experiment.validate_output(output_, activity)
+                scenario_output = Experiment._validate_output(output_, activity)
                 result[simple_id] = scenario_output
             return result
 
@@ -376,7 +376,7 @@ class Experiment:
                     method_dict: dict[str, tuple[str, ...]] = cast(dict[str, tuple[str, ...]], _scenario.methods)
                     for method_alias, method_ in method_dict.items():  # type: ignore
                         md = ExperimentMethodData(id=cast(tuple[str, ...], method_))
-                        prep_method = self.validate_method(md, method_alias)
+                        prep_method = self._validate_method(md, method_alias)
                         resolved_methods[prep_method.alias] = prep_method
 
             return Scenario(experiment=self,  # type: ignore
@@ -411,7 +411,7 @@ class Experiment:
             scenario.prepare_tree(self._config.include_bw_activity_in_nodes)
         return scenarios
 
-    def create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
+    def _create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self.raw_data.hierarchy:
             self.raw_data.hierarchy = list(self.activitiesMap.keys())
             self._user_defined_hierarchy = False
@@ -479,7 +479,7 @@ class Experiment:
                 f"Scenarios: {len(self.scenarios)}\n")
 
     def info(self):
-        activity_rows:list[str] = []
+        activity_rows: list[str] = []
         for activity_alias, activity in self.activitiesMap.items():
             activity_rows.append(f"  {activity.alias} - {activity.id.name}")
         activity_rows_str = "\n".join(activity_rows)

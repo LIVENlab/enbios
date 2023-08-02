@@ -46,15 +46,15 @@ class Scenario:
                                                                 self.activities_outputs[simple_id]))
             if include_bw_activity:
                 activity_node.data.bw_activity = bw_activity
-        self.result_tree.recursive_apply(Scenario.recursive_resolve_outputs, depth_first=True)
+        self.result_tree.recursive_apply(Scenario._recursive_resolve_outputs, depth_first=True)
 
-    def create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
+    def _create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
         for activity_alias, act_out in self.activities_outputs.items():
             bw_activity = self.experiment.get_activity(activity_alias.alias).bw_activity
             inventory.append({bw_activity: act_out})
 
-        methods = [m.id for m in self.get_methods().values()]
+        methods = [m.id for m in self._get_methods().values()]
         calculation_setup = BWCalculationSetup(self.alias, inventory, methods)
         if register:
             calculation_setup.register()
@@ -77,7 +77,7 @@ class Scenario:
             raise ValueError(f"Scenario '{self.alias}' has no results...")
         activities_simple_ids = list(self.activities_outputs.keys())
 
-        methods_aliases: list[str] = list(self.get_methods().keys())
+        methods_aliases: list[str] = list(self._get_methods().keys())
         for result_index, simple_id in enumerate(activities_simple_ids):
             alias = simple_id.alias
             activity_node = self.result_tree.find_child_by_name(alias)
@@ -90,14 +90,14 @@ class Scenario:
         self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
         return self.result_tree
 
-    def get_methods(self) -> dict[str, ExperimentMethodPrepData]:
+    def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
         if self.methods:
             return self.methods
         else:
             return self.experiment.methods
 
     @staticmethod
-    def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
+    def _recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
         if node.is_leaf:
             return
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
@@ -110,17 +110,19 @@ class Scenario:
                     node_output = output
                 else:
                     node_output += output
-                break
             except UndefinedUnitError as err:
                 logger.error(
                     f"Cannot parse output unit '{activity_output}' of activity {child.name}. {err}. "
                     f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
+                node_output = None
+                break
             except DimensionalityError as err:
                 logger.warning(f"Cannot aggregate output to parent: {node.name}. "
                                f"From earlier children the base unit is {node_output.to_base_units()} "
                                f"and from {child.name} it is {output}."
                                f" {err}")
-
+                node_output = None
+                break
         if node_output:
             node_output = node_output.to_compact()
             node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
@@ -128,21 +130,19 @@ class Scenario:
             logger.warning(f"No output for node: {node.name}")
 
     def run(self) -> BasicTreeNode[ScenarioResultNodeData]:
-        if not self.get_methods():
+        if not self._get_methods():
             raise ValueError(f"Scenario '{self.alias}' has no methods")
         logger.info(f"Running scenario '{self.alias}'")
-        bw_calc_setup = self.create_bw_calculation_setup()
+        bw_calc_setup = self._create_bw_calculation_setup()
         results: ndarray = StackedMultiLCA(bw_calc_setup).results
         return self.create_results_to_technology_tree(results)
 
-    def results_to_csv(self, file_path: PathLike, include_method_units: bool = False):
-        """
-        Save the results (as tree) to a csv file
-         :param file_path:  path to save the results to
-         :param include_method_units:
-        """
-        if not self.result_tree:
-            raise ValueError(f"Scenario '{self.alias}' has no results")
+    def wrapper_data_serializer(self, include_method_units: bool = False):
+
+        method_alias2units: dict[str, str] = {
+            method_alias: method_info.bw_method.unit
+            for method_alias, method_info in self.experiment.methods.items()
+        }
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
             result: dict[str, Union[str, float]] = {}
@@ -153,11 +153,45 @@ class Scenario:
                 return result | data.results
             else:
                 for method_alias, value in data.results.items():
-                    final_name = f"{method_alias} ({self.experiment.methods[str(method_alias)].bw_method.unit})"
+                    final_name = f"{method_alias} ({method_alias2units[str(method_alias)]})"
                     result[final_name] = value
                 return result
 
-        self.result_tree.to_csv(file_path, include_data=True, data_serializer=data_serializer)
+        return data_serializer
 
-    # def result_to_dict(self, include_method_units: bool = False):
-    #     self.result_tree.copy().recursive_apply(self._wrapper_data_serializer())
+    def results_to_csv(self, file_path: PathLike, include_method_units: bool = False):
+        """
+        Save the results (as tree) to a csv file
+         :param file_path:  path to save the results to
+         :param include_method_units:
+        """
+        if not self.result_tree:
+            raise ValueError(f"Scenario '{self.alias}' has no results")
+
+        self.result_tree.to_csv(file_path,
+                                include_data=True,
+                                data_serializer=self.wrapper_data_serializer(include_method_units))
+
+    def result_to_dict(self):
+
+        def data_serializer(data: ScenarioResultNodeData) -> dict:
+            result: dict[str, Any] = {
+                "output": {
+                    "unit": data.output[0],
+                    'amount': data.output[1]
+                },
+                "results": data.results
+            }
+            if data.bw_activity:
+                result["bw_activity"] = data.bw_activity["code"]
+
+            return result
+
+        def recursive_transform(node: BasicTreeNode[ScenarioResultNodeData]) -> dict:
+            result: dict[str, Any] = {"alias": node.name,
+                                      **data_serializer(node.data)}
+            if node.children:
+                result["children"] = [recursive_transform(child) for child in node.children]
+            return result
+
+        return recursive_transform(self.result_tree.copy())
