@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Optional, Union, TYPE_CHECKING, Any
 
 from bw2data.backends import Activity
@@ -136,24 +135,6 @@ class Scenario:
         bw_calc_setup = self.create_bw_calculation_setup()
         results: ndarray = StackedMultiLCA(bw_calc_setup).results
         return self.create_results_to_technology_tree(results)
-
-    # def _wrapper_data_serializer(self, node: BasicTreeNode[ScenarioResultNodeData], include_method_units: bool = False):
-    #
-    #     def _data_serializer(data: ScenarioResultNodeData) -> dict:
-    #         result: dict[str, Union[str, float]] = {}
-    #         if data.output:
-    #             result["unit"] = data.output[0]
-    #             result['amount'] = data.output[1]
-    #         if not include_method_units:
-    #             return result | data.results
-    #         else:
-    #             for method_alias, value in data.results.items():
-    #                 final_name = f"{method_alias} ({self.experiment.methods[str(method_alias)].bw_method.unit})"
-    #                 result[final_name] = value
-    #             return result
-    #
-    #     node_data = _data_serializer(node.data)
-    #     return _data_serializer
 
     def results_to_csv(self, file_path: PathLike, include_method_units: bool = False):
         """

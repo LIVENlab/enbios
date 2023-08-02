@@ -70,6 +70,8 @@ class StackedMultiLCA:
             elif isinstance(fu_spec, tuple):
                 a = get_activity(fu_spec)
                 fu = {a.id: fu[1] for fu in list(func_unit.items())}
+            else:
+                raise ValueError("Unknown functional unit type")
             self.lca.lci(fu)
             self.supply_arrays.append(self.lca.supply_array)
 

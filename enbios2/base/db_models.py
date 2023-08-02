@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional
 
 from peewee import Model, TextField, FloatField, BooleanField, SqliteDatabase, ForeignKeyField
 from playhouse.shortcuts import model_to_dict

@@ -1,14 +1,12 @@
 import itertools
 from copy import copy
-from dataclasses import asdict, fields
-from pathlib import Path
+from dataclasses import asdict
 from typing import Optional, Union, Any, cast
 
 import bw2data as bd
 import numpy as np
 from bw2data.backends import Activity
 from pint import Quantity, UndefinedUnitError, DimensionalityError
-from pint.facets.plain import PlainQuantity
 
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
@@ -237,7 +235,8 @@ class Experiment:
         except DimensionalityError as err:
             logger.error(
                 f"Cannot convert output of activity {activity.id}. -From- \n{target_output}\n-To-"
-                f"\n{activity.bw_activity['unit']} (brightway unit)")
+                f"\n{activity.bw_activity['unit']} (brightway unit)"
+                f"\n{err}")
             raise Exception(f"Unit error for activity: {activity.id}")
 
     def prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExperimentMethodData]:
@@ -331,14 +330,14 @@ class Experiment:
                 result[simple_id] = scenario_output
             return result
 
-        def validate_scenario(scenario: ExperimentScenarioData, _scenario_alias: str) -> Scenario:
+        def validate_scenario(_scenario: ExperimentScenarioData, _scenario_alias: str) -> Scenario:
             """
             Validate one scenario
-            :param scenario:
+            :param _scenario:
             :param _scenario_alias:
             :return:
             """
-            scenario_activities_outputs: Activity_Outputs = validate_activities(scenario)
+            scenario_activities_outputs: Activity_Outputs = validate_activities(_scenario)
             defined_aliases = [output_id.alias for output_id in scenario_activities_outputs.keys()]
             # prepared_methods: dict[str, ExperimentMethodData] = {}
             # fill up the missing activities with default values
@@ -353,15 +352,15 @@ class Experiment:
                     scenario_activities_outputs[id_] = activity.default_output_value
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
-            if scenario.methods:
-                if isinstance(scenario.methods, list):
-                    for index_, method_ in enumerate(scenario.methods):
+            if _scenario.methods:
+                if isinstance(_scenario.methods, list):
+                    for index_, method_ in enumerate(_scenario.methods):
                         if isinstance(method_, str):
                             global_method = self.methods.get(method_)
                             assert global_method
                             resolved_methods[global_method.alias] = global_method
                 else:
-                    method_dict: dict[str, tuple[str, ...]] = cast(dict[str, tuple[str, ...]], scenario.methods)
+                    method_dict: dict[str, tuple[str, ...]] = cast(dict[str, tuple[str, ...]], _scenario.methods)
                     for method_alias, method_ in method_dict.items():  # type: ignore
                         md = ExperimentMethodData(id=cast(tuple[str, ...], method_))
                         prep_method = self.validate_method(md, method_alias)
@@ -438,7 +437,10 @@ class Experiment:
             results[scenario.alias] = scenario.create_results_to_technology_tree(scenario_results[index])
         return results
 
-    def results_to_csv(self, file_path: PathLike, scenario_name: Optional[str] = None, include_method_units: bool = True):
+    def results_to_csv(self,
+                       file_path: PathLike,
+                       scenario_name: Optional[str] = None,
+                       include_method_units: bool = True):
         """
         :param file_path:
         :param scenario_name:
