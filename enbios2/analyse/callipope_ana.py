@@ -6,7 +6,7 @@ from pandas import DataFrame
 from pandas.core.groupby import DataFrameGroupBy
 
 from sklearn.cluster import KMeans
-import seaborn as sns
+
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib.colors import ListedColormap
@@ -89,6 +89,12 @@ def cluster_on_processor(df: DataFrame, processor: str, n_clusters=3) -> DataFra
 def plot_heatmaps_stacked(df_clustered: DataFrame,
                           plot_image_path: str,
                           sort: bool = True):
+
+    try:
+        import seaborn as sns
+    except ImportError:
+        raise ImportError("The seaborn package is required to run this function.")
+
     if not (parent_path := Path(plot_image_path).parent).exists():
         raise ValueError(f"The directory {parent_path.as_posix()} does not exist.")
     indicators = df_clustered['Indicator'].unique()

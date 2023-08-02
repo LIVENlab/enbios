@@ -33,10 +33,7 @@ class Scenario:
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     methods: Optional[dict[str, ExperimentMethodPrepData]] = None
 
-    def __post_init__(self):
-        self.prepare_tree()
-
-    def prepare_tree(self):
+    def prepare_tree(self, include_bw_activity: bool = False):
         activity_nodes = self.result_tree.get_leaves()
         activities_simple_ids = list(self.activities_outputs.keys())
         for result_index, simple_id in enumerate(activities_simple_ids):
@@ -47,6 +44,8 @@ class Scenario:
             # todo this does not consider magnitude...
             activity_node.data = ScenarioResultNodeData(output=(bw_activity['unit'].replace(" ", "_"),
                                                                 self.activities_outputs[simple_id]))
+            if include_bw_activity:
+                activity_node.data.bw_activity = bw_activity
         self.result_tree.recursive_apply(Scenario.recursive_resolve_outputs, depth_first=True)
 
     def create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:

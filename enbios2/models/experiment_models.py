@@ -227,7 +227,7 @@ class ExperimentMethodPrepData:
     bw_method: BWMethod
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config=StrictInputConfig, repr=False)
 class ExperimentScenarioData:
     # map from activity id to output. id is either as original (tuple) or alias-dict
     activities: Optional[Union[
@@ -252,7 +252,8 @@ class ExperimentScenarioPrepData:
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ScenarioConfig:
-    warn_default_demand: bool = True
+    warn_default_demand: bool = True  # todo: bring this back
+    include_bw_activity_in_nodes: bool = True
     # only used by ExperimentDataIO
     base_directory: Optional[str] = None
     # those are only used for testing
@@ -316,7 +317,7 @@ class BWCalculationSetup:
 class ScenarioResultNodeData:
     output: tuple[str, float]
     results: dict[str, float] = field(default_factory=dict)
-
+    bw_activity: Optional[Activity] = None
 
 
 Activity_Outputs = dict[SimpleScenarioActivityId, float]

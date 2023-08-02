@@ -6,48 +6,48 @@ from pandas import DataFrame
 
 # import Experiment but just for type hinting
 if TYPE_CHECKING:
-    from enbios2.analyse.vizprevexperiment import VizPrevExperiment
+    from enbios2.analyse.ana_experiment import AnaExperiment
 
 # from const import processor_col, value_col
 
 
 class ExperimentExporter:
 
-    def __init__(self, experiment: VizPrevExperiment):
+    def __init__(self, experiment: AnaExperiment):
         self.experiment = experiment
 
-    def build_simple_tree(self, scenario: str, indicator: str, save: bool = True) -> Dict[str, any]:
-        """
-        builds a simple tree with the structure of each node:
-        {name: full-process-name, children: {short-name: <child-node>}
-        :param scenario:
-        :param indicator:
-        :param save:
-        :return:
-        """
-        data = self.experiment.get_data(scenario, indicator)
-        tree = {}
-        for row in data:
-            # get the value in column called processor_col
-            proc = row[processor_col]
-            proc_tuple = tuple(proc.split("."))
-            if len(proc_tuple) == 1:
-                tree[proc] = {"name": proc, "children": {}, "value": float(row[value_col])}
-            else:
-                # find all parent nodes starting from the root
-                parent = tree
-                for i in range(len(proc_tuple) - 1):
-                    parent = parent[proc_tuple[i]]["children"]
-                parent[proc_tuple[-1]] = {"name": proc, "children": {}, "value": float(row[value_col])}
-
-        if save:
-            self.experiment.experiment_path.joinpath("results", "simple_trees").mkdir(exist_ok=True)
-            indicator_name = self.experiment.indicator_info[indicator]["abbre"]
-            file_path = self.experiment.experiment_path.joinpath("results",
-                                                                 "simple_trees",
-                                                                 f"{scenario}_{indicator_name}.json")
-            json.dump(tree, file_path.open("w", encoding="utf-8"), indent=2, ensure_ascii=False)
-        return tree
+    # def build_simple_tree(self, scenario: str, indicator: str, save: bool = True) -> Dict[str, any]:
+    #     """
+    #     builds a simple tree with the structure of each node:
+    #     {name: full-process-name, children: {short-name: <child-node>}
+    #     :param scenario:
+    #     :param indicator:
+    #     :param save:
+    #     :return:
+    #     """
+    #     data = self.experiment.get_data(scenario, indicator)
+    #     tree = {}
+    #     for row in data:
+    #         # get the value in column called processor_col
+    #         proc = row[processor_col]
+    #         proc_tuple = tuple(proc.split("."))
+    #         if len(proc_tuple) == 1:
+    #             tree[proc] = {"name": proc, "children": {}, "value": float(row[value_col])}
+    #         else:
+    #             # find all parent nodes starting from the root
+    #             parent = tree
+    #             for i in range(len(proc_tuple) - 1):
+    #                 parent = parent[proc_tuple[i]]["children"]
+    #             parent[proc_tuple[-1]] = {"name": proc, "children": {}, "value": float(row[value_col])}
+    #
+    #     if save:
+    #         self.experiment.experiment_path.joinpath("results", "simple_trees").mkdir(exist_ok=True)
+    #         indicator_name = self.experiment.indicator_info[indicator]["abbre"]
+    #         file_path = self.experiment.experiment_path.joinpath("results",
+    #                                                              "simple_trees",
+    #                                                              f"{scenario}_{indicator_name}.json")
+    #         json.dump(tree, file_path.open("w", encoding="utf-8"), indent=2, ensure_ascii=False)
+    #     return tree
 
     def d3sanki(self, scenario: str, indicator: str, save: bool = True) -> List[Dict[str, Union[str, float]]]:
         """

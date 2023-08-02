@@ -7,6 +7,7 @@ import bw2data as bd
 import numpy as np
 from bw2data.backends import Activity
 from pint import Quantity, UndefinedUnitError, DimensionalityError
+from pydantic import ValidationError
 
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
@@ -24,7 +25,8 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               EcoInventSimpleIndex, MethodsDataTypes, ActivitiesDataTypes,
                                               ExtendedExperimentActivityPrepData, ScenarioResultNodeData,
                                               ExperimentMethodPrepData, ActivityOutput, SimpleScenarioActivityId,
-                                              Activity_Outputs, BWCalculationSetup, ExperimentActivityData)
+                                              Activity_Outputs, BWCalculationSetup, ExperimentActivityData,
+                                              ScenarioConfig)
 
 logger = get_logger(__file__)
 
@@ -43,6 +45,7 @@ class Experiment:
         self.validate_bw_config()
         self.activitiesMap: dict[str, ExtendedExperimentActivityPrepData] = Experiment.validate_activities(
             self.prepare_activities(self.raw_data.activities), self.raw_data.bw_default_database)
+        self._user_defined_hierarchy: bool = True
         self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self.create_technology_tree()
 
         self.methods: dict[str, ExperimentMethodPrepData] = Experiment.validate_methods(self.prepare_methods())
@@ -144,7 +147,9 @@ class Experiment:
                                                                                         output_required)
             # check unique aliases
             if ext_activity.alias in activities_map:
-                raise Exception(f"Activity-alias '{ext_activity.alias}' passed more then once")
+                raise Exception(
+                    f"Activity-alias '{ext_activity.alias}' passed more then once. "
+                    f"Consider using a dictionary for activities or include 'alias' in the ids.")
             activities_map[ext_activity.alias] = ext_activity
 
         # all codes should only appear once
@@ -153,7 +158,7 @@ class Experiment:
             unique_activities.add((ext_activity.id.database, ext_activity.id.code))
             if ext_activity.output:
                 ext_activity.default_output_value = Experiment.validate_output(ext_activity.output, ext_activity)
-        # assert len(unique_activities) == len(activities), "Not all activities are unique"
+        assert len(activities_map) > 0, "There are no activities in the experiment"
         return activities_map
 
     @staticmethod
@@ -190,11 +195,19 @@ class Experiment:
                 if len(search_results) == 1:
                     bw_activity = search_results[0]
                     break
+                elif len(search_results) > 1:
+                    activities_str = "\n".join([f'{str(a)} - {a["code"]}' for a in search_results])
+                    raise ValueError(
+                        f"There are more than one activity with the same name, Try including  "
+                        f"the code of the activity you want to use:\n{activities_str}")
         if not bw_activity:
             raise ValueError(f"No activity found for {activity.id}")
 
         if not activity.output:
-            activity.output = ActivityOutput(unit=bw_activity["unit"])
+            try:
+                activity.output = ActivityOutput(unit=bw_activity["unit"])
+            except ValidationError as err:
+                raise ValueError(f"Activity {activity.id} has invalid output format: {err}")
 
         activity_dict = asdict(activity)
         if output := activity_dict.get("output"):
@@ -389,17 +402,19 @@ class Experiment:
                                    f"also in the scenario object: {_scenario.alias}")
                 _scenario.alias = alias
                 scenarios.append(validate_scenario(_scenario, alias))
+        # undefined scenarios. just one default scenario
         elif not raw_scenarios:
             default_scenario = ExperimentScenarioData()
             scenarios.append(validate_scenario(default_scenario, Experiment.DEFAULT_SCENARIO_ALIAS))
 
         for scenario in scenarios:
-            scenario.prepare_tree()
+            scenario.prepare_tree(self._config.include_bw_activity_in_nodes)
         return scenarios
 
     def create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self.raw_data.hierarchy:
             self.raw_data.hierarchy = list(self.activitiesMap.keys())
+            self._user_defined_hierarchy = False
 
         tech_tree: BasicTreeNode[ScenarioResultNodeData] = (BasicTreeNode.from_dict(self.raw_data.hierarchy,
                                                                                     compact=True))
@@ -452,3 +467,26 @@ class Experiment:
         else:
             scenario = self.scenarios[0]
         scenario.results_to_csv(file_path, include_method_units)
+
+    @property
+    def _config(self) -> ScenarioConfig:
+        return self.raw_data.config
+
+    def __repr__(self):
+        return (f"Experiment: (call info() for details)\n"
+                f"Activities: {len(self.activitiesMap)}\n"
+                f"Methods: {len(self.methods)}\n"
+                f"Scenarios: {len(self.scenarios)}\n")
+
+    def info(self):
+        activity_rows:list[str] = []
+        for activity_alias, activity in self.activitiesMap.items():
+            activity_rows.append(f"  {activity.alias} - {activity.id.name}")
+        activity_rows_str = "\n".join(activity_rows)
+        methods_str = "\n".join([f" {m.id}" for m in self.methods.values()])
+        return (f"Experiment: \n"
+                f"Activities: {len(self.activitiesMap)}\n"
+                f"{activity_rows_str}\n"
+                f"Methods: {len(self.methods)}\n"
+                f"{methods_str}\n"
+                f"Scenarios: {len(self.scenarios)}\n")

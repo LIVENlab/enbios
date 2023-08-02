@@ -721,11 +721,19 @@ class BasicTreeNode(Generic[T]):
 
     def __repr__(self) -> str:
         """
-        Get0 the  string representation of the node
+        Get the  string representation of the node
 
         :return: String representation of the object.
         """
-        return f"[{self.name} - {len(self.children)} {'children' if len(self) != 1 else 'child'}{' (' + self.parent.name + ')' if self.parent else ''}]"
+        children_str = f"{len(self.children)} {'children' if len(self) != 1 else 'child'}"
+        parent_str = f"{' (' + self.parent.name + ')' if self.parent else ''}"
+        return f"[{self.name} - {children_str} {parent_str}]"
+
+    def info(self) -> str:
+        if not self.data:
+            return repr(self)
+        else:
+            return repr(self) + f"\n{repr(self.data)}"
 
     def __bool__(self):
         """
