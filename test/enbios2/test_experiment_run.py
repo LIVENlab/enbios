@@ -34,12 +34,14 @@ def default_bw_activity(default_bw_config) -> Activity:
     import bw2data
     bw2data.projects.set_current(default_bw_config["bw_project"])
     db = bw2data.Database(default_bw_config["bw_default_database"])
-    return next(filter(lambda act: act["unit"] == "kilowatt hour", db.search("heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                     filter={"location": "DK"})))
+    return next(filter(lambda act: act["unit"] == "kilowatt hour",
+                       db.search("heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                                 filter={"location": "DK"})))
 
 
 @pytest.fixture
-def scenario_run_basic1(default_bw_config, default_bw_activity, default_method_tuple, default_method_str: str, default_result_score: float):
+def scenario_run_basic1(default_bw_config, default_bw_activity, default_method_tuple, default_method_str: str,
+                        default_result_score: float):
     _impact = default_result_score
     return {
         "scenario": {
@@ -145,21 +147,21 @@ def test_csv_output(scenario_run_basic1, temp_csv_file, default_method_str, defa
     experiment.results_to_csv(temp_csv_file, Experiment.DEFAULT_SCENARIO_ALIAS, include_method_units=False)
     assert temp_csv_file.exists()
     csv_data = ReadPath(temp_csv_file).read_data()
-    expected_data = [{'lvl0': 'root',
-                      'lvl1': '',
-                      'lvl2': '',
+    expected_data = [{'lvl_0': 'root',
+                      'lvl_1': '',
+                      'lvl_2': '',
                       'unit': 'kilowatt_hour',
                       'amount': '1.0',
                       default_method_str: str(default_result_score)},
-                     {'lvl0': '',
-                      'lvl1': 'energy',
-                      'lvl2': '',
+                     {'lvl_0': '',
+                      'lvl_1': 'energy',
+                      'lvl_2': '',
                       'unit': 'kilowatt_hour',
                       'amount': '1.0',
                       default_method_str: str(default_result_score)},
-                     {'lvl0': '',
-                      'lvl1': '',
-                      'lvl2': 'single_activity',
+                     {'lvl_0': '',
+                      'lvl_1': '',
+                      'lvl_2': 'single_activity',
                       'unit': 'kilowatt_hour',
                       'amount': '1.0',
                       default_method_str: str(default_result_score)}]
@@ -193,10 +195,9 @@ def test_scaled_demand_unit(scenario_run_basic1, default_method_str: str):
 
 def test_stacked_lca():
     """
-    ,
-            {
-                "id": ["Cumulative Exergy Demand (CExD)", "energy resources: renewable, solar", "exergy content"]
-            }
+    {
+        "id": ["Cumulative Exergy Demand (CExD)", "energy resources: renewable, solar", "exergy content"]
+    }
     """
     # todo this test should be vigorous
     experiment = {

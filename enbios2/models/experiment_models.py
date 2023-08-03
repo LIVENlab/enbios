@@ -89,7 +89,7 @@ class ExtendedExperimentActivityData:
     orig_id: ExperimentActivityId
     output: "ActivityOutput"
     bw_activity: Activity
-    default_output_value: Optional[float] = 1.0
+    default_output_value: Optional[float] = Field(1.0)
 
     def __hash__(self):
         return self.bw_activity["code"]

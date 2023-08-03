@@ -130,7 +130,7 @@ class Experiment:
         return raw_activities_list
 
     @staticmethod
-    def _validate_activities(activities: list[ExperimentActivityData], bw_default_database: str,
+    def _validate_activities(activities: list[ExperimentActivityData], bw_default_database: Optional[str] = None,
                              output_required: bool = False) -> dict[str,
                                                                 ExtendedExperimentActivityData]:
         """
@@ -214,9 +214,8 @@ class Experiment:
             if isinstance(output, tuple):
                 activity_dict["output"] = asdict(ActivityOutput(unit=output[0], magnitude=output[1]))
         result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**activity_dict,
-                                                                                database=database,
                                                                                 bw_activity=bw_activity,
-                                                                                default_output=activity.output)
+                                                                                default_output_value=activity.output)
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
 
         result.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "name")],
@@ -362,7 +361,7 @@ class Experiment:
                         name=str(activity.id.name),
                         code=str(activity.id.code),
                         alias=activity.alias)
-                    scenario_activities_outputs[id_] = activity.default_output_value
+                    scenario_activities_outputs[id_] = activity.default_output_value # type: ignore
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
             if _scenario.methods:
@@ -408,7 +407,7 @@ class Experiment:
             scenarios.append(validate_scenario(default_scenario, Experiment.DEFAULT_SCENARIO_ALIAS))
 
         for scenario in scenarios:
-            scenario.prepare_tree(self.config.include_bw_activity_in_nodes)
+            scenario.prepare_tree()
         return scenarios
 
     def _validate_hierarchy(self) -> BasicTreeNode[ScenarioResultNodeData]:
@@ -485,7 +484,7 @@ class Experiment:
     def get_all_method_aliases(self) -> list[str]:
         return list(self.methods.keys())
 
-    def info(self):
+    def info(self) -> str:
         activity_rows: list[str] = []
         for activity_alias, activity in self._activities.items():
             activity_rows.append(f"  {activity.alias} - {activity.id.name}")

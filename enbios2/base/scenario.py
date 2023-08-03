@@ -32,7 +32,7 @@ class Scenario:
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     methods: Optional[dict[str, ExperimentMethodPrepData]] = None
 
-    def prepare_tree(self, include_bw_activity: bool = False):
+    def prepare_tree(self):
         activity_nodes = self.result_tree.get_leaves()
         activities_simple_ids = list(self.activities_outputs.keys())
         for result_index, simple_id in enumerate(activities_simple_ids):
@@ -43,7 +43,7 @@ class Scenario:
             # todo this does not consider magnitude...
             activity_node.data = ScenarioResultNodeData(output=(bw_activity['unit'].replace(" ", "_"),
                                                                 self.activities_outputs[simple_id]))
-            if include_bw_activity:
+            if self.experiment.config.include_bw_activity_in_nodes:
                 activity_node.data.bw_activity = bw_activity
         self.result_tree.recursive_apply(Scenario._recursive_resolve_outputs, depth_first=True)
 
@@ -128,6 +128,7 @@ class Scenario:
             node_output = node_output.to_compact()
             node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
         else:
+            node.data = ScenarioResultNodeData(output=("None", float("nan")))
             logger.warning(f"No output for node: {node.name}")
 
     def run(self) -> BasicTreeNode[ScenarioResultNodeData]:

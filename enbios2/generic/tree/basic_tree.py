@@ -55,12 +55,11 @@ class BasicTreeNode(Generic[T]):
         self.parent: Optional[BasicTreeNode[T]] = None
         self._data: dict[str, Any] = kwargs  # this is used for temporary storage of data
         self._id: bytes = self.generate_id()
+        self.data = None
         if data:
             self.data: T = data
         elif data_factory:
             self.data: T = data_factory(self)
-        else:
-            self.data: T = None
 
     def generate_id(self) -> bytes:
         self._id = b64encode(uuid4().bytes)
