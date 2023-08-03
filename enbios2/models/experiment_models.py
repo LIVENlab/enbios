@@ -4,10 +4,10 @@ from typing import Optional, Union
 
 import bw2data
 from bw2data.backends import Activity
-from pydantic import Field, Extra
+from pydantic import Field
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-from enbios2.bw2.util import get_activity, report
+from enbios2.bw2.util import get_activity
 
 
 @pydantic_dataclass
@@ -99,18 +99,18 @@ class ExtendedExperimentActivityData:
         return self.id.alias
 
 
-@pydantic_dataclass(config=OperationConfig)
-class ExtendedExperimentActivityPrepData:
-    id: ExperimentActivityId
-    orig_id: ExperimentActivityId
-    output: "ActivityOutput"
-    default_output_value: float
-    bw_activity: Activity
-    scenario_outputs: dict[str, "ActivityOutput"] = Field(default_factory=dict)
-
-    @property
-    def alias(self):
-        return self.id.alias
+# @pydantic_dataclass(config=OperationConfig)
+# class ExtendedExperimentActivityPrepData:
+#     id: ExperimentActivityId
+#     orig_id: ExperimentActivityId
+#     output: "ActivityOutput"
+#     default_output_value: float
+#     bw_activity: Activity
+#     scenario_outputs: dict[str, "ActivityOutput"] = Field(default_factory=dict)
+#
+#     @property
+#     def alias(self):
+#         return self.id.alias
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -168,7 +168,8 @@ class ExperimentActivityData:
             else:
                 bw_activity = get_activity(self.id.code)
         elif self.id.name:
-            # assert result.id.database is not None, f"database must be specified for {self.id} or default_database set in config"
+            # assert result.id.database is not None, f"database must be specified for
+            # {self.id} or default_database set in config"
             filters = {}
             search_in_dbs = [self.id.database] if self.id.database else bw2data.databases
             for db in search_in_dbs:
@@ -254,6 +255,7 @@ class ExperimentScenarioPrepData:
 class ScenarioConfig:
     warn_default_demand: bool = True  # todo: bring this back
     include_bw_activity_in_nodes: bool = True
+    store_raw_results: bool = False  # store numpy arrays of lca results
     # only used by ExperimentDataIO
     base_directory: Optional[str] = None
     # those are only used for testing
@@ -285,7 +287,7 @@ class ExperimentData:
     hierarchy: Optional[Union[list, dict]] = Field(None,
                                                    description="The activity hierarchy to be used in the experiment")
     scenarios: Optional[ScenariosDataTypes] = Field(None, description="The scenarios for this experiment")
-    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig,
+    config: ScenarioConfig = Field(default_factory=ScenarioConfig,
                                              description="The configuration of this experiment")
 
 

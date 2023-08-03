@@ -27,8 +27,10 @@ print(sys.path)
 
 # from enbios2.generic.tree.basic_tree import BasicTreeNode
 @pytest.fixture
-def csv_file_path(tmp_path):
-    return tmp_path / "test.csv"
+def csv_file_path(tmp_path) -> Generator[Path, None, None]:
+    path = tmp_path / "test.csv"
+    yield path
+    os.remove(path)
 
 
 @pytest.fixture
@@ -262,14 +264,8 @@ def test_depth():
     node3 = BasicTreeNode("node3")
     node1.add_child(node2)
     node2.add_child(node3)
-    assert node1.depth() == 3
+    assert node1.depth == 3
 
-
-@pytest.fixture
-def csv_file_path(tmp_path) -> Generator[Path, None, None]:
-    path = tmp_path / "test.csv"
-    yield path
-    os.remove(path)
 
 
 def test_to_csv(csv_file_path):
@@ -279,28 +275,28 @@ def test_to_csv(csv_file_path):
 
     node1.to_csv(csv_file_path)
     assert csv_file_path.exists()
-    assert [{'lvl0': 'node1', 'lvl1': ''}, {'lvl0': '', 'lvl1': 'node2'}] == list(DictReader(csv_file_path.open()))
+    assert [{'lvl_0': 'node1', 'lvl_1': ''}, {'lvl_0': '', 'lvl_1': 'node2'}] == list(DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path, level_names=["main", "sub"])
     assert [{'main': 'node1', 'sub': ''}, {'main': '', 'sub': 'node2'}] == list(DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path, merge_first_sub_row=True)
-    assert [{'lvl0': 'node1', 'lvl1': 'node2'}] == list(DictReader(csv_file_path.open()))
+    assert [{'lvl_0': 'node1', 'lvl_1': 'node2'}] == list(DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path, repeat_parent_name=True)
-    assert [{'lvl0': 'node1', 'lvl1': ''}, {'lvl0': 'node1', 'lvl1': 'node2'}] == list(DictReader(csv_file_path.open()))
+    assert [{'lvl_0': 'node1', 'lvl_1': ''}, {'lvl_0': 'node1', 'lvl_1': 'node2'}] == list(DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path, include_data=True)
-    assert [{'lvl0': 'node1', 'lvl1': '', "a": "1", "b": "2"},
-            {'lvl0': '', 'lvl1': 'node2', "a": "5", "b": "8"}] == list(
+    assert [{'lvl_0': 'node1', 'lvl_1': '', "a": "1", "b": "2"},
+            {'lvl_0': '', 'lvl_1': 'node2', "a": "5", "b": "8"}] == list(
         DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path, include_data=True, exclude_data_keys=["b"])
-    assert [{'lvl0': 'node1', 'lvl1': '', "a": "1"}, {'lvl0': '', 'lvl1': 'node2', "a": "5"}] == list(
+    assert [{'lvl_0': 'node1', 'lvl_1': '', "a": "1"}, {'lvl_0': '', 'lvl_1': 'node2', "a": "5"}] == list(
         DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path.as_posix(), include_data=True, merge_first_sub_row=True)
-    assert [{'lvl0': 'node1', 'lvl1': 'node2', "a": "5", "b": "8"}] == list(
+    assert [{'lvl_0': 'node1', 'lvl_1': 'node2', "a": "5", "b": "8"}] == list(
         DictReader(csv_file_path.open()))
 
 

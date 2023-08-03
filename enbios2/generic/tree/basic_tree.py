@@ -57,8 +57,10 @@ class BasicTreeNode(Generic[T]):
         self._id: bytes = self.generate_id()
         if data:
             self.data: T = data
-        if data_factory:
+        elif data_factory:
             self.data: T = data_factory(self)
+        else:
+            self.data: T = None
 
     def generate_id(self) -> bytes:
         self._id = b64encode(uuid4().bytes)
@@ -353,12 +355,12 @@ class BasicTreeNode(Generic[T]):
         for child in self.children:
             yield from rec_get_leaves(child)
 
+    @property
     def depth(self) -> int:
         """
         Get the depth of this node in the tree. Go down the tree until the deepest leaf is reached.
         :return: The depth of this node.
         """
-
         def calc_max_depth(node):
             if not node.children:
                 return 1
@@ -396,7 +398,7 @@ class BasicTreeNode(Generic[T]):
 
         def level_name(level: int) -> str:
             if level >= len(_total_level_names):
-                _total_level_names.append(f"lvl{level}")
+                _total_level_names.append(f"lvl_{level}")
             return _total_level_names[level]
 
         def rec_add_node_row(node: "BasicTreeNode[T]",
@@ -727,7 +729,7 @@ class BasicTreeNode(Generic[T]):
         """
         children_str = f"{len(self.children)} {'children' if len(self) != 1 else 'child'}"
         parent_str = f"{' (' + self.parent.name + ')' if self.parent else ''}"
-        return f"[{self.name} - {children_str} {parent_str}]"
+        return f"[{self.name} - {children_str}{parent_str}]"
 
     def info(self) -> str:
         if not self.data:

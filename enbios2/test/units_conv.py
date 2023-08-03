@@ -26,7 +26,17 @@ import bw2data
 # print(f'1 kWh_from_batteries is {conv_kWh.magnitude} kg')
 
 
-wh_w = ureg("kilohour * watt")
-kw_x_h = ureg("kilowatt * hour")
-kw_x_h.to_preferred()
-kw_h = ureg("kilowatt_hour")
+# wh_w = ureg("kilohour * watt")
+# kw_x_h = ureg("kilowatt * hour")
+# kw_x_h.to_preferred()
+# kw_h = ureg("kilowatt_hour")
+
+us = [
+    ureg("kilowatt_hour") * 1,
+    ureg("kilowatt_hour") * 2,
+    ureg("kilowatt_hour") * 3,
+    ureg("kilowatt_hour") * 40000,
+    ureg("megawatt_hour") * 3
+]
+c = us[3].to_compact()
+

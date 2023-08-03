@@ -1,7 +1,10 @@
-from random import choice
+import json
+import pandas as pd
 from enbios2.base.experiment import Experiment
 import bw2data
 
+from enbios2.bw2.util import report
+from enbios2.models.experiment_models import ExperimentData
 from enbios2.bw2.util import report
 from enbios2.models.experiment_models import ExperimentData
 
@@ -31,11 +34,8 @@ for activity in wind_turbines_spain:
 experiment_activities[0]["output"] = ["kilowatt_hour", 3]
 print(experiment_activities)
 
-all_methods = list(bw2data.methods)
-methods = [choice(all_methods) for _ in range(2)]
-print(methods)
-
-
+# select 2 random methods and convert them into the form for enbios2
+methods = [bw2data.methods.random() for _ in range(2)]
 experiment_methods = [
     {
         "id": method
@@ -44,12 +44,16 @@ experiment_methods = [
 ]
 
 
-exp_data = ExperimentData(
-    bw_project="ecoinvent",
-    activities=experiment_activities,
-    methods=experiment_methods
-)
 
+# let's store the raw data, because we want to modify it later
+raw_data = {
+    "bw_project": "ecoinvent",
+    "activities": experiment_activities,
+    "methods": experiment_methods
+}
+
+# make a first validation of the experiment data
+exp_data = ExperimentData(**raw_data)
 
 exp: Experiment = Experiment(exp_data)
 
@@ -58,5 +62,27 @@ exp: Experiment = Experiment(exp_data)
 results = exp.run()
 
 exp.results_to_csv("test.csv")
-exp.results_to_csv("test2.csv", include_method_units=False)
-exp.scenarios[0].result_to_dict()
+# exp.scenarios[0].result_to_dict()
+
+
+# solar_spain = db.search("solar", filter={"location": "ES"})[:2]
+# raw_data["activities"].extend([
+#     {
+#         "id": {
+#             "name": activity["name"],
+#             "code": activity["code"]
+#         }
+#     }
+#     for activity in solar_spain
+# ])
+#
+# #%%
+# hierarchy = {
+#     "wind": [wind_act["name"] for wind_act in wind_turbines_spain],
+#     "solar": [solar_act["name"] for solar_act in solar_spain]
+# }
+#
+# raw_data["hierarchy"] = hierarchy
+# hierarchy
+#
+# exp: Experiment = Experiment(raw_data)

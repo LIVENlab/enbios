@@ -2,6 +2,7 @@ import pickle
 from pathlib import Path
 
 import pytest
+from bw2data.backends import Activity
 from deprecated.classic import deprecated
 
 from enbios2.base.experiment import Experiment, ScenarioResultNodeData
@@ -29,7 +30,16 @@ def default_result_score() -> float:
 
 
 @pytest.fixture
-def scenario_run_basic1(default_bw_config, default_method_tuple, default_method_str: str, default_result_score: float):
+def default_bw_activity(default_bw_config) -> Activity:
+    import bw2data
+    bw2data.projects.set_current(default_bw_config["bw_project"])
+    db = bw2data.Database(default_bw_config["bw_default_database"])
+    return next(filter(lambda act: act["unit"] == "kilowatt hour", db.search("heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                     filter={"location": "DK"})))
+
+
+@pytest.fixture
+def scenario_run_basic1(default_bw_config, default_bw_activity, default_method_tuple, default_method_str: str, default_result_score: float):
     _impact = default_result_score
     return {
         "scenario": {
@@ -38,9 +48,9 @@ def scenario_run_basic1(default_bw_config, default_method_tuple, default_method_
             "activities": {
                 "single_activity": {
                     "id": {
-                        "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                        "unit": "kilowatt hour",
-                        "location": "DK"
+                        "name": default_bw_activity["name"],
+                        "unit": default_bw_activity["unit"],
+                        "location": default_bw_activity["location"]
                     },
                     "output": [
                         "kWh",
@@ -67,6 +77,7 @@ def scenario_run_basic1(default_bw_config, default_method_tuple, default_method_
                                                     'data':
                                                         ScenarioResultNodeData(
                                                             output=("kilowatt_hour", 1.0),
+                                                            bw_activity=default_bw_activity,
                                                             results={
                                                                 default_method_str: _impact})}],
                                                'data': ScenarioResultNodeData(
@@ -101,7 +112,7 @@ def test_single_lca_compare(scenario_run_basic1, default_method_tuple, default_m
     experiment = Experiment(ExperimentData(**scenario_run_basic1["scenario"]))
     result = experiment.run()
     expected_value = scenario_run_basic1["expected_result_tree"]["data"].results[default_method_str]
-    bw_activity = experiment.activitiesMap["single_activity"].bw_activity
+    bw_activity = experiment._activities["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
     assert regular_score == pytest.approx(expected_value, abs=1e-6)
     assert regular_score == result[Experiment.DEFAULT_SCENARIO_ALIAS].data.results[default_method_str]
@@ -125,12 +136,6 @@ def test_pickle(scenario_run_basic1):
 def test_temp_load_pickle():
     experiment = pickle.load(open(BASE_DATA_PATH / "temp/test_pickle.pickle", "rb"))
     assert experiment
-
-    def recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData]):
-        print("******")
-        print(node.name)
-
-    experiment.scenarios[0].result_tree.recursive_apply(recursive_resolve_outputs, depth_first=True, lazy=False)
 
 
 def test_csv_output(scenario_run_basic1, temp_csv_file, default_method_str, default_result_score):

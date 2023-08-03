@@ -23,7 +23,7 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               BWMethod, ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
                                               EcoInventSimpleIndex, MethodsDataTypes, ActivitiesDataTypes,
-                                              ExtendedExperimentActivityPrepData, ScenarioResultNodeData,
+                                              ScenarioResultNodeData,
                                               ExperimentMethodPrepData, ActivityOutput, SimpleScenarioActivityId,
                                               Activity_Outputs, BWCalculationSetup, ExperimentActivityData,
                                               ScenarioConfig)
@@ -39,18 +39,18 @@ class Experiment:
             input_data = ExperimentData(**raw_data)
         else:
             input_data = raw_data
-        self.raw_data = input_data
+        self.raw_data: ExperimentData = input_data
         # alias to activity
 
         self._validate_bw_config()
-        self.activitiesMap: dict[str, ExtendedExperimentActivityPrepData] = Experiment._validate_activities(
+        self._activities: dict[str, ExtendedExperimentActivityData] = Experiment._validate_activities(
             self._prepare_activities(self.raw_data.activities), self.raw_data.bw_default_database)
         self._user_defined_hierarchy: bool = True
-        self.technology_root_node: BasicTreeNode[ScenarioResultNodeData] = self._create_technology_tree()
+        self._hierarchy_root: BasicTreeNode[ScenarioResultNodeData] = self._validate_hierarchy()
 
         self.methods: dict[str, ExperimentMethodPrepData] = Experiment._validate_methods(self._prepare_methods())
         self.scenarios: list[Scenario] = self._validate_scenarios()
-        self.lca: Optional[StackedMultiLCA] = None
+        self._lca: Optional[StackedMultiLCA] = None
 
     # @staticmethod
     # def create(bw_project: str):
@@ -131,7 +131,7 @@ class Experiment:
 
     @staticmethod
     def _validate_activities(activities: list[ExperimentActivityData], bw_default_database: str,
-                             output_required: bool = False) -> [str,
+                             output_required: bool = False) -> dict[str,
                                                                 ExtendedExperimentActivityData]:
         """
         Check if all activities exist in the bw database, and check if the given activities are unique
@@ -139,7 +139,7 @@ class Experiment:
         """
         # if activities is a list, convert validate and convert to dict
         default_id_data = ExperimentActivityId(database=bw_default_database)
-        activities_map: [str, ExtendedExperimentActivityData] = {}
+        activities_map: dict[str, ExtendedExperimentActivityData] = {}
         # validate
         for activity in activities:
             ext_activity: ExtendedExperimentActivityData = Experiment._validate_activity(activity,
@@ -228,7 +228,7 @@ class Experiment:
 
     @staticmethod
     def _validate_output(target_output: ActivityOutput,
-                         activity: Union[ExtendedExperimentActivityData, ExtendedExperimentActivityPrepData]) -> float:
+                         activity: ExtendedExperimentActivityData) -> float:
         """
         validate and convert to the bw-activity unit
         :param target_output:
@@ -290,18 +290,18 @@ class Experiment:
         }
 
     def _has_activity(self,
-                      alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityPrepData]:
+                      alias_or_id: Union[str, ExperimentActivityId]) -> Optional[ExtendedExperimentActivityData]:
         if isinstance(alias_or_id, str):
-            activity = self.activitiesMap.get(alias_or_id, None)
+            activity = self._activities.get(alias_or_id, None)
             return activity
         else:  # isinstance(alias_or_id, ExperimentActivityId):
-            for activity in self.activitiesMap.values():
+            for activity in self._activities.values():
                 if activity.orig_id == alias_or_id:
                     return activity
             return None
 
     def get_activity(self,
-                     alias_or_id: Union[str, ExperimentActivityId]) -> ExtendedExperimentActivityPrepData:
+                     alias_or_id: Union[str, ExperimentActivityId]) -> ExtendedExperimentActivityData:
         activity = self._has_activity(alias_or_id)
         if not activity:
             raise ValueError(f"Activity with id {alias_or_id} not found")
@@ -354,7 +354,7 @@ class Experiment:
             defined_aliases = [output_id.alias for output_id in scenario_activities_outputs.keys()]
             # prepared_methods: dict[str, ExperimentMethodData] = {}
             # fill up the missing activities with default values
-            for activity in self.activitiesMap.values():
+            for activity in self._activities.values():
                 activity_alias = activity.alias
                 if activity_alias not in defined_aliases:
                     # print(activity)
@@ -383,7 +383,7 @@ class Experiment:
                             alias=_scenario_alias,
                             activities_outputs=scenario_activities_outputs,
                             methods=resolved_methods,
-                            result_tree=self.technology_root_node.copy())
+                            result_tree=self._hierarchy_root.copy())
 
         raw_scenarios = self.raw_data.scenarios
         scenarios: list[Scenario] = []
@@ -408,12 +408,12 @@ class Experiment:
             scenarios.append(validate_scenario(default_scenario, Experiment.DEFAULT_SCENARIO_ALIAS))
 
         for scenario in scenarios:
-            scenario.prepare_tree(self._config.include_bw_activity_in_nodes)
+            scenario.prepare_tree(self.config.include_bw_activity_in_nodes)
         return scenarios
 
-    def _create_technology_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
+    def _validate_hierarchy(self) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self.raw_data.hierarchy:
-            self.raw_data.hierarchy = list(self.activitiesMap.keys())
+            self.raw_data.hierarchy = list(self._activities.keys())
             self._user_defined_hierarchy = False
 
         tech_tree: BasicTreeNode[ScenarioResultNodeData] = (BasicTreeNode.from_dict(self.raw_data.hierarchy,
@@ -449,7 +449,7 @@ class Experiment:
         scenario_results = np.split(raw_results, len(self.scenarios))
         results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
         for index, scenario in enumerate(self.scenarios):
-            results[scenario.alias] = scenario.create_results_to_technology_tree(scenario_results[index])
+            results[scenario.alias] = scenario.set_results(scenario_results[index])
         return results
 
     def results_to_csv(self,
@@ -466,27 +466,35 @@ class Experiment:
             scenario = self.get_scenario(scenario_name)
         else:
             scenario = self.scenarios[0]
-        scenario.results_to_csv(file_path, include_method_units)
+        scenario.results_to_csv(file_path, include_method_units=include_method_units)
 
     @property
-    def _config(self) -> ScenarioConfig:
+    def config(self) -> ScenarioConfig:
         return self.raw_data.config
 
     def __repr__(self):
         return (f"Experiment: (call info() for details)\n"
-                f"Activities: {len(self.activitiesMap)}\n"
+                f"Activities: {len(self._activities)}\n"
                 f"Methods: {len(self.methods)}\n"
+                f"Hierarchy (depth): {self._hierarchy_root.depth}\n"
                 f"Scenarios: {len(self.scenarios)}\n")
+
+    def get_all_activity_aliases(self) -> list[str]:
+        return list(self._activities.keys())
+
+    def get_all_method_aliases(self) -> list[str]:
+        return list(self.methods.keys())
 
     def info(self):
         activity_rows: list[str] = []
-        for activity_alias, activity in self.activitiesMap.items():
+        for activity_alias, activity in self._activities.items():
             activity_rows.append(f"  {activity.alias} - {activity.id.name}")
         activity_rows_str = "\n".join(activity_rows)
         methods_str = "\n".join([f" {m.id}" for m in self.methods.values()])
         return (f"Experiment: \n"
-                f"Activities: {len(self.activitiesMap)}\n"
+                f"Activities: {len(self._activities)}\n"
                 f"{activity_rows_str}\n"
                 f"Methods: {len(self.methods)}\n"
                 f"{methods_str}\n"
+                f"Hierarchy (depth): {self._hierarchy_root.depth}\n"
                 f"Scenarios: {len(self.scenarios)}\n")

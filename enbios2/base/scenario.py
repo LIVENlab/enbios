@@ -26,10 +26,9 @@ class Scenario:
     experiment: "Experiment"
     alias: str
     result_tree: BasicTreeNode[ScenarioResultNodeData]
+    results: Optional[ndarray] = None
+    _has_run: bool = False
     # this should be a simpler type - just str: float
-    # todo not used yet
-    orig_outputs: Optional[dict[str, float]] = field(
-        default_factory=dict[str, float])  # output declaration before conversion
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     methods: Optional[dict[str, ExperimentMethodPrepData]] = None
 
@@ -81,6 +80,7 @@ class Scenario:
         for result_index, simple_id in enumerate(activities_simple_ids):
             alias = simple_id.alias
             activity_node = self.result_tree.find_child_by_name(alias)
+            assert activity_node
             # bw_activity = self.experiment.get_activity(alias).bw_activity
             # activity_node = next(
             #     filter(lambda node: node.temp_data()["activity"].bw_activity == bw_activity, activity_nodes))
@@ -117,8 +117,9 @@ class Scenario:
                 node_output = None
                 break
             except DimensionalityError as err:
+                set_base_unit = node_output.to_base_units() if node_output else ""
                 logger.warning(f"Cannot aggregate output to parent: {node.name}. "
-                               f"From earlier children the base unit is {node_output.to_base_units()} "
+                               f"From earlier children the base unit is {set_base_unit} "
                                f"and from {child.name} it is {output}."
                                f" {err}")
                 node_output = None
@@ -135,7 +136,16 @@ class Scenario:
         logger.info(f"Running scenario '{self.alias}'")
         bw_calc_setup = self._create_bw_calculation_setup()
         results: ndarray = StackedMultiLCA(bw_calc_setup).results
-        return self.create_results_to_technology_tree(results)
+        result_tree = self.set_results(results)
+        return result_tree
+
+    def set_results(self, results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
+        if self.experiment.config.store_raw_results:
+            self.results = results
+        self.result_tree = self.create_results_to_technology_tree(results)
+        self._has_run = True
+        return self.result_tree
+
 
     def wrapper_data_serializer(self, include_method_units: bool = False):
 
@@ -159,10 +169,14 @@ class Scenario:
 
         return data_serializer
 
-    def results_to_csv(self, file_path: PathLike, include_method_units: bool = False):
+    def results_to_csv(self,
+                       file_path: PathLike,
+                       level_names: Optional[list[str]] = None,
+                       include_method_units: bool = False):
         """
         Save the results (as tree) to a csv file
          :param file_path:  path to save the results to
+         :param level_names: names of the levels to include in the csv (must not match length of levels)
          :param include_method_units:
         """
         if not self.result_tree:
@@ -170,6 +184,7 @@ class Scenario:
 
         self.result_tree.to_csv(file_path,
                                 include_data=True,
+                                level_names=level_names,
                                 data_serializer=self.wrapper_data_serializer(include_method_units))
 
     def result_to_dict(self):
