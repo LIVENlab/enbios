@@ -428,6 +428,8 @@ class BasicTreeNode(Generic[T]):
             return [row] + _sub_rows
 
         # Write rows to csv
+        if isinstance(csv_file, bytes):
+            csv_file = csv_file.decode()
         with Path(csv_file).open('w', newline='') as csvfile:
             rows = rec_add_node_row(self, include_data)
             headers = _total_level_names + include_data_keys

@@ -1,12 +1,11 @@
-import logging.config
 import json
+import logging.config
 import os
 from pathlib import Path
 from typing import Optional, Any
 
-import appdirs
-
 from enbios2.const import PROJECT_PATH
+from enbios2.init_appdir import get_init_appdir
 
 default_log_config = {
     "version": 1,
@@ -49,7 +48,7 @@ class EnbiosLogger:
 
     @classmethod
     def init_logger(cls):
-        cls.log_config_file = Path(appdirs.user_config_dir("enbios2")) / "logging.json"
+        cls.log_config_file = get_init_appdir() / "logging.json"
         # check if  exists
         if not cls.log_config_file.exists():
             print(f"Creating logging config file at: {cls.log_config_file}")
