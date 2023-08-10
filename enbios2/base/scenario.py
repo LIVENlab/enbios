@@ -68,6 +68,7 @@ class Scenario:
             for child in node.children:
                 if child.data:
                     for key, value in child.data.results.items():
+                        assert node.data
                         if node.data.results.get(key) is None:
                             node.data.results[key] = 0
                         node.data.results[key] += value
@@ -102,6 +103,7 @@ class Scenario:
             return
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
         for child in node.children:
+            assert child.data
             activity_output = child.data.output[0]
             output = None
             try:
@@ -146,7 +148,6 @@ class Scenario:
         self.result_tree = self.create_results_to_technology_tree(results)
         self._has_run = True
         return self.result_tree
-
 
     def wrapper_data_serializer(self, include_method_units: bool = False):
 

@@ -122,8 +122,8 @@ class Experiment:
         elif isinstance(activities, dict):
             for activity_alias, activity in activities.items():
                 if activity_alias == activity.alias:
-                    raise (f"Activity in activities-dict declared with alias: '{activity_alias}', "
-                           f"different than in the activity.id: '{activity.alias}'")
+                    raise ValueError(f"Activity in activities-dict declared with alias: '{activity_alias}', "
+                                     f"different than in the activity.id: '{activity.alias}'")
                 activity.orig_id = copy(activity.id)
                 activity.id.alias = activity_alias
                 raw_activities_list.append(activity)
@@ -132,7 +132,7 @@ class Experiment:
     @staticmethod
     def _validate_activities(activities: list[ExperimentActivityData], bw_default_database: Optional[str] = None,
                              output_required: bool = False) -> dict[str,
-                                                                ExtendedExperimentActivityData]:
+    ExtendedExperimentActivityData]:
         """
         Check if all activities exist in the bw database, and check if the given activities are unique
         In case there is only one scenario, all activities are required to have outputs
@@ -153,28 +153,20 @@ class Experiment:
             activities_map[ext_activity.alias] = ext_activity
 
         # all codes should only appear once
-        unique_activities = set()
-        for ext_activity in activities_map.values():
-            unique_activities.add((ext_activity.id.database, ext_activity.id.code))
-            if ext_activity.output:
-                ext_activity.default_output_value = Experiment._validate_output(ext_activity.output, ext_activity)
+        # unique_activities = set()
+        # for ext_activity in activities_map.values():
+        #     unique_activities.add((ext_activity.id.database, ext_activity.id.code))
         assert len(activities_map) > 0, "There are no activities in the experiment"
         return activities_map
 
     @staticmethod
-    def _validate_activity(activity: ExperimentActivityData,
-                           default_id_attr: Optional[ExperimentActivityId] = None,
-                           required_output: bool = False) -> "ExtendedExperimentActivityData":
+    def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
         """
-        This method checks if the activity exists in the database by several ways.
+        Search for the activity in the brightway project
         :param activity:
-        :param default_id_attr:
-        :param required_output:
-        :return:
+        :return: brightway activity
         """
-
         id_ = activity.id
-        database = activity.id.database if activity.id.database else default_id_attr.database
         bw_activity: Optional[Activity] = None
         if id_.code:
             if id_.database:
@@ -202,6 +194,33 @@ class Experiment:
                         f"the code of the activity you want to use:\n{activities_str}")
         if not bw_activity:
             raise ValueError(f"No activity found for {activity.id}")
+        return bw_activity
+
+    @staticmethod
+    def _validate_activity(activity: ExperimentActivityData,
+                           default_id_attr: ExperimentActivityId,
+                           required_output: bool = False) -> "ExtendedExperimentActivityData":
+        """
+        This method checks if the activity exists in the database by several ways.
+        :param activity:
+        :param default_id_attr:
+        :param required_output:
+        :return:
+        """
+
+        # get the brightway activity
+        bw_activity = Experiment._bw_activity_search(activity)
+
+        # create output: ActivityOutput and default_output_value
+        if activity.output:
+            if isinstance(activity.output, tuple):
+                output = ActivityOutput(unit=activity.output[0], magnitude=activity.output[1])
+            else: # if isinstance(activity.output, ActivityOutput):
+                output = activity.output
+
+        else:
+            output = ActivityOutput(unit=bw_activity["unit"], magnitude=1.0)
+        default_output_value = Experiment._validate_output(output, bw_activity, activity.id)
 
         if not activity.output:
             try:
@@ -210,12 +229,10 @@ class Experiment:
                 raise ValueError(f"Activity {activity.id} has invalid output format: {err}")
 
         activity_dict = asdict(activity)
-        if output := activity_dict.get("output"):
-            if isinstance(output, tuple):
-                activity_dict["output"] = asdict(ActivityOutput(unit=output[0], magnitude=output[1]))
+        activity_dict["output"] = asdict(output)
         result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(**activity_dict,
                                                                                 bw_activity=bw_activity,
-                                                                                default_output_value=activity.output)
+                                                                                default_output_value=default_output_value)
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
 
         result.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "name")],
@@ -227,7 +244,8 @@ class Experiment:
 
     @staticmethod
     def _validate_output(target_output: ActivityOutput,
-                         activity: ExtendedExperimentActivityData) -> float:
+                         bw_activity: Activity,
+                         activity_id: ExperimentActivityId) -> float:
         """
         validate and convert to the bw-activity unit
         :param target_output:
@@ -237,19 +255,19 @@ class Experiment:
         try:
             target_quantity: Quantity = ureg.parse_expression(
                 target_output.unit, case_sensitive=False) * target_output.magnitude
-            bw_activity_unit = activity.bw_activity['unit']
+            bw_activity_unit = bw_activity['unit']
             return target_quantity.to(bw_activity_unit).magnitude
         except UndefinedUnitError as err:
             logger.error(
-                f"Cannot parse output unit '{target_output.unit}'- of activity {activity.id}. {err}. "
+                f"Cannot parse output unit '{target_output.unit}'- of activity {activity_id}. {err}. "
                 f"Consider the unit definition to 'enbios2/base/unit_registry.py'")
-            raise Exception(f"Unit error, {err}; For activity: {activity.id}")
+            raise Exception(f"Unit error, {err}; For activity: {activity_id}")
         except DimensionalityError as err:
             logger.error(
-                f"Cannot convert output of activity {activity.id}. -From- \n{target_output}\n-To-"
-                f"\n{activity.bw_activity['unit']} (brightway unit)"
+                f"Cannot convert output of activity {activity_id}. -From- \n{target_output}\n-To-"
+                f"\n{bw_activity['unit']} (brightway unit)"
                 f"\n{err}")
-            raise Exception(f"Unit error for activity: {activity.id}")
+            raise Exception(f"Unit error for activity: {activity_id}")
 
     def _prepare_methods(self, methods: Optional[MethodsDataTypes] = None) -> dict[str, ExperimentMethodData]:
         if not methods:
@@ -338,7 +356,7 @@ class Experiment:
                 activity = self.get_activity(activity_id)
                 simple_id = validate_activity_id(activity_id)
                 output_ = convert_output(activity_output)
-                scenario_output = Experiment._validate_output(output_, activity)
+                scenario_output = Experiment._validate_output(output_, activity.bw_activity, activity.id)
                 result[simple_id] = scenario_output
             return result
 
@@ -351,7 +369,6 @@ class Experiment:
             """
             scenario_activities_outputs: Activity_Outputs = validate_activities(_scenario)
             defined_aliases = [output_id.alias for output_id in scenario_activities_outputs.keys()]
-            # prepared_methods: dict[str, ExperimentMethodData] = {}
             # fill up the missing activities with default values
             for activity in self._activities.values():
                 activity_alias = activity.alias
@@ -361,7 +378,7 @@ class Experiment:
                         name=str(activity.id.name),
                         code=str(activity.id.code),
                         alias=activity.alias)
-                    scenario_activities_outputs[id_] = activity.default_output_value # type: ignore
+                    scenario_activities_outputs[id_] = activity.default_output_value  # type: ignore
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
             if _scenario.methods:

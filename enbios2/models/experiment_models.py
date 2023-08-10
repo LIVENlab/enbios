@@ -83,36 +83,6 @@ class ExperimentActivityId:
                     setattr(self, field, kwargs[field])
 
 
-@pydantic_dataclass(config=OperationConfig)
-class ExtendedExperimentActivityData:
-    id: ExperimentActivityId
-    orig_id: ExperimentActivityId
-    output: "ActivityOutput"
-    bw_activity: Activity
-    default_output_value: Optional[float] = Field(1.0)
-
-    def __hash__(self):
-        return self.bw_activity["code"]
-
-    @property
-    def alias(self):
-        return self.id.alias
-
-
-# @pydantic_dataclass(config=OperationConfig)
-# class ExtendedExperimentActivityPrepData:
-#     id: ExperimentActivityId
-#     orig_id: ExperimentActivityId
-#     output: "ActivityOutput"
-#     default_output_value: float
-#     bw_activity: Activity
-#     scenario_outputs: dict[str, "ActivityOutput"] = Field(default_factory=dict)
-#
-#     @property
-#     def alias(self):
-#         return self.id.alias
-
-
 @pydantic_dataclass(config=StrictInputConfig)
 class SimpleScenarioActivityId:
     name: str
@@ -195,9 +165,27 @@ class ExperimentActivityData:
 
         if not self.output:
             self.output = ActivityOutput(unit=bw_activity["unit"], magnitude=1.0)
+        else:
+            pass
         return ExtendedExperimentActivityData(**asdict(self),
                                               orig_id=orig_id,
                                               bw_activity=bw_activity)
+
+
+@pydantic_dataclass(config=OperationConfig)
+class ExtendedExperimentActivityData:
+    id: ExperimentActivityId
+    orig_id: ExperimentActivityId
+    output: "ActivityOutput"
+    bw_activity: Activity
+    default_output_value: Optional[float] = 1.0  # this is the value converted to the default (bw) unit
+
+    def __hash__(self):
+        return self.bw_activity["code"]
+
+    @property
+    def alias(self):
+        return self.id.alias
 
 
 # TODO are we using this?
@@ -288,7 +276,7 @@ class ExperimentData:
                                                    description="The activity hierarchy to be used in the experiment")
     scenarios: Optional[ScenariosDataTypes] = Field(None, description="The scenarios for this experiment")
     config: ScenarioConfig = Field(default_factory=ScenarioConfig,
-                                             description="The configuration of this experiment")
+                                   description="The configuration of this experiment")
 
 
 @pydantic_dataclass
