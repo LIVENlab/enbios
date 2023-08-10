@@ -11,14 +11,24 @@ set of methods and a set of scenarios, which contain demand for the given activi
 In addition to get the results of the scenarios in the dendrogram (....) the user can also define a hierarchy, which
 contains the activities at the bottom.
 
+Enbios 2 is a python package (https://pypi.org/project/enbios2/), which can be installed with pip.
+
 ## Installation
 
 Go into the enbios2 directory and create a new virtual environment (with pip or conda) of **python 3.9** or higher.
 
-`conda create --name enbios2 python=3.9` or `python3.9 -m venv venv`
+`python3.9 -m venv venv`
 
-Activate the environment with `conda activate enbios2` or `source venv/bin/activate`
+Activate the environment with
 
-Then install the dependencies with
-`pip install .` or `python3 -m pip install .`
+`source venv/bin/activate`
 
+Install enbios2 with
+
+`pip install enbios2`
+
+## Demo
+
+The repository contains a few notebooks (require jupyter notebook) in the demos folder.
+
+[Getting started](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/intro.ipynb)
