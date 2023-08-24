@@ -32,7 +32,7 @@ class BasicTreeNode(Generic[T]):
 
     def __init__(self,
                  name: str,
-                 children: Optional[list[Union["BasicTreeNode", dict[str, Any]]]] = None,
+                 children: Optional[list[Union["BasicTreeNode[T]", dict[str, Any]]]] = None,
                  data: Optional[T] = None,
                  data_factory: Optional[Callable[["BasicTreeNode"], T]] = None,
                  **kwargs):
@@ -53,13 +53,14 @@ class BasicTreeNode(Generic[T]):
                     child = BasicTreeNode.from_dict(child, data_factory=data_factory)
                 self.add_child(child)
         self.parent: Optional[BasicTreeNode[T]] = None
-        self._data: dict[str, Any] = kwargs  # this is used for temporary storage of data
+        self.temp_data: dict[str, Any] = kwargs  # this is used for temporary storage of data
         self._id: bytes = self.generate_id()
-        self.data = None
         if data:
             self.data: T = data
         elif data_factory:
             self.data: T = data_factory(self)
+        else:
+            self.data = None
 
     def generate_id(self) -> bytes:
         self._id = b64encode(uuid4().bytes)
@@ -81,13 +82,6 @@ class BasicTreeNode(Generic[T]):
         :return: level of this node
         """
         return len(self.location()) - 1
-
-    def temp_data(self) -> dict[str, Any]:
-        """
-        Additional data that can be used for temporary storage
-        :return:
-        """
-        return self._data
 
     @property
     def name(self) -> str:
@@ -134,7 +128,7 @@ class BasicTreeNode(Generic[T]):
         for node in nodes:
             self.add_child(node)
 
-    def remove_child(self, node: Union["BasicTreeNode", int]) -> "BasicTreeNode":
+    def remove_child(self, node: Union["BasicTreeNode[T]", int]) -> "BasicTreeNode":
         """
         Remove a child node from this node.
 
@@ -275,7 +269,7 @@ class BasicTreeNode(Generic[T]):
         if strategy == "parent_name":
             name_map: dict[str, list[BasicTreeNode[T]]] = {}
             for node in self.iter_all_nodes():
-                node._data["orig_name"] = node.name
+                node.temp_data["orig_name"] = node.name
                 name_map.setdefault(node.name, []).append(node)
 
             for name, nodes in name_map.items():
@@ -294,7 +288,7 @@ class BasicTreeNode(Generic[T]):
                         for i in range(parent_level):
                             assert p.parent is not None
                             p = p.parent
-                            new_name = f"{p._data['orig_name']}_{new_name}"
+                            new_name = f"{p.temp_data['orig_name']}_{new_name}"
                         node.name = new_name
                     parent_level += 1
 

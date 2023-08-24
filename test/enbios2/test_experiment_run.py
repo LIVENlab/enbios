@@ -1,12 +1,15 @@
+import csv
+import json
 import pickle
 from pathlib import Path
+from typing import Generator
 
 import pytest
 from bw2data.backends import Activity
 from deprecated.classic import deprecated
 
 from enbios2.base.experiment import Experiment, ScenarioResultNodeData
-from enbios2.const import BASE_DATA_PATH
+from enbios2.const import BASE_DATA_PATH, BASE_TEST_DATA_PATH
 from enbios2.generic.files import ReadPath
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import ExperimentData
@@ -103,11 +106,29 @@ def default_bw_config() -> dict:
 
 
 @pytest.fixture
-def temp_csv_file() -> Path:
+def temp_csv_file() -> Generator[Path, None, None]:
     path = BASE_DATA_PATH / "temp/test_csv.csv"
     if path.exists():
         path.unlink()
-    return path
+    yield path
+    path.unlink()
+
+
+@pytest.fixture
+def temp_json_file() -> Generator[Path, None, None]:
+    path = BASE_DATA_PATH / "temp/test_json.json"
+    if path.exists():
+        path.unlink()
+    yield path
+    path.unlink()
+
+
+@pytest.fixture
+def run_basic_experiment(scenario_run_basic1) -> Experiment:
+    scenario_data = scenario_run_basic1["scenario"]
+    experiment = Experiment(ExperimentData(**scenario_data))
+    experiment.run()
+    return experiment
 
 
 def test_single_lca_compare(scenario_run_basic1, default_method_tuple, default_method_str):
@@ -140,33 +161,23 @@ def test_temp_load_pickle():
     assert experiment
 
 
-def test_csv_output(scenario_run_basic1, temp_csv_file, default_method_str, default_result_score):
-    scenario_data = scenario_run_basic1["scenario"]
-    experiment = Experiment(ExperimentData(**scenario_data))
-    experiment.run()
-    experiment.results_to_csv(temp_csv_file, Experiment.DEFAULT_SCENARIO_ALIAS, include_method_units=False)
+def test_csv_output(run_basic_experiment, temp_csv_file):
+    run_basic_experiment.results_to_csv(temp_csv_file, Experiment.DEFAULT_SCENARIO_ALIAS, include_method_units=False)
     assert temp_csv_file.exists()
     csv_data = ReadPath(temp_csv_file).read_data()
-    expected_data = [{'lvl_0': 'root',
-                      'lvl_1': '',
-                      'lvl_2': '',
-                      'unit': 'kilowatt_hour',
-                      'amount': '1.0',
-                      default_method_str: str(default_result_score)},
-                     {'lvl_0': '',
-                      'lvl_1': 'energy',
-                      'lvl_2': '',
-                      'unit': 'kilowatt_hour',
-                      'amount': '1.0',
-                      default_method_str: str(default_result_score)},
-                     {'lvl_0': '',
-                      'lvl_1': '',
-                      'lvl_2': 'single_activity',
-                      'unit': 'kilowatt_hour',
-                      'amount': '1.0',
-                      default_method_str: str(default_result_score)}]
+    expected_data = list(
+        csv.DictReader((BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_csv_output.csv").open()))
     assert csv_data == expected_data
     # todo we could try other hierarchies here and include the methods units again
+
+
+def test_dict_output(run_basic_experiment):
+    json_data = run_basic_experiment.scenarios[0].result_to_dict()
+    expected_json_data = json.load((BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_json_output.json").open())
+    assert json_data == expected_json_data
+    json_data = run_basic_experiment.scenarios[0].result_to_dict(False)
+    expected_json_data = json.load((BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_json_output_no_output.json").open())
+    assert json_data == expected_json_data
 
 
 def test_scaled_demand(scenario_run_basic1, default_method_str: str):

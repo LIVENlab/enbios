@@ -60,7 +60,7 @@ def test_node_init():
     assert node.name == "node1"
     assert node.children == []
     assert node.parent is None
-    assert node._data == {}
+    assert node.temp_data == {}
 
 
 def test_node_add_child():

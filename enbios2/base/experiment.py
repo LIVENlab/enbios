@@ -435,7 +435,7 @@ class Experiment:
         tech_tree: BasicTreeNode[ScenarioResultNodeData] = (BasicTreeNode.from_dict(self.raw_data.hierarchy,
                                                                                     compact=True))
         for leaf in tech_tree.get_leaves():
-            leaf._data = {"activity": self.get_activity(leaf.name)}
+            leaf.temp_data = {"activity": self.get_activity(leaf.name)}
         return tech_tree
 
     def get_scenario(self, scenario_name: str) -> Scenario:

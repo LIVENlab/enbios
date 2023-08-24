@@ -39,7 +39,7 @@ class Scenario:
             alias = simple_id.alias
             bw_activity = self.experiment.get_activity(alias).bw_activity
             activity_node = next(
-                filter(lambda node: node.temp_data()["activity"].bw_activity == bw_activity, activity_nodes))
+                filter(lambda node: node.temp_data["activity"].bw_activity == bw_activity, activity_nodes))
             # todo this does not consider magnitude...
             activity_node.data = ScenarioResultNodeData(output=(bw_activity['unit'].replace(" ", "_"),
                                                                 self.activities_outputs[simple_id]))
@@ -189,16 +189,17 @@ class Scenario:
                                 level_names=level_names,
                                 data_serializer=self.wrapper_data_serializer(include_method_units))
 
-    def result_to_dict(self):
+    def result_to_dict(self, include_output: bool = True) -> dict[str, Any]:
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
             result: dict[str, Any] = {
-                "output": {
-                    "unit": data.output[0],
-                    'amount': data.output[1]
-                },
                 "results": data.results
             }
+            if include_output:
+                result["output"] = {
+                    "unit": data.output[0],
+                    'amount': data.output[1]
+                }
             if data.bw_activity:
                 result["bw_activity"] = data.bw_activity["code"]
 

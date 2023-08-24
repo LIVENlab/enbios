@@ -31,4 +31,4 @@ if imported.all_linked:
 print(len(bw2data.Database("csv_db")))
 act = list(bw2data.Database("csv_db"))[0]
 print(act)
-print(act._data)
+print(act.temp_data)
