@@ -471,7 +471,7 @@ class BasicTreeNode(Generic[T]):
         """
         return len(self)
 
-    def collect_all_nodes_at_level(self, level: int) -> list["BasicTreeNode"]:
+    def collect_all_nodes_at_level(self, level: int) -> list["BasicTreeNode[T]"]:
         """
         Collect all nodes at a given level.
 
@@ -483,7 +483,7 @@ class BasicTreeNode(Generic[T]):
             current = [child for node in current for child in node.children]
         return current
 
-    def get_sub_tree(self, max_level: int) -> "BasicTreeNode":
+    def get_sub_tree(self, max_level: int) -> "BasicTreeNode[T]":
         """
         Get a subtree of the current tree.
         Creates a copy of the tree.

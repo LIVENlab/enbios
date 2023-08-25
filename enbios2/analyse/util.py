@@ -65,3 +65,19 @@ class DataTransformer:
         baseline_df[self.methods] = self.base_df[self.methods].div(baseline_data, axis=1)
         return baseline_df
 
+    def collect_tech_results(self, node_aliases: list[str]):
+        df = DataFrame()
+        for scenario in self.scenarios:
+            scenario_results = self.experiment.get_scenario(scenario).result_tree
+            for node_alias in node_aliases:
+                node = scenario_results.find_child_by_name(node_alias)
+                assert node is not None
+                # add a row
+                df = df._append({
+                                    "scenario": scenario,
+                                    "tech": node_alias,
+                                } | {method: value for method, value in node.data.results.items() if
+                                     method in self.methods},
+                                ignore_index=True)
+
+        return df

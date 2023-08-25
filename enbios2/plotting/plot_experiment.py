@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from deprecated.classic import deprecated
@@ -63,15 +63,17 @@ def results_to_plot(exp: Experiment,
         fig.write_image(image_file.as_posix(), width=1800, height=1600)
 
 
-def plot_experiment_results(experiment: Experiment,
-                            scenarios: Optional[list[str]] = None,
-                            methods: Optional[list[str]] = None) -> Figure:
+def bar_plot(experiment: Union[Experiment, DataTransformer]) -> Figure:
     try:  # type: ignore
         import seaborn
     except ImportError:
         raise
 
-    dt = DataTransformer(experiment)
+    if isinstance(experiment, Experiment):
+        dt = DataTransformer(experiment)
+    else:
+        dt = experiment
+        experiment = dt.experiment
     df = dt.base_df
 
     # Define the number of rows and columns for the subplots
@@ -99,6 +101,44 @@ def plot_experiment_results(experiment: Experiment,
 
     return fig  # Return the figure object
 
+
+def stacked_bar_plot(experiment: Union[Experiment, DataTransformer], level: int = 1) -> Figure:
+
+    if isinstance(experiment, Experiment):
+        dt = DataTransformer(experiment)
+    else:
+        dt = experiment
+        experiment = dt.experiment
+
+    # Define the number of rows and columns for the subplots
+    n_rows = len(dt.methods)
+    n_cols = 1
+
+    # Create a new figure with a defined size (adjust as needed)
+    # Explicitly create a Figure object
+    fig, axs = plt.subplots(n_rows, n_cols,
+                            figsize=(10, 5 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
+
+    # Check if there's only one subplot to handle the indexing appropriately
+    if n_rows == 1:
+        axs = [axs]
+
+    for idx, method in enumerate(dt.methods):
+        method_data = experiment.methods[method]
+        label = "\n".join(list(method_data.id) + [method_data.bw_method.unit])
+        ax = axs[idx]
+
+        # Create the bar plot using the specific Axes object
+        nodes = experiment._hierarchy_root.collect_all_nodes_at_level(level)
+        node_names = [node.name for node in nodes]
+        df = dt.collect_tech_results(node_names)
+        df_pivot = df.pivot(index='scenario', columns='tech',
+                            values=method)
+        df_pivot.plot(kind='bar', stacked=True, ax=ax)
+
+    plt.tight_layout()
+
+    return fig  # Return the figure object
 
 @deprecated(reason="See star_plot and update this code")
 def single_star_plot(experiment: Experiment, scenario: str) -> Figure:

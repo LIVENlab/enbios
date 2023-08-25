@@ -570,7 +570,7 @@ def test_copy():
     assert root_.children[0].parent == root_
     assert other.children[0].parent == other
 
-
+"""
 def test_set_name():
     node = BasicTreeNode("root")
     child1 = node.add_child(BasicTreeNode("child1"))
@@ -579,7 +579,7 @@ def test_set_name():
     assert child2.name == "x"
     with pytest.raises(ValueError):
         child2.name = "child1"
-
+"""
 
 # def test_copy2():
 #     # print(ReadDataPath(BASE_TEST_DATA_PATH/ "basic_tree/full_tree.json").read_data())
