@@ -34,6 +34,9 @@ class DataTransformer:
         self.base_df = self.results_as_df()
         self.normalized_df = self.normalize()
 
+    def short_method_names(self) -> list[str]:
+        return [self.experiment.methods[l].id[-1] for l in self.methods]
+
     def results_as_df(self, scenarios: Optional[list[str]] = None,
                       methods: Optional[list[str]] = None) -> DataFrame:
 

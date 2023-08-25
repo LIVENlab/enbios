@@ -22,7 +22,7 @@ def results_to_plot(exp: Experiment,
                     scenario_name: Optional[str] = None,
                     image_file: Optional[Path] = None,
                     show: bool = False):
-    try:
+    try:  # type: ignore
         import plotly.graph_objects as go
     except ImportError:
         logger.error("plotly not installed. Run 'pip install plotly'")
@@ -66,21 +66,16 @@ def results_to_plot(exp: Experiment,
 def plot_experiment_results(experiment: Experiment,
                             scenarios: Optional[list[str]] = None,
                             methods: Optional[list[str]] = None) -> Figure:
-    try:
+    try:  # type: ignore
         import seaborn
     except ImportError:
         raise
-    use_scenarios: list[str] = scenarios if scenarios is not None else [sc.alias for sc in experiment.scenarios]
-    use_methods: list[str] = methods if methods else [m for m in experiment.methods.keys()]
 
-    data = [{"scenario": scenario} |
-            {k: v for k, v in experiment.get_scenario(scenario).result_tree.data.results.items() if k in use_methods}
-            for scenario in use_scenarios]
-
-    df = DataFrame(data)
+    dt = DataTransformer(experiment)
+    df = dt.base_df
 
     # Define the number of rows and columns for the subplots
-    n_rows = len(use_methods)
+    n_rows = len(dt.methods)
     n_cols = 1
 
     # Create a new figure with a defined size (adjust as needed)
@@ -92,7 +87,7 @@ def plot_experiment_results(experiment: Experiment,
     if n_rows == 1:
         axs = [axs]
 
-    for idx, method in enumerate(use_methods):
+    for idx, method in enumerate(dt.methods):
         method_data = experiment.methods[method]
         label = "\n".join(list(method_data.id) + [method_data.bw_method.unit])
 
@@ -117,8 +112,7 @@ def single_star_plot(experiment: Experiment, scenario: str) -> Figure:
     df = dt.normalized_df
 
     # Define data
-    labels = dt.methods
-    labels = [experiment.methods[l].id[-1] for l in labels]
+    labels = dt.short_method_names()
 
     values = df.loc[df["scenario"] == scenario].values.tolist()[0][1:]
     # multiply by 100 to get percentage
@@ -171,8 +165,7 @@ def star_plot(experiment: Experiment,
     # set a value in a specific cell
     # df.loc[df["scenario"] == "Scenario 3", "EDIP 2003 no LT_non-renewable resources no LT_molybdenum no LT"] = 0.5
     # Define data
-    labels = dt.methods
-    labels = [experiment.methods[l].id[-1] for l in labels]
+    labels = dt.short_method_names()
     # print("num label", len(labels))
 
     if row is None:
@@ -252,3 +245,19 @@ def star_plot(experiment: Experiment,
     plt.tight_layout()
     plt.show()
     return fig
+
+
+def plot_heatmap(experiment: Experiment):
+    try:
+        import seaborn as sns
+    except ImportError:
+        raise ImportError("The seaborn package is required to run this function.")
+
+    dt = DataTransformer(experiment)
+    df_ = dt.normalized_df.set_index('scenario').transpose()
+
+    # Create the heatmap
+    plt.figure(figsize=(10, 6))
+    sns.heatmap(df_, annot=True, cmap="YlGnBu", cbar=True, yticklabels=dt.short_method_names())
+    plt.title("Heatmap of Indicators by Scenario")
+    plt.show()
