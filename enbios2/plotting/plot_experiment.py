@@ -160,7 +160,7 @@ def star_plot(experiment: Experiment,
               *,
               fill: bool = True,
               r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-              show_rticks: bool = True,
+              show_r_ticks: bool = True,
               show_grid: bool = True,
               col: int = 4,
               row: Optional[int] = None) -> Figure:
@@ -230,21 +230,19 @@ def star_plot(experiment: Experiment,
             ax.set_rlabel_position(30)
 
             ax.set_rticks(list(r_ticks))
-            if not show_rticks:
+            if not show_r_ticks:
                 ax.set_yticklabels([])
             if not show_grid:
                 ax.grid(False)
 
+            angles.pop()
+            ax.set_xticks(angles)
             if r == 0 and c == 0:
-                angles.pop()
-                ax.set_xticks(angles)
                 ax.set_xticklabels(labels)
             else:
-                angles.pop()
-                ax.set_xticks(angles)
                 ax.set_xticklabels([""] * len(angles))
             ax.set_rmax(1)
-
+            ax.title = scenario_name
             if r * col + c == len(dt.scenarios) - 1:
                 all_done = True
                 break
