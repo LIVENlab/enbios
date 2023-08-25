@@ -41,10 +41,10 @@ class Scenario:
             activity_node = next(
                 filter(lambda node: node.temp_data["activity"].bw_activity == bw_activity, activity_nodes))
             # todo this does not consider magnitude...
-            activity_node.data = ScenarioResultNodeData(output=(bw_activity['unit'].replace(" ", "_"),
-                                                                self.activities_outputs[simple_id]))
+            activity_node._data = ScenarioResultNodeData(output=(bw_activity['unit'].replace(" ", "_"),
+                                                                 self.activities_outputs[simple_id]))
             if self.experiment.config.include_bw_activity_in_nodes:
-                activity_node.data.bw_activity = bw_activity
+                activity_node._data.bw_activity = bw_activity
         self.result_tree.recursive_apply(Scenario._recursive_resolve_outputs, depth_first=True)
 
     def _create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
@@ -66,12 +66,12 @@ class Scenario:
 
         def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData], _: Any = None):
             for child in node.children:
-                if child.data:
-                    for key, value in child.data.results.items():
-                        assert node.data
-                        if node.data.results.get(key) is None:
-                            node.data.results[key] = 0
-                        node.data.results[key] += value
+                if child._data:
+                    for key, value in child._data.results.items():
+                        assert node._data
+                        if node._data.results.get(key) is None:
+                            node._data.results[key] = 0
+                        node._data.results[key] += value
 
         if not self.result_tree:
             raise ValueError(f"Scenario '{self.alias}' has no results...")
@@ -86,7 +86,7 @@ class Scenario:
             # activity_node = next(
             #     filter(lambda node: node.temp_data()["activity"].bw_activity == bw_activity, activity_nodes))
             for method_index, method in enumerate(methods_aliases):
-                activity_node.data.results[method] = results[result_index][method_index]
+                activity_node._data.results[method] = results[result_index][method_index]
 
         self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
         return self.result_tree
@@ -103,11 +103,11 @@ class Scenario:
             return
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
         for child in node.children:
-            assert child.data
-            activity_output = child.data.output[0]
+            assert child._data
+            activity_output = child._data.output[0]
             output = None
             try:
-                output = ureg.parse_expression(activity_output) * child.data.output[1]
+                output = ureg.parse_expression(activity_output) * child._data.output[1]
                 if not node_output:
                     node_output = output
                 else:
@@ -128,9 +128,9 @@ class Scenario:
                 break
         if node_output:
             node_output = node_output.to_compact()
-            node.data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
+            node._data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
         else:
-            node.data = ScenarioResultNodeData(output=("None", float("nan")))
+            node._data = ScenarioResultNodeData(output=("None", float("nan")))
             logger.warning(f"No output for node: {node.name}")
 
     def run(self) -> BasicTreeNode[ScenarioResultNodeData]:
@@ -207,7 +207,7 @@ class Scenario:
 
         def recursive_transform(node: BasicTreeNode[ScenarioResultNodeData]) -> dict:
             result: dict[str, Any] = {"alias": node.name,
-                                      **data_serializer(node.data)}
+                                      **data_serializer(node._data)}
             if node.children:
                 result["children"] = [recursive_transform(child) for child in node.children]
             return result

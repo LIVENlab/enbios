@@ -56,15 +56,20 @@ class BasicTreeNode(Generic[T]):
         self.temp_data: dict[str, Any] = kwargs  # this is used for temporary storage of data
         self._id: bytes = self.generate_id()
         if data:
-            self.data: T = data
+            self._data: T = data
         elif data_factory:
-            self.data: T = data_factory(self)
+            self._data: T = data_factory(self)
         else:
-            self.data = None
+            self._data = None
 
     def generate_id(self) -> bytes:
         self._id = b64encode(uuid4().bytes)
         return self._id
+
+    @property
+    def data(self) -> T:
+        assert self._data is not None
+        return self._data
 
     @property
     def is_leaf(self):
@@ -155,8 +160,8 @@ class BasicTreeNode(Generic[T]):
                 child.as_dict(include_data, data_serializer=data_serializer) for child in self.children
             ]
         }
-        if include_data and self.data:
-            result["data"] = data_serializer(self.data) if data_serializer else self.data
+        if include_data and self._data:
+            result["data"] = data_serializer(self._data) if data_serializer else self._data
         return result
 
     @staticmethod
@@ -370,7 +375,7 @@ class BasicTreeNode(Generic[T]):
                merge_first_sub_row: bool = False, repeat_parent_name: bool = False):
 
         # Calculate max_depth based on root if not provided
-        if include_data and not isinstance(self.data, dict) and not data_serializer:
+        if include_data and not isinstance(self._data, dict) and not data_serializer:
             raise ValueError("If include_data is True, and data not a dict, data_serializer must be provided")
 
         if include_data and merge_first_sub_row:
@@ -379,12 +384,12 @@ class BasicTreeNode(Generic[T]):
                 "as sub-row data will overwrite parent data")
 
         include_data_keys = []
-        if include_data and self.data:
+        if include_data and self._data:
             if data_serializer:
-                include_data_keys = list(data_serializer(self.data).keys())
+                include_data_keys = list(data_serializer(self._data).keys())
             else:
-                if isinstance(self.data, dict):
-                    include_data_keys = list(self.data.keys())
+                if isinstance(self._data, dict):
+                    include_data_keys = list(self._data.keys())
             if exclude_data_keys:
                 include_data_keys = list(set(include_data_keys) - set(exclude_data_keys))
         _total_level_names = level_names if level_names else []
@@ -398,12 +403,12 @@ class BasicTreeNode(Generic[T]):
                              include_data_: Optional[bool] = False,
                              current_level: int = 0) -> list[dict[str, Union[str, float]]]:
             row = {}
-            if include_data_ and node.data:
+            if include_data_ and node._data:
                 node_data: dict[str, Any] = {}
                 if data_serializer:
-                    node_data = data_serializer(node.data)
-                elif isinstance(node.data, dict):
-                    node_data = node.data
+                    node_data = data_serializer(node._data)
+                elif isinstance(node._data, dict):
+                    node_data = node._data
                 else:
                     logger.warning(f"Data is not a dict and no data_serializer provided, skipping data")
                 for data_key in include_data_keys:
@@ -727,10 +732,10 @@ class BasicTreeNode(Generic[T]):
         return f"[{self.name} - {children_str}{parent_str}]"
 
     def info(self) -> str:
-        if not self.data:
+        if not self._data:
             return repr(self)
         else:
-            return repr(self) + f"\n{repr(self.data)}"
+            return repr(self) + f"\n{repr(self._data)}"
 
     def __bool__(self):
         """

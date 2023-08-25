@@ -138,7 +138,7 @@ def test_single_lca_compare(scenario_run_basic1, default_method_tuple, default_m
     bw_activity = experiment._activities["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
     assert regular_score == pytest.approx(expected_value, abs=1e-6)
-    assert regular_score == result[Experiment.DEFAULT_SCENARIO_ALIAS].data.results[default_method_str]
+    assert regular_score == result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[default_method_str]
     # assert regular_score == result["default scenario"]["data"][default_method_str]
 
 
@@ -188,7 +188,7 @@ def test_scaled_demand(scenario_run_basic1, default_method_str: str):
     expected_value = expected_tree["data"].results[default_method_str] * scale
     result = Experiment(ExperimentData(**scenario_data)).run()
     # print(result["default scenario"]["data"][method])
-    assert result[Experiment.DEFAULT_SCENARIO_ALIAS].data.results[default_method_str] == pytest.approx(
+    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[default_method_str] == pytest.approx(
         expected_value, abs=1e-10)
 
 
@@ -200,7 +200,7 @@ def test_scaled_demand_unit(scenario_run_basic1, default_method_str: str):
     result = Experiment(ExperimentData(**scenario_data)).run()
     # print(result["default scenario"]["data"][method])
     # print(result["default scenario"]["data"][method] / expected_value)
-    assert result[Experiment.DEFAULT_SCENARIO_ALIAS].data.results[default_method_str] == pytest.approx(
+    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[default_method_str] == pytest.approx(
         expected_value, abs=1e-7)
 
 
@@ -310,9 +310,9 @@ def test_scenario(scenario_run_basic1: dict, default_bw_config: dict, default_me
     result = Experiment(ExperimentData(**scenario)).run()
     assert "scenario1" in result and "scenario2" in result
     expected_value1 = scenario_run_basic1["expected_result_tree"]["data"].results[default_method_str]
-    assert result["scenario1"].data.results[default_method_str] == expected_value1
+    assert result["scenario1"]._data.results[default_method_str] == expected_value1
     expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
-    assert result["scenario2"].data.results[default_method_str] == pytest.approx(expected_value2, abs=1e-9)
+    assert result["scenario2"]._data.results[default_method_str] == pytest.approx(expected_value2, abs=1e-9)
 
 
 def test_multi_activity_usage(scenario_run_basic1, default_bw_config: dict, default_method_tuple: tuple[str, ...]):
@@ -367,13 +367,13 @@ def test_multi_activity_usage(scenario_run_basic1, default_bw_config: dict, defa
     exp.run()
     method_str = "_".join(default_method_tuple)
     expected_value1 = scenario_run_basic1["expected_result_tree"]["data"].results[method_str]
-    assert expected_value1 == exp.scenarios[0].result_tree[0].data.results[method_str]
+    assert expected_value1 == exp.scenarios[0].result_tree[0]._data.results[method_str]
     # scenario 2, single_activity
     expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
-    assert exp.scenarios[1].result_tree[0].data.results[method_str] == pytest.approx(expected_value2, abs=1e-12)
+    assert exp.scenarios[1].result_tree[0]._data.results[method_str] == pytest.approx(expected_value2, abs=1e-12)
     # scenario 2, single_activity_2
     expected_value3 = expected_value1 * 20
-    assert exp.scenarios[1].result_tree[1].data.results[method_str] == pytest.approx(expected_value3, abs=1e-14)
+    assert exp.scenarios[1].result_tree[1]._data.results[method_str] == pytest.approx(expected_value3, abs=1e-14)
     # scenario 2, total
     expected_value4 = expected_value2 + expected_value3
-    assert exp.scenarios[1].result_tree.data.results[method_str] == pytest.approx(expected_value4, abs=1e-12)
+    assert exp.scenarios[1].result_tree._data.results[method_str] == pytest.approx(expected_value4, abs=1e-12)

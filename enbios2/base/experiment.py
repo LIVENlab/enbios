@@ -4,8 +4,9 @@ from dataclasses import asdict
 from typing import Optional, Union, Any, cast
 
 import bw2data as bd
-import numpy as np
 from bw2data.backends import Activity
+
+import numpy as np
 from pint import Quantity, UndefinedUnitError, DimensionalityError
 from pydantic import ValidationError
 
@@ -215,7 +216,7 @@ class Experiment:
         if activity.output:
             if isinstance(activity.output, tuple):
                 output = ActivityOutput(unit=activity.output[0], magnitude=activity.output[1])
-            else: # if isinstance(activity.output, ActivityOutput):
+            else:  # if isinstance(activity.output, ActivityOutput):
                 output = activity.output
 
         else:
@@ -483,6 +484,12 @@ class Experiment:
         else:
             scenario = self.scenarios[0]
         scenario.results_to_csv(file_path, include_method_units=include_method_units)
+
+    def result_to_dict(self, include_output: bool = True) -> list[dict[str, Any]]:
+        return [
+            scenario.result_to_dict(include_output=include_output)
+            for scenario in self.scenarios
+        ]
 
     @property
     def config(self) -> ScenarioConfig:

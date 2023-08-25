@@ -17,7 +17,7 @@ from .const import scenario_col, processor_col, value_col, level_col, ABSOLUTE, 
     SCENARIO, \
     indicator_col, indicator_map_file
 from .experiment_exporter import ExperimentExporter
-from .util import generate_indicator_map
+from .old_util import generate_indicator_map
 
 
 @dataclass
