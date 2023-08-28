@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from numpy import ndarray
 from pandas import DataFrame
@@ -34,9 +34,17 @@ class ResultsSelector:
         self._base_df = None
         self._normalized_df = None
 
+    @staticmethod
+    def get_result_selector(result_selector: Union[Experiment, "ResultsSelector"],
+                            scenarios: Optional[list[str]] = None,
+                            methods: Optional[list[str]] = None) -> "ResultsSelector":
+        if isinstance(result_selector, Experiment):
+            return ResultsSelector(result_selector, scenarios=scenarios, methods=methods)
+        return result_selector
+
     @property
     def base_df(self) -> DataFrame:
-        if not self._base_df:
+        if self._base_df is None:
             data = [{"scenario": scenario} |
                     {k: v for k, v in self.experiment.get_scenario(scenario).result_tree.data.results.items() if
                      k in self.methods}
@@ -47,7 +55,7 @@ class ResultsSelector:
 
     @property
     def normalized_df(self) -> DataFrame:
-        if not self._normalized_df:
+        if self._normalized_df is None:
             scaler = MinMaxScaler()
             values = self.base_df.columns[1:]
             normalized_df = DataFrame()
