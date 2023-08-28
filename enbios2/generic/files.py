@@ -94,4 +94,4 @@ class ReadDataPath(ReadPath):
         return instance
 
 
-PathLike = Union[str, bytes, os.PathLike]
+PathLike = Union[str, os.PathLike]

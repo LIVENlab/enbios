@@ -80,7 +80,7 @@ class Scenario:
         methods_aliases: list[str] = list(self._get_methods().keys())
         for result_index, simple_id in enumerate(activities_simple_ids):
             alias = simple_id.alias
-            activity_node = self.result_tree.find_child_by_name(alias)
+            activity_node = self.result_tree.find_subnode_by_name(alias)
             assert activity_node
             # bw_activity = self.experiment.get_activity(alias).bw_activity
             # activity_node = next(

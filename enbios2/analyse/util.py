@@ -7,7 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 from enbios2.base.experiment import Experiment
 
 
-class DataTransformer:
+class ResultsSelector:
 
     def __init__(self, experiment: Experiment,
                  scenarios: Optional[list[str]] = None,
@@ -31,31 +31,35 @@ class DataTransformer:
         else:
             self.methods: list[str] = [m for m in self.experiment.methods.keys()]  # type: ignore
 
-        self.base_df = self.results_as_df()
-        self.normalized_df = self.normalize()
+        self._base_df = None
+        self._normalized_df = None
+
+    @property
+    def base_df(self) -> DataFrame:
+        if not self._base_df:
+            data = [{"scenario": scenario} |
+                    {k: v for k, v in self.experiment.get_scenario(scenario).result_tree.data.results.items() if
+                     k in self.methods}
+                    for scenario in self.scenarios]
+
+            self._base_df = DataFrame(data)
+        return self._base_df
+
+    @property
+    def normalized_df(self) -> DataFrame:
+        if not self._normalized_df:
+            scaler = MinMaxScaler()
+            values = self.base_df.columns[1:]
+            normalized_df = DataFrame()
+            # copy the scenario column
+            normalized_df['scenario'] = self.base_df['scenario']
+            for value in values:
+                normalized_df[value] = scaler.fit_transform(self.base_df[value].to_numpy().reshape(-1, 1))
+            self._normalized_df = normalized_df
+        return self._normalized_df
 
     def short_method_names(self) -> list[str]:
         return [self.experiment.methods[l].id[-1] for l in self.methods]
-
-    def results_as_df(self, scenarios: Optional[list[str]] = None,
-                      methods: Optional[list[str]] = None) -> DataFrame:
-
-        data = [{"scenario": scenario} |
-                {k: v for k, v in self.experiment.get_scenario(scenario).result_tree.data.results.items() if
-                 k in self.methods}
-                for scenario in self.scenarios]
-
-        return DataFrame(data)
-
-    def normalize(self) -> DataFrame:
-        scaler = MinMaxScaler()
-        values = self.base_df.columns[1:]
-        noramlized_df = DataFrame()
-        # copy the scenario column
-        noramlized_df['scenario'] = self.base_df['scenario']
-        for value in values:
-            noramlized_df[value] = scaler.fit_transform(self.base_df[value].to_numpy().reshape(-1, 1))
-        return noramlized_df
 
     def compare_to_baseline(self, baseline_data: ndarray):
         assert len(baseline_data) == len(self.methods)
@@ -70,7 +74,7 @@ class DataTransformer:
         for scenario in self.scenarios:
             scenario_results = self.experiment.get_scenario(scenario).result_tree
             for node_alias in node_aliases:
-                node = scenario_results.find_child_by_name(node_alias)
+                node = scenario_results.find_subnode_by_name(node_alias)
                 assert node is not None
                 # add a row
                 df = df._append({

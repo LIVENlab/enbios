@@ -47,7 +47,7 @@ class Experiment:
         self._activities: dict[str, ExtendedExperimentActivityData] = Experiment._validate_activities(
             self._prepare_activities(self.raw_data.activities), self.raw_data.bw_default_database)
         self._user_defined_hierarchy: bool = True
-        self._hierarchy_root: BasicTreeNode[ScenarioResultNodeData] = self._validate_hierarchy()
+        self.hierarchy_root: BasicTreeNode[ScenarioResultNodeData] = self._validate_hierarchy()
 
         self.methods: dict[str, ExperimentMethodPrepData] = Experiment._validate_methods(self._prepare_methods())
         self.scenarios: list[Scenario] = self._validate_scenarios()
@@ -400,7 +400,7 @@ class Experiment:
                             alias=_scenario_alias,
                             activities_outputs=scenario_activities_outputs,
                             methods=resolved_methods,
-                            result_tree=self._hierarchy_root.copy())
+                            result_tree=self.hierarchy_root.copy())
 
         raw_scenarios = self.raw_data.scenarios
         scenarios: list[Scenario] = []
@@ -499,14 +499,20 @@ class Experiment:
         return (f"Experiment: (call info() for details)\n"
                 f"Activities: {len(self._activities)}\n"
                 f"Methods: {len(self.methods)}\n"
-                f"Hierarchy (depth): {self._hierarchy_root.depth}\n"
+                f"Hierarchy (depth): {self.hierarchy_root.depth}\n"
                 f"Scenarios: {len(self.scenarios)}\n")
 
-    def get_all_activity_aliases(self) -> list[str]:
+    @property
+    def activities_aliases(self) -> list[str]:
         return list(self._activities.keys())
 
-    def get_all_method_aliases(self) -> list[str]:
+    @property
+    def method_aliases(self) -> list[str]:
         return list(self.methods.keys())
+
+    @property
+    def scenario_aliases(self) -> list[str]:
+        return list([s.alias for s in self.scenarios])
 
     def info(self) -> str:
         activity_rows: list[str] = []
@@ -519,5 +525,5 @@ class Experiment:
                 f"{activity_rows_str}\n"
                 f"Methods: {len(self.methods)}\n"
                 f"{methods_str}\n"
-                f"Hierarchy (depth): {self._hierarchy_root.depth}\n"
+                f"Hierarchy (depth): {self.hierarchy_root.depth}\n"
                 f"Scenarios: {len(self.scenarios)}\n")

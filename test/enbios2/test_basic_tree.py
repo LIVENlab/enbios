@@ -242,10 +242,10 @@ def test_find_child_by_name():
     node3 = BasicTreeNode("node3")
     node1.add_child(node2)
     node2.add_child(node3)
-    assert node1.find_child_by_name("node3") == node3
-    assert node1.find_child_by_name("node4") is None
-    assert node1.find_child_by_name("node3", recursive=False) is None
-    assert node1.find_child_by_name("node2", recursive=False) == node2
+    assert node1.find_subnode_by_name("node3") == node3
+    assert node1.find_subnode_by_name("node4") is None
+    assert node1.find_subnode_by_name("node3", recursive=False) is None
+    assert node1.find_subnode_by_name("node2", recursive=False) == node2
 
 
 def test_get_leaves():
