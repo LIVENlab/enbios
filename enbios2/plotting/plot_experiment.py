@@ -202,21 +202,25 @@ def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
                  scenarios: Optional[list[str]] = None,
                  methods: Optional[list[str]] = None,
                  image_file: Optional[PathLike] = None) -> Figure:
-    try:  # type: ignore
-        import seaborn as sns
-    except ImportError:
-        raise ImportError("The seaborn package is required to run this function.")
-
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df.set_index('scenario').transpose()
 
-    # Create the heatmap
-    fig = plt.figure(figsize=(10, 6))
-    sns.heatmap(df, annot=True, cmap="YlGnBu", cbar=True, yticklabels=rs.short_method_names())
-    # plt.title("Heatmap of Indicators by Scenario")
-    if image_file:
-        fig.write_image(Path(image_file).as_posix())
-    return fig
+    fig, ax = plt.subplots()
+    im = ax.imshow(df, cmap="summer")
+
+    ax.set_xticks(np.arange(len(rs.scenarios)), labels=rs.scenarios)
+    ax.set_yticks(np.arange(len(rs.methods)), labels=rs.methods)
+
+    # Rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+             rotation_mode="anchor")
+    ax.figure.colorbar(im, ax=ax, **{})
+    for i in range(len(rs.scenarios)):
+        for j in range(len(rs.methods)):
+            ax.text(i, j, "%.2f" % df[df.columns[i]][j],
+                    ha="center", va="center", color="black")
+
+    fig.tight_layout()
 
 
 def plot_sankey(exp: Experiment,
