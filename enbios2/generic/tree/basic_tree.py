@@ -148,6 +148,7 @@ class BasicTreeNode(Generic[T]):
 
     def as_dict(self,
                 include_data: bool = False,
+                remove_empty_childlist: bool = False,
                 data_serializer: Optional[Callable[[T], Any]] = None) -> dict[str, Any]:
         """
         Convert the hierarchy from this node down into a dictionary.
@@ -157,9 +158,11 @@ class BasicTreeNode(Generic[T]):
         result = {
             "name": self.name,
             "children": [
-                child.as_dict(include_data, data_serializer=data_serializer) for child in self.children
+                child.as_dict(include_data, remove_empty_childlist = remove_empty_childlist, data_serializer=data_serializer) for child in self.children
             ]
         }
+        if len(self) == 0 and remove_empty_childlist:
+            del result["children"]
         if include_data and self._data:
             result["data"] = data_serializer(self._data) if data_serializer else self._data
         return result

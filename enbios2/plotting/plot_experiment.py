@@ -2,10 +2,10 @@ from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
-from deprecated.classic import deprecated
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.projections import PolarAxes
+from pandas import DataFrame
 
 from enbios2.analyse.util import ResultsSelector
 from enbios2.base.experiment import Experiment
@@ -20,16 +20,13 @@ logger = get_logger(__file__)
 def bar_plot(experiment: Union[Experiment, ResultsSelector],
              scenarios: Optional[list[str]] = None,
              methods: Optional[list[str]] = None,
+             short_method_names: bool = True,
              image_file: Optional[PathLike] = None) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
-    df = rs.base_df
 
-    # Define the number of rows and columns for the subplots
     n_rows = len(rs.methods)
     n_cols = 1
 
-    # Create a new figure with a defined size (adjust as needed)
-    # Explicitly create a Figure object
     fig, axs = plt.subplots(n_rows, n_cols,
                             figsize=(10, 5 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
 
@@ -38,15 +35,10 @@ def bar_plot(experiment: Union[Experiment, ResultsSelector],
         axs = [axs]
 
     for idx, method in enumerate(rs.methods):
-        method_data = rs.experiment.methods[method]
-        label = "\n".join(list(method_data.id) + [method_data.bw_method.unit])
-
-        # plot with tab10 colors
         cmap = plt.colormaps.get_cmap('tab10')
         colors = cmap(np.linspace(0, 1, len(rs.scenarios)))
-        df.plot(kind='bar', x='scenario', y=method, ax=axs[idx], color=colors)
-        # df.plot(kind='bar', x='scenario', y=method, ax=axs[idx], color = "tab10")
-        axs[idx].set_ylabel(label, fontsize=8)
+        rs.base_df.plot(kind='bar', x='scenario', y=method, ax=axs[idx], color=colors)
+        axs[idx].set_ylabel(rs.method_label_names(short_method_names)[idx], fontsize=8)
         axs[idx].legend().set_visible(False)
 
     plt.tight_layout()
@@ -59,6 +51,7 @@ def stacked_bar_plot(experiment: Union[Experiment, ResultsSelector],
                      scenarios: Optional[list[str]] = None,
                      methods: Optional[list[str]] = None,
                      level: int = 1,
+                     short_method_names: bool = True,
                      aliases: Optional[list[str]] = None,
                      image_file: Optional[PathLike] = None
                      ) -> Figure:
@@ -84,8 +77,6 @@ def stacked_bar_plot(experiment: Union[Experiment, ResultsSelector],
         axs = [axs]
 
     for idx, method in enumerate(rs.methods):
-        # method_data = experiment.methods[method]
-        # label = "\n".join(list(method_data.id) + [method_data.bw_method.unit])
         ax = axs[idx]
 
         # Create the bar plot using the specific Axes object
@@ -104,6 +95,7 @@ def stacked_bar_plot(experiment: Union[Experiment, ResultsSelector],
         df_pivot = df.pivot(index='scenario', columns='tech',
                             values=method)
         df_pivot.plot(kind='bar', stacked=True, ax=ax)
+        ax.set_ylabel(rs.method_label_names(short_method_names)[idx], fontsize=8)
 
     plt.tight_layout()
     if image_file:
@@ -121,12 +113,13 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
               show_grid: bool = True,
               col: int = 4,
               row: Optional[int] = None,
+              short_method_names: bool = True,
               image_file: Optional[PathLike] = None
               ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df
 
-    labels = rs.short_method_names()
+    labels = rs.method_label_names(short_method_names, False)
     # print("num label", len(labels))
 
     if row is None:
@@ -201,15 +194,23 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
 def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
                  scenarios: Optional[list[str]] = None,
                  methods: Optional[list[str]] = None,
+                 special_df: Optional[DataFrame] = None,
                  image_file: Optional[PathLike] = None) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
-    df = rs.normalized_df.set_index('scenario').transpose()
+    if special_df is not None:
+        rs.check_special_df(special_df)
+        df = special_df
+    else:
+        df = rs.normalized_df
+
+    df = df.set_index('scenario').transpose()
 
     fig, ax = plt.subplots()
     im = ax.imshow(df, cmap="summer")
 
+    labels = rs.method_label_names(include_unit=False)
     ax.set_xticks(np.arange(len(rs.scenarios)), labels=rs.scenarios)
-    ax.set_yticks(np.arange(len(rs.methods)), labels=rs.methods)
+    ax.set_yticks(np.arange(len(rs.methods)), labels=labels)
 
     # Rotate the tick labels and set their alignment.
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
@@ -221,6 +222,9 @@ def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
                     ha="center", va="center", color="black")
 
     fig.tight_layout()
+    if image_file:
+        fig.write_image(Path(image_file).as_posix())
+    return fig
 
 
 def plot_sankey(exp: Experiment,

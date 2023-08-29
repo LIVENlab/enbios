@@ -71,7 +71,7 @@ def setup_bw_db(db: BWProjectDatabase):
     if db.name in bd.databases:
         logger.info(f"Database {db.name} already exists, skipping")
         return
-    if not Path(db.source).exists:
+    if not Path(db.source).exists():
         raise Exception(f"Source {db.source} does not exist")
     logger.info(f"Importing database ")
     bw_importer = get_bw_importer(db)
