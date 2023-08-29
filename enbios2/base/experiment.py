@@ -437,6 +437,9 @@ class Experiment:
                                                                                     compact=True))
         for leaf in tech_tree.get_leaves():
             leaf.temp_data = {"activity": self.get_activity(leaf.name)}
+        missing = set(self.activities_aliases) - set(n.name for n in tech_tree.get_leaves())
+        if missing:
+            raise ValueError(f"Activities {missing} not found in hierarchy")
         return tech_tree
 
     def get_scenario(self, scenario_name: str) -> Scenario:
