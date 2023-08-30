@@ -116,6 +116,10 @@ def report():
         print(databases)
     bw2data.projects.set_current(current_)
 
+def bw_unit_fix(unit_str: str):
+    if unit_str == 'kilowatt hour':
+        return 'kilowatt_hour'
+
 if __name__ == '__main__':
     report()
     # bw2data.projects.purge_deleted_directories()

@@ -11,6 +11,7 @@ from pint.facets.plain import PlainQuantity
 
 from enbios2.base.stacked_MultiLCA import StackedMultiLCA
 from enbios2.base.unit_registry import ureg
+from enbios2.bw2.util import bw_unit_fix
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.files import PathLike
 
@@ -46,7 +47,7 @@ class Scenario:
                 activity_node = self.result_tree.find_subnode_by_name(alias)
             except StopIteration:
                 raise ValueError(f"Activity {alias} not found in result tree")
-            activity_node._data = ScenarioResultNodeData(output=(bw_activity['unit'],
+            activity_node._data = ScenarioResultNodeData(output=(bw_unit_fix(bw_activity['unit']),
                                                                  self.activities_outputs[simple_id]))
             if self.experiment.config.include_bw_activity_in_nodes:
                 activity_node._data.bw_activity = bw_activity
@@ -104,6 +105,7 @@ class Scenario:
 
     @staticmethod
     def _recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
+        # todo, does this takes default values when an activity is not defined in the scenario?
         if node.is_leaf:
             return
         node_output: Optional[Union[Quantity, PlainQuantity]] = None

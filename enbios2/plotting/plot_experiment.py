@@ -117,10 +117,9 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
               image_file: Optional[PathLike] = None
               ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
-    df = rs.normalized_df
+    df = rs.normalized_df()
 
     labels = rs.method_label_names(short_method_names, False)
-    # print("num label", len(labels))
 
     if row is None:
         row = int(np.ceil(len(rs.scenarios) / col))
@@ -156,6 +155,7 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
             angles = np.linspace(0, 2 * np.pi, len(values) - 1, endpoint=False).tolist()
             angles.append(0)
             # Plot data
+
             if fill:
                 ax.fill(angles, values, color='blue', alpha=0.1)
             else:
@@ -201,11 +201,11 @@ def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
         rs.check_special_df(special_df)
         df = special_df
     else:
-        df = rs.normalized_df
+        df = rs.normalized_df()
 
     df = df.set_index('scenario').transpose()
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5,len(rs.methods) * 1.5))
     im = ax.imshow(df, cmap="summer")
 
     labels = rs.method_label_names(include_unit=False)
