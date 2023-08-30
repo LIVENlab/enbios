@@ -45,6 +45,8 @@ def read_data(path: Path, config: Optional[dict] = None):
         except ImportError:
             raise ImportError("xmltodict not installed")
         return xmltodict.parse(path.read_text(encoding="utf-8"))
+    else:
+        raise NotImplementedError(f"File format {path.suffix} not supported")
 
 
 class DataPath(Path):

@@ -1,15 +1,17 @@
+import csv
 import itertools
 import math
 import time
 from copy import copy
 from dataclasses import asdict
 from datetime import timedelta
+from pathlib import Path
+from tempfile import gettempdir
 from typing import Optional, Union, Any, cast
 
 import bw2data as bd
-from bw2data.backends import Activity
-
 import numpy as np
+from bw2data.backends import Activity
 from pint import Quantity, UndefinedUnitError, DimensionalityError
 from pydantic import ValidationError
 
@@ -20,7 +22,7 @@ from enbios2.base.unit_registry import ureg
 from enbios2.bw2.util import get_activity
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
-from enbios2.generic.files import PathLike
+from enbios2.generic.files import PathLike, ReadPath
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExtendedExperimentActivityData,
@@ -491,7 +493,7 @@ class Experiment:
                     any_scenario_run = True
                     scenario_results += f"{scenario.alias}: {scenario.execution_time}\n"
             if any_scenario_run:
-               return scenario_results
+                return scenario_results
             else:
                 return "not run"
 
@@ -501,16 +503,34 @@ class Experiment:
                        include_method_units: bool = True):
         """
         :param file_path:
-        :param scenario_name:
+        :param scenario_name: If no scenario name is given, it will export all scenarios to the same file,
+            with an additional column for the scenario alias
         :param include_method_units:  (Include the units of the methods in the header)
         :return:
         """
         if scenario_name:
             scenario = self.get_scenario(scenario_name)
+            scenario.results_to_csv(file_path, include_method_units=include_method_units)
+            return
         else:
-            scenario = self.scenarios[0]
-        # todo: concat all scenarios together
-        scenario.results_to_csv(file_path, include_method_units=include_method_units)
+            header = []
+            all_rows: list = []
+            for scenario in self.scenarios:
+                temp_file_name = gettempdir() + f"/temp_scenario_{scenario.alias}.csv"
+                scenario.results_to_csv(temp_file_name, include_method_units=include_method_units)
+                rows = ReadPath(temp_file_name).read_data()
+                rows[0]["scenario"] = scenario.alias
+                if not all_rows:
+                    header = list(rows[0].keys())
+                    header.remove("scenario")
+                    header.insert(0, "scenario")
+                all_rows.extend(rows)
+                if (temp_file := Path(temp_file_name)).exists():
+                    temp_file.unlink()
+            with Path(file_path).open('w', newline='') as csvfile:
+                writer = csv.DictWriter(csvfile, header)
+                writer.writeheader()
+                writer.writerows(all_rows)
 
     def result_to_dict(self, include_output: bool = True) -> list[dict[str, Any]]:
         return [
