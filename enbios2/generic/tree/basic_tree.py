@@ -66,6 +66,9 @@ class BasicTreeNode(Generic[T]):
         self._id = b64encode(uuid4().bytes)
         return self._id
 
+    def set_data(self, data: T):
+        self._data = data
+
     @property
     def data(self) -> T:
         assert self._data is not None

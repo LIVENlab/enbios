@@ -305,7 +305,7 @@ class BWCalculationSetup:
 
 @dataclass
 class ScenarioResultNodeData:
-    output: tuple[str, float]
+    output: tuple[Optional[str], Optional[float]] = (None, None)
     results: dict[str, float] = field(default_factory=dict)
     bw_activity: Optional[Activity] = None
 

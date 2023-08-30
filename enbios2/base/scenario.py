@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass, field
 from typing import Optional, Union, TYPE_CHECKING, Any
 
@@ -31,17 +32,19 @@ class Scenario:
     # this should be a simpler type - just str: float
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     methods: Optional[dict[str, ExperimentMethodPrepData]] = None
+    execution_time: Optional[float] = float('NaN')
 
     def prepare_tree(self):
-        activity_nodes = list(self.result_tree.get_leaves())
+        # activity_nodes = list(self.result_tree.get_leaves())
         activities_simple_ids = list(self.activities_outputs.keys())
         for result_index, simple_id in enumerate(activities_simple_ids):
             alias = simple_id.alias
             bw_activity = self.experiment.get_activity(alias).bw_activity
-            activity_node = next(
-                filter(lambda node: node.temp_data["activity"].bw_activity == bw_activity, activity_nodes))
-            # todo this does not consider magnitude...
-            activity_node._data = ScenarioResultNodeData(output=(bw_activity['unit'].replace(" ", "_"),
+            try:
+                activity_node = self.result_tree.find_subnode_by_name(alias)
+            except StopIteration:
+                raise ValueError(f"Activity {alias} not found in result tree")
+            activity_node._data = ScenarioResultNodeData(output=(bw_activity['unit'],
                                                                  self.activities_outputs[simple_id]))
             if self.experiment.config.include_bw_activity_in_nodes:
                 activity_node._data.bw_activity = bw_activity
@@ -103,11 +106,18 @@ class Scenario:
             return
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
         for child in node.children:
-            assert child._data
-            activity_output = child._data.output[0]
+            # todo, this should be removable
+            if not child._data:
+                raise ValueError(f"Node {child.name} has no data")
+            activity_output = child.data.output[0]
+            if activity_output is None:
+                node_output = None
+                logger.warning(
+                    f"No output unit of activity '{child.name}'.")
+                break
             output = None
             try:
-                output = ureg.parse_expression(activity_output) * child._data.output[1]
+                output = ureg.parse_expression(activity_output) * child.data.output[1]
                 if not node_output:
                     node_output = output
                 else:
@@ -128,18 +138,20 @@ class Scenario:
                 break
         if node_output:
             node_output = node_output.to_compact()
-            node._data = ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude))
+            node.set_data(ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude)))
         else:
-            node._data = ScenarioResultNodeData(output=("None", float("nan")))
+            node.set_data(ScenarioResultNodeData())
             logger.warning(f"No output for node: {node.name}")
 
     def run(self) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self._get_methods():
             raise ValueError(f"Scenario '{self.alias}' has no methods")
         logger.info(f"Running scenario '{self.alias}'")
+        start_time = time.time()
         bw_calc_setup = self._create_bw_calculation_setup()
         results: ndarray = StackedMultiLCA(bw_calc_setup).results
         result_tree = self.set_results(results)
+        self.execution_time = time.time() - start_time
         return result_tree
 
     def set_results(self, results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
@@ -159,8 +171,8 @@ class Scenario:
         def data_serializer(data: ScenarioResultNodeData) -> dict:
             result: dict[str, Union[str, float]] = {}
             if data.output:
-                result["unit"] = data.output[0]
-                result['amount'] = data.output[1]
+                result["unit"] = data.output[0] or ""
+                result['amount'] = data.output[1] or ""
             if not include_method_units:
                 return result | data.results
             else:
