@@ -69,29 +69,23 @@ class ResultsSelector:
             self._base_df = DataFrame(data)
         return self._base_df
 
-    def normalized_df(self, normalize_with_selected_scenarios: bool = True) -> DataFrame:
-        used_df = self.complete_df if normalize_with_selected_scenarios else self.base_df
-        scaler = MinMaxScaler()
-        values = used_df[1:]
-
+    def normalized_df(self, normalize_with_all_scenarios: bool = True) -> DataFrame:
+        used_df = self.complete_df if normalize_with_all_scenarios else self.base_df
+        columns = used_df.columns[1:]
         normalized_df = DataFrame()
-        # copy the scenario column
         normalized_df['scenario'] = used_df['scenario']
-        for value in values:
-            normalized_df[value] = scaler.fit_transform(used_df[value].to_numpy().reshape(-1, 1))
+        for column in columns:
+            normalized_df[column] = MinMaxScaler().fit_transform(used_df[column].to_numpy().reshape(-1, 1))
 
-
-
-        if normalize_with_selected_scenarios:
+        if normalize_with_all_scenarios:
             # delete all rows where scenario is not in self.scenarios
             normalized_df = normalized_df[normalized_df['scenario'].isin(self.scenarios)]
         return normalized_df
 
-
     def method_label_names(self, short: bool = True, include_unit: bool = True) -> list[str]:
         exp_methods = self.experiment.methods
         return [((exp_methods[l].id[-1] if short else "\n".join(exp_methods)) +
-                                                     ("\n" + exp_methods[l].bw_method.unit) if include_unit else "")
+                                                     ("\n" + exp_methods[l].bw_method.unit if include_unit else ""))
                 for l in self.methods]
 
     def compare_to_baseline(self, baseline_data: ndarray):

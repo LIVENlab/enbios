@@ -1,6 +1,9 @@
 import itertools
+import math
+import time
 from copy import copy
 from dataclasses import asdict
+from datetime import timedelta
 from typing import Optional, Union, Any, cast
 
 import bw2data as bd
@@ -52,6 +55,7 @@ class Experiment:
         self.methods: dict[str, ExperimentMethodPrepData] = Experiment._validate_methods(self._prepare_methods())
         self.scenarios: list[Scenario] = self._validate_scenarios()
         self._lca: Optional[StackedMultiLCA] = None
+        self._execution_time: float = float("NaN")
 
     # @staticmethod
     # def create(bw_project: str):
@@ -455,6 +459,7 @@ class Experiment:
         methods = [m.id for m in self.methods.values()]
         inventories: list[list[dict[Activity, float]]] = []
         for scenario in self.scenarios:
+            scenario.reset_execution_time()
             if scenario.methods:
                 raise ValueError(f"Scenario cannot have individual methods. '{scenario.alias}'")
             inventory: list[dict[Activity, float]] = []
@@ -464,13 +469,31 @@ class Experiment:
             inventories.append(inventory)
 
         # run experiment
+        start_time = time.time()
         calculation_setup = BWCalculationSetup("experiment", list(itertools.chain(*inventories)), methods)
         raw_results = StackedMultiLCA(calculation_setup).results
         scenario_results = np.split(raw_results, len(self.scenarios))
         results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
         for index, scenario in enumerate(self.scenarios):
             results[scenario.alias] = scenario.set_results(scenario_results[index])
+        self._execution_time = time.time() - start_time
         return results
+
+    @property
+    def execution_time(self) -> str:
+        if not math.isnan(self._execution_time):
+            return str(timedelta(seconds=int(self._execution_time)))
+        else:
+            any_scenario_run = False
+            scenario_results = ""
+            for scenario in self.scenarios:
+                if not math.isnan(scenario._execution_time):
+                    any_scenario_run = True
+                    scenario_results += f"{scenario.alias}: {scenario.execution_time}\n"
+            if any_scenario_run:
+               return scenario_results
+            else:
+                return "not run"
 
     def results_to_csv(self,
                        file_path: PathLike,
@@ -486,6 +509,7 @@ class Experiment:
             scenario = self.get_scenario(scenario_name)
         else:
             scenario = self.scenarios[0]
+        # todo: concat all scenarios together
         scenario.results_to_csv(file_path, include_method_units=include_method_units)
 
     def result_to_dict(self, include_output: bool = True) -> list[dict[str, Any]]:

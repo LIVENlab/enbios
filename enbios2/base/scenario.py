@@ -1,5 +1,7 @@
+import math
 import time
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Optional, Union, TYPE_CHECKING, Any
 
 from bw2data.backends import Activity
@@ -32,7 +34,7 @@ class Scenario:
     # this should be a simpler type - just str: float
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     methods: Optional[dict[str, ExperimentMethodPrepData]] = None
-    execution_time: Optional[float] = float('NaN')
+    _execution_time: float = float('NaN')
 
     def prepare_tree(self):
         # activity_nodes = list(self.result_tree.get_leaves())
@@ -151,8 +153,18 @@ class Scenario:
         bw_calc_setup = self._create_bw_calculation_setup()
         results: ndarray = StackedMultiLCA(bw_calc_setup).results
         result_tree = self.set_results(results)
-        self.execution_time = time.time() - start_time
+        self._execution_time = time.time() - start_time
         return result_tree
+
+    @property
+    def execution_time(self) -> str:
+        if not math.isnan(self._execution_time):
+            return str(timedelta(seconds=int(self._execution_time)))
+        else:
+            return "not run"
+
+    def reset_execution_time(self):
+        self._execution_time = float('NaN')
 
     def set_results(self, results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
         if self.experiment.config.store_raw_results:
@@ -186,7 +198,8 @@ class Scenario:
     def results_to_csv(self,
                        file_path: PathLike,
                        level_names: Optional[list[str]] = None,
-                       include_method_units: bool = False):
+                       include_method_units: bool = False,
+                       warn_no_results: bool = True):
         """
         Save the results (as tree) to a csv file
          :param file_path:  path to save the results to
@@ -196,12 +209,15 @@ class Scenario:
         if not self.result_tree:
             raise ValueError(f"Scenario '{self.alias}' has no results")
 
+        if warn_no_results and not self._has_run:
+            logger.warning(f"Scenario '{self.alias}' has not been run yet")
+
         self.result_tree.to_csv(file_path,
                                 include_data=True,
                                 level_names=level_names,
                                 data_serializer=self.wrapper_data_serializer(include_method_units))
 
-    def result_to_dict(self, include_output: bool = True) -> dict[str, Any]:
+    def result_to_dict(self, include_output: bool = True, warn_no_results: bool = True) -> dict[str, Any]:
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
             result: dict[str, Any] = {
@@ -224,4 +240,6 @@ class Scenario:
                 result["children"] = [recursive_transform(child) for child in node.children]
             return result
 
+        if warn_no_results and not self._has_run:
+            logger.warning(f"Scenario '{self.alias}' has not been run yet")
         return recursive_transform(self.result_tree.copy())
