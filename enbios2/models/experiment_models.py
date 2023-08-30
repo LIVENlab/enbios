@@ -113,64 +113,6 @@ class ExperimentActivityData:
     def alias(self):
         return self.id.alias
 
-    def check_exist(self, default_id_attr: Optional[ExperimentActivityId] = None,
-                    required_output: bool = False) -> "ExtendedExperimentActivityData":
-        """
-        This method checks if the activity exists in the database by several ways.
-        :param default_id_attr:
-        :param required_output:
-        :return:
-        """
-        orig_id: ExperimentActivityId = copy(self.id)
-        bw_activity: Optional[Activity] = None
-
-        if not self.id.database:
-            if default_id_attr:
-                self.id.database = default_id_attr.database
-        # assert result.id.database in bd.databases,
-        # f"activity database does not exist: '{self.id.database}' for {self.id}"
-        # todo, is the needed?
-        default_dict = asdict(default_id_attr) if default_id_attr else {}
-        self.id.fill_empty_fields(["alias"], **default_dict)
-        if self.id.code:
-            if self.id.database:
-                bw_activity = bw2data.Database(self.id.database).get_node(self.id.code)
-            else:
-                bw_activity = get_activity(self.id.code)
-        elif self.id.name:
-            # assert result.id.database is not None, f"database must be specified for
-            # {self.id} or default_database set in config"
-            filters = {}
-            search_in_dbs = [self.id.database] if self.id.database else bw2data.databases
-            for db in search_in_dbs:
-                if self.id.location:
-                    filters["location"] = self.id.location
-                    search_results = bw2data.Database(db).search(self.id.name, filter=filters)
-                else:
-                    search_results = bw2data.Database(db).search(self.id.name)
-                # print(len(search_results))
-                # print(search_results)
-                if self.id.unit:
-                    search_results = list(filter(lambda a: a["unit"] == self.id.unit, search_results))
-                #     if len(search_results) == 0:
-                #         raise ValueError(f"No activity found with the specified unit {self.id}")
-                # assert len(search_results) == 1, f"results : {len(search_results)}"
-                if len(search_results) == 1:
-                    bw_activity = search_results[0]
-                    break
-        if not bw_activity:
-            raise ValueError(f"No activity found for {self.id}")
-        self.id.fill_empty_fields(["name", "code", "location", "unit", ("alias", "name")],
-                                  **bw_activity.as_dict())
-
-        if not self.output:
-            self.output = ActivityOutput(unit=bw_activity["unit"], magnitude=1.0)
-        else:
-            pass
-        return ExtendedExperimentActivityData(**asdict(self),
-                                              orig_id=orig_id,
-                                              bw_activity=bw_activity)
-
 
 @pydantic_dataclass(config=OperationConfig)
 class ExtendedExperimentActivityData:
@@ -188,17 +130,6 @@ class ExtendedExperimentActivityData:
         return self.id.alias
 
 
-# TODO are we using this?
-@pydantic_dataclass(frozen=True)
-class BWMethod:
-    description: str
-    filename: str
-    unit: str
-    abbreviation: str
-    num_cfs: int
-    geocollections: list[str]
-
-
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentMethodData:
     id: tuple[str, ...]
@@ -213,7 +144,7 @@ class ExperimentMethodData:
 class ExperimentMethodPrepData:
     id: tuple[str, ...]
     alias: str
-    bw_method: BWMethod
+    bw_method_unit: str
 
 
 @pydantic_dataclass(config=StrictInputConfig, repr=False)

@@ -105,14 +105,12 @@ class Scenario:
 
     @staticmethod
     def _recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
-        # todo, does this takes default values when an activity is not defined in the scenario?
         if node.is_leaf:
             return
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
         for child in node.children:
-            # todo, this should be removable
-            if not child._data:
-                raise ValueError(f"Node {child.name} has no data")
+            # if not child._data:
+            #     raise ValueError(f"Node {child.name} has no data")
             activity_output = child.data.output[0]
             if activity_output is None:
                 node_output = None
@@ -178,7 +176,7 @@ class Scenario:
     def wrapper_data_serializer(self, include_method_units: bool = False):
 
         method_alias2units: dict[str, str] = {
-            method_alias: method_info.bw_method.unit
+            method_alias: method_info.bw_method_unit
             for method_alias, method_info in self.experiment.methods.items()
         }
 

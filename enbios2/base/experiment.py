@@ -26,7 +26,7 @@ from enbios2.generic.files import PathLike, ReadPath
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ExtendedExperimentActivityData,
-                                              BWMethod, ExperimentMethodData,
+                                              ExperimentMethodData,
                                               ExperimentScenarioData, ExperimentData,
                                               EcoInventSimpleIndex, MethodsDataTypes, ActivitiesDataTypes,
                                               ScenarioResultNodeData,
@@ -303,7 +303,7 @@ class Experiment:
                 raise Exception(f"Method alias: {method.alias} does not match with the given alias: {alias}")
         else:
             method.alias = alias
-        return ExperimentMethodPrepData(id=method.id, alias=method.alias, bw_method=BWMethod(**bw_method))
+        return ExperimentMethodPrepData(id=method.id, alias=method.alias, bw_method_unit=bw_method["unit"])
 
     @staticmethod
     def _validate_methods(method_dict: dict[str, ExperimentMethodData]) -> dict[str, ExperimentMethodPrepData]:

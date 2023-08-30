@@ -85,7 +85,7 @@ class ResultsSelector:
     def method_label_names(self, short: bool = True, include_unit: bool = True) -> list[str]:
         exp_methods = self.experiment.methods
         return [((exp_methods[l].id[-1] if short else "\n".join(exp_methods)) +
-                                                     ("\n" + exp_methods[l].bw_method.unit if include_unit else ""))
+                                                     ("\n" + exp_methods[l].bw_method_unit if include_unit else ""))
                 for l in self.methods]
 
     def compare_to_baseline(self, baseline_data: ndarray):
