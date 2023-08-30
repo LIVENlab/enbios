@@ -37,10 +37,12 @@ Install enbios2 with
 `python -m pip install enbios`
 
 (linux)
-`python -m pip install enbios`
+`python3 -m pip install enbios`
 
 ## Demo
 
 The repository contains a few notebooks (require jupyter notebook) in the demos folder.
 
 [Getting started](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/intro.ipynb)
+
+[Plotting results](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/intro.ipynb)

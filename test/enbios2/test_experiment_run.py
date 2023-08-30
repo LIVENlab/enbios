@@ -43,8 +43,8 @@ def default_bw_activity(default_bw_config) -> Activity:
 
 
 @pytest.fixture
-def scenario_run_basic1(default_bw_config, default_bw_activity, default_method_tuple, default_method_str: str,
-                        default_result_score: float):
+def experiment_setup(default_bw_config, default_bw_activity, default_method_tuple, default_method_str: str,
+                     default_result_score: float):
     _impact = default_result_score
     return {
         "scenario": {
@@ -124,36 +124,37 @@ def temp_json_file() -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def run_basic_experiment(scenario_run_basic1) -> Experiment:
-    scenario_data = scenario_run_basic1["scenario"]
+def run_basic_experiment(experiment_setup) -> Experiment:
+    scenario_data = experiment_setup["scenario"]
     experiment = Experiment(ExperimentData(**scenario_data))
     experiment.run()
     return experiment
 
 
-def test_single_lca_compare(scenario_run_basic1, default_method_tuple, default_method_str):
-    experiment = Experiment(ExperimentData(**scenario_run_basic1["scenario"]))
-    result = experiment.run()
-    expected_value = scenario_run_basic1["expected_result_tree"]["data"].results[default_method_str]
-    bw_activity = experiment._activities["single_activity"].bw_activity
+@pytest.fixture
+def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[ScenarioResultNodeData]:
+    return run_basic_experiment.get_scenario(Experiment.DEFAULT_SCENARIO_ALIAS).result_tree
+
+
+def test_single_lca_compare(run_basic_experiment: Experiment,
+                            basic_exp_run_result_tree,
+                            experiment_setup,
+                            default_method_tuple,
+                            default_method_str):
+    expected_value = experiment_setup["expected_result_tree"]["data"].results[default_method_str]
+    bw_activity = run_basic_experiment._activities["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
     assert regular_score == pytest.approx(expected_value, abs=1e-6)
-    assert regular_score == result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[default_method_str]
+    assert regular_score == basic_exp_run_result_tree._data.results[default_method_str]
     # assert regular_score == result["default scenario"]["data"][default_method_str]
 
 
-def test_simple(scenario_run_basic1):
-    scenario_data = scenario_run_basic1["scenario"]
-    experiment = Experiment(ExperimentData(**scenario_data))
-    results = experiment.run()[Experiment.DEFAULT_SCENARIO_ALIAS]
-    assert results.as_dict(True) == scenario_run_basic1["expected_result_tree"]
+def test_simple(basic_exp_run_result_tree, experiment_setup):
+    assert basic_exp_run_result_tree.as_dict(True) == experiment_setup["expected_result_tree"]
 
 
-def test_pickle(scenario_run_basic1):
-    scenario_data = scenario_run_basic1["scenario"]
-    experiment = Experiment(ExperimentData(**scenario_data))
-    experiment.run()
-    pickle.dump(experiment, open(BASE_DATA_PATH / "temp/test_pickle.pickle", "wb"))
+def test_pickle(run_basic_experiment):
+    pickle.dump(run_basic_experiment, open(BASE_DATA_PATH / "temp/test_pickle.pickle", "wb"))
 
 
 def test_temp_load_pickle():
@@ -172,30 +173,30 @@ def test_csv_output(run_basic_experiment, temp_csv_file):
 
 
 def test_dict_output(run_basic_experiment):
-    json_data = run_basic_experiment.scenarios[0].result_to_dict()
+    json_data = run_basic_experiment.get_scenario(Experiment.DEFAULT_SCENARIO_ALIAS).result_to_dict()
     expected_json_data = json.load((BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_json_output.json").open())
     assert json_data == expected_json_data
     json_data = run_basic_experiment.scenarios[0].result_to_dict(False)
-    expected_json_data = json.load((BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_json_output_no_output.json").open())
+    expected_json_data = json.load(
+        (BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_json_output_no_output.json").open())
     assert json_data == expected_json_data
 
 
-def test_scaled_demand(scenario_run_basic1, default_method_str: str):
+def test_scaled_demand(experiment_setup, default_method_str: str):
     scale = 3
-    scenario_data = scenario_run_basic1["scenario"]
+    scenario_data = experiment_setup["scenario"]
     scenario_data["activities"]["single_activity"]["output"] = ["kWh", scale]
-    expected_tree = scenario_run_basic1["expected_result_tree"]
+    expected_tree = experiment_setup["expected_result_tree"]
     expected_value = expected_tree["data"].results[default_method_str] * scale
     result = Experiment(ExperimentData(**scenario_data)).run()
-    # print(result["default scenario"]["data"][method])
     assert result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[default_method_str] == pytest.approx(
         expected_value, abs=1e-10)
 
 
-def test_scaled_demand_unit(scenario_run_basic1, default_method_str: str):
-    scenario_data = scenario_run_basic1["scenario"]
+def test_scaled_demand_unit(experiment_setup, default_method_str: str):
+    scenario_data = experiment_setup["scenario"]
     scenario_data["activities"]["single_activity"]["output"] = ["MWh", 3]
-    expected_tree = scenario_run_basic1["expected_result_tree"]
+    expected_tree = experiment_setup["expected_result_tree"]
     expected_value = expected_tree["data"].results[default_method_str] * 3000
     result = Experiment(ExperimentData(**scenario_data)).run()
     # print(result["default scenario"]["data"][method])
@@ -264,7 +265,7 @@ def test_stacked_lca():
     Experiment(ExperimentData(**experiment)).run()
 
 
-def test_scenario(scenario_run_basic1: dict, default_bw_config: dict, default_method_tuple, default_method_str: str):
+def test_scenario(experiment_setup: dict, default_bw_config: dict, default_method_tuple, default_method_str: str):
     scenario = {
         "bw_project": default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
@@ -309,13 +310,13 @@ def test_scenario(scenario_run_basic1: dict, default_bw_config: dict, default_me
 
     result = Experiment(ExperimentData(**scenario)).run()
     assert "scenario1" in result and "scenario2" in result
-    expected_value1 = scenario_run_basic1["expected_result_tree"]["data"].results[default_method_str]
+    expected_value1 = experiment_setup["expected_result_tree"]["data"].results[default_method_str]
     assert result["scenario1"]._data.results[default_method_str] == expected_value1
     expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
     assert result["scenario2"]._data.results[default_method_str] == pytest.approx(expected_value2, abs=1e-9)
 
 
-def test_multi_activity_usage(scenario_run_basic1, default_bw_config: dict, default_method_tuple: tuple[str, ...]):
+def test_multi_activity_usage(experiment_setup, default_bw_config: dict, default_method_tuple: tuple[str, ...]):
     scenario = {
         "bw_project": default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
@@ -366,7 +367,7 @@ def test_multi_activity_usage(scenario_run_basic1, default_bw_config: dict, defa
     exp = Experiment(scenario)
     exp.run()
     method_str = "_".join(default_method_tuple)
-    expected_value1 = scenario_run_basic1["expected_result_tree"]["data"].results[method_str]
+    expected_value1 = experiment_setup["expected_result_tree"]["data"].results[method_str]
     assert expected_value1 == exp.scenarios[0].result_tree[0]._data.results[method_str]
     # scenario 2, single_activity
     expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
