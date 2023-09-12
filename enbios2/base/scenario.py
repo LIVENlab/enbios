@@ -38,7 +38,10 @@ class Scenario:
     _execution_time: float = float('NaN')
 
     def prepare_tree(self):
-        # activity_nodes = list(self.result_tree.get_leaves())
+        """
+        Prepare the result_tree
+        :return:
+        """
         activities_simple_ids = list(self.activities_outputs.keys())
         for result_index, simple_id in enumerate(activities_simple_ids):
             alias = simple_id.alias

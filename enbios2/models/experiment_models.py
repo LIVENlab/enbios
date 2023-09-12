@@ -171,10 +171,11 @@ class ExperimentScenarioPrepData:
 
 
 @pydantic_dataclass(config=StrictInputConfig)
-class ScenarioConfig:
+class ExperimentConfig:
     warn_default_demand: bool = True  # todo: bring this back
     include_bw_activity_in_nodes: bool = True
     store_raw_results: bool = False  # store numpy arrays of lca results
+    use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
     # only used by ExperimentDataIO
     base_directory: Optional[str] = None
     # those are only used for testing
@@ -206,8 +207,8 @@ class ExperimentData:
     hierarchy: Optional[Union[list, dict]] = Field(None,
                                                    description="The activity hierarchy to be used in the experiment")
     scenarios: Optional[ScenariosDataTypes] = Field(None, description="The scenarios for this experiment")
-    config: ScenarioConfig = Field(default_factory=ScenarioConfig,
-                                   description="The configuration of this experiment")
+    config: ExperimentConfig = Field(default_factory=ExperimentConfig,
+                                     description="The configuration of this experiment")
 
 
 @pydantic_dataclass
@@ -218,7 +219,7 @@ class ExperimentDataIO:
     methods: Optional[Union[MethodsDataTypes, str]] = None
     hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
     scenarios: Optional[Union[ScenariosDataTypes, str]] = None
-    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
+    config: Optional[ExperimentConfig] = Field(default_factory=ExperimentConfig)
 
 
 @dataclass

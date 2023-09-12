@@ -32,7 +32,7 @@ from enbios2.models.experiment_models import (ExperimentActivityId,
                                               ScenarioResultNodeData,
                                               ExperimentMethodPrepData, ActivityOutput, SimpleScenarioActivityId,
                                               Activity_Outputs, BWCalculationSetup, ExperimentActivityData,
-                                              ScenarioConfig)
+                                              ExperimentConfig)
 
 logger = get_logger(__file__)
 
@@ -59,35 +59,7 @@ class Experiment:
         self._lca: Optional[StackedMultiLCA] = None
         self._execution_time: float = float("NaN")
 
-    # @staticmethod
-    # def create(bw_project: str):
-    #     return Experiment(ExperimentData(bw_project=bw_project, activities=[], methods=[]))
-    #
-    # def add_activity(self, activity: Activity, default_demand: Optional[ExperimentActivityOutput] = None):
-    #     if len(self.scenarios) == 1 and not default_demand:
-    #         raise ValueError("No default demand specified / and no scenarios added yet")
-    #     alias = activity["name"]
-    #     if alias in self.activitiesMap:
-    #         raise ValueError(f"Activity with alias {alias} already exists")
-    #     self.activitiesMap[alias] = ExtendedExperimentActivityData(
-    #         id=ExperimentActivityId(
-    #             alias=alias,
-    #             code=activity["code"],
-    #             database=activity["database"]
-    #         ),
-    #         output=default_demand,
-    #         bw_activity=activity
-    #     )
-    #
-    # def add_method(self, method: tuple[str, ...], alias: Optional[str] = None):
-    #     if not alias:
-    #         alias = "_".join(method)
-    #     m_data = ExperimentMethodData(id=method, alias=alias)
-    #     bw_method = Experiment.validate_method(m_data)
-    #     self.methods[alias] = ExperimentMethodPrepData(id=method, alias=alias, bw_method=bw_method)
-
     def _validate_bw_config(self) -> None:
-
         def validate_bw_project_bw_database(bw_project: str, bw_default_database: Optional[str] = None):
             if bw_project not in bd.projects:
                 raise ValueError(f"Project {bw_project} not found")
@@ -326,6 +298,11 @@ class Experiment:
 
     def get_activity(self,
                      alias_or_id: Union[str, ExperimentActivityId]) -> ExtendedExperimentActivityData:
+        """
+        Get an activity by either its alias or its original "id" as it is defined in the experiment data
+        :param alias_or_id:
+        :return: ExtendedExperimentActivityData
+        """
         activity = self._has_activity(alias_or_id)
         if not activity:
             raise ValueError(f"Activity with id {alias_or_id} not found")
@@ -448,16 +425,30 @@ class Experiment:
             raise ValueError(f"Activities {missing} not found in hierarchy")
         return tech_tree
 
-    def get_scenario(self, scenario_name: str) -> Scenario:
+    def get_scenario(self, scenario_alias: str) -> Scenario:
+        """
+        Get a scenario by its alias
+        :param scenario_alias:
+        :return:
+        """
         for scenario in self.scenarios:
-            if scenario.alias == scenario_name:
+            if scenario.alias == scenario_alias:
                 return scenario
-        raise ValueError(f"Scenario '{scenario_name}' not found")
+        raise ValueError(f"Scenario '{scenario_alias}' not found")
 
-    def run_scenario(self, scenario_name: str) -> dict[str, Any]:
-        return self.get_scenario(scenario_name).run().as_dict(include_data=True)
+    def run_scenario(self, scenario_alias: str) -> dict[str, Any]:
+        """
+        Run a specific scenario
+        :param scenario_alias:
+        :return: The result_tree converted into a dict
+        """
+        return self.get_scenario(scenario_alias).run().as_dict(include_data=True)
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
+        """
+        Run all scenarios. Returns an dict with the scenario alias as key and the result_tree as value
+        :return: dictionary scenario-alias : result_tree
+        """
         methods = [m.id for m in self.methods.values()]
         inventories: list[list[dict[Activity, float]]] = []
         for scenario in self.scenarios:
@@ -483,6 +474,10 @@ class Experiment:
 
     @property
     def execution_time(self) -> str:
+        """
+        Get the execution time of the experiment (or all its scenarios) in a readable format
+        :return: execution time in the format HH:MM:SS
+        """
         if not math.isnan(self._execution_time):
             return str(timedelta(seconds=int(self._execution_time)))
         else:
@@ -499,25 +494,29 @@ class Experiment:
 
     def results_to_csv(self,
                        file_path: PathLike,
-                       scenario_name: Optional[str] = None,
+                       scenario_alias: Optional[str] = None,
+                       level_names: Optional[list[str]] = None,
                        include_method_units: bool = True):
         """
+        Turn the results into a csv file. If no scenario name is given, it will export all scenarios to the same file,
         :param file_path:
-        :param scenario_name: If no scenario name is given, it will export all scenarios to the same file,
+        :param scenario_alias: If no scenario name is given, it will export all scenarios to the same file,
             with an additional column for the scenario alias
+        :param level_names: (list of strings) If given, the results will be exported with the given level names
         :param include_method_units:  (Include the units of the methods in the header)
         :return:
         """
-        if scenario_name:
-            scenario = self.get_scenario(scenario_name)
-            scenario.results_to_csv(file_path, include_method_units=include_method_units)
+        if scenario_alias:
+            scenario = self.get_scenario(scenario_alias)
+            scenario.results_to_csv(file_path, level_names=level_names, include_method_units=include_method_units)
             return
         else:
             header = []
             all_rows: list = []
             for scenario in self.scenarios:
                 temp_file_name = gettempdir() + f"/temp_scenario_{scenario.alias}.csv"
-                scenario.results_to_csv(temp_file_name, include_method_units=include_method_units)
+                scenario.results_to_csv(temp_file_name, level_names=level_names,
+                                        include_method_units=include_method_units)
                 rows = ReadPath(temp_file_name).read_data()
                 rows[0]["scenario"] = scenario.alias
                 if not all_rows:
@@ -533,13 +532,22 @@ class Experiment:
                 writer.writerows(all_rows)
 
     def result_to_dict(self, include_output: bool = True) -> list[dict[str, Any]]:
+        """
+        Get the results of all scenarios as a list of dictionaries as dictionaries
+        :param include_output: Include the output of each activity in the tree
+        :return:
+        """
         return [
             scenario.result_to_dict(include_output=include_output)
             for scenario in self.scenarios
         ]
 
     @property
-    def config(self) -> ScenarioConfig:
+    def config(self) -> ExperimentConfig:
+        """
+        get the config of the experiment
+        :return:
+        """
         return self.raw_data.config
 
     def __repr__(self):
@@ -562,6 +570,10 @@ class Experiment:
         return list([s.alias for s in self.scenarios])
 
     def info(self) -> str:
+        """
+        Information about the experiment
+        :return:
+        """
         activity_rows: list[str] = []
         for activity_alias, activity in self._activities.items():
             activity_rows.append(f"  {activity.alias} - {activity.id.name}")

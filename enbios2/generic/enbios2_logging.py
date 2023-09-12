@@ -1,6 +1,7 @@
 import json
 import logging.config
 import os
+from logging import getLogger
 from pathlib import Path
 from typing import Optional, Any
 
@@ -58,6 +59,8 @@ class EnbiosLogger:
                                            encoding="utf-8")
 
         cls.reload_config()
+        # shutoff bw2calc logger
+        getLogger("bw2calc").setLevel(logging.WARNING)
 
     @classmethod
     def reload_config(cls):

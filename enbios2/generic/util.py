@@ -1,7 +1,10 @@
+import contextlib
+import io
 import re
 from enum import Enum
 from pathlib import Path
-from typing import Union, Type
+from time import time
+from typing import Union, Type, Any
 
 from enbios2.const import BASE_DATA_PATH
 from enbios2.generic.enbios2_logging import get_logger
@@ -86,3 +89,30 @@ def get_enum_by_value(enum_type: Type[Enum], value):
         if enum_member.value == value:
             return enum_member
     return None
+
+
+def call_muted(func, *args, **kwargs) -> Any:
+    """
+    Call a function
+    :param func: function to call
+    :param args: function args
+    :param kwargs: function kwargs
+    :return: function return value
+    """
+    with contextlib.redirect_stdout(io.StringIO()):
+        return func(*args, **kwargs)
+
+
+@contextlib.contextmanager
+def muted():
+    with contextlib.redirect_stdout(io.StringIO()):
+        yield
+
+
+@contextlib.contextmanager
+def timed():
+    start = time()
+    try:
+        yield
+    finally:
+        print(f"({time() - start:.2f}s)")
