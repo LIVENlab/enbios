@@ -250,7 +250,7 @@ def test_scaled_demand_unit(experiment_setup, default_method_str: str):
         expected_value, abs=1e-7)
 
 
-def test_stacked_lca():
+def test_stacked_lca(default_bw_config):
     """
     {
         "id": ["Cumulative Exergy Demand (CExD)", "energy resources: renewable, solar", "exergy content"]
@@ -258,8 +258,8 @@ def test_stacked_lca():
     """
     # todo this test should be vigorous
     experiment = {
-        "bw_project": "ecoinvent",
-        "bw_default_database": "cutoff_3.9.1_default",
+        "bw_project": default_bw_config["bw_project"],
+        "bw_default_database": default_bw_config["bw_default_database"],
         "activities": {
             "single_activity": {
                 "id": {
@@ -275,8 +275,7 @@ def test_stacked_lca():
             "2nd": {
                 "id": {
                     "name": "concentrated solar power plant construction, solar tower power plant, 20 MW",
-                    "code": "19978cf531d88e55aed33574e1087d78",
-                    "database": "cutoff_3.9.1_default"
+                    "code": "19978cf531d88e55aed33574e1087d78"
                 },
                 "output": [
                     "unit",

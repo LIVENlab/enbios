@@ -85,11 +85,12 @@ class ResultsSelector:
     def method_label_names(self, short: bool = True, include_unit: bool = True) -> list[str]:
         exp_methods = self.experiment.methods
         return [((exp_methods[l].id[-1] if short else "\n".join(exp_methods)) +
-                                                     ("\n" + exp_methods[l].bw_method_unit if include_unit else ""))
+                 ("\n" + exp_methods[l].bw_method_unit if include_unit else ""))
                 for l in self.methods]
 
     def compare_to_baseline(self, baseline_data: ndarray):
-        assert len(baseline_data) == len(self.methods)
+        assert len(baseline_data) == len(
+            self.methods), f"Baseline data must have the same length as the number of methods ({len(self.methods)})"
         # Create a copy of the original dataframe, without modifying it in place
         baseline_df = self.base_df.copy()
         # Use loc to select the columns related to methods and divide them by baseline_data
