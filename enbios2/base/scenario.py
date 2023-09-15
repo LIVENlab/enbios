@@ -38,20 +38,29 @@ class Scenario:
     _execution_time: float = float('NaN')
 
     def prepare_tree(self):
+        """Prepare the result tree for calculating scenario outputs.
+        This populates the result tree with ScenarioResultNodeData objects
+        for each activity node, which store the output amount and units.
+        If config is set, it also stores the BW activity dict with the node.
+        """
+
         # activity_nodes = list(self.result_tree.get_leaves())
         activities_simple_ids = list(self.activities_outputs.keys())
-        for result_index, simple_id in enumerate(activities_simple_ids):
-            alias = simple_id.alias
-            bw_activity = self.experiment.get_activity(alias).bw_activity
+        for result_index, activity_id in enumerate(activities_simple_ids):
+            activity_alias = activity_id.alias
+            bw_activity = self.experiment.get_activity(activity_alias).bw_activity
             try:
-                activity_node = self.result_tree.find_subnode_by_name(alias)
+                activity_node = self.result_tree.find_subnode_by_name(activity_alias)
             except StopIteration:
-                raise ValueError(f"Activity {alias} not found in result tree")
+                raise ValueError(f"Activity {activity_alias} not found in result tree")
             activity_node._data = ScenarioResultNodeData(output=(bw_unit_fix(bw_activity['unit']),
-                                                                 self.activities_outputs[simple_id]))
+                                                                 self.activities_outputs[activity_id]))
             if self.experiment.config.include_bw_activity_in_nodes:
                 activity_node._data.bw_activity = bw_activity
-        self.result_tree.recursive_apply(Scenario._recursive_resolve_outputs, depth_first=True)
+        self.result_tree.recursive_apply(Scenario._recursive_resolve_outputs,
+                                         depth_first=True,
+                                         scenario=self,
+                                         cancel_parents_of=set())
 
     def _create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
         inventory: list[dict[Activity, float]] = []
@@ -65,12 +74,23 @@ class Scenario:
             calculation_setup.register()
         return calculation_setup
 
-    def create_results_to_technology_tree(self, results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
-        """
-        Add results to the technology tree, for each method
+    def add_lca_results_to_tree(self, lca_results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
+        """Add LCA results to each node in the technology tree.
+
+        This takes an array of LCA results and assigns them to each activity
+        node in the tree. It loops through activity IDs, gets the node,
+        and adds the result for each LCA method to the node's results dict.
+
+        It calls propagate_results_upwards to sum child results in parent nodes.
+
+        Args:
+            lca_results: Array of LCA results for each activity and method.
+
+        Returns:
+            The updated result tree with all nodes containing results.
         """
 
-        def recursive_resolve_node(node: BasicTreeNode[ScenarioResultNodeData], _: Any = None):
+        def propagate_results_upwards(node: BasicTreeNode[ScenarioResultNodeData], _: Any = None):
             for child in node.children:
                 if child._data:
                     for key, value in child._data.results.items():
@@ -81,20 +101,20 @@ class Scenario:
 
         if not self.result_tree:
             raise ValueError(f"Scenario '{self.alias}' has no results...")
-        activities_simple_ids = list(self.activities_outputs.keys())
+        activity_ids = list(self.activities_outputs.keys())
 
         methods_aliases: list[str] = list(self._get_methods().keys())
-        for result_index, simple_id in enumerate(activities_simple_ids):
-            alias = simple_id.alias
-            activity_node = self.result_tree.find_subnode_by_name(alias)
+        for result_idx, activity_id in enumerate(activity_ids):
+            activity_alias = activity_id.alias
+            activity_node = self.result_tree.find_subnode_by_name(activity_alias)
             assert activity_node
             # bw_activity = self.experiment.get_activity(alias).bw_activity
             # activity_node = next(
             #     filter(lambda node: node.temp_data()["activity"].bw_activity == bw_activity, activity_nodes))
-            for method_index, method in enumerate(methods_aliases):
-                activity_node._data.results[method] = results[result_index][method_index]
+            for method_idx, method_name in enumerate(methods_aliases):
+                activity_node._data.results[method_name] = lca_results[result_idx][method_idx]
 
-        self.result_tree.recursive_apply(recursive_resolve_node, depth_first=True)
+        self.result_tree.recursive_apply(propagate_results_upwards, depth_first=True)
         return self.result_tree
 
     def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
@@ -104,11 +124,18 @@ class Scenario:
             return self.experiment.methods
 
     @staticmethod
-    def _recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None):
+    def _recursive_resolve_outputs(node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None, **kwargs):
+
         # todo, does this takes default values when an activity is not defined in the scenario?
+        scenario: Scenario = kwargs["scenario"]
+        cancel_parts_of: set = kwargs["cancel_parents_of"]
         if node.is_leaf:
             return
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
+        if any(child.id in cancel_parts_of for child in node.children):
+            node.set_data(ScenarioResultNodeData())
+            cancel_parts_of.add(node.id)
+            return
         for child in node.children:
             # todo, this should be removable
             if not child._data:
@@ -145,7 +172,10 @@ class Scenario:
             node.set_data(ScenarioResultNodeData(output=(str(node_output.units), node_output.magnitude)))
         else:
             node.set_data(ScenarioResultNodeData())
-            logger.warning(f"No output for node: {node.name}")
+            logger.warning(
+                f"Scenario: '{scenario.alias}': No output for node: '{node.name}' (lvl: {node.level}). "
+                f"Not calculating any upper nodes.")
+            cancel_parts_of.add(node.id)
 
     def run(self) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self._get_methods():
@@ -171,7 +201,7 @@ class Scenario:
     def set_results(self, results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
         if self.experiment.config.store_raw_results:
             self.results = results
-        self.result_tree = self.create_results_to_technology_tree(results)
+        self.result_tree = self.add_lca_results_to_tree(results)
         self._has_run = True
         return self.result_tree
 

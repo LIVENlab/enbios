@@ -120,6 +120,18 @@ def bw_unit_fix(unit_str: str):
     if unit_str == 'kilowatt hour':
         return 'kilowatt_hour'
 
+def delete_all_projects():
+    resp = input('Are you sure you want to delete all projects? [y]')
+    if resp != 'y':
+        print("cancelled")
+        return
+    for project in bw2data.projects:
+        if project.name != 'default':
+            bw2data.projects.delete_project(project.name, True)
+            print(f"Deleted {project.name}")
+    bw2data.projects.purge_deleted_directories()
+
+
 if __name__ == '__main__':
     report()
     # bw2data.projects.purge_deleted_directories()

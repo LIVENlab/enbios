@@ -205,7 +205,7 @@ def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
 
     df = df.set_index('scenario').transpose()
 
-    fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5,len(rs.methods) * 1.5))
+    fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5, len(rs.methods) * 1.5))
     im = ax.imshow(df, cmap="summer")
 
     labels = rs.method_label_names(include_unit=False)
