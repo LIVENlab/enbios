@@ -270,3 +270,41 @@ def plot_sankey(exp: Experiment,
     if image_file:
         fig.write_image(Path(image_file).as_posix(), width=1800, height=1600)
     return fig
+
+
+def one_axe_scatter_plot(experiment: Union[Experiment, ResultsSelector],
+                         scenarios: Optional[list[str]] = None,
+                         methods: Optional[list[str]] = None, ):
+    rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
+    df = rs.normalized_df()
+    x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    x = np.random.uniform(low=2, high=10, size=50)
+    y = np.random.normal(loc=0, scale=1e-287, size=len(df))
+
+    n_rows = len(rs.methods)
+    n_cols = 1
+
+    fig, axs = plt.subplots(n_rows, n_cols,
+                            figsize=(10, 5 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
+
+    # Check if there's only one subplot to handle the indexing appropriately
+    if n_rows == 1:
+        axs = [axs]
+
+    for idx, method in enumerate(rs.methods):
+        cmap = plt.colormaps.get_cmap('tab10')
+        colors = cmap(np.linspace(0, 1, len(rs.scenarios)))
+        rs.base_df.plot(kind='scatter', x=method, y=y, ax=axs[idx], color=colors)
+
+    # Plot
+    # plt.figure(figsize=(10, 2))
+    # plt.scatter(df, y, s=100, c='blue', marker='o')
+    # plt.title("Scatter Plot with Dense Y Distribution")
+    # plt.xlabel("X Values")
+    # plt.yticks([])  # Hide y-axis labels
+    # plt.grid(True, which='both', linestyle='--', linewidth=0.5, axis='x')
+    # no border on all edges
+    # for spine in plt.gca().spines.values():
+    #     spine.set_visible(False)
+    plt.tight_layout()
+    plt.show()
