@@ -51,8 +51,9 @@ class Experiment:
         self._validate_bw_config()
         self._activities: dict[str, ExtendedExperimentActivityData] = Experiment._validate_activities(
             self._prepare_activities(self.raw_data.activities), self.raw_data.bw_default_database)
-        self._user_defined_hierarchy: bool = True
-        self.hierarchy_root: BasicTreeNode[ScenarioResultNodeData] = self._validate_hierarchy()
+
+        self.raw_data.hierarchy = self._prepare_hierarchy()
+        self.hierarchy_root: BasicTreeNode[ScenarioResultNodeData] = self.validate_hierarchy(self.raw_data.hierarchy)
 
         self.methods: dict[str, ExperimentMethodPrepData] = Experiment._validate_methods(self._prepare_methods())
         self.scenarios: list[Scenario] = self._validate_scenarios()
@@ -411,13 +412,11 @@ class Experiment:
             scenario.prepare_tree()
         return scenarios
 
-    def _validate_hierarchy(self) -> BasicTreeNode[ScenarioResultNodeData]:
-        if not self.raw_data.hierarchy:
-            self.raw_data.hierarchy = list(self._activities.keys())
-            self._user_defined_hierarchy = False
+    def _prepare_hierarchy(self) -> Union[dict, list]:
+        return self.raw_data.hierarchy if self.raw_data.hierarchy else list(self._activities.keys())
 
-        tech_tree: BasicTreeNode[ScenarioResultNodeData] = (BasicTreeNode.from_dict(self.raw_data.hierarchy,
-                                                                                    compact=True))
+    def validate_hierarchy(self, hierarchy: Union[dict, list]) -> BasicTreeNode[ScenarioResultNodeData]:
+        tech_tree: BasicTreeNode[ScenarioResultNodeData] = (BasicTreeNode.from_dict(hierarchy, compact=True))
         for leaf in tech_tree.get_leaves():
             leaf.temp_data = {"activity": self.get_activity(leaf.name)}
         missing = set(self.activities_aliases) - set(n.name for n in tech_tree.get_leaves())
