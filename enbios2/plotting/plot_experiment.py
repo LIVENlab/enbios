@@ -340,17 +340,17 @@ def plot_sankey(exp: Experiment,
 
 def one_axes_scatter_plot(experiment: Union[Experiment, ResultsSelector],
                           selected_scenario: str,
-                          methods: Optional[list[str]] = [],
+                          methods: Optional[list[str]] = None,
                           image_file: Optional[PathLike] = None) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, None, methods)
     df = rs.normalized_df()
 
     scenario_index = df[df.columns[0]].tolist().index(selected_scenario)
     n_rows = len(rs.methods)
-    fig, axs = plt.subplots(len(rs.methods) - 1, 1,
+    fig, axs = plt.subplots(len(rs.methods), 1,
                             figsize=(10, 2 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
 
-    for method_index in range(n_rows - 1):
+    for method_index in range(n_rows):
         ax = axs[method_index]
 
         x = df[df.columns[method_index + 1]]
@@ -359,7 +359,7 @@ def one_axes_scatter_plot(experiment: Union[Experiment, ResultsSelector],
         colors[scenario_index] = "blue"
         ax.scatter(x, y, s=100, c=colors, marker='o')
         # plt.title("Scatter Plot with Dense Y Distribution")
-        ax.set_xlabel(rs.methods[method_index + 1])
+        ax.set_xlabel(rs.methods[method_index])
         ax.set_yticks([])  # Hide y-axis labels
         ax.grid(True, which='both', linestyle='--', linewidth=0.5, axis='x')
         # no border on all edges
