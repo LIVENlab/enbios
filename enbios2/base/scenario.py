@@ -299,11 +299,13 @@ class Scenario:
         alt_result_tree = self.experiment.validate_hierarchy(hierarchy)
 
         activity_nodes = self.result_tree.get_leaves()
-        alt_activity_nodes = alt_result_tree.get_leaves()
+        alt_activity_nodes = list(alt_result_tree.get_leaves())
         for node in activity_nodes:
-            alt_node = next(filter(lambda n: n.name == node.name, alt_activity_nodes))
-            alt_node._data = node.data
-
+            try:
+                alt_node = next(filter(lambda n: n.name == node.name, alt_activity_nodes))
+                alt_node._data = node.data
+            except StopIteration:
+                raise ValueError(f"Activity '{node.name}' not found in alternative hierarchy")
         alt_result_tree.recursive_apply(Scenario._recursive_resolve_outputs,
                                         depth_first=True,
                                         scenario=self,
