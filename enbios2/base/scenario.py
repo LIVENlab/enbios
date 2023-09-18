@@ -84,7 +84,7 @@ class Scenario:
                         node._data.results[key] = 0
                     node._data.results[key] += value
 
-    def add_lca_results_to_tree(self, lca_results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
+    def _add_lca_results_to_tree(self, lca_results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
         """Add LCA results to each node in the technology tree.
 
         This takes an array of LCA results and assigns them to each activity
@@ -201,7 +201,7 @@ class Scenario:
     def set_results(self, results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
         if self.experiment.config.store_raw_results:
             self.results = results
-        self.result_tree = self.add_lca_results_to_tree(results)
+        self.result_tree = self._add_lca_results_to_tree(results)
         self._has_run = True
         return self.result_tree
 
@@ -231,11 +231,13 @@ class Scenario:
                        file_path: PathLike,
                        level_names: Optional[list[str]] = None,
                        include_method_units: bool = False,
-                       warn_no_results: bool = True):
+                       warn_no_results: bool = True,
+                       alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None):
         """
         Save the results (as tree) to a csv file
          :param file_path:  path to save the results to
          :param level_names: names of the levels to include in the csv (must not match length of levels)
+         :param alternative_hierarchy: An alternative hierarchy to use for the results, which comes from Scenario.rearrange_results.
          :param include_method_units:
         """
         if not self.result_tree:
@@ -244,12 +246,26 @@ class Scenario:
         if warn_no_results and not self._has_run:
             logger.warning(f"Scenario '{self.alias}' has not been run yet")
 
-        self.result_tree.to_csv(file_path,
-                                include_data=True,
-                                level_names=level_names,
-                                data_serializer=self.wrapper_data_serializer(include_method_units))
+        use_tree = self.result_tree
+        if alternative_hierarchy:
+            use_tree = alternative_hierarchy
 
-    def result_to_dict(self, include_output: bool = True, warn_no_results: bool = True) -> dict[str, Any]:
+        use_tree.to_csv(file_path,
+                        include_data=True,
+                        level_names=level_names,
+                        data_serializer=self.wrapper_data_serializer(include_method_units))
+
+    def result_to_dict(self,
+                       include_output: bool = True,
+                       warn_no_results: bool = True,
+                       alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None) -> dict[str, Any]:
+        """
+        Return the results as a dictionary
+        :param include_output:
+        :param warn_no_results:
+        :param alternative_hierarchy: An alternative hierarchy to use for the results, which comes from Scenario.rearrange_results.
+        :return:
+        """
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
             result: dict[str, Any] = {
@@ -274,17 +290,24 @@ class Scenario:
 
         if warn_no_results and not self._has_run:
             logger.warning(f"Scenario '{self.alias}' has not been run yet")
-        return recursive_transform(self.result_tree.copy())
+        if alternative_hierarchy:
+            return recursive_transform(alternative_hierarchy.copy())
+        else:
+            return recursive_transform(self.result_tree.copy())
 
-    def rearrange_results(self, hierarchy: Union[list, dict]):
+    def rearrange_results(self, hierarchy: Union[list, dict]) -> BasicTreeNode[ScenarioResultNodeData]:
         alt_result_tree = self.experiment.validate_hierarchy(hierarchy)
-        Scenario._recursive_resolve_outputs(alt_result_tree, scenario=self, cancel_parents_of=set())
 
         activity_nodes = self.result_tree.get_leaves()
         alt_activity_nodes = alt_result_tree.get_leaves()
         for node in activity_nodes:
             alt_node = next(filter(lambda n: n.name == node.name, alt_activity_nodes))
-            node._data = alt_node._data
+            alt_node._data = node.data
+
+        alt_result_tree.recursive_apply(Scenario._recursive_resolve_outputs,
+                                        depth_first=True,
+                                        scenario=self,
+                                        cancel_parents_of=set())
 
         alt_result_tree.recursive_apply(Scenario._propagate_results_upwards, depth_first=True)
         return alt_result_tree
