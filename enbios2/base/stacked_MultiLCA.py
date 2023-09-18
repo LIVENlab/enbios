@@ -42,9 +42,10 @@ class StackedMultiLCA:
 
     """
 
-    def __init__(self, calc_setup: BWCalculationSetup, log_config=None):
+    def __init__(self, calc_setup: BWCalculationSetup, log_config=None, k_bw_distributions: int = 1):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
+
         self.lca = LCA(demand=self.all, method=self.methods[0], log_config=log_config)
         logger.info(
             {

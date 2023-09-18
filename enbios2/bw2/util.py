@@ -106,7 +106,6 @@ def clean_delete(activity: Activity):
 
 
 def report():
-    projects = list(bw_projects)
     current_ = bw2data.projects.current
     projects = list(bw2data.projects)
     for project in projects:

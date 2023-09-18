@@ -10,6 +10,7 @@ from typing import Any, TypeVar, Union
 import bw2data as bd
 import bw2io as bi
 
+from enbios2.const import BASE_DATA_PATH
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.models.bw_project_models import BWProject, BWProjectDatabase
 
@@ -71,7 +72,10 @@ def setup_bw_db(db: BWProjectDatabase):
     if db.name in bd.databases:
         logger.info(f"Database {db.name} already exists, skipping")
         return
-    if not Path(db.source).exists():
+    path = Path(db.source)
+    if not path.is_absolute():
+        path = BASE_DATA_PATH / path
+    if not path.exists():
         raise Exception(f"Source {db.source} does not exist")
     logger.info(f"Importing database ")
     bw_importer = get_bw_importer(db)

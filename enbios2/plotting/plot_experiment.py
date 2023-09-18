@@ -114,6 +114,7 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
               col: int = 4,
               row: Optional[int] = None,
               short_method_names: bool = True,
+              show_labels:bool = True,
               image_file: Optional[PathLike] = None
               ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
@@ -172,7 +173,7 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
                 ax.grid(False)
             angles.pop()
             ax.set_xticks(angles)
-            if r == 0 and c == 0:
+            if r == 0 and c == 0 and show_labels:
                 ax.set_xticklabels(labels)
             else:
                 ax.set_xticklabels([""] * len(angles))
@@ -189,6 +190,71 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
     if image_file:
         fig.write_image(Path(image_file).as_posix())
     return fig
+
+
+def single_star_plot(experiment: Union[Experiment, ResultsSelector],
+                     scenarios: Optional[list[str]] = None,
+                     methods: Optional[list[str]] = None,
+                     *,
+                     r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+                     show_r_ticks: bool = True,
+                     show_grid: bool = True,
+                     col: int = 4,
+                     row: Optional[int] = None,
+                     short_method_names: bool = True,
+                     show_labels: bool = True,
+                     image_file: Optional[PathLike] = None
+                     ) -> Figure:
+    """
+    plots multiple scenarios into one star plot
+    :param experiment:
+    :param scenarios:
+    :param methods:
+    :param r_ticks:
+    :param show_r_ticks:
+    :param show_grid:
+    :param col:
+    :param row:
+    :param short_method_names:
+    :param show_labels:
+    :param image_file:
+    :return:
+    """
+    rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
+    df = rs.normalized_df()
+
+    labels = rs.method_label_names(short_method_names, False)
+
+    # Create figure and axes
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+
+    cmap = plt.colormaps.get_cmap('tab10')
+    for (idx, scenario_name) in enumerate(scenarios):
+        values = df.loc[df["scenario"] == scenario_name].values.tolist()[0][1:]
+        values.append(values[0])
+
+        angles = np.linspace(0, 2 * np.pi, len(values) - 1, endpoint=False).tolist()
+        angles.append(0)
+
+        _color = list(cmap(idx)[:3]) + [0.3]
+
+        ax.plot(angles, values)
+
+    # Fix axis to close the circle
+    ax.set_theta_offset(np.pi / 2)
+    ax.set_theta_direction(-1)
+    ax.set_rlabel_position(30)
+    ax.set_rticks(list(r_ticks))
+
+    if not show_grid:
+        ax.grid(False)
+    angles.pop()
+    ax.set_xticks(angles)
+    if show_labels:
+        ax.set_xticklabels(labels)
+    else:
+        ax.set_xticklabels([""] * len(labels))
+    ax.set_rmax(1)
 
 
 def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
@@ -270,3 +336,41 @@ def plot_sankey(exp: Experiment,
     if image_file:
         fig.write_image(Path(image_file).as_posix(), width=1800, height=1600)
     return fig
+
+
+def one_axe_scatter_plot(experiment: Union[Experiment, ResultsSelector],
+                         scenarios: Optional[list[str]] = None,
+                         methods: Optional[list[str]] = None, ):
+    rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
+    df = rs.normalized_df()
+    x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    x = np.random.uniform(low=2, high=10, size=50)
+    y = np.random.normal(loc=0, scale=1e-287, size=len(df))
+
+    n_rows = len(rs.methods)
+    n_cols = 1
+
+    fig, axs = plt.subplots(n_rows, n_cols,
+                            figsize=(10, 5 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
+
+    # Check if there's only one subplot to handle the indexing appropriately
+    if n_rows == 1:
+        axs = [axs]
+
+    for idx, method in enumerate(rs.methods):
+        cmap = plt.colormaps.get_cmap('tab10')
+        colors = cmap(np.linspace(0, 1, len(rs.scenarios)))
+        rs.base_df.plot(kind='scatter', x=method, y=y, ax=axs[idx], color=colors)
+
+    # Plot
+    # plt.figure(figsize=(10, 2))
+    # plt.scatter(df, y, s=100, c='blue', marker='o')
+    # plt.title("Scatter Plot with Dense Y Distribution")
+    # plt.xlabel("X Values")
+    # plt.yticks([])  # Hide y-axis labels
+    # plt.grid(True, which='both', linestyle='--', linewidth=0.5, axis='x')
+    # no border on all edges
+    # for spine in plt.gca().spines.values():
+    #     spine.set_visible(False)
+    plt.tight_layout()
+    plt.show()

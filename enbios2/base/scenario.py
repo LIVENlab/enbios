@@ -74,6 +74,16 @@ class Scenario:
             calculation_setup.register()
         return calculation_setup
 
+    @staticmethod
+    def _propagate_results_upwards(node: BasicTreeNode[ScenarioResultNodeData], _: Any = None):
+        for child in node.children:
+            if child._data:
+                for key, value in child._data.results.items():
+                    assert node._data
+                    if node._data.results.get(key) is None:
+                        node._data.results[key] = 0
+                    node._data.results[key] += value
+
     def add_lca_results_to_tree(self, lca_results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
         """Add LCA results to each node in the technology tree.
 
@@ -90,15 +100,6 @@ class Scenario:
             The updated result tree with all nodes containing results.
         """
 
-        def propagate_results_upwards(node: BasicTreeNode[ScenarioResultNodeData], _: Any = None):
-            for child in node.children:
-                if child._data:
-                    for key, value in child._data.results.items():
-                        assert node._data
-                        if node._data.results.get(key) is None:
-                            node._data.results[key] = 0
-                        node._data.results[key] += value
-
         if not self.result_tree:
             raise ValueError(f"Scenario '{self.alias}' has no results...")
         activity_ids = list(self.activities_outputs.keys())
@@ -114,7 +115,7 @@ class Scenario:
             for method_idx, method_name in enumerate(methods_aliases):
                 activity_node._data.results[method_name] = lca_results[result_idx][method_idx]
 
-        self.result_tree.recursive_apply(propagate_results_upwards, depth_first=True)
+        self.result_tree.recursive_apply(Scenario._propagate_results_upwards, depth_first=True)
         return self.result_tree
 
     def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
@@ -137,9 +138,8 @@ class Scenario:
             cancel_parts_of.add(node.id)
             return
         for child in node.children:
-            # todo, this should be removable
-            if not child._data:
-                raise ValueError(f"Node {child.name} has no data")
+            # if not child._data:
+            #     raise ValueError(f"Node {child.name} has no data")
             activity_output = child.data.output[0]
             if activity_output is None:
                 node_output = None
@@ -208,7 +208,7 @@ class Scenario:
     def wrapper_data_serializer(self, include_method_units: bool = False):
 
         method_alias2units: dict[str, str] = {
-            method_alias: method_info.bw_method.unit
+            method_alias: method_info.bw_method_unit
             for method_alias, method_info in self.experiment.methods.items()
         }
 
@@ -275,3 +275,16 @@ class Scenario:
         if warn_no_results and not self._has_run:
             logger.warning(f"Scenario '{self.alias}' has not been run yet")
         return recursive_transform(self.result_tree.copy())
+
+    def rearrange_results(self, hierarchy: Union[list, dict]):
+        alt_result_tree = self.experiment.validate_hierarchy(hierarchy)
+        Scenario._recursive_resolve_outputs(alt_result_tree, scenario=self, cancel_parents_of=set())
+
+        activity_nodes = self.result_tree.get_leaves()
+        alt_activity_nodes = alt_result_tree.get_leaves()
+        for node in activity_nodes:
+            alt_node = next(filter(lambda n: n.name == node.name, alt_activity_nodes))
+            node._data = alt_node._data
+
+        alt_result_tree.recursive_apply(Scenario._propagate_results_upwards, depth_first=True)
+        return alt_result_tree
