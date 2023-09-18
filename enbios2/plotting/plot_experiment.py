@@ -114,7 +114,7 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
               col: int = 4,
               row: Optional[int] = None,
               short_method_names: bool = True,
-              show_labels:bool = True,
+              show_labels: bool = True,
               image_file: Optional[PathLike] = None
               ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
@@ -338,39 +338,35 @@ def plot_sankey(exp: Experiment,
     return fig
 
 
-def one_axe_scatter_plot(experiment: Union[Experiment, ResultsSelector],
-                         scenarios: Optional[list[str]] = None,
-                         methods: Optional[list[str]] = None, ):
-    rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
+def one_axes_scatter_plot(experiment: Union[Experiment, ResultsSelector],
+                          selected_scenario: str,
+                          methods: Optional[list[str]] = [],
+                          image_file: Optional[PathLike] = None) -> Figure:
+    rs = ResultsSelector.get_result_selector(experiment, None, methods)
     df = rs.normalized_df()
-    x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    x = np.random.uniform(low=2, high=10, size=50)
-    y = np.random.normal(loc=0, scale=1e-287, size=len(df))
 
+    scenario_index = df[df.columns[0]].tolist().index(selected_scenario)
     n_rows = len(rs.methods)
-    n_cols = 1
+    fig, axs = plt.subplots(len(rs.methods) - 1, 1,
+                            figsize=(10, 2 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
 
-    fig, axs = plt.subplots(n_rows, n_cols,
-                            figsize=(10, 5 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
+    for method_index in range(n_rows - 1):
+        ax = axs[method_index]
 
-    # Check if there's only one subplot to handle the indexing appropriately
-    if n_rows == 1:
-        axs = [axs]
-
-    for idx, method in enumerate(rs.methods):
-        cmap = plt.colormaps.get_cmap('tab10')
-        colors = cmap(np.linspace(0, 1, len(rs.scenarios)))
-        rs.base_df.plot(kind='scatter', x=method, y=y, ax=axs[idx], color=colors)
-
-    # Plot
-    # plt.figure(figsize=(10, 2))
-    # plt.scatter(df, y, s=100, c='blue', marker='o')
-    # plt.title("Scatter Plot with Dense Y Distribution")
-    # plt.xlabel("X Values")
-    # plt.yticks([])  # Hide y-axis labels
-    # plt.grid(True, which='both', linestyle='--', linewidth=0.5, axis='x')
-    # no border on all edges
-    # for spine in plt.gca().spines.values():
-    #     spine.set_visible(False)
+        x = df[df.columns[method_index + 1]]
+        y = np.random.normal(loc=0, scale=1e-286, size=len(df))
+        colors = ["#FFA50090"] * len(x)
+        colors[scenario_index] = "blue"
+        ax.scatter(x, y, s=100, c=colors, marker='o')
+        # plt.title("Scatter Plot with Dense Y Distribution")
+        ax.set_xlabel(rs.methods[method_index + 1])
+        ax.set_yticks([])  # Hide y-axis labels
+        ax.grid(True, which='both', linestyle='--', linewidth=0.5, axis='x')
+        # no border on all edges
+        for spine in ax.spines.values():
+            spine.set_visible(False)
     plt.tight_layout()
-    plt.show()
+    if image_file:
+        fig.write_image(Path(image_file).as_posix())
+    return fig  # Return the figure object
+
