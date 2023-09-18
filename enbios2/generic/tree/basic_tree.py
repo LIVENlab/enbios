@@ -71,7 +71,7 @@ class BasicTreeNode(Generic[T]):
 
     @property
     def data(self) -> T:
-        assert self._data is not None
+        assert self._data is not None, f"data shoould be set before (node: '{self.name}')"
         return self._data
 
     @property
