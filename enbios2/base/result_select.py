@@ -8,10 +8,12 @@ from enbios2.base.experiment import Experiment
 
 
 class ResultsSelector:
-
-    def __init__(self, experiment: Experiment,
-                 scenarios: Optional[list[str]] = None,
-                 methods: Optional[list[str]] = None):
+    def __init__(
+        self,
+        experiment: Experiment,
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+    ):
         self.experiment = experiment
 
         all_aliases = [sc.alias for sc in self.experiment.scenarios]
@@ -29,31 +31,48 @@ class ResultsSelector:
                     raise ValueError(f"Method {method} not found in experiment")
             self.methods = methods
         else:
-            self.methods: list[str] = [m for m in self.experiment.methods.keys()]  # type: ignore
+            self.methods: list[str] = [
+                m for m in self.experiment.methods.keys()
+            ]  # type: ignore
 
         self._complete_df = None
         self._base_df = None
 
     @staticmethod
-    def get_result_selector(result_selector: Union[Experiment, "ResultsSelector"],
-                            scenarios: Optional[list[str]] = None,
-                            methods: Optional[list[str]] = None) -> "ResultsSelector":
+    def get_result_selector(
+        result_selector: Union[Experiment, "ResultsSelector"],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+    ) -> "ResultsSelector":
         if isinstance(result_selector, Experiment):
             return ResultsSelector(result_selector, scenarios=scenarios, methods=methods)
         return result_selector
 
     def check_special_df(self, df: DataFrame):
         if not self.base_df.shape == df.shape:
-            raise ValueError(f"Dataframe shape {df.shape} does not match base dataframe shape {self.base_df.shape}")
+            raise ValueError(
+                f"Dataframe shape {df.shape} does not match base dataframe shape "
+                f"{self.base_df.shape}"
+            )
         if not list(self.base_df.dtypes) == list(df.dtypes):
-            raise ValueError(f"Dataframe dtypes {df.dtypes} do not match base dataframe dtypes {self.base_df.dtypes}")
+            raise ValueError(
+                f"Dataframe dtypes {df.dtypes} do not match base dataframe dtypes "
+                f"{self.base_df.dtypes}"
+            )
 
     @property
     def complete_df(self) -> DataFrame:
         if self._complete_df is None:
-            data = [{"scenario": scenario} |
-                    {k: v for k, v in self.experiment.get_scenario(scenario).result_tree.data.results.items()}
-                    for scenario in self.experiment.scenario_aliases]
+            data = [
+                {"scenario": scenario}
+                | {
+                    k: v
+                    for k, v in self.experiment.get_scenario(
+                        scenario
+                    ).result_tree.data.results.items()
+                }
+                for scenario in self.experiment.scenario_aliases
+            ]
 
             self._complete_df = DataFrame(data)
         return self._complete_df
@@ -61,10 +80,17 @@ class ResultsSelector:
     @property
     def base_df(self) -> DataFrame:
         if self._base_df is None:
-            data = [{"scenario": scenario} |
-                    {k: v for k, v in self.experiment.get_scenario(scenario).result_tree.data.results.items() if
-                     k in self.methods}
-                    for scenario in self.scenarios]
+            data = [
+                {"scenario": scenario}
+                | {
+                    k: v
+                    for k, v in self.experiment.get_scenario(
+                        scenario
+                    ).result_tree.data.results.items()
+                    if k in self.methods
+                }
+                for scenario in self.scenarios
+            ]
 
             self._base_df = DataFrame(data)
         return self._base_df
@@ -73,27 +99,38 @@ class ResultsSelector:
         used_df = self.complete_df if normalize_with_all_scenarios else self.base_df
         columns = used_df.columns[1:]
         normalized_df = DataFrame()
-        normalized_df['scenario'] = used_df['scenario']
+        normalized_df["scenario"] = used_df["scenario"]
         for column in columns:
-            normalized_df[column] = MinMaxScaler().fit_transform(used_df[column].to_numpy().reshape(-1, 1))
+            normalized_df[column] = MinMaxScaler().fit_transform(
+                used_df[column].to_numpy().reshape(-1, 1)
+            )
 
         if normalize_with_all_scenarios:
             # delete all rows where scenario is not in self.scenarios
-            normalized_df = normalized_df[normalized_df['scenario'].isin(self.scenarios)]
+            normalized_df = normalized_df[normalized_df["scenario"].isin(self.scenarios)]
         return normalized_df
 
-    def method_label_names(self, short: bool = True, include_unit: bool = True) -> list[str]:
+    def method_label_names(
+        self, short: bool = True, include_unit: bool = True
+    ) -> list[str]:
         exp_methods = self.experiment.methods
-        return [((exp_methods[l].id[-1] if short else "\n".join(exp_methods)) +
-                 ("\n" + exp_methods[l].bw_method_unit if include_unit else ""))
-                for l in self.methods]
+        return [
+            (
+                (exp_methods[method].id[-1] if short else "\n".join(exp_methods))
+                + ("\n" + exp_methods[method].bw_method_unit if include_unit else "")
+            )
+            for method in self.methods
+        ]
 
     def compare_to_baseline(self, baseline_data: ndarray):
-        assert len(baseline_data) == len(
-            self.methods), f"Baseline data must have the same length as the number of methods ({len(self.methods)})"
+        assert len(baseline_data) == len(self.methods), (
+            f"Baseline data must have the same length as the number of methods "
+            f"({len(self.methods)})"
+        )
         # Create a copy of the original dataframe, without modifying it in place
         baseline_df = self.base_df.copy()
-        # Use loc to select the columns related to methods and divide them by baseline_data
+        # Use loc to select the columns related to methods
+        # and divide them by baseline_data
         baseline_df[self.methods] = self.base_df[self.methods].div(baseline_data, axis=1)
         # Set the dtypes back to their original types
         original_dtypes = self.base_df[self.methods].dtypes
@@ -110,11 +147,17 @@ class ResultsSelector:
                 node = scenario_results.find_subnode_by_name(node_alias)
                 assert node is not None
                 # add a row
-                df = df._append({
-                                    "scenario": scenario,
-                                    "tech": node_alias,
-                                } | {method: value for method, value in node.data.results.items() if
-                                     method in self.methods},
-                                ignore_index=True)
+                df = df._append(
+                    {
+                        "scenario": scenario,
+                        "tech": node_alias,
+                    }
+                    | {
+                        method: value
+                        for method, value in node.data.results.items()
+                        if method in self.methods
+                    },
+                    ignore_index=True,
+                )
 
         return df
