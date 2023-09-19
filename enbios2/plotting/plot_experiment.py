@@ -7,7 +7,7 @@ from matplotlib.figure import Figure
 from matplotlib.projections import PolarAxes
 from pandas import DataFrame
 
-from enbios2.analyse.util import ResultsSelector
+from enbios2.base.result_select import ResultsSelector
 from enbios2.base.experiment import Experiment
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.files import PathLike

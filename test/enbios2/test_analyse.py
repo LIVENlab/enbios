@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import pytest
 
-from enbios2.analyse.util import ResultsSelector
+from enbios2.base.result_select import ResultsSelector
 from enbios2.base.experiment import Experiment
 from enbios2.generic.files import DataPath
 
