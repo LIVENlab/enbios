@@ -373,7 +373,9 @@ class BasicTreeNode(Generic[T]):
 
         return calc_max_depth(self)
 
-    def to_csv(self, csv_file: PathLike, *,
+    def to_csv(self,
+               csv_file: PathLike,
+               *,
                include_data: Optional[bool] = False,
                data_serializer: Optional[Callable[[T], dict]] = None,
                exclude_data_keys: Optional[list[str]] = None,

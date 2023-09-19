@@ -46,3 +46,5 @@ The repository contains a few notebooks (require jupyter notebook) in the demos 
 [Getting started](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/intro.ipynb)
 
 [Plotting results](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/plot_results.ipynb)
+
+[Sorting the results in alternative hierarchies](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/multiple_hierarchies.ipynb)
