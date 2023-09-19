@@ -1,6 +1,5 @@
 import bw2data
 import bw2io
-from bw2data.backends import ActivityDataset, ExchangeDataset
 from bw2io import ExcelImporter
 
 from enbios2.bw2.util import report

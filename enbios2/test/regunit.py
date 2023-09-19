@@ -1,10 +1,10 @@
 from enbios2.base.unit_registry import ureg
-from enbios2.bw2.extract_from_xml import parse_xml
-from enbios2.generic.files import DataPath
+from enbios2.base.unit_registry import ureg as o_ureg
 
 # ureg.parse_expression("kWh")
 
-# data_path: DataPath = DataPath("ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/MasterData/Units.xml")
+# data_path: DataPath =
+# DataPath("ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/MasterData/Units.xml")
 # res = parse_xml(data_path, "unit", [], ["name", "comment"])
 #
 # for unit in res:
@@ -17,11 +17,12 @@ from enbios2.generic.files import DataPath
 #     finally:
 #         print("******")
 
-print(ureg.parse_expression('kilowatt hour'))
-print(ureg.parse_expression('kilowatt hour') * 1)
-print(ureg.parse_expression('kilowatt_hour') * 1)
-from enbios2.base.unit_registry import ureg as o_ureg
-print(o_ureg.parse_expression('kilowatt hour'))
+print(ureg.parse_expression("kilowatt hour"))
+print(ureg.parse_expression("kilowatt hour") * 1)
+print(ureg.parse_expression("kilowatt_hour") * 1)
+
+
+print(o_ureg.parse_expression("kilowatt hour"))
 
 # ureg.define('kilowatt_hour = hour * kilowatt')
-print(o_ureg.parse_expression('kilowatt hour'))
+print(o_ureg.parse_expression("kilowatt hour"))

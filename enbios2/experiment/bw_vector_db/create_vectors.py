@@ -53,7 +53,7 @@ def insert_db_my_batch(db_name: str, batch_size: int = 1000):
     batch = []
     db_size = len(db)
     for act in tqdm(db, total=db_size):
-        name = act['name']
+        act['name']
         # print(act)
         batch.append(act)
         if len(batch) == batch_size:

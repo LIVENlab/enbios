@@ -1,11 +1,8 @@
-import json
-from copy import deepcopy
 from pathlib import Path
 
 import csv
-from typing import Optional, Union
+from typing import Union
 
-from enbios2.const import BASE_DATA_PATH
 from deprecated import deprecated
 
 

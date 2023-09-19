@@ -84,7 +84,7 @@ def get_external_activities(graph: pydot.Dot):
             activity = bd.Database(attributes["database"]).get(name=attributes["name_"],
                                                                categories=tuple(attributes["categories"]),
                                                                type=attributes["type"])
-            logger.debug(f"external activity : %s", attributes["name_"])
+            logger.debug("external activity : %s", attributes["name_"])
             external_activity_map[node.get_name()] = activity
         else:
             pass

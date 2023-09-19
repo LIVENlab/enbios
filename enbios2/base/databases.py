@@ -1,7 +1,11 @@
-
 from peewee import SqliteDatabase
 
-from enbios2.base.db_models import EcoinventResolvedDataset, MainDatabase, EcoinventDataset, BWProjectIndex
+from enbios2.base.db_models import (
+    EcoinventResolvedDataset,
+    MainDatabase,
+    EcoinventDataset,
+    BWProjectIndex,
+)
 from enbios2.const import BASE_DATABASES_PATH
 
 
@@ -14,6 +18,8 @@ def init_databases() -> SqliteDatabase:
     database = MainDatabase._meta.database
     database.connect(True)
     if not EcoinventResolvedDataset.table_exists():
-        database.create_tables([EcoinventResolvedDataset, EcoinventDataset, BWProjectIndex])
+        database.create_tables(
+            [EcoinventResolvedDataset, EcoinventDataset, BWProjectIndex]
+        )
     # EcoinventResolvedDataset.select()
     return database

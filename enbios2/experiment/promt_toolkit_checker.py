@@ -15,7 +15,7 @@ try:
     import enbios2
     # import enbios2.generic
     # from enbios2.generic.enbios2_logging import get_logger
-except ImportError as err:
+except ImportError:
     print("importing enbios2")
     # print(err)
     import sys

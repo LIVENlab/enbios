@@ -4,13 +4,10 @@ from pathlib import Path
 import bw2data
 import networkx as nx
 from bw2data.backends import ActivityDataset, ExchangeDataset
-from networkx import topological_sort, cycle_basis, dominating_set
+from networkx import dominating_set
 from tqdm import tqdm
-from playhouse.shortcuts import model_to_dict
 
 from enbios2.bw2.project_index import set_bw_current_project
-from enbios2.const import BASE_DATA_PATH
-from enbios2.generic.files import DataPath
 
 # Create an empty graph
 G = nx.DiGraph()

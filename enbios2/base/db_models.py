@@ -1,7 +1,14 @@
 from pathlib import Path
 from typing import Optional
 
-from peewee import Model, TextField, FloatField, BooleanField, SqliteDatabase, ForeignKeyField
+from peewee import (
+    Model,
+    TextField,
+    FloatField,
+    BooleanField,
+    SqliteDatabase,
+    ForeignKeyField,
+)
 from playhouse.shortcuts import model_to_dict
 from playhouse.sqlite_ext import FTSModel, JSONField
 
@@ -20,6 +27,7 @@ class EcoinventDataset(MainDatabase):
     """
     Ecoinvent datasets model
     """
+
     version = TextField()  # should have validation // see ecoinvent_consts
     system_model = TextField()  # cutoff, consequential, apos
     type = TextField(default="default")  # ecoinvent_dataset_types
@@ -37,30 +45,43 @@ class EcoinventDataset(MainDatabase):
 
     @property
     def bw_project_index(self) -> Optional["BWProjectIndex"]:
-        return BWProjectIndex.select().where(BWProjectIndex.ecoinvent_dataset == self).get_or_none()
+        return (
+            BWProjectIndex.select()
+            .where(BWProjectIndex.ecoinvent_dataset == self)
+            .get_or_none()
+        )
 
     class Meta:
         table_name = "ecoinvent_dataset"
 
     def __init__(self, *args, **kwargs):
         super(EcoinventDataset, self).__init__(*args, **kwargs)
-        self.identity = f"{self.system_model}_{self.version}_{self.type}{'_xlsx' if self.xlsx else ''}"
+        self.identity = (
+            f"{self.system_model}_{self.version}_{self.type}"
+            f"{'_xlsx' if self.xlsx else ''}"
+        )
 
     def validate(self):
-        check_fields = [("version", EcoinventDataset._valid_ecoinvent_versions),
-                        ("system_model", EcoinventDataset._valid_ecoinvent_system_models),
-                        ("type", EcoinventDataset._valid_ecoinvent_datatypes)]
+        check_fields = [
+            ("version", EcoinventDataset._valid_ecoinvent_versions),
+            ("system_model", EcoinventDataset._valid_ecoinvent_system_models),
+            ("type", EcoinventDataset._valid_ecoinvent_datatypes),
+        ]
         for field, valid_values in check_fields:
             if getattr(self, field) not in valid_values:
                 raise ValueError(
-                    f"EcoinventIndex entry '{field}' is not valid: '{getattr(self, field)}'. Must be of {valid_values}"
-                    f" ('{self.identity}'/ {self.directory})")
+                    f"EcoinventIndex entry '{field}' is not valid: "
+                    f"'{getattr(self, field)}'. Must be of {valid_values}"
+                    f" ('{self.identity}'/ {self.directory})"
+                )
 
     @classmethod
     def exising_or_new(cls, *args, **kwargs) -> "EcoinventDataset":
         index = EcoinventDataset(*args, **kwargs)
         if EcoinventDataset.exists(index.identity):
-            return EcoinventDataset.get_or_none(EcoinventDataset.identity == index.identity)
+            return EcoinventDataset.get_or_none(
+                EcoinventDataset.identity == index.identity
+            )
         return index
 
     def save(self, *args, **kwargs):
@@ -85,18 +106,23 @@ class EcoinventDataset(MainDatabase):
         if self.xlsx:
             return next(self.directory.glob("*.xlsx"))
         else:
-            return self.directory / f"datasets"
+            return self.directory / "datasets"
 
     def __repr__(self):
-        return (f"EcoinventDataset: {self.identity} "
-                f"({str(self.bw_project_index) if self.bw_project_index else 'no BW2 project index'})")
+        index_str = str(self.bw_project_index)
+        return (
+            f"EcoinventDataset: {self.identity} "
+            f"({index_str if self.bw_project_index else 'no BW2 project index'})"
+        )
 
     def __str__(self):
         return self.__repr__()
 
     @staticmethod
-    def dump_database(entries: Optional[list["EcoinventDataset"]] = None,
-                      redact_dir: Optional[bool] = True) -> list[dict]:
+    def dump_database(
+        entries: Optional[list["EcoinventDataset"]] = None,
+        redact_dir: Optional[bool] = True,
+    ) -> list[dict]:
         """
         Dump the database to a JSON file
         :return:
@@ -116,11 +142,14 @@ class EcoinventResolvedDataset(MainDatabase):
     """
     Metadata table for Ecoinvent databases
     """
+
     name = TextField()
     path = TextField()
     db_type = TextField()
     metadata = JSONField()
-    ecoinvent_dataset = ForeignKeyField(EcoinventDataset, backref='resolved_dataset', unique=True)
+    ecoinvent_dataset = ForeignKeyField(
+        EcoinventDataset, backref="resolved_dataset", unique=True
+    )
 
     class Meta:
         table_name = "ecoinvent_resolved_dataset"
@@ -129,7 +158,9 @@ class EcoinventResolvedDataset(MainDatabase):
 class BWProjectIndex(MainDatabase):
     project_name = TextField()
     database_name = TextField()
-    ecoinvent_dataset = ForeignKeyField(EcoinventDataset, backref='bw_project_db', unique=True)
+    ecoinvent_dataset = ForeignKeyField(
+        EcoinventDataset, backref="bw_project_db", unique=True
+    )
 
     class Meta:
         table_name = "bw_project_index"
@@ -142,7 +173,10 @@ class BWProjectIndex(MainDatabase):
         self.delete()
 
     def __repr__(self):
-        return f"BWProjectIndex: {self.project_name} - {self.database_name} ({self.ecoinvent_dataset})"
+        return (
+            f"BWProjectIndex: {self.project_name} - "
+            f"{self.database_name} ({self.ecoinvent_dataset})"
+        )
 
     def __str__(self):
         return f"BWProjectIndex: {self.project_name} - {self.database_name}"
@@ -152,6 +186,7 @@ class EcoinventDatabaseActivity(Model):
     """
     Main table for the 2 resolved Ecoinvent databases (LCI, LCIA)
     """
+
     code = TextField(unique=True)
     name = TextField(index=True)
     location = TextField()
@@ -168,6 +203,7 @@ class ExchangeInfo(Model):
     """
     Ecoinvent LCI Index
     """
+
     exchange = TextField()
     compartment = TextField()
     sub_compartment = TextField()
@@ -181,6 +217,7 @@ class ImpactInfo(Model):
     """
     Ecoinvent LCIA Index
     """
+
     method = TextField()
     category = TextField()
     indicator = TextField()
@@ -194,6 +231,7 @@ class BW_Activity(Model):
     """
     experimental FTS database
     """
+
     code = TextField()
     database = TextField()
     name = TextField()
@@ -214,6 +252,7 @@ class FTS_BW_ActivitySimple(FTSModel):
     """
     experiment full text search database
     """
+
     name = TextField()
     product = TextField()
     synonyms = TextField()

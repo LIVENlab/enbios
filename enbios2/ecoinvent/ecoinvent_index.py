@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 import bw2data
 import bw2io
-from peewee import BackrefAccessor, JOIN
+from peewee import JOIN
 
 from enbios2.base.databases import init_databases
 from enbios2.base.db_models import EcoinventDataset, BWProjectIndex
@@ -13,11 +13,14 @@ from enbios2.generic.enbios2_logging import get_logger
 logger = get_logger(__file__)
 
 
-def analyze_directory(directory: Optional[Path] = None,
-                      store_to_index_file: bool = True) -> list[EcoinventDataset]:
+def analyze_directory(
+    directory: Optional[Path] = None, store_to_index_file: bool = True
+) -> list[EcoinventDataset]:
     """
-    Analyzes a directory and returns the dataset descriptors for the ecoinvent datasets in the folder.
-    They should have been downloaded from the ecoinvent website, unzipped and not renamed.
+    Analyzes a directory and returns the dataset descriptors
+        for the ecoinvent datasets in the folder.
+        They should have been downloaded from the ecoinvent website,
+        unzipped and not renamed.
     :param directory:
     :param store_to_index_file:
     :return:
@@ -35,11 +38,13 @@ def analyze_directory(directory: Optional[Path] = None,
             system_model = parts[2]
             type_ = parts[-2] if parts[-2] in ["lci", "lcia"] else "default"
             xlsx = parts[-1] == "xlsx"
-            index = EcoinventDataset.exising_or_new(version=version,
-                                            system_model=system_model,
-                                            type=type_,
-                                            xlsx=xlsx,
-                                            directory=directory)
+            index = EcoinventDataset.exising_or_new(
+                version=version,
+                system_model=system_model,
+                type=type_,
+                xlsx=xlsx,
+                directory=directory,
+            )
 
             indexes.append(index)
 
@@ -54,18 +59,19 @@ def analyze_directory(directory: Optional[Path] = None,
     if store_to_index_file:
         for index in result_indexes:
             if EcoinventDataset.exists(index.identity):
-                logger.debug(f"Ecoinvent dataset '{index.identity}' already indexed and will not be added")
+                logger.debug(
+                    f"Ecoinvent dataset '{index.identity}' "
+                    f"already indexed and will not be added"
+                )
                 continue
             index.save()
             logger.info(f"Added ecoinvent dataset '{index.identity}'")
     return result_indexes
 
 
-def add_dataset_index(version: str,
-                      system_model: str,
-                      type: str,
-                      xlsx: str,
-                      directory: str):
+def add_dataset_index(
+    version: str, system_model: str, type: str, xlsx: str, directory: str
+):
     """
     Add a dataset index
     :param version:
@@ -75,23 +81,29 @@ def add_dataset_index(version: str,
     :param directory:
     :return:
     """
-    ds = EcoinventDataset(version=version,
-                          system_model=system_model,
-                          type=type,
-                          xlsx=xlsx,
-                          directory=directory)
+    ds = EcoinventDataset(
+        version=version,
+        system_model=system_model,
+        type=type,
+        xlsx=xlsx,
+        directory=directory,
+    )
     if EcoinventDataset.exists(ds.identity):
-        logger.debug(f"Ecoinvent dataset '{ds.identity}' already indexed and will not be added")
+        logger.debug(
+            f"Ecoinvent dataset '{ds.identity}' already indexed and will not be added"
+        )
         return
     ds.save()
 
 
-def get_ecoinvent_dataset_index(*,
-                                version: Optional[Union[str, list[str]]] = None,
-                                system_model: Optional[Union[str, list[str]]] = None,
-                                type_: Optional[Union[str, list[str]]] = None,
-                                xlsx: Optional[bool] = None,
-                                has_bw_project: Optional[bool] = None) -> list[EcoinventDataset]:
+def get_ecoinvent_dataset_index(
+    *,
+    version: Optional[Union[str, list[str]]] = None,
+    system_model: Optional[Union[str, list[str]]] = None,
+    type_: Optional[Union[str, list[str]]] = None,
+    xlsx: Optional[bool] = None,
+    has_bw_project: Optional[bool] = None,
+) -> list[EcoinventDataset]:
     """
     Get the dataset index for the given parameters
     :param version: ecoinvent version, one or multiple
@@ -118,27 +130,34 @@ def get_ecoinvent_dataset_index(*,
     if xlsx is not None:
         query = query.where(EcoinventDataset.xlsx == xlsx)
     if has_bw_project is not None:
-        query = query.select().join(BWProjectIndex, JOIN.LEFT_OUTER).where(
-            BWProjectIndex.ecoinvent_dataset.is_null(not has_bw_project))
+        query = (
+            query.select()
+            .join(BWProjectIndex, JOIN.LEFT_OUTER)
+            .where(BWProjectIndex.ecoinvent_dataset.is_null(not has_bw_project))
+        )
     return list(query)
 
 
 def is_resolved_database_available(dataset: EcoinventDataset):
     """
-    Checks if the resolved database (lci, lcia from excel) is available for the given dataset
+    Checks if the resolved database (lci, lcia from excel)
+    is available for the given dataset
     :param dataset:
     :return:
     """
     pass
 
 
-def auto_import(eods: EcoinventDataset,
-                project_name: Optional[str] = "ecoinvent",
-                database_name: Optional[str] = None) -> Optional[bw2io.SingleOutputEcospold2Importer]:
+def auto_import(
+    eods: EcoinventDataset,
+    project_name: Optional[str] = "ecoinvent",
+    database_name: Optional[str] = None,
+) -> Optional[bw2io.SingleOutputEcospold2Importer]:
     """
     Automatically imports the given ecoinvent dataset into a new project and database.
     Also creates the BWProjectIndex
-    YOU SHOULD MAKE SURE THAT BRIGHTWAY DATA CAN DEAL WITH THAT PARTICULAR VERSION OF ECOINVENT.
+    YOU SHOULD MAKE SURE THAT BRIGHTWAY DATA CAN DEAL
+     WITH THAT PARTICULAR VERSION OF ECOINVENT.
 
     :param eods: eoinvent dataset (should be indexed)
     :param project_name:
@@ -146,11 +165,15 @@ def auto_import(eods: EcoinventDataset,
     :return:
     """
     if eods.xlsx or not eods.type == "default":
-        raise ValueError(f"Only default datasets and non xlsx are supported. Passed: {eods}")
-    exists = get_ecoinvent_dataset_index(version=eods.version,
-                                         system_model=eods.system_model,
-                                         type_=eods.type,
-                                         xlsx=eods.xlsx)
+        raise ValueError(
+            f"Only default datasets and non xlsx are supported. Passed: {eods}"
+        )
+    exists = get_ecoinvent_dataset_index(
+        version=eods.version,
+        system_model=eods.system_model,
+        type_=eods.type,
+        xlsx=eods.xlsx,
+    )
     if not exists:
         eods.save()
     else:
@@ -172,15 +195,24 @@ def auto_import(eods: EcoinventDataset,
     if database_name in bw2data.databases:
         raise ValueError(f"Database already exists: {database_name}")
     logger.info(f"Importing ecoinvent dataset to {project_name}/{database_name}")
-    importer = bw2io.SingleOutputEcospold2Importer(eods.dataset_path.as_posix(), database_name)
+    importer = bw2io.SingleOutputEcospold2Importer(
+        eods.dataset_path.as_posix(), database_name
+    )
     importer.apply_strategies()
     importer.statistics()
     if importer.statistics()[2] == 0:
         importer.write_database()
-        BWProjectIndex.create(project_name=project_name, database_name=database_name, ecoinvent_dataset=eods)
+        BWProjectIndex.create(
+            project_name=project_name,
+            database_name=database_name,
+            ecoinvent_dataset=eods,
+        )
     else:
-        print("There are unlinked exchanges. Database will not be written. Method returns importer "
-              "(you can inspect, manipulable and write it manually).")
+        print(
+            "There are unlinked exchanges. Database will not be written. "
+            "Method returns importer "
+            "(you can inspect, manipulable and write it manually)."
+        )
     return importer
 
 

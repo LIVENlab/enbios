@@ -1,5 +1,3 @@
-from huggingface_hub import login
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from typing import Optional
 
@@ -17,7 +15,6 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-from datasets import list_datasets, load_dataset
 import datasets
 # Print all the available datasets
 # print(list_datasets())

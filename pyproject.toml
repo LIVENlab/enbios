@@ -50,3 +50,6 @@ test = [
 [tool.setuptools]
 package-dir = { "enbios2" = "enbios2" }
 
+[tool.ruff]
+line-length = 90
+#src = ["enbios2/base", "enbios2/generic", "enbios2/plotting", "enbios2/bw2", "enbios2/ecoinvent"]

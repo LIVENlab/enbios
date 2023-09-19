@@ -6,7 +6,6 @@ logger = get_logger(__file__)
 def run_all():
     BASE_SCHEMA_PATH.mkdir(parents=True, exist_ok=True)
     from enbios2.dev.create_experiment_schema import create_experiment_schema
-    from enbios2.dev.create_tech_tree_node_schema import create_tech_tree_node_schema
 
     create_experiment_schema()
     logger.warning("Tech tree schema not generated")

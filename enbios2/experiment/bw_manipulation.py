@@ -1,5 +1,4 @@
 import bw2data as bd
-from bw2data.backends import Activity
 
 bd.projects.set_current("ecoi_dbs")
 

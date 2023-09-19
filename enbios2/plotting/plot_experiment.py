@@ -17,27 +17,30 @@ from enbios2.models.experiment_models import ScenarioResultNodeData
 logger = get_logger(__file__)
 
 
-def bar_plot(experiment: Union[Experiment, ResultsSelector],
-             scenarios: Optional[list[str]] = None,
-             methods: Optional[list[str]] = None,
-             short_method_names: bool = True,
-             image_file: Optional[PathLike] = None) -> Figure:
+def bar_plot(
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    short_method_names: bool = True,
+    image_file: Optional[PathLike] = None,
+) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
 
     n_rows = len(rs.methods)
     n_cols = 1
 
-    fig, axs = plt.subplots(n_rows, n_cols,
-                            figsize=(10, 5 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
+    fig, axs = plt.subplots(
+        n_rows, n_cols, figsize=(10, 5 * n_rows)
+    )  # Assuming each subplot has a height of 5, adjust as needed
 
     # Check if there's only one subplot to handle the indexing appropriately
     if n_rows == 1:
         axs = [axs]
 
     for idx, method in enumerate(rs.methods):
-        cmap = plt.colormaps.get_cmap('tab10')
+        cmap = plt.colormaps.get_cmap("tab10")
         colors = cmap(np.linspace(0, 1, len(rs.scenarios)))
-        rs.base_df.plot(kind='bar', x='scenario', y=method, ax=axs[idx], color=colors)
+        rs.base_df.plot(kind="bar", x="scenario", y=method, ax=axs[idx], color=colors)
         axs[idx].set_ylabel(rs.method_label_names(short_method_names)[idx], fontsize=8)
         axs[idx].legend().set_visible(False)
 
@@ -47,21 +50,24 @@ def bar_plot(experiment: Union[Experiment, ResultsSelector],
     return fig  # Return the figure object
 
 
-def stacked_bar_plot(experiment: Union[Experiment, ResultsSelector],
-                     scenarios: Optional[list[str]] = None,
-                     methods: Optional[list[str]] = None,
-                     level: int = 1,
-                     short_method_names: bool = True,
-                     aliases: Optional[list[str]] = None,
-                     image_file: Optional[PathLike] = None
-                     ) -> Figure:
+def stacked_bar_plot(
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    level: int = 1,
+    short_method_names: bool = True,
+    aliases: Optional[list[str]] = None,
+    image_file: Optional[PathLike] = None,
+) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     experiment = rs.experiment
 
     if level >= experiment.hierarchy_root.depth:
         logger.warning(
             f"Level {level} is higher or equal (>=) than the depth of the hierarchy "
-            f"({experiment.hierarchy_root.depth}). Limiting to {experiment.hierarchy_root.depth - 1}")
+            f"({experiment.hierarchy_root.depth}). "
+            f"Limiting to {experiment.hierarchy_root.depth - 1}"
+        )
         level = experiment.hierarchy_root.depth - 1
     # Define the number of rows and columns for the subplots
     n_rows = len(rs.methods)
@@ -69,8 +75,9 @@ def stacked_bar_plot(experiment: Union[Experiment, ResultsSelector],
 
     # Create a new figure with a defined size (adjust as needed)
     # Explicitly create a Figure object
-    fig, axs = plt.subplots(n_rows, n_cols,
-                            figsize=(10, 5 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
+    fig, axs = plt.subplots(
+        n_rows, n_cols, figsize=(10, 5 * n_rows)
+    )  # Assuming each subplot has a height of 5, adjust as needed
 
     # Check if there's only one subplot to handle the indexing appropriately
     if n_rows == 1:
@@ -92,9 +99,8 @@ def stacked_bar_plot(experiment: Union[Experiment, ResultsSelector],
 
         node_names = [node.name for node in nodes]
         df = rs.collect_tech_results(node_names)
-        df_pivot = df.pivot(index='scenario', columns='tech',
-                            values=method)
-        df_pivot.plot(kind='bar', stacked=True, ax=ax)
+        df_pivot = df.pivot(index="scenario", columns="tech", values=method)
+        df_pivot.plot(kind="bar", stacked=True, ax=ax)
         ax.set_ylabel(rs.method_label_names(short_method_names)[idx], fontsize=8)
 
     plt.tight_layout()
@@ -103,20 +109,21 @@ def stacked_bar_plot(experiment: Union[Experiment, ResultsSelector],
     return fig  # Return the figure object
 
 
-def star_plot(experiment: Union[Experiment, ResultsSelector],
-              scenarios: Optional[list[str]] = None,
-              methods: Optional[list[str]] = None,
-              *,
-              fill: bool = True,
-              r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-              show_r_ticks: bool = True,
-              show_grid: bool = True,
-              col: int = 4,
-              row: Optional[int] = None,
-              short_method_names: bool = True,
-              show_labels: bool = True,
-              image_file: Optional[PathLike] = None
-              ) -> Figure:
+def star_plot(
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    *,
+    fill: bool = True,
+    r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+    show_r_ticks: bool = True,
+    show_grid: bool = True,
+    col: int = 4,
+    row: Optional[int] = None,
+    short_method_names: bool = True,
+    show_labels: bool = True,
+    image_file: Optional[PathLike] = None,
+) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df()
 
@@ -128,7 +135,9 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
     if row == 1:
         col = len(rs.scenarios)
     # Create figure and axes
-    fig, axs = plt.subplots(row, col, figsize=(6 * col, 6 * row), subplot_kw=dict(polar=True))
+    fig, axs = plt.subplots(
+        row, col, figsize=(6 * col, 6 * row), subplot_kw=dict(polar=True)
+    )
     if row == 1 and col == 1:
         axs = [[axs]]  # to handle indexing later on
     elif row == 1:
@@ -158,7 +167,7 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
             # Plot data
 
             if fill:
-                ax.fill(angles, values, color='blue', alpha=0.1)
+                ax.fill(angles, values, color="blue", alpha=0.1)
             else:
                 ax.plot(angles, values)
 
@@ -192,19 +201,20 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
     return fig
 
 
-def single_star_plot(experiment: Union[Experiment, ResultsSelector],
-                     scenarios: Optional[list[str]] = None,
-                     methods: Optional[list[str]] = None,
-                     *,
-                     r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-                     show_r_ticks: bool = True,
-                     show_grid: bool = True,
-                     col: int = 4,
-                     row: Optional[int] = None,
-                     short_method_names: bool = True,
-                     show_labels: bool = True,
-                     image_file: Optional[PathLike] = None
-                     ) -> Figure:
+def single_star_plot(
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    *,
+    r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+    show_r_ticks: bool = True,
+    show_grid: bool = True,
+    col: int = 4,
+    row: Optional[int] = None,
+    short_method_names: bool = True,
+    show_labels: bool = True,
+    image_file: Optional[PathLike] = None,
+) -> Figure:
     """
     plots multiple scenarios into one star plot
     :param experiment:
@@ -228,8 +238,8 @@ def single_star_plot(experiment: Union[Experiment, ResultsSelector],
     # Create figure and axes
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 
-    cmap = plt.colormaps.get_cmap('tab10')
-    for (idx, scenario_name) in enumerate(scenarios):
+    cmap = plt.colormaps.get_cmap("tab10")
+    for idx, scenario_name in enumerate(scenarios):
         values = df.loc[df["scenario"] == scenario_name].values.tolist()[0][1:]
         values.append(values[0])
 
@@ -257,11 +267,13 @@ def single_star_plot(experiment: Union[Experiment, ResultsSelector],
     ax.set_rmax(1)
 
 
-def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
-                 scenarios: Optional[list[str]] = None,
-                 methods: Optional[list[str]] = None,
-                 special_df: Optional[DataFrame] = None,
-                 image_file: Optional[PathLike] = None) -> Figure:
+def plot_heatmap(
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    special_df: Optional[DataFrame] = None,
+    image_file: Optional[PathLike] = None,
+) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     if special_df is not None:
         rs.check_special_df(special_df)
@@ -269,7 +281,7 @@ def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
     else:
         df = rs.normalized_df()
 
-    df = df.set_index('scenario').transpose()
+    df = df.set_index("scenario").transpose()
 
     fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5, len(rs.methods) * 1.5))
     im = ax.imshow(df, cmap="summer")
@@ -279,13 +291,18 @@ def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
     ax.set_yticks(np.arange(len(rs.methods)), labels=labels)
 
     # Rotate the tick labels and set their alignment.
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-             rotation_mode="anchor")
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     ax.figure.colorbar(im, ax=ax, **{})
     for i in range(len(rs.scenarios)):
         for j in range(len(rs.methods)):
-            ax.text(i, j, "%.2f" % df[df.columns[i]][j],
-                    ha="center", va="center", color="black")
+            ax.text(
+                i,
+                j,
+                "%.2f" % df[df.columns[i]][j],
+                ha="center",
+                va="center",
+                color="black",
+            )
 
     fig.tight_layout()
     if image_file:
@@ -293,11 +310,13 @@ def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
     return fig
 
 
-def plot_sankey(exp: Experiment,
-                scenario_name: str,
-                method_: str,
-                *,
-                image_file: Optional[PathLike] = None) -> Figure:
+def plot_sankey(
+    exp: Experiment,
+    scenario_name: str,
+    method_: str,
+    *,
+    image_file: Optional[PathLike] = None,
+) -> Figure:
     try:  # type: ignore
         import plotly.graph_objects as go
     except ImportError:
@@ -318,19 +337,20 @@ def plot_sankey(exp: Experiment,
             target.append(all_nodes.index(child))
             value.append(child.data.results[method_])
 
-    fig = go.Figure(data=[go.Sankey(
-        node=dict(
-            pad=15,
-            thickness=20,
-            line=dict(color="black", width=0.5),
-            label=node_labels,
-            color="blue"
-        ),
-        link=dict(
-            source=source,
-            target=target,
-            value=value
-        ))])
+    fig = go.Figure(
+        data=[
+            go.Sankey(
+                node=dict(
+                    pad=15,
+                    thickness=20,
+                    line=dict(color="black", width=0.5),
+                    label=node_labels,
+                    color="blue",
+                ),
+                link=dict(source=source, target=target, value=value),
+            )
+        ]
+    )
 
     fig.update_layout(title_text=f"{scenario.alias} / {method_}", font_size=10)
     if image_file:
@@ -338,17 +358,20 @@ def plot_sankey(exp: Experiment,
     return fig
 
 
-def one_axes_scatter_plot(experiment: Union[Experiment, ResultsSelector],
-                          selected_scenario: str,
-                          methods: Optional[list[str]] = None,
-                          image_file: Optional[PathLike] = None) -> Figure:
+def one_axes_scatter_plot(
+    experiment: Union[Experiment, ResultsSelector],
+    selected_scenario: str,
+    methods: Optional[list[str]] = None,
+    image_file: Optional[PathLike] = None,
+) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, None, methods)
     df = rs.normalized_df()
 
     scenario_index = df[df.columns[0]].tolist().index(selected_scenario)
     n_rows = len(rs.methods)
-    fig, axs = plt.subplots(len(rs.methods), 1,
-                            figsize=(10, 2 * n_rows))  # Assuming each subplot has a height of 5, adjust as needed
+    fig, axs = plt.subplots(
+        len(rs.methods), 1, figsize=(10, 2 * n_rows)
+    )  # Assuming each subplot has a height of 5, adjust as needed
 
     for method_index in range(n_rows):
         ax = axs[method_index]
@@ -357,11 +380,11 @@ def one_axes_scatter_plot(experiment: Union[Experiment, ResultsSelector],
         y = np.random.normal(loc=0, scale=1e-286, size=len(df))
         colors = ["#FFA50090"] * len(x)
         colors[scenario_index] = "blue"
-        ax.scatter(x, y, s=100, c=colors, marker='o')
+        ax.scatter(x, y, s=100, c=colors, marker="o")
         # plt.title("Scatter Plot with Dense Y Distribution")
         ax.set_xlabel(rs.methods[method_index])
         ax.set_yticks([])  # Hide y-axis labels
-        ax.grid(True, which='both', linestyle='--', linewidth=0.5, axis='x')
+        ax.grid(True, which="both", linestyle="--", linewidth=0.5, axis="x")
         # no border on all edges
         for spine in ax.spines.values():
             spine.set_visible(False)
@@ -369,4 +392,3 @@ def one_axes_scatter_plot(experiment: Union[Experiment, ResultsSelector],
     if image_file:
         fig.write_image(Path(image_file).as_posix())
     return fig  # Return the figure object
-

@@ -6,19 +6,27 @@ from frictionless.fields import NumberField, StringField
 
 from enbios2.generic.files import ReadPath
 from enbios2.generic.tree.basic_tree import BasicTreeNode
-from enbios2.models.experiment_models import (ExperimentDataIO, ExperimentData, ActivitiesDataRows,
-                                              ExperimentMethodData, ActivitiesDataTypes, MethodsDataTypes)
+from enbios2.models.experiment_models import (
+    ExperimentDataIO,
+    ExperimentData,
+    ActivitiesDataRows,
+    ExperimentMethodData,
+    ActivitiesDataTypes,
+    MethodsDataTypes,
+)
 
-activities_schema = Schema(fields=[
-    StringField(name="alias"),
-    StringField(name="database"),
-    StringField(name="code"),
-    StringField(name="name"),
-    StringField(name="location"),
-    StringField(name="unit"),
-    NumberField(name="output.value", float_number=True),
-    StringField(name="output.unit")
-])
+activities_schema = Schema(
+    fields=[
+        StringField(name="alias"),
+        StringField(name="database"),
+        StringField(name="code"),
+        StringField(name="name"),
+        StringField(name="location"),
+        StringField(name="unit"),
+        NumberField(name="output.value", float_number=True),
+        StringField(name="output.unit"),
+    ]
+)
 
 activities_unflatten_map = {
     "alias": "id.alias",
@@ -28,17 +36,19 @@ activities_unflatten_map = {
     "location": "id.location",
     "unit": "id.unit",
     "output.value": "output.value",
-    "output.unit": "output.unit"
+    "output.unit": "output.unit",
 }
 
-methods_schema = Schema(fields=[
-    StringField(name="alias"),
-    StringField(name="id"),
-    StringField(name="id0"),
-    StringField(name="id1"),
-    StringField(name="id2"),
-    StringField(name="id3")
-])
+methods_schema = Schema(
+    fields=[
+        StringField(name="alias"),
+        StringField(name="id"),
+        StringField(name="id0"),
+        StringField(name="id1"),
+        StringField(name="id2"),
+        StringField(name="id3"),
+    ]
+)
 
 
 # methods_fields = ["alias", "id", "id0", "id1", "id2", "id3"]
@@ -85,12 +95,23 @@ def read_experiment_io(data: dict) -> ExperimentData:
             experiment_data.activities = data
         elif activities_file.suffix == ".csv":
             with system.use_context(trusted=True):
-                resource: Resource = Resource(path=activities_file.as_posix(), schema=activities_schema)
+                resource: Resource = Resource(
+                    path=activities_file.as_posix(), schema=activities_schema
+                )
                 report = validate(resource)
                 if not report.valid:
-                    raise Exception(f"Invalid activities file: {exp_io.activities}; errors: {report.task.errors}")
+                    raise Exception(
+                        f"Invalid activities file: {exp_io.activities}; "
+                        f"errors: {report.task.errors}"
+                    )
                 experiment_data.activities = ActivitiesDataRows(
-                    list((unflatten_data(r, activities_unflatten_map) for r in resource.read_rows())))
+                    list(
+                        (
+                            unflatten_data(r, activities_unflatten_map)
+                            for r in resource.read_rows()
+                        )
+                    )
+                )
     else:
         experiment_data.activities = ActivitiesDataTypes(exp_io.activities)
 
@@ -101,11 +122,18 @@ def read_experiment_io(data: dict) -> ExperimentData:
             experiment_data.methods = data
         if methods_file.suffix == ".csv":
             with system.use_context(trusted=True):
-                resource: Resource = Resource(path=methods_file.as_posix(), schema=methods_schema)
+                resource: Resource = Resource(
+                    path=methods_file.as_posix(), schema=methods_schema
+                )
                 report = validate(resource)
                 if not report.valid:
-                    raise Exception(f"Invalid methods file: {exp_io.methods}; errors: {report.task.errors}")
-                experiment_data.methods = list((parse_method_row(r) for r in resource.read_rows()))
+                    raise Exception(
+                        f"Invalid methods file: {exp_io.methods}; "
+                        f"errors: {report.task.errors}"
+                    )
+                experiment_data.methods = list(
+                    (parse_method_row(r) for r in resource.read_rows())
+                )
     else:
         experiment_data.methods = MethodsDataTypes(exp_io.methods)
 
@@ -122,22 +150,21 @@ def read_experiment_io(data: dict) -> ExperimentData:
 if __name__ == "__main__":
     scenario_data = {
         "bw_project": "uab_bw_ei39",
-        "activities_config": {
-            "default_database": "ei391"
-        },
+        "activities_config": {"default_database": "ei391"},
         "config": {
-            "base_directory": "/mnt/SSD/projects/LIVENLab/enbios2/data/test_data/experiment_separated/a/"
+            "base_directory": "/mnt/SSD/projects/LIVENLab/enbios2/"
+            "data/test_data/experiment_separated/a/"
         },
         "activities": "single_activity.csv",
         "methods": "methods.csv",
-        "hierarchy": {
-            "energy": [
-                "single_activity"
-            ]
-        }
+        "hierarchy": {"energy": ["single_activity"]},
     }
     exp: ExperimentData = read_experiment_io(scenario_data)
 
-    reader = DictReader(open("/mnt/SSD/projects/LIVENLab/enbios2/data/templates/experiment_activity_data.csv"))
+    reader = DictReader(
+        open(
+            "/mnt/SSD/projects/LIVENLab/enbios2/data/templates/experiment_activity_data.csv"
+        )
+    )
 
     node = BasicTreeNode.from_compact_dict(scenario_data["hierarchy"])

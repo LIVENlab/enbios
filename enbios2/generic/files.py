@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Generator, Union, Optional
 
 try:
-    from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CLoader as Loader
 except ImportError:
-    from yaml import Loader, Dumper
+    from yaml import Loader
 import openpyxl
 import xmltodict as xmltodict
 
@@ -50,7 +50,7 @@ def read_data(path: Path, config: Optional[dict] = None):
 
 
 class DataPath(Path):
-    _flavour = Path('.')._flavour  # type: ignore
+    _flavour = Path(".")._flavour  # type: ignore
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls, BASE_DATA_PATH, *args, **kwargs)
@@ -71,7 +71,8 @@ class ReadPath(Path):
     """
     Checks on instantiation that the file exists
     """
-    _flavour = Path('.')._flavour  # type: ignore
+
+    _flavour = Path(".")._flavour  # type: ignore
 
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls, *args, **kwargs)

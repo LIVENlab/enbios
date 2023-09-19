@@ -26,7 +26,7 @@ def list_importers() -> dict[str, Union[dict[str, list[TypeVar]], dict[str, Type
     name2importer: dict[str, TypeVar] = {}
     for name, obj in inspect.getmembers(package):
         if inspect.isclass(obj):
-            format_value = getattr(obj, 'format', None)
+            format_value = getattr(obj, "format", None)
             if format_value is not None:
                 format2importer.setdefault(format_value, []).append(obj)
                 name2importer[name] = obj
@@ -55,7 +55,10 @@ def setup_bw_project(project: BWProject, require_fresh: bool = False) -> None:
     logger.info(f"Setup {project.project_name}")
     if project.project_name in bd.projects:
         if require_fresh:
-            raise Exception(f"project {project.project_name} already exists and 'require_fresh' is set to True.")
+            raise Exception(
+                f"project {project.project_name} already exists and "
+                f"'require_fresh' is set to True."
+            )
         logger.info(f"project '{project.project_name}' already exists.")
         bd.projects.set_current(project.project_name)
     else:
@@ -77,7 +80,7 @@ def setup_bw_db(db: BWProjectDatabase):
         path = BASE_DATA_PATH / path
     if not path.exists():
         raise Exception(f"Source {db.source} does not exist")
-    logger.info(f"Importing database ")
+    logger.info("Importing database ")
     bw_importer = get_bw_importer(db)
     logger.info(f"Importing {db.name} from '{db.source}' using '{bw_importer.__name__}'")
     # return bw_importer

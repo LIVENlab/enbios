@@ -12,11 +12,15 @@ from enbios2.generic.enbios2_logging import get_logger
 logger = get_logger(__file__)
 
 
-def generate_levensthein_name_map(names_a: list[str], names_b: list[str]) -> dict[str, str]:
+def generate_levensthein_name_map(
+    names_a: list[str], names_b: list[str]
+) -> dict[str, str]:
     try:
         from Levenshtein import ratio
     except ImportError:
-        raise ImportError("Levensthein module not found. Install with `pip install Levensthein`")
+        raise ImportError(
+            "Levensthein module not found. Install with `pip install Levensthein`"
+        )
 
     names_map: dict[str, str] = {}
     remaning_names = names_b.copy()
@@ -29,11 +33,15 @@ def generate_levensthein_name_map(names_a: list[str], names_b: list[str]) -> dic
     return names_map
 
 
-def generate_levensthein_dict_map(names_a: list[str], dicts: list[dict], dict_key: str) -> dict[str, dict]:
+def generate_levensthein_dict_map(
+    names_a: list[str], dicts: list[dict], dict_key: str
+) -> dict[str, dict]:
     try:
         from Levenshtein import ratio
     except ImportError:
-        raise ImportError("Levensthein module not found. Install with `pip install Levensthein`")
+        raise ImportError(
+            "Levensthein module not found. Install with `pip install Levensthein`"
+        )
 
     names_map: dict[str, dict] = {}
     remaning_dicts = dicts.copy()
