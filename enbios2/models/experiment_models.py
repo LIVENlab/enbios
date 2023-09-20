@@ -45,7 +45,7 @@ class ExperimentActivityId:
     alias: Optional[str] = None
 
     def get_bw_activity(
-        self, allow_multiple: bool = False
+            self, allow_multiple: bool = False
     ) -> Union[Activity, list[Activity]]:
         if self.code:
             if not self.database:
@@ -57,7 +57,7 @@ class ExperimentActivityId:
             if self.location:
                 filters["location"] = self.location
                 assert (
-                    self.database in bw2data.databases
+                        self.database in bw2data.databases
                 ), f"database {self.database} not found"
                 search_results = bw2data.Database(self.database).search(
                     self.name, filter=filters
@@ -85,7 +85,7 @@ class ExperimentActivityId:
             raise ValueError("No code or name specified")
 
     def fill_empty_fields(
-        self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
+            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
     ):
         if not fields:
             fields = []
@@ -222,15 +222,26 @@ class ExperimentConfig:
 
 ActivitiesDataRows = list[ExperimentActivityData]
 ActivitiesDataTypes = Union[ActivitiesDataRows, dict[str, ExperimentActivityData]]
-
+# with path
 ActivitiesDataTypesExt = Union[
     ActivitiesDataRows, dict[str, ExperimentActivityData], PathLike
 ]
 
 MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
+# with path
+MethodsDataTypesExt = Union[
+    list[ExperimentMethodData], dict[str, tuple[str, ...]], PathLike]
+
 HierarchyDataTypes = Union[list, dict]
+# with path
+HierarchyDataTypesExt = Union[list, dict, PathLike]
+
 ScenariosDataTypes = Union[
     list[ExperimentScenarioData], dict[str, ExperimentScenarioData]
+]
+# with path
+ScenariosDataTypesExt = Union[
+    list[ExperimentScenarioData], dict[str, ExperimentScenarioData], PathLike
 ]
 
 
@@ -246,17 +257,17 @@ class ExperimentData:
     activities: ActivitiesDataTypesExt = Field(
         ..., description="The activities to be used in the experiment"
     )
-    methods: MethodsDataTypes = Field(
+    methods: MethodsDataTypesExt = Field(
         ..., description="The impact methods to be used in the experiment"
     )
     bw_default_database: Optional[str] = Field(
         None,
         description="The default database of activities to be used " "in the experiment",
     )
-    hierarchy: Optional[Union[list, dict]] = Field(
+    hierarchy: Optional[HierarchyDataTypesExt] = Field(
         None, description="The activity hierarchy to be used in the experiment"
     )
-    scenarios: Optional[ScenariosDataTypes] = Field(
+    scenarios: Optional[ScenariosDataTypesExt] = Field(
         None, description="The scenarios for this experiment"
     )
     config: ExperimentConfig = Field(

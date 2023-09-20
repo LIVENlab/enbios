@@ -59,7 +59,6 @@ class Experiment:
         self.raw_data = ExperimentData(**asdict(input_data))
 
         # alias to activity
-
         self._validate_bw_config()
         self._activities: dict[
             str, ExtendedExperimentActivityData

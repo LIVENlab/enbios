@@ -86,9 +86,11 @@ def get_abs_path(path: Union[str, PathLike], base_dir: Optional[str] = None) -> 
 
 
 def resolve_input_files(raw_input: ExperimentData):
+    # activities
     if isinstance(raw_input.activities, str) or isinstance(
         raw_input.activities, PathLike
     ):
+
         activities_file: ReadPath = get_abs_path(
             raw_input.activities, raw_input.config.base_directory
         )
@@ -114,6 +116,45 @@ def resolve_input_files(raw_input: ExperimentData):
                         )
                     )
                 )
+
+    # methods
+    if isinstance(raw_input.methods, str) or isinstance(raw_input.methods, PathLike):
+        methods_file: ReadPath = get_abs_path(raw_input.methods)
+        if methods_file.suffix == ".json":
+            data = methods_file.read_data()
+            raw_input.methods = data
+        if methods_file.suffix == ".csv":
+            with system.use_context(trusted=True):
+                resource: Resource = Resource(
+                    path=methods_file.as_posix(), schema=methods_schema
+                )
+                report = validate(resource)
+                if not report.valid:
+                    raise Exception(
+                        f"Invalid methods file: {raw_input.methods}; "
+                        f"errors: {report.task.errors}"
+                    )
+                raw_input.methods = list(
+                    (parse_method_row(r) for r in resource.read_rows())
+                )
+
+    # hierarchy
+    if isinstance(raw_input.hierarchy, str) or isinstance(raw_input.hierarchy, PathLike):
+        hierarchy_file: ReadPath = get_abs_path(raw_input.hierarchy)
+        if hierarchy_file.suffix == ".json":
+            data = hierarchy_file.read_data()
+            raw_input.hierarchy = data
+        else:
+            raise Exception(f"Invalid hierarchy file: {raw_input.hierarchy}")
+
+    # scenarios
+    if isinstance(raw_input.scenarios, str) or isinstance(raw_input.scenarios, PathLike):
+        scenario_file: ReadPath = get_abs_path(raw_input.scenarios)
+        if scenario_file.suffix == ".json":
+            data = scenario_file.read_data()
+            raw_input.scenario = data
+        else:
+            raise Exception(f"Invalid scenario file: {raw_input.scenarios}")
 
 
 def read_experiment_io(data: Union[dict, ExperimentDataIO]) -> "Experiment":
