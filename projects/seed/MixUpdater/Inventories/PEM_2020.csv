@@ -1,0 +1,19 @@
+Amount;Location;Activity name;Activity_code;Reference_product;Unit;Act_to;Technosphere;Database
+NA;PT;Constructing materials_PEM_2020;hy_2020_PEM_materials;materials_PEM_2020;Item;marker;Yes;db_experiments
+36000;GLO;market for steel, low-alloyed;a81ce0e882f1b0ef617462fc8e7472e4;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+1600;GLO;market for reinforcing steel;bd3a3818f60643fd78eccefa7b4390c1;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+530;GLO;market for aluminium, cast alloy;fe46c28da468b81defdd4f4d50915a9e;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+0.23;GLO;market for platinum;90aa1cf7ab6b25320d33a20c3150da18;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+2.1;GLO;market for graphite;fd558441fc3d04fe59887ab30ce51119;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+0.76;GLO;market for titanium;cbba1d5c4658c85a617f5173516cc257;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+5.8;ReR;market for tetrafluoroethylene;241dbdff1d770af53dc3727e431c7d5e;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+1.1;GLO;market for solvent, organic;864c358f9f6012bc0f8fb9d6ace2c973;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+260;GLO;market for cast iron;e6ba5991b1ecab06c9e5ebc33af41364;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+0.65;GLO;market for copper cake;49946336299fce3d89a8e78a96ddedd4;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+1.3;GLO;market for silicon, metallurgical grade;1ffe09506f70be4dcd98071865e8a549;No;kg;Constructing materials_PEM_2020;Yes;db_experiments
+NA;PT;Operating_resources_PEM2020;hy_2020_PEM_RESOURCES;materials_PEM_2020;Item;marker;Yes;db_experiments
+50;PT;Future market for electricity;f_test;No;kWh;Operating_resources_PEM2020;Yes;db_experiments
+19;RER;market for water, deionised;95d26245bc411de42cbca001406f6131;No;kg;Operating_resources_PEM2020;Yes;db_experiments
+NA;PT;Hydrogen_production_PEM_2020;hy_2020_production_PEM;1kg hydrogen;kg;marker;Yes;db_experiments
+2.60E-07;PT;Constructing materials_PEM_2020;hy_2020_PEM_materials;Hydrogen_production_PEM_2020;;Hydrogen_production_PEM_2020;Yes;db_experiments
+1;PT;Operating_resources_PEM2020;hy_2020_PEM_RESOURCES;Hydrogen_production_PEM_2020;;Hydrogen_production_PEM_2020;Yes;db_experiments

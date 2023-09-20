@@ -1,0 +1,4 @@
+Amount;Location;New Activity;Activity name;Activity_code;Reference_product;Unit;Act_to;Technosphere;Database
+NA;PT;Yes;Market for hydrogen ;market_hydrogen_2050_A;1kg of hydrogen 20 bars;kg;marker;Yes;db_experiments
+0.5;PT;No;Hydrogen production, AWE, 2020;AWE_2020_production;No;kg;Market for hydrogen ;Yes;db_experiments
+0.5;PT;No;Hydrogen_production_PEM_2020;hy_2020_production_PEM;No;kg;Market for hydrogen ;Yes;db_experiments

@@ -1,0 +1,41 @@
+Amount;Location;Activity name;Activity_code;Reference_product;Unit;Act_to;Technosphere;Database
+NA;PT;Cell Stack Framework;hy_2020_StackFramework;Stack_framework_2020;Item;marker;Yes;db_experiments
+2000;Global market;market for copper cake;49946336299fce3d89a8e78a96ddedd4;No;kg;Cell Stack Framework;Yes;db_experiments
+200000;Global market;market for steel, unalloyed;d872e0d78319cb13e12b96de83e19dd7;No;kg;Cell Stack Framework;Yes;db_experiments
+NA;PT;Cell;hy_2020_cell;Cell_hy_2020_AWE;Item;marker;Yes;db_experiments
+19000;GLO;market for nickel, class 1;4347b9665d0aea69c7956fa09ac8db07;No;kg/kW;Cell;Yes;db_experiments
+54;GLO;market for acetic anhydride;768fdad16396ad2811ed4798c129bed1;No;kg;Cell;Yes;db_experiments
+160;GLO;market for acrylonitrile-butadiene-styrene copolymer;cbc24cb2d2368cc993decfd82de23b7f;No;kg;Cell;Yes;db_experiments
+450;GLO;market for aluminium, cast alloy;fe46c28da468b81defdd4f4d50915a9e;No;kg;Cell;Yes;db_experiments
+49;GLO;market for aniline;5e1af0e3a2b24bdeaa703fd2391de5ff;No;kg;Cell;Yes;db_experiments
+780;GLO;market for calendering, rigid sheets;e9b5d7ee32f6afd7b411f61bba9aac76;No;kg;Cell;Yes;db_experiments
+150;European market;market for carbon monoxide;cfef1f78963da321b43c7b0384144536;No;kg;Cell;Yes;db_experiments
+1100;Global market;market for zirconium oxide;5298254fa3c87afd6b7e4e8dd48f1635;No;kg;Cell;Yes;db_experiments
+78;Global market;market for tetrafluoroethylene;241dbdff1d770af53dc3727e431c7d5e;No;kg;Cell;Yes;db_experiments
+340;GLO;market for polyphenylene sulfide;99336db2446b51b8f056be971845df59;No;kg;Cell;Yes;db_experiments
+260;GLO;market for polysulfone;98edbeaa8a7c627fc438e34142c8c9ac;No;kg;Cell;Yes;db_experiments
+1300;GLO;market for N-methyl-2-pyrrolidone;ff80e9885b8f29ad9d81b02221589625;No;kg;Cell;Yes;db_experiments
+54;GLO;market for acetic anhydride;768fdad16396ad2811ed4798c129bed1;No;kg;Cell;Yes;db_experiments
+88;GLO;market for purified terephthalic acid;01c0151ec2cf026bdd266f6dbc39eb6e;No;kg;Cell;Yes;db_experiments
+33;RoW;market for nitric acid, without water, in 50% solution state;5a2b9c03ff450592f328e9e3beda1f47;No;kg;Cell;Yes;db_experiments
+130;RER;market for hydrochloric acid, without water, in 30% solution state;65328cde598aecd50a06633988bdfd72;No;kg;Cell;Yes;db_experiments
+430;GLO;market for graphite;fd558441fc3d04fe59887ab30ce51119;No;kg;Cell;Yes;db_experiments
+0.48;GLO;market for lubricating oil;92391c8c6958ada25b22935e3fa6f06f;No;kg;Cell;Yes;db_experiments
+1100;GLO;market for zirconium oxide;5298254fa3c87afd6b7e4e8dd48f1635;No;kg;Cell;Yes;db_experiments
+11000;ES;market for water, decarbonised;ffda28cac7090b598a16aa8a0c77ab8a;No;kg;Cell;Yes;db_experiments
+86000;RER;market for water, deionised;95d26245bc411de42cbca001406f6131;No;kg;Cell;Yes;db_experiments
+10000;PT;Future market for electricity;f_test;No;kWh;Cell;Yes;db_experiments
+88000;Europe without Switzerland;market for heat, district or industrial, other than natural gas;17bb323906cec23f858083ff85f6ce84;No;MJ;Cell;Yes;db_experiments
+700;Europe without Switzerland;market for heat, from steam, in chemical industry;e94f48ca9779dd7cb236e53a6ca05ec1;No;MJ;Cell;Yes;db_experiments
+0.16;RER;market for industrial machine, heavy, unspecified;2d3de81b95ec52b7e15fd42633da0cfc;No;kg;Cell;Yes;db_experiments
+780;GLO;market for plaster mixing;27f66a2ee1705a0209fff166f9fd7773;No;kg;Cell;Yes;db_experiments
+NA;PT;Operating_resources;hy_2020_Operating_resources;Operating resources AWE 2020;Item;marker;Yes;db_experiments
+50;PT;Future market for electricity;f_test;No;kWh;Operating_resources;Yes;db_experiments
+10;RER;market for water, deionised;95d26245bc411de42cbca001406f6131;No;kg;Operating_resources;Yes;db_experiments
+0.00029;RER;market for nitrogen, liquid;e85e82b75490fde7a1712d94e413821c;No;kg;Operating_resources;Yes;db_experiments
+0.0019;GLO;market for potassium hydroxide;5eb2dfae38d434272bbf89b4b3acd5be;No;kg;Operating_resources;Yes;db_experiments
+0.11;;market for steam, in chemical industry;337e70e3ec52515067d02f0e169da57e;No;kg;Operating_resources;Yes;db_experiments
+NA;PT;Hydrogen production AWE 2020;AWE_2020_production;1kg of hydrogen;kg;marker;Yes;db_experiments
+5.10E-08;PT;Cell Stack Framework;hy_2020_StackFramework;No;kg;Hydrogen production AWE 2020;Yes;db_experiments
+5.10E-08;PT;Cell;hy_2020_cell;No;kg;Hydrogen production AWE 2020;Yes;db_experiments
+1;PT;Operating_resources;hy_2020_Operating_resources;No;NA;Hydrogen production AWE 2020;Yes;db_experiments

@@ -1,0 +1,8 @@
+[
+  "TestActivityCreator.py::TestActivityCreator::test_LCA",
+  "TestActivityCreator.py::TestActivityCreator::test_add_activity",
+  "TestActivityCreator.py::TestActivityCreator::test_exchanges",
+  "TestActivityCreator.py::TestActivityCreator::test_return_code",
+  "Test_CalliopeMixer.py::TestCalliopeMixer::test_DB_Change",
+  "Test_Modify_Background.py::TestModifyBackground::test_BackgroundChange"
+]

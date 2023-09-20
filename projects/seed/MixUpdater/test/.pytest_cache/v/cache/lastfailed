@@ -1,0 +1,5 @@
+{
+  "try_activ_creator.py": true,
+  "TestActivityCreator.py::TestActivityCreator": true,
+  "Test_CalliopeMixer.py::TestCalliopeMixer": true
+}
