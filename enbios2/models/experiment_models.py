@@ -6,7 +6,6 @@ from bw2data.backends import Activity
 from pydantic import Field
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-
 from enbios2.bw2.util import get_activity
 from generic.files import PathLike
 
@@ -223,6 +222,11 @@ class ExperimentConfig:
 
 ActivitiesDataRows = list[ExperimentActivityData]
 ActivitiesDataTypes = Union[ActivitiesDataRows, dict[str, ExperimentActivityData]]
+
+ActivitiesDataTypesExt = Union[
+    ActivitiesDataRows, dict[str, ExperimentActivityData], PathLike
+]
+
 MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
 HierarchyDataTypes = Union[list, dict]
 ScenariosDataTypes = Union[
@@ -239,7 +243,7 @@ class ExperimentData:
     bw_project: Union[str, EcoInventSimpleIndex] = Field(
         ..., description="The brightway project name"
     )
-    activities: ActivitiesDataTypes = Field(
+    activities: ActivitiesDataTypesExt = Field(
         ..., description="The activities to be used in the experiment"
     )
     methods: MethodsDataTypes = Field(
@@ -273,6 +277,7 @@ class ExperimentDataIO:
 
     def read(self) -> ExperimentData:  # type: ignore
         from base.experiment_io import read_experiment_io
+
         return read_experiment_io(self)
 
 

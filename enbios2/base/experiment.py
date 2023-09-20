@@ -15,6 +15,7 @@ from bw2data.backends import Activity
 from pint import Quantity, UndefinedUnitError, DimensionalityError
 from pydantic import ValidationError
 
+from base.experiment_io import resolve_input_files
 from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
 from enbios2.base.stacked_MultiLCA import StackedMultiLCA
@@ -40,7 +41,7 @@ from enbios2.models.experiment_models import (
     Activity_Outputs,
     BWCalculationSetup,
     ExperimentActivityData,
-    ExperimentConfig, ExperimentDataIO,
+    ExperimentConfig,
 )
 
 logger = get_logger(__file__)
@@ -54,7 +55,9 @@ class Experiment:
             input_data = ExperimentData(**raw_data)
         else:
             input_data = raw_data
-        self.raw_data: ExperimentData = input_data
+        resolve_input_files(input_data)
+        self.raw_data = ExperimentData(**asdict(input_data))
+
         # alias to activity
 
         self._validate_bw_config()

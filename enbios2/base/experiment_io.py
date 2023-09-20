@@ -1,11 +1,10 @@
 from csv import DictReader
 from os import PathLike
-from typing import Union
+from typing import Union, Optional
 
 from flatten_dict import unflatten
 from frictionless import Schema, Resource, validate, system
 from frictionless.fields import NumberField, StringField
-
 
 from enbios2.generic.files import ReadPath
 from enbios2.generic.tree.basic_tree import BasicTreeNode
@@ -13,9 +12,7 @@ from enbios2.models.experiment_models import (
     ExperimentDataIO,
     ExperimentData,
     ActivitiesDataRows,
-    ExperimentMethodData,
-    ActivitiesDataTypes,
-    MethodsDataTypes,
+    ExperimentMethodData, ActivitiesDataTypes,
 )
 
 activities_schema = Schema(
@@ -81,18 +78,53 @@ def parse_method_row(row: dict) -> ExperimentMethodData:
     return ExperimentMethodData(alias=row.get("alias"), id=tuple(id_))
 
 
-def read_experiment_io(
-        data: Union[dict, ExperimentDataIO]
-) -> "Experiment":
+def get_abs_path(path: Union[str, PathLike], base_dir: Optional[str] = None) -> ReadPath:
+    if base_dir:
+        return ReadPath(base_dir) / path
+    else:
+        return ReadPath(path)
+
+
+def resolve_input_files(raw_input: ExperimentData):
+    if isinstance(raw_input.activities, str) or isinstance(
+        raw_input.activities, PathLike
+    ):
+        activities_file: ReadPath = get_abs_path(
+            raw_input.activities, raw_input.config.base_directory
+        )
+        if activities_file.suffix == ".json":
+            data = activities_file.read_data()
+            raw_input.activities = data
+        elif activities_file.suffix == ".csv":
+            with system.use_context(trusted=True):
+                resource: Resource = Resource(
+                    path=activities_file.as_posix(), schema=activities_schema
+                )
+                report = validate(resource)
+                if not report.valid:
+                    raise Exception(
+                        f"Invalid activities file: {raw_input.activities}; "
+                        f"errors: {report.task.errors}"
+                    )
+                raw_input.activities = ActivitiesDataRows(
+                    list(
+                        (
+                            unflatten_data(r, activities_unflatten_map)
+                            for r in resource.read_rows()
+                        )
+                    )
+                )
+
+
+def read_experiment_io(data: Union[dict, ExperimentDataIO]) -> "Experiment":
     from base.experiment import Experiment
+
     if isinstance(data, dict):
         exp_io = ExperimentDataIO(**data)
     else:
         exp_io = data
 
-    raw_experiment_data = {
-        "bw_project": exp_io.bw_project
-    }
+    raw_experiment_data = {"bw_project": exp_io.bw_project}
 
     def get_abs_path(path: Union[str, PathLike]) -> ReadPath:
         if exp_io.config.base_directory:
@@ -174,7 +206,7 @@ if __name__ == "__main__":
         "activities_config": {"default_database": "ei391"},
         "config": {
             "base_directory": "/mnt/SSD/projects/LIVENLab/enbios2/"
-                              "data/test_data/experiment_separated/a/"
+            "data/test_data/experiment_separated/a/"
         },
         "activities": "single_activity.csv",
         "methods": "methods.csv",
