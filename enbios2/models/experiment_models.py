@@ -45,7 +45,7 @@ class ExperimentActivityId:
     alias: Optional[str] = None
 
     def get_bw_activity(
-            self, allow_multiple: bool = False
+        self, allow_multiple: bool = False
     ) -> Union[Activity, list[Activity]]:
         if self.code:
             if not self.database:
@@ -57,7 +57,7 @@ class ExperimentActivityId:
             if self.location:
                 filters["location"] = self.location
                 assert (
-                        self.database in bw2data.databases
+                    self.database in bw2data.databases
                 ), f"database {self.database} not found"
                 search_results = bw2data.Database(self.database).search(
                     self.name, filter=filters
@@ -85,7 +85,7 @@ class ExperimentActivityId:
             raise ValueError("No code or name specified")
 
     def fill_empty_fields(
-            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
+        self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
     ):
         if not fields:
             fields = []
@@ -230,7 +230,8 @@ ActivitiesDataTypesExt = Union[
 MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
 # with path
 MethodsDataTypesExt = Union[
-    list[ExperimentMethodData], dict[str, tuple[str, ...]], PathLike]
+    list[ExperimentMethodData], dict[str, tuple[str, ...]], PathLike
+]
 
 HierarchyDataTypes = Union[list, dict]
 # with path
@@ -274,22 +275,6 @@ class ExperimentData:
         default_factory=ExperimentConfig,
         description="The configuration of this experiment",
     )
-
-
-@pydantic_dataclass
-class ExperimentDataIO:
-    bw_project: Union[str, EcoInventSimpleIndex]
-    bw_default_database: Optional[str] = None
-    activities: Optional[Union[ActivitiesDataTypes, PathLike]] = None
-    methods: Optional[Union[MethodsDataTypes, PathLike]] = None
-    hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
-    scenarios: Optional[Union[ScenariosDataTypes, str]] = None
-    config: Optional[ExperimentConfig] = Field(default_factory=ExperimentConfig)
-
-    def read(self) -> ExperimentData:  # type: ignore
-        from base.experiment_io import read_experiment_io
-
-        return read_experiment_io(self)
 
 
 @dataclass
