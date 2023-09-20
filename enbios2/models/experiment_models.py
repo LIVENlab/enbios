@@ -6,7 +6,9 @@ from bw2data.backends import Activity
 from pydantic import Field
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
+
 from enbios2.bw2.util import get_activity
+from generic.files import PathLike
 
 
 @pydantic_dataclass
@@ -263,11 +265,15 @@ class ExperimentData:
 class ExperimentDataIO:
     bw_project: Union[str, EcoInventSimpleIndex]
     bw_default_database: Optional[str] = None
-    activities: Optional[Union[ActivitiesDataTypes, str]] = None
-    methods: Optional[Union[MethodsDataTypes, str]] = None
+    activities: Optional[Union[ActivitiesDataTypes, PathLike]] = None
+    methods: Optional[Union[MethodsDataTypes, PathLike]] = None
     hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
     scenarios: Optional[Union[ScenariosDataTypes, str]] = None
     config: Optional[ExperimentConfig] = Field(default_factory=ExperimentConfig)
+
+    def read(self) -> ExperimentData:  # type: ignore
+        from base.experiment_io import read_experiment_io
+        return read_experiment_io(self)
 
 
 @dataclass

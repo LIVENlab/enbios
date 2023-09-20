@@ -1,8 +1,11 @@
 from csv import DictReader
+from os import PathLike
+from typing import Union
 
 from flatten_dict import unflatten
 from frictionless import Schema, Resource, validate, system
 from frictionless.fields import NumberField, StringField
+
 
 from enbios2.generic.files import ReadPath
 from enbios2.generic.tree.basic_tree import BasicTreeNode
@@ -75,24 +78,33 @@ def parse_method_row(row: dict) -> ExperimentMethodData:
                 id_.append(row_id)
             else:
                 break
-    return ExperimentMethodData(alias=row.get("alias"), id=id_)
+    return ExperimentMethodData(alias=row.get("alias"), id=tuple(id_))
 
 
-def read_experiment_io(data: dict) -> ExperimentData:
-    exp_io = ExperimentDataIO(**data)
-    experiment_data = ExperimentData(exp_io.bw_project)
+def read_experiment_io(
+        data: Union[dict, ExperimentDataIO]
+) -> "Experiment":
+    from base.experiment import Experiment
+    if isinstance(data, dict):
+        exp_io = ExperimentDataIO(**data)
+    else:
+        exp_io = data
 
-    def get_abs_path(path: str) -> ReadPath:
+    raw_experiment_data = {
+        "bw_project": exp_io.bw_project
+    }
+
+    def get_abs_path(path: Union[str, PathLike]) -> ReadPath:
         if exp_io.config.base_directory:
             return ReadPath(exp_io.config.base_directory) / path
         else:
             return ReadPath(path)
 
-    if isinstance(exp_io.activities, str):
+    if isinstance(exp_io.activities, str) or isinstance(exp_io.activities, PathLike):
         activities_file: ReadPath = get_abs_path(exp_io.activities)
         if activities_file.suffix == ".json":
             data = activities_file.read_data()
-            experiment_data.activities = data
+            raw_experiment_data["activities"] = data
         elif activities_file.suffix == ".csv":
             with system.use_context(trusted=True):
                 resource: Resource = Resource(
@@ -104,7 +116,7 @@ def read_experiment_io(data: dict) -> ExperimentData:
                         f"Invalid activities file: {exp_io.activities}; "
                         f"errors: {report.task.errors}"
                     )
-                experiment_data.activities = ActivitiesDataRows(
+                raw_experiment_data["activities"] = ActivitiesDataRows(
                     list(
                         (
                             unflatten_data(r, activities_unflatten_map)
@@ -113,13 +125,13 @@ def read_experiment_io(data: dict) -> ExperimentData:
                     )
                 )
     else:
-        experiment_data.activities = ActivitiesDataTypes(exp_io.activities)
+        raw_experiment_data["activities"] = exp_io.activities
 
-    if isinstance(exp_io.methods, str):
+    if isinstance(exp_io.methods, str) or isinstance(exp_io.methods, PathLike):
         methods_file: ReadPath = get_abs_path(exp_io.methods)
         if methods_file.suffix == ".json":
             data = methods_file.read_data()
-            experiment_data.methods = data
+            raw_experiment_data["methods"] = data
         if methods_file.suffix == ".csv":
             with system.use_context(trusted=True):
                 resource: Resource = Resource(
@@ -131,20 +143,29 @@ def read_experiment_io(data: dict) -> ExperimentData:
                         f"Invalid methods file: {exp_io.methods}; "
                         f"errors: {report.task.errors}"
                     )
-                experiment_data.methods = list(
+                raw_experiment_data["methods"] = list(
                     (parse_method_row(r) for r in resource.read_rows())
                 )
     else:
-        experiment_data.methods = MethodsDataTypes(exp_io.methods)
+        raw_experiment_data["methods"] = exp_io.methods
 
-    if isinstance(exp_io.hierarchy, str):
+    if isinstance(exp_io.hierarchy, str) or isinstance(exp_io.hierarchy, PathLike):
         hierarchy_file: ReadPath = get_abs_path(exp_io.hierarchy)
         if hierarchy_file.suffix == ".json":
             data = hierarchy_file.read_data()
-            experiment_data.hierarchy = data
+            raw_experiment_data["hierarchy"] = data
         else:
             raise Exception(f"Invalid hierarchy file: {exp_io.hierarchy}")
-    return experiment_data
+
+    if isinstance(exp_io.scenarios, str) or isinstance(exp_io.scenarios, PathLike):
+        scenario_file: ReadPath = get_abs_path(exp_io.scenarios)
+        if scenario_file.suffix == ".json":
+            data = scenario_file.read_data()
+            raw_experiment_data["scenario"] = data
+        else:
+            raise Exception(f"Invalid scenario file: {exp_io.scenarios}")
+
+    return Experiment(raw_experiment_data)
 
 
 if __name__ == "__main__":
@@ -153,7 +174,7 @@ if __name__ == "__main__":
         "activities_config": {"default_database": "ei391"},
         "config": {
             "base_directory": "/mnt/SSD/projects/LIVENLab/enbios2/"
-            "data/test_data/experiment_separated/a/"
+                              "data/test_data/experiment_separated/a/"
         },
         "activities": "single_activity.csv",
         "methods": "methods.csv",

@@ -40,7 +40,7 @@ from enbios2.models.experiment_models import (
     Activity_Outputs,
     BWCalculationSetup,
     ExperimentActivityData,
-    ExperimentConfig,
+    ExperimentConfig, ExperimentDataIO,
 )
 
 logger = get_logger(__file__)
