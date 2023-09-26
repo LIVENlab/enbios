@@ -26,9 +26,9 @@ def run_multi_lca(
         raise ValueError("Check the in inputs")
 
 
-bd.projects.set_current("uab_bw_ei39")
+bd.projects.set_current("ecoinvent_391")
 
-db = bd.Database("ei391")
+db = bd.Database("ecoinvent_391_cutoff")
 
 
 rand_acts = [{db.random(): 1} for _ in range(2)]
