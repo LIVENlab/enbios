@@ -11,6 +11,7 @@ from enbios2.models.experiment_models import (
     ActivitiesDataRows,
     ExperimentMethodData,
 )
+from generic.tree.csv2dict import csv_tree2dict
 
 activities_schema = Schema(
     fields=[
@@ -136,6 +137,9 @@ def resolve_input_files(raw_input: ExperimentData):
         hierarchy_file: ReadPath = get_abs_path(raw_input.hierarchy)
         if hierarchy_file.suffix == ".json":
             data = hierarchy_file.read_data()
+            raw_input.hierarchy = data
+        elif hierarchy_file.suffix == ".csv":
+            data = csv_tree2dict(hierarchy_file, False)
             raw_input.hierarchy = data
         else:
             raise Exception(f"Invalid hierarchy file: {raw_input.hierarchy}")
