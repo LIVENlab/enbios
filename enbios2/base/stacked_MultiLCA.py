@@ -9,9 +9,9 @@ try:
 except ImportError:
     calculation_setups = None
 
+
     class Activity:
         pass
-
 
 from bw2calc.lca import LCA
 from bw2calc.utils import wrap_functional_unit
@@ -47,19 +47,20 @@ class StackedMultiLCA:
     """
 
     def __init__(
-        self,
-        calc_setup: BWCalculationSetup,
-        log_config=None,
-        k_bw_distributions: int = 1,
+            self,
+            calc_setup: BWCalculationSetup,
+            use_distributions: bool = False,
+            log_config = None
     ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
 
-        self.lca = LCA(demand=self.all, method=self.methods[0], log_config=log_config)
+        self.lca = LCA(demand = self.all, method = self.methods[0],
+                       log_config = log_config, use_distributions = use_distributions)
         logger.info(
             {
-                "message": "Started MultiLCA calculation",
-                "methods": list(self.methods),
+                "message"         : "Started MultiLCA calculation",
+                "methods"         : list(self.methods),
                 "functional units": [wrap_functional_unit(o) for o in self.func_units],
             }
         )

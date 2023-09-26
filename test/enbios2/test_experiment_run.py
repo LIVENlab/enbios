@@ -38,23 +38,25 @@ def default_bw_activity(default_bw_config) -> Activity:
     bw2data.projects.set_current(default_bw_config["bw_project"])
     db = bw2data.Database(default_bw_config["bw_default_database"])
     return next(filter(lambda act: act["unit"] == "kilowatt hour",
-                       db.search("heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                                 filter={"location": "DK"})))
+                       db.search(
+                           "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                           filter = {"location": "DK"})))
 
 
 @pytest.fixture
-def experiment_setup(default_bw_config, default_bw_activity, default_method_tuple, default_method_str: str,
+def experiment_setup(default_bw_config, default_bw_activity, default_method_tuple,
+                     default_method_str: str,
                      default_result_score: float):
     _impact = default_result_score
     return {
-        "scenario": {
-            "bw_project": default_bw_config["bw_project"],
+        "scenario"            : {
+            "bw_project"         : default_bw_config["bw_project"],
             "bw_default_database": default_bw_config["bw_default_database"],
-            "activities": {
+            "activities"         : {
                 "single_activity": {
-                    "id": {
-                        "name": default_bw_activity["name"],
-                        "unit": default_bw_activity["unit"],
+                    "id"    : {
+                        "name"    : default_bw_activity["name"],
+                        "unit"    : default_bw_activity["unit"],
                         "location": default_bw_activity["location"]
                     },
                     "output": [
@@ -63,64 +65,66 @@ def experiment_setup(default_bw_config, default_bw_activity, default_method_tupl
                     ]
                 }
             },
-            "methods": [
+            "methods"            : [
                 {
                     "id": default_method_tuple
                 }
             ],
-            "hierarchy": {
+            "hierarchy"          : {
                 "energy": [
                     "single_activity"
                 ]
             }
         },
-        "expected_result_tree": {'name': 'root',
-                                 'children': [{'name': 'energy',
+        "expected_result_tree": {'name'    : 'root',
+                                 'children': [{'name'    : 'energy',
                                                'children': [
-                                                   {'name': 'single_activity',
+                                                   {'name'    : 'single_activity',
                                                     'children': [],
-                                                    'data':
+                                                    'data'    :
                                                         ScenarioResultNodeData(
-                                                            output=("kilowatt_hour", 1.0),
-                                                            bw_activity=default_bw_activity,
-                                                            results={
+                                                            output = (
+                                                                "kilowatt_hour", 1.0),
+                                                            bw_activity = default_bw_activity,
+                                                            results = {
                                                                 default_method_str: _impact})}],
-                                               'data': ScenarioResultNodeData(
-                                                   output=("kilowatt_hour", 1.0),
-                                                   results={
+                                               'data'    : ScenarioResultNodeData(
+                                                   output = ("kilowatt_hour", 1.0),
+                                                   results = {
                                                        default_method_str: _impact})}],
-                                 'data': ScenarioResultNodeData(
-                                     output=("kilowatt_hour", 1.0),
-                                     results={
+                                 'data'    : ScenarioResultNodeData(
+                                     output = ("kilowatt_hour", 1.0),
+                                     results = {
                                          default_method_str: _impact})}
     }
 
 
 @pytest.fixture
-def experiment_scenario_setup(default_bw_config, default_bw_activity, default_method_tuple, default_method_str: str):
+def experiment_scenario_setup(default_bw_config, default_bw_activity,
+                              default_method_tuple, default_method_str: str):
     return {
-        "bw_project": default_bw_config["bw_project"],
+        "bw_project"         : default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
-        "activities": {
+        "activities"         : {
             "single_activity": {
                 "id": {
-                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit": "kilowatt hour",
+                    "name"    : "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit"    : "kilowatt hour",
                     "location": "DK"
                 }
             }
         },
-        "methods": [
+        "methods"            : [
             {
                 "id": default_method_tuple
             }
         ],
-        "hierarchy": {
+        "hierarchy"          : {
             "energy": [
                 "single_activity"
             ]
         },
-        "scenarios": {
+        "scenarios"          : {
             "scenario1": {
                 "activities": {
                     "single_activity": [
@@ -141,11 +145,11 @@ def experiment_scenario_setup(default_bw_config, default_bw_activity, default_me
     }
 
 
-@deprecated(reason="Use test_project_fixture")
+@deprecated(reason = "Use test_project_fixture")
 @pytest.fixture
 def default_bw_config() -> dict:
     return {
-        "bw_project": TEST_BW_PROJECT,
+        "bw_project"         : TEST_BW_PROJECT,
         "bw_default_database": TEST_BW_DATABASE
     }
 
@@ -177,8 +181,10 @@ def run_basic_experiment(experiment_setup) -> Experiment:
 
 
 @pytest.fixture
-def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[ScenarioResultNodeData]:
-    return run_basic_experiment.get_scenario(Experiment.DEFAULT_SCENARIO_ALIAS).result_tree
+def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[
+    ScenarioResultNodeData]:
+    return run_basic_experiment.get_scenario(
+        Experiment.DEFAULT_SCENARIO_ALIAS).result_tree
 
 
 def test_single_lca_compare(run_basic_experiment: Experiment,
@@ -186,20 +192,23 @@ def test_single_lca_compare(run_basic_experiment: Experiment,
                             experiment_setup,
                             default_method_tuple,
                             default_method_str):
-    expected_value = experiment_setup["expected_result_tree"]["data"].results[default_method_str]
+    expected_value = experiment_setup["expected_result_tree"]["data"].results[
+        default_method_str]
     bw_activity = run_basic_experiment._activities["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
-    assert regular_score == pytest.approx(expected_value, abs=1e-6)
+    assert regular_score == pytest.approx(expected_value, abs = 1e-6)
     assert regular_score == basic_exp_run_result_tree._data.results[default_method_str]
     # assert regular_score == result["default scenario"]["data"][default_method_str]
 
 
 def test_simple(basic_exp_run_result_tree, experiment_setup):
-    assert basic_exp_run_result_tree.as_dict(True) == experiment_setup["expected_result_tree"]
+    assert basic_exp_run_result_tree.as_dict(True) == experiment_setup[
+        "expected_result_tree"]
 
 
 def test_pickle(run_basic_experiment):
-    pickle.dump(run_basic_experiment, open(BASE_DATA_PATH / "temp/test_pickle.pickle", "wb"))
+    pickle.dump(run_basic_experiment,
+                open(BASE_DATA_PATH / "temp/test_pickle.pickle", "wb"))
 
 
 def test_temp_load_pickle():
@@ -208,22 +217,27 @@ def test_temp_load_pickle():
 
 
 def test_csv_output(run_basic_experiment, temp_csv_file):
-    run_basic_experiment.results_to_csv(temp_csv_file, Experiment.DEFAULT_SCENARIO_ALIAS, include_method_units=False)
+    run_basic_experiment.results_to_csv(temp_csv_file, Experiment.DEFAULT_SCENARIO_ALIAS,
+                                        include_method_units = False)
     assert temp_csv_file.exists()
     csv_data = ReadPath(temp_csv_file).read_data()
     expected_data = list(
-        csv.DictReader((BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_csv_output.csv").open()))
+        csv.DictReader((
+                               BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_csv_output.csv").open()))
     assert csv_data == expected_data
     # todo we could try other hierarchies here and include the methods units again
 
 
 def test_dict_output(run_basic_experiment):
-    json_data = run_basic_experiment.get_scenario(Experiment.DEFAULT_SCENARIO_ALIAS).result_to_dict()
-    expected_json_data = json.load((BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_json_output.json").open())
+    json_data = run_basic_experiment.get_scenario(
+        Experiment.DEFAULT_SCENARIO_ALIAS).result_to_dict()
+    expected_json_data = json.load((
+                                           BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_json_output.json").open())
     assert json_data == expected_json_data
     json_data = run_basic_experiment.scenarios[0].result_to_dict(False)
     expected_json_data = json.load(
-        (BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_json_output_no_output.json").open())
+        (
+                BASE_TEST_DATA_PATH / "experiment_instances_run" / "test_json_output_no_output.json").open())
     assert json_data == expected_json_data
 
 
@@ -234,8 +248,9 @@ def test_scaled_demand(experiment_setup, default_method_str: str):
     expected_tree = experiment_setup["expected_result_tree"]
     expected_value = expected_tree["data"].results[default_method_str] * scale
     result = Experiment(ExperimentData(**scenario_data)).run()
-    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[default_method_str] == pytest.approx(
-        expected_value, abs=1e-10)
+    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[
+               default_method_str] == pytest.approx(
+        expected_value, abs = 1e-10)
 
 
 def test_scaled_demand_unit(experiment_setup, default_method_str: str):
@@ -246,8 +261,9 @@ def test_scaled_demand_unit(experiment_setup, default_method_str: str):
     result = Experiment(ExperimentData(**scenario_data)).run()
     # print(result["default scenario"]["data"][method])
     # print(result["default scenario"]["data"][method] / expected_value)
-    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[default_method_str] == pytest.approx(
-        expected_value, abs=1e-7)
+    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[
+               default_method_str] == pytest.approx(
+        expected_value, abs = 1e-7)
 
 
 def test_stacked_lca(default_bw_config):
@@ -258,13 +274,13 @@ def test_stacked_lca(default_bw_config):
     """
     # todo this test should be vigorous
     experiment = {
-        "bw_project": default_bw_config["bw_project"],
+        "bw_project"         : default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
-        "activities": {
+        "activities"         : {
             "single_activity": {
-                "id": {
-                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit": "kilowatt hour",
+                "id"    : {
+                    "name"    : "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit"    : "kilowatt hour",
                     "location": "DK"
                 },
                 "output": [
@@ -272,8 +288,8 @@ def test_stacked_lca(default_bw_config):
                     1
                 ]
             },
-            "2nd": {
-                "id": {
+            "2nd"            : {
+                "id"    : {
                     "name": "concentrated solar power plant construction, solar tower power plant, 20 MW",
                     "code": "19978cf531d88e55aed33574e1087d78"
                 },
@@ -283,18 +299,18 @@ def test_stacked_lca(default_bw_config):
                 ]
             }
         },
-        "methods": [
+        "methods"            : [
             {
                 "id": ['EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT']
             }
         ],
-        "hierarchy": {
+        "hierarchy"          : {
             "energy": [
                 "single_activity",
                 "2nd"
             ]
         },
-        "scenarios": [
+        "scenarios"          : [
             {
                 "activities": {"single_activity": ["kWh", 3]}
             },
@@ -318,40 +334,45 @@ def test_scenario(experiment_scenario_setup: dict,
     experiment = Experiment(ExperimentData(**experiment_scenario_setup))
     result = experiment.run()
     assert "scenario1" in result and "scenario2" in result
-    expected_value1 = experiment_setup["expected_result_tree"]["data"].results[default_method_str]
+    expected_value1 = experiment_setup["expected_result_tree"]["data"].results[
+        default_method_str]
     assert result["scenario1"]._data.results[default_method_str] == expected_value1
     expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
-    assert result["scenario2"]._data.results[default_method_str] == pytest.approx(expected_value2, abs=1e-9)
-#   todo test, complete experiment csv
+    assert result["scenario2"]._data.results[default_method_str] == pytest.approx(
+        expected_value2, abs = 1e-9)
+    #   todo test, complete experiment csv
     experiment.results_to_csv(temp_csv_file)
+
+
 #    print(temp_csv_file.read_text())
 
-def test_multi_activity_usage(experiment_setup, default_bw_config: dict, default_method_tuple: tuple[str, ...]):
+def test_multi_activity_usage(experiment_setup, default_bw_config: dict,
+                              default_method_tuple: tuple[str, ...]):
     scenario = {
-        "bw_project": default_bw_config["bw_project"],
+        "bw_project"         : default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
-        "activities": {
-            "single_activity": {
+        "activities"         : {
+            "single_activity"  : {
                 "id": {
-                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit": "kilowatt hour",
+                    "name"    : "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit"    : "kilowatt hour",
                     "location": "DK"
                 }
             },
             "single_activity_2": {
                 "id": {
-                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit": "kilowatt hour",
+                    "name"    : "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit"    : "kilowatt hour",
                     "location": "DK"
                 }
             }
         },
-        "methods": [
+        "methods"            : [
             {
                 "id": default_method_tuple
             }
         ],
-        "scenarios": {
+        "scenarios"          : {
             "scenario1": {
                 "activities": {
                     "single_activity": [
@@ -362,7 +383,7 @@ def test_multi_activity_usage(experiment_setup, default_bw_config: dict, default
             },
             "scenario2": {
                 "activities": {
-                    "single_activity": [
+                    "single_activity"  : [
                         "MWh",
                         2
                     ],
@@ -381,10 +402,29 @@ def test_multi_activity_usage(experiment_setup, default_bw_config: dict, default
     assert expected_value1 == exp.scenarios[0].result_tree[0]._data.results[method_str]
     # scenario 2, single_activity
     expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
-    assert exp.scenarios[1].result_tree[0]._data.results[method_str] == pytest.approx(expected_value2, abs=1e-12)
+    assert exp.scenarios[1].result_tree[0]._data.results[method_str] == pytest.approx(
+        expected_value2, abs = 1e-12)
     # scenario 2, single_activity_2
     expected_value3 = expected_value1 * 20
-    assert exp.scenarios[1].result_tree[1]._data.results[method_str] == pytest.approx(expected_value3, abs=1e-14)
+    assert exp.scenarios[1].result_tree[1]._data.results[method_str] == pytest.approx(
+        expected_value3, abs = 1e-14)
     # scenario 2, total
     expected_value4 = expected_value2 + expected_value3
-    assert exp.scenarios[1].result_tree._data.results[method_str] == pytest.approx(expected_value4, abs=1e-12)
+    assert exp.scenarios[1].result_tree._data.results[method_str] == pytest.approx(
+        expected_value4, abs = 1e-12)
+
+
+def test_lca_distribution(experiment_setup,
+                          default_method_tuple,
+                          default_method_str):
+    scenario_data = experiment_setup["scenario"]
+    scenario_data["config"] = {
+        "use_k_bw_distributions": 3,
+    }
+    experiment = Experiment(ExperimentData(**scenario_data))
+    result = experiment.run()
+    result["default scenario"].children
+    # expected_value = experiment_setup["expected_result_tree"]["data"].results[default_method_str]
+    # bw_activity = run_basic_experiment._activities["single_activity"].bw_activity
+    # assert regular_score == pytest.approx(expected_value, abs=1e-6)
+    # assert regular_score == basic_exp_run_result_tree._data.results[default_method_str]

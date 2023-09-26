@@ -6,7 +6,6 @@ from bw2data.backends import Activity
 from pydantic import Field
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-
 from enbios2.bw2.util import get_activity
 from generic.files import PathLike
 
@@ -27,13 +26,13 @@ class OperationConfig:
     arbitrary_types_allowed = True
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config = StrictInputConfig)
 class ActivityOutput:
     unit: str
     magnitude: float = 1.0
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config = StrictInputConfig)
 class ExperimentActivityId:
     database: Optional[str] = None
     code: Optional[str] = None
@@ -46,7 +45,7 @@ class ExperimentActivityId:
     alias: Optional[str] = None
 
     def get_bw_activity(
-        self, allow_multiple: bool = False
+            self, allow_multiple: bool = False
     ) -> Union[Activity, list[Activity]]:
         if self.code:
             if not self.database:
@@ -58,10 +57,10 @@ class ExperimentActivityId:
             if self.location:
                 filters["location"] = self.location
                 assert (
-                    self.database in bw2data.databases
+                        self.database in bw2data.databases
                 ), f"database {self.database} not found"
                 search_results = bw2data.Database(self.database).search(
-                    self.name, filter=filters
+                    self.name, filter = filters
                 )
             else:
                 search_results = bw2data.Database(self.database).search(self.name)
@@ -86,7 +85,7 @@ class ExperimentActivityId:
             raise ValueError("No code or name specified")
 
     def fill_empty_fields(
-        self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
+            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
     ):
         if not fields:
             fields = []
@@ -99,7 +98,7 @@ class ExperimentActivityId:
                     setattr(self, _field, kwargs[_field])
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config = StrictInputConfig)
 class SimpleScenarioActivityId:
     name: str
     code: str
@@ -115,7 +114,7 @@ ExperimentActivityOutputArray = tuple[str, float]
 ExperimentActivityOutput = Union[ActivityOutput, ExperimentActivityOutputArray]
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config = StrictInputConfig)
 class ExperimentActivityData:
     """
     This is the dataclass for the activities in the experiment.
@@ -123,13 +122,13 @@ class ExperimentActivityData:
     """
 
     id: ExperimentActivityId = Field(
-        ..., description="The identifies (method to find) an activity"
+        ..., description = "The identifies (method to find) an activity"
     )
     output: Optional[ExperimentActivityOutput] = Field(
-        None, description="The default output of the activity"
+        None, description = "The default output of the activity"
     )
     orig_id: Optional[ExperimentActivityId] = Field(
-        None, description="Temporary copy of the id"
+        None, description = "Temporary copy of the id"
     )
 
     @property
@@ -137,7 +136,7 @@ class ExperimentActivityData:
         return self.id.alias
 
 
-@pydantic_dataclass(config=OperationConfig)
+@pydantic_dataclass(config = OperationConfig)
 class ExtendedExperimentActivityData:
     id: ExperimentActivityId
     orig_id: ExperimentActivityId
@@ -155,7 +154,7 @@ class ExtendedExperimentActivityData:
         return self.id.alias
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config = StrictInputConfig)
 class ExperimentMethodData:
     id: tuple[str, ...]
     alias: Optional[str] = None
@@ -165,14 +164,14 @@ class ExperimentMethodData:
         return str(self.alias)
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config = StrictInputConfig)
 class ExperimentMethodPrepData:
     id: tuple[str, ...]
     alias: str
     bw_method_unit: str
 
 
-@pydantic_dataclass(config=StrictInputConfig, repr=False)
+@pydantic_dataclass(config = StrictInputConfig, repr = False)
 class ExperimentScenarioData:
     # map from activity id to output. id is either as original (tuple) or alias-dict
     activities: Optional[
@@ -195,15 +194,15 @@ class ExperimentScenarioData:
         return f"Scenario {index}"
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config = StrictInputConfig)
 class ExperimentScenarioPrepData:
     activities: dict[SimpleScenarioActivityId, ExperimentActivityOutput] = Field(
-        default_factory=dict
+        default_factory = dict
     )
-    methods: list[ExperimentMethodData] = Field(default_factory=list)
+    methods: list[ExperimentMethodData] = Field(default_factory = list)
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config = StrictInputConfig)
 class ExperimentConfig:
     warn_default_demand: bool = True  # todo: bring this back
     include_bw_activity_in_nodes: bool = True
@@ -230,34 +229,34 @@ ScenariosDataTypes = Union[
 ]
 
 
-@pydantic_dataclass(config=StrictInputConfig)
+@pydantic_dataclass(config = StrictInputConfig)
 class ExperimentData:
     """
     This class is used to store the data of an experiment.
     """
 
     bw_project: Union[str, EcoInventSimpleIndex] = Field(
-        ..., description="The brightway project name"
+        ..., description = "The brightway project name"
     )
     activities: ActivitiesDataTypes = Field(
-        ..., description="The activities to be used in the experiment"
+        ..., description = "The activities to be used in the experiment"
     )
     methods: MethodsDataTypes = Field(
-        ..., description="The impact methods to be used in the experiment"
+        ..., description = "The impact methods to be used in the experiment"
     )
     bw_default_database: Optional[str] = Field(
         None,
-        description="The default database of activities to be used " "in the experiment",
+        description = "The default database of activities to be used " "in the experiment",
     )
     hierarchy: Optional[Union[list, dict]] = Field(
-        None, description="The activity hierarchy to be used in the experiment"
+        None, description = "The activity hierarchy to be used in the experiment"
     )
     scenarios: Optional[ScenariosDataTypes] = Field(
-        None, description="The scenarios for this experiment"
+        None, description = "The scenarios for this experiment"
     )
     config: ExperimentConfig = Field(
-        default_factory=ExperimentConfig,
-        description="The configuration of this experiment",
+        default_factory = ExperimentConfig,
+        description = "The configuration of this experiment",
     )
 
 
@@ -269,7 +268,7 @@ class ExperimentDataIO:
     methods: Optional[Union[MethodsDataTypes, PathLike]] = None
     hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
     scenarios: Optional[Union[ScenariosDataTypes, str]] = None
-    config: Optional[ExperimentConfig] = Field(default_factory=ExperimentConfig)
+    config: Optional[ExperimentConfig] = Field(default_factory = ExperimentConfig)
 
     def read(self) -> ExperimentData:  # type: ignore
         from base.experiment_io import read_experiment_io
@@ -289,7 +288,8 @@ class BWCalculationSetup:
 @dataclass
 class ScenarioResultNodeData:
     output: tuple[Optional[str], Optional[float]] = (None, None)
-    results: dict[str, float] = field(default_factory=dict)
+    results: dict[str, float] = field(default_factory = dict)
+    distribution_results: dict[str, list[float]] = field(default_factory = dict)
     bw_activity: Optional[Activity] = None
 
 

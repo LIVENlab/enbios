@@ -37,7 +37,7 @@ class Scenario:
     results: Optional[ndarray] = None
     _has_run: bool = False
     # this should be a simpler type - just str: float
-    activities_outputs: Activity_Outputs = field(default_factory=dict)
+    activities_outputs: Activity_Outputs = field(default_factory = dict)
     methods: Optional[dict[str, ExperimentMethodPrepData]] = None
     _execution_time: float = float("NaN")
 
@@ -58,7 +58,7 @@ class Scenario:
             except StopIteration:
                 raise ValueError(f"Activity {activity_alias} not found in result tree")
             activity_node._data = ScenarioResultNodeData(
-                output=(
+                output = (
                     bw_unit_fix(bw_activity["unit"]),
                     self.activities_outputs[activity_id],
                 )
@@ -67,9 +67,9 @@ class Scenario:
                 activity_node._data.bw_activity = bw_activity
         self.result_tree.recursive_apply(
             Scenario._recursive_resolve_outputs,
-            depth_first=True,
-            scenario=self,
-            cancel_parents_of=set(),
+            depth_first = True,
+            scenario = self,
+            cancel_parents_of = set(),
         )
 
     def _create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
@@ -86,7 +86,7 @@ class Scenario:
 
     @staticmethod
     def _propagate_results_upwards(
-        node: BasicTreeNode[ScenarioResultNodeData], _: Any = None
+            node: BasicTreeNode[ScenarioResultNodeData], add_to_distribution: bool = False
     ):
         for child in node.children:
             if child._data:
@@ -97,7 +97,7 @@ class Scenario:
                     node._data.results[key] += value
 
     def _add_lca_results_to_tree(
-        self, lca_results: ndarray
+            self, lca_results: ndarray, add_to_distribution: bool = False
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         """Add LCA results to each node in the technology tree.
 
@@ -124,12 +124,21 @@ class Scenario:
             activity_node = self.result_tree.find_subnode_by_name(activity_alias)
             assert activity_node
             for method_idx, method_name in enumerate(methods_aliases):
-                activity_node._data.results[method_name] = lca_results[result_idx][
-                    method_idx
-                ]
+                if add_to_distribution:
+                    if method_name not in activity_node._data.distribution_results:
+                        activity_node._data.distribution_results[method_name] = []
+                    activity_node._data.distribution_results[method_name].append(
+                        lca_results[
+                            result_idx
+                        ][method_idx])
+                else:
+                    activity_node._data.results[method_name] = lca_results[result_idx][
+                        method_idx
+                    ]
 
         self.result_tree.recursive_apply(
-            Scenario._propagate_results_upwards, depth_first=True
+            Scenario._propagate_results_upwards, depth_first = True,
+            add_to_distribution = add_to_distribution
         )
         return self.result_tree
 
@@ -141,7 +150,7 @@ class Scenario:
 
     @staticmethod
     def _recursive_resolve_outputs(
-        node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None, **kwargs
+            node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None, **kwargs
     ):
         # todo, does this takes default values when an activity is not defined
         #  in the scenario?
@@ -191,7 +200,7 @@ class Scenario:
             node_output = node_output.to_compact()
             node.set_data(
                 ScenarioResultNodeData(
-                    output=(str(node_output.units), node_output.magnitude)
+                    output = (str(node_output.units), node_output.magnitude)
                 )
             )
         else:
@@ -209,6 +218,7 @@ class Scenario:
         logger.info(f"Running scenario '{self.alias}'")
         start_time = time.time()
         bw_calc_setup = self._create_bw_calculation_setup()
+        use_distribution = self.experiment.config.use_k_bw_distributions
         results: ndarray = StackedMultiLCA(bw_calc_setup).results
         result_tree = self.set_results(results)
         self._execution_time = time.time() - start_time
@@ -217,17 +227,18 @@ class Scenario:
     @property
     def execution_time(self) -> str:
         if not math.isnan(self._execution_time):
-            return str(timedelta(seconds=int(self._execution_time)))
+            return str(timedelta(seconds = int(self._execution_time)))
         else:
             return "not run"
 
     def reset_execution_time(self):
         self._execution_time = float("NaN")
 
-    def set_results(self, results: ndarray) -> BasicTreeNode[ScenarioResultNodeData]:
+    def set_results(self, results: ndarray, add_to_distribution: bool = False) -> \
+            BasicTreeNode[ScenarioResultNodeData]:
         if self.experiment.config.store_raw_results:
             self.results = results
-        self.result_tree = self._add_lca_results_to_tree(results)
+        self.result_tree = self._add_lca_results_to_tree(results, add_to_distribution)
         self._has_run = True
         return self.result_tree
 
@@ -255,12 +266,12 @@ class Scenario:
         return data_serializer
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = False,
-        warn_no_results: bool = True,
-        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            self,
+            file_path: PathLike,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = False,
+            warn_no_results: bool = True,
+            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ):
         """
         Save the results (as tree) to a csv file
@@ -283,16 +294,16 @@ class Scenario:
 
         use_tree.to_csv(
             file_path,
-            include_data=True,
-            level_names=level_names,
-            data_serializer=self.wrapper_data_serializer(include_method_units),
+            include_data = True,
+            level_names = level_names,
+            data_serializer = self.wrapper_data_serializer(include_method_units),
         )
 
     def result_to_dict(
-        self,
-        include_output: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            self,
+            include_output: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
@@ -328,7 +339,7 @@ class Scenario:
             return recursive_transform(self.result_tree.copy())
 
     def rearrange_results(
-        self, hierarchy: Union[list, dict]
+            self, hierarchy: Union[list, dict]
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         alt_result_tree = self.experiment.validate_hierarchy(hierarchy)
 
@@ -344,12 +355,12 @@ class Scenario:
                 )
         alt_result_tree.recursive_apply(
             Scenario._recursive_resolve_outputs,
-            depth_first=True,
-            scenario=self,
-            cancel_parents_of=set(),
+            depth_first = True,
+            scenario = self,
+            cancel_parents_of = set(),
         )
 
         alt_result_tree.recursive_apply(
-            Scenario._propagate_results_upwards, depth_first=True
+            Scenario._propagate_results_upwards, depth_first = True
         )
         return alt_result_tree
