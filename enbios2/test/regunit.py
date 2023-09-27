@@ -1,28 +1,23 @@
-from base.experiment import Experiment
-from enbios2.base.unit_registry import ureg
-
 TEST_BW_PROJECT = "ecoinvent_391"
 TEST_BW_DATABASE = "ecoinvent_391_cutoff"
 
-data = {"bw_project": TEST_BW_PROJECT,
-        "bw_default_database": TEST_BW_DATABASE,
-        "activities": {
-            "single_activity": {
-                "id": {
-                    "name": "concentrated solar power plant construction, solar tower power plant, 20 MW",
-                    "code": "19978cf531d88e55aed33574e1087d78"
-                },
-                "output": [
-                    "unit",
-                    1
-                ]
-            }
-        },
-        "methods": [
-            {
-                "id": ['EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT']
-            }
-        ]}
+data = {
+    "bw_project": TEST_BW_PROJECT,
+    "bw_default_database": TEST_BW_DATABASE,
+    "activities": {
+        "single_activity": {
+            "id": {
+                "name": "concentrated solar power plant construction, "
+                "solar tower power plant, 20 MW",
+                "code": "19978cf531d88e55aed33574e1087d78",
+            },
+            "output": ["unit", 1],
+        }
+    },
+    "methods": [
+        {"id": ["EDIP 2003 no LT", "non-renewable resources no LT", "zinc no LT"]}
+    ],
+}
 
 # exp = Experiment(data)
 # from enbios2.base.unit_registry import ureg
