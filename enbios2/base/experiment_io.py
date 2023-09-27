@@ -1,10 +1,13 @@
 from csv import DictReader
 from os import PathLike
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 from flatten_dict import unflatten
 from frictionless import Schema, Resource, validate, system
 from frictionless.fields import NumberField, StringField
+
+if TYPE_CHECKING:
+    from enbios2.base.experiment import Experiment
 
 
 from enbios2.generic.files import ReadPath
@@ -14,8 +17,6 @@ from enbios2.models.experiment_models import (
     ExperimentData,
     ActivitiesDataRows,
     ExperimentMethodData,
-    ActivitiesDataTypes,
-    MethodsDataTypes,
 )
 
 activities_schema = Schema(
@@ -81,18 +82,15 @@ def parse_method_row(row: dict) -> ExperimentMethodData:
     return ExperimentMethodData(alias=row.get("alias"), id=tuple(id_))
 
 
-def read_experiment_io(
-        data: Union[dict, ExperimentDataIO]
-) -> "Experiment":
+def read_experiment_io(data: Union[dict, ExperimentDataIO]) -> "Experiment":
     from base.experiment import Experiment
+
     if isinstance(data, dict):
         exp_io = ExperimentDataIO(**data)
     else:
         exp_io = data
 
-    raw_experiment_data = {
-        "bw_project": exp_io.bw_project
-    }
+    raw_experiment_data = {"bw_project": exp_io.bw_project}
 
     def get_abs_path(path: Union[str, PathLike]) -> ReadPath:
         if exp_io.config.base_directory:
@@ -174,7 +172,7 @@ if __name__ == "__main__":
         "activities_config": {"default_database": "ei391"},
         "config": {
             "base_directory": "/mnt/SSD/projects/LIVENLab/enbios2/"
-                              "data/test_data/experiment_separated/a/"
+            "data/test_data/experiment_separated/a/"
         },
         "activities": "single_activity.csv",
         "methods": "methods.csv",

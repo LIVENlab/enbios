@@ -40,7 +40,7 @@ from enbios2.models.experiment_models import (
     Activity_Outputs,
     BWCalculationSetup,
     ExperimentActivityData,
-    ExperimentConfig, ExperimentDataIO,
+    ExperimentConfig,
 )
 
 logger = get_logger(__file__)
@@ -79,7 +79,7 @@ class Experiment:
 
     def _validate_bw_config(self) -> None:
         def validate_bw_project_bw_database(
-                bw_project: str, bw_default_database: Optional[str] = None
+            bw_project: str, bw_default_database: Optional[str] = None
         ):
             if bw_project not in bd.projects:
                 raise ValueError(f"Project {bw_project} not found")
@@ -102,9 +102,9 @@ class Experiment:
         else:
             simple_index: EcoInventSimpleIndex = self.raw_data.bw_project
             ecoinvent_index = get_ecoinvent_dataset_index(
-                version = simple_index.version,
-                system_model = simple_index.system_model,
-                type_ = "default",
+                version=simple_index.version,
+                system_model=simple_index.system_model,
+                type_="default",
             )
             if ecoinvent_index:
                 ecoinvent_index = ecoinvent_index[0]
@@ -122,7 +122,7 @@ class Experiment:
 
     @staticmethod
     def _prepare_activities(
-            activities: ActivitiesDataTypes,
+        activities: ActivitiesDataTypes,
     ) -> list[ExperimentActivityData]:
         raw_activities_list: list[ExperimentActivityData] = []
         if isinstance(activities, list):
@@ -145,9 +145,9 @@ class Experiment:
 
     @staticmethod
     def _validate_activities(
-            activities: list[ExperimentActivityData],
-            bw_default_database: Optional[str] = None,
-            output_required: bool = False,
+        activities: list[ExperimentActivityData],
+        bw_default_database: Optional[str] = None,
+        output_required: bool = False,
     ) -> dict[str, ExtendedExperimentActivityData]:
         """
         Check if all activities exist in the bw database, and check if the
@@ -155,7 +155,7 @@ class Experiment:
         In case there is only one scenario, all activities are required to have outputs
         """
         # if activities is a list, convert validate and convert to dict
-        default_id_data = ExperimentActivityId(database = bw_default_database)
+        default_id_data = ExperimentActivityId(database=bw_default_database)
         activities_map: dict[str, ExtendedExperimentActivityData] = {}
         # validate
         for activity in activities:
@@ -198,7 +198,7 @@ class Experiment:
             for db in search_in_dbs:
                 if id_.location:
                     filters["location"] = id_.location
-                    search_results = bd.Database(db).search(id_.name, filter = filters)
+                    search_results = bd.Database(db).search(id_.name, filter=filters)
                 else:
                     search_results = bd.Database(db).search(id_.name)
                 if id_.unit:
@@ -223,9 +223,9 @@ class Experiment:
 
     @staticmethod
     def _validate_activity(
-            activity: ExperimentActivityData,
-            default_id_attr: ExperimentActivityId,
-            required_output: bool = False,
+        activity: ExperimentActivityData,
+        default_id_attr: ExperimentActivityId,
+        required_output: bool = False,
     ) -> "ExtendedExperimentActivityData":
         """
         This method checks if the activity exists in the database by several ways.
@@ -242,20 +242,20 @@ class Experiment:
         if activity.output:
             if isinstance(activity.output, tuple):
                 output = ActivityOutput(
-                    unit = activity.output[0], magnitude = activity.output[1]
+                    unit=activity.output[0], magnitude=activity.output[1]
                 )
             else:  # if isinstance(activity.output, ActivityOutput):
                 output = activity.output
 
         else:
-            output = ActivityOutput(unit = bw_activity["unit"], magnitude = 1.0)
+            output = ActivityOutput(unit=bw_activity["unit"], magnitude=1.0)
         default_output_value = Experiment._validate_output(
             output, bw_activity, activity.id
         )
 
         if not activity.output:
             try:
-                activity.output = ActivityOutput(unit = bw_activity["unit"])
+                activity.output = ActivityOutput(unit=bw_activity["unit"])
             except ValidationError as err:
                 raise ValueError(
                     f"Activity {activity.id} has invalid output format: {err}"
@@ -265,8 +265,8 @@ class Experiment:
         activity_dict["output"] = asdict(output)
         result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(
             **activity_dict,
-            bw_activity = bw_activity,
-            default_output_value = default_output_value,
+            bw_activity=bw_activity,
+            default_output_value=default_output_value,
         )
         result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
 
@@ -283,9 +283,9 @@ class Experiment:
 
     @staticmethod
     def _validate_output(
-            target_output: ActivityOutput,
-            bw_activity: Activity,
-            activity_id: ExperimentActivityId,
+        target_output: ActivityOutput,
+        bw_activity: Activity,
+        activity_id: ExperimentActivityId,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -295,8 +295,8 @@ class Experiment:
         """
         try:
             target_quantity: Quantity = (
-                    ureg.parse_expression(target_output.unit, case_sensitive = False)
-                    * target_output.magnitude
+                ureg.parse_expression(target_output.unit, case_sensitive=False)
+                * target_output.magnitude
             )
             bw_activity_unit = bw_activity["unit"]
             return target_quantity.to(bw_activity_unit).magnitude
@@ -317,7 +317,7 @@ class Experiment:
             raise Exception(f"Unit error for activity: {activity_id}")
 
     def _prepare_methods(
-            self, methods: Optional[MethodsDataTypes] = None
+        self, methods: Optional[MethodsDataTypes] = None
     ) -> dict[str, ExperimentMethodData]:
         if not methods:
             methods = self.raw_data.methods
@@ -335,7 +335,7 @@ class Experiment:
 
     @staticmethod
     def _validate_method(
-            method: ExperimentMethodData, alias: str
+        method: ExperimentMethodData, alias: str
     ) -> ExperimentMethodPrepData:
         method.id = tuple(method.id)
         bw_method = bd.methods.get(method.id)
@@ -350,12 +350,12 @@ class Experiment:
         else:
             method.alias = alias
         return ExperimentMethodPrepData(
-            id = method.id, alias = method.alias, bw_method_unit = bw_method["unit"]
+            id=method.id, alias=method.alias, bw_method_unit=bw_method["unit"]
         )
 
     @staticmethod
     def _validate_methods(
-            method_dict: dict[str, ExperimentMethodData]
+        method_dict: dict[str, ExperimentMethodData]
     ) -> dict[str, ExperimentMethodPrepData]:
         # all methods must exist
         return {
@@ -364,7 +364,7 @@ class Experiment:
         }
 
     def _has_activity(
-            self, alias_or_id: Union[str, ExperimentActivityId]
+        self, alias_or_id: Union[str, ExperimentActivityId]
     ) -> Optional[ExtendedExperimentActivityData]:
         if isinstance(alias_or_id, str):
             activity = self._activities.get(alias_or_id, None)
@@ -376,7 +376,7 @@ class Experiment:
             return None
 
     def get_activity(
-            self, alias_or_id: Union[str, ExperimentActivityId]
+        self, alias_or_id: Union[str, ExperimentActivityId]
     ) -> ExtendedExperimentActivityData:
         """
         Get an activity by either its alias or its original "id"
@@ -395,13 +395,12 @@ class Experiment:
         """
 
         def validate_activity_id(
-                activity_id: Union[str, ExperimentActivityId]
+            activity_id: Union[str, ExperimentActivityId]
         ) -> SimpleScenarioActivityId:
             activity = self.get_activity(activity_id)
             id_ = activity.id
             assert id_.name and id_.code and id_.alias
-            return SimpleScenarioActivityId(name = id_.name, alias = id_.alias,
-                                            code = id_.code)
+            return SimpleScenarioActivityId(name=id_.name, alias=id_.alias, code=id_.code)
 
         def validate_activities(scenario_: ExperimentScenarioData) -> Activity_Outputs:
             activities = scenario_.activities
@@ -410,7 +409,7 @@ class Experiment:
             def convert_output(output) -> ActivityOutput:
                 if isinstance(output, tuple):
                     return ActivityOutput(
-                        unit = activity.bw_activity["unit"], magnitude = output[1]
+                        unit=activity.bw_activity["unit"], magnitude=output[1]
                     )
                 else:
                     return output  # type: ignore
@@ -432,7 +431,7 @@ class Experiment:
             return result
 
         def validate_scenario(
-                _scenario: ExperimentScenarioData, _scenario_alias: str
+            _scenario: ExperimentScenarioData, _scenario_alias: str
         ) -> Scenario:
             """
             Validate one scenario
@@ -450,9 +449,9 @@ class Experiment:
                 if activity_alias not in defined_aliases:
                     # print(activity)
                     id_ = SimpleScenarioActivityId(
-                        name = str(activity.id.name),
-                        code = str(activity.id.code),
-                        alias = activity.alias,
+                        name=str(activity.id.name),
+                        code=str(activity.id.code),
+                        alias=activity.alias,
                     )
                     scenario_activities_outputs[
                         id_
@@ -471,16 +470,16 @@ class Experiment:
                         dict[str, tuple[str, ...]], _scenario.methods
                     )
                     for method_alias, method_ in method_dict.items():  # type: ignore
-                        md = ExperimentMethodData(id = cast(tuple[str, ...], method_))
+                        md = ExperimentMethodData(id=cast(tuple[str, ...], method_))
                         prep_method = self._validate_method(md, method_alias)
                         resolved_methods[prep_method.alias] = prep_method
 
             return Scenario(
-                experiment = self,  # type: ignore
-                alias = _scenario_alias,
-                activities_outputs = scenario_activities_outputs,
-                methods = resolved_methods,
-                result_tree = self.hierarchy_root.copy(),
+                experiment=self,  # type: ignore
+                alias=_scenario_alias,
+                activities_outputs=scenario_activities_outputs,
+                methods=resolved_methods,
+                result_tree=self.hierarchy_root.copy(),
             )
 
         raw_scenarios = self.raw_data.scenarios
@@ -525,10 +524,10 @@ class Experiment:
         )
 
     def validate_hierarchy(
-            self, hierarchy: Union[dict, list]
+        self, hierarchy: Union[dict, list]
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         tech_tree: BasicTreeNode[ScenarioResultNodeData] = BasicTreeNode.from_dict(
-            hierarchy, compact = True
+            hierarchy, compact=True
         )
         for leaf in tech_tree.get_leaves():
             leaf.temp_data = {"activity": self.get_activity(leaf.name)}
@@ -556,7 +555,7 @@ class Experiment:
         :param scenario_alias:
         :return: The result_tree converted into a dict
         """
-        return self.get_scenario(scenario_alias).run().as_dict(include_data = True)
+        return self.get_scenario(scenario_alias).run().as_dict(include_data=True)
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         """
@@ -586,24 +585,19 @@ class Experiment:
             "experiment", list(itertools.chain(*inventories)), methods
         )
 
-        if self.config.use_k_bw_distributions == 1:
-            raw_results = StackedMultiLCA(calculation_setup).results
+        collect_distribution_results = self.config.use_k_bw_distributions > 1
+        results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
+        for i in range(self.config.use_k_bw_distributions):
+            raw_results = StackedMultiLCA(calculation_setup, True).results
             scenario_results = np.split(raw_results, len(self.scenarios))
-            results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
             for index, scenario in enumerate(self.scenarios):
-                results[scenario.alias] = scenario.set_results(scenario_results[index])
+                results[scenario.alias] = scenario.set_results(
+                    scenario_results[index],
+                    collect_distribution_results,
+                    i == self.config.use_k_bw_distributions - 1,
+                )
             self._execution_time = time.time() - start_time
-            return results
-        else:
-            results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
-            for i in range(self.config.use_k_bw_distributions):
-                raw_results = StackedMultiLCA(calculation_setup, True).results
-                scenario_results = np.split(raw_results, len(self.scenarios))
-                for index, scenario in enumerate(self.scenarios):
-                    results[scenario.alias] = scenario.set_results(
-                        scenario_results[index], True)
-                self._execution_time = time.time() - start_time
-            return results
+        return results
 
     @property
     def execution_time(self) -> str:
@@ -613,7 +607,7 @@ class Experiment:
         :return: execution time in the format HH:MM:SS
         """
         if not math.isnan(self._execution_time):
-            return str(timedelta(seconds = int(self._execution_time)))
+            return str(timedelta(seconds=int(self._execution_time)))
         else:
             any_scenario_run = False
             scenario_results = ""
@@ -627,11 +621,11 @@ class Experiment:
                 return "not run"
 
     def results_to_csv(
-            self,
-            file_path: PathLike,
-            scenario_alias: Optional[str] = None,
-            level_names: Optional[list[str]] = None,
-            include_method_units: bool = True,
+        self,
+        file_path: PathLike,
+        scenario_alias: Optional[str] = None,
+        level_names: Optional[list[str]] = None,
+        include_method_units: bool = True,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -649,8 +643,8 @@ class Experiment:
             scenario = self.get_scenario(scenario_alias)
             scenario.results_to_csv(
                 file_path,
-                level_names = level_names,
-                include_method_units = include_method_units,
+                level_names=level_names,
+                include_method_units=include_method_units,
             )
             return
         else:
@@ -660,8 +654,8 @@ class Experiment:
                 temp_file_name = gettempdir() + f"/temp_scenario_{scenario.alias}.csv"
                 scenario.results_to_csv(
                     temp_file_name,
-                    level_names = level_names,
-                    include_method_units = include_method_units,
+                    level_names=level_names,
+                    include_method_units=include_method_units,
                 )
                 rows = ReadPath(temp_file_name).read_data()
                 rows[0]["scenario"] = scenario.alias
@@ -672,7 +666,7 @@ class Experiment:
                 all_rows.extend(rows)
                 if (temp_file := Path(temp_file_name)).exists():
                     temp_file.unlink()
-            with Path(file_path).open("w", newline = "") as csvfile:
+            with Path(file_path).open("w", newline="") as csvfile:
                 writer = csv.DictWriter(csvfile, header)
                 writer.writeheader()
                 writer.writerows(all_rows)
@@ -684,7 +678,7 @@ class Experiment:
         :return:
         """
         return [
-            scenario.result_to_dict(include_output = include_output)
+            scenario.result_to_dict(include_output=include_output)
             for scenario in self.scenarios
         ]
 
