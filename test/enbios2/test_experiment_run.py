@@ -16,9 +16,7 @@ from enbios2.models.experiment_models import ExperimentData
 from test.enbios2.test_project_fixture import TEST_BW_PROJECT, TEST_BW_DATABASE
 
 
-@pytest.fixture
-def default_method_str() -> str:
-    return 'EDIP 2003 no LT_non-renewable resources no LT_zinc no LT'
+
 
 
 @pytest.fixture
@@ -27,9 +25,12 @@ def default_method_tuple() -> tuple:
 
 
 @pytest.fixture
+def default_method_str(default_method_tuple) -> str:
+    return "_".join(default_method_tuple)
+
+@pytest.fixture
 def default_result_score() -> float:
     return 6.169154864577996e-06
-    # return 6.292564044222079e-06
 
 
 @pytest.fixture
@@ -49,14 +50,14 @@ def experiment_setup(default_bw_config, default_bw_activity, default_method_tupl
                      default_result_score: float):
     _impact = default_result_score
     return {
-        "scenario"            : {
-            "bw_project"         : default_bw_config["bw_project"],
+        "scenario": {
+            "bw_project": default_bw_config["bw_project"],
             "bw_default_database": default_bw_config["bw_default_database"],
-            "activities"         : {
+            "activities": {
                 "single_activity": {
-                    "id"    : {
-                        "name"    : default_bw_activity["name"],
-                        "unit"    : default_bw_activity["unit"],
+                    "id": {
+                        "name": default_bw_activity["name"],
+                        "unit": default_bw_activity["unit"],
                         "location": default_bw_activity["location"]
                     },
                     "output": [
@@ -65,34 +66,34 @@ def experiment_setup(default_bw_config, default_bw_activity, default_method_tupl
                     ]
                 }
             },
-            "methods"            : [
+            "methods": [
                 {
                     "id": default_method_tuple
                 }
             ],
-            "hierarchy"          : {
+            "hierarchy": {
                 "energy": [
                     "single_activity"
                 ]
             }
         },
-        "expected_result_tree": {'name'    : 'root',
-                                 'children': [{'name'    : 'energy',
+        "expected_result_tree": {'name': 'root',
+                                 'children': [{'name': 'energy',
                                                'children': [
-                                                   {'name'    : 'single_activity',
+                                                   {'name': 'single_activity',
                                                     'children': [],
-                                                    'data'    :
+                                                    'data':
                                                         ScenarioResultNodeData(
                                                             output = (
                                                                 "kilowatt_hour", 1.0),
                                                             bw_activity = default_bw_activity,
                                                             results = {
                                                                 default_method_str: _impact})}],
-                                               'data'    : ScenarioResultNodeData(
+                                               'data': ScenarioResultNodeData(
                                                    output = ("kilowatt_hour", 1.0),
                                                    results = {
                                                        default_method_str: _impact})}],
-                                 'data'    : ScenarioResultNodeData(
+                                 'data': ScenarioResultNodeData(
                                      output = ("kilowatt_hour", 1.0),
                                      results = {
                                          default_method_str: _impact})}
@@ -103,28 +104,28 @@ def experiment_setup(default_bw_config, default_bw_activity, default_method_tupl
 def experiment_scenario_setup(default_bw_config, default_bw_activity,
                               default_method_tuple, default_method_str: str):
     return {
-        "bw_project"         : default_bw_config["bw_project"],
+        "bw_project": default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
-        "activities"         : {
+        "activities": {
             "single_activity": {
                 "id": {
-                    "name"    : "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit"    : "kilowatt hour",
+                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit": "kilowatt hour",
                     "location": "DK"
                 }
             }
         },
-        "methods"            : [
+        "methods": [
             {
                 "id": default_method_tuple
             }
         ],
-        "hierarchy"          : {
+        "hierarchy": {
             "energy": [
                 "single_activity"
             ]
         },
-        "scenarios"          : {
+        "scenarios": {
             "scenario1": {
                 "activities": {
                     "single_activity": [
@@ -149,7 +150,7 @@ def experiment_scenario_setup(default_bw_config, default_bw_activity,
 @pytest.fixture
 def default_bw_config() -> dict:
     return {
-        "bw_project"         : TEST_BW_PROJECT,
+        "bw_project": TEST_BW_PROJECT,
         "bw_default_database": TEST_BW_DATABASE
     }
 
@@ -197,7 +198,7 @@ def test_single_lca_compare(run_basic_experiment: Experiment,
     bw_activity = run_basic_experiment._activities["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
     assert regular_score == pytest.approx(expected_value, abs = 1e-6)
-    assert regular_score == basic_exp_run_result_tree._data.results[default_method_str]
+    assert regular_score == basic_exp_run_result_tree.data.results[default_method_str]
     # assert regular_score == result["default scenario"]["data"][default_method_str]
 
 
@@ -274,13 +275,13 @@ def test_stacked_lca(default_bw_config):
     """
     # todo this test should be vigorous
     experiment = {
-        "bw_project"         : default_bw_config["bw_project"],
+        "bw_project": default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
-        "activities"         : {
+        "activities": {
             "single_activity": {
-                "id"    : {
-                    "name"    : "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit"    : "kilowatt hour",
+                "id": {
+                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit": "kilowatt hour",
                     "location": "DK"
                 },
                 "output": [
@@ -288,8 +289,8 @@ def test_stacked_lca(default_bw_config):
                     1
                 ]
             },
-            "2nd"            : {
-                "id"    : {
+            "2nd": {
+                "id": {
                     "name": "concentrated solar power plant construction, solar tower power plant, 20 MW",
                     "code": "19978cf531d88e55aed33574e1087d78"
                 },
@@ -299,18 +300,18 @@ def test_stacked_lca(default_bw_config):
                 ]
             }
         },
-        "methods"            : [
+        "methods": [
             {
                 "id": ['EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT']
             }
         ],
-        "hierarchy"          : {
+        "hierarchy": {
             "energy": [
                 "single_activity",
                 "2nd"
             ]
         },
-        "scenarios"          : [
+        "scenarios": [
             {
                 "activities": {"single_activity": ["kWh", 3]}
             },
@@ -349,30 +350,30 @@ def test_scenario(experiment_scenario_setup: dict,
 def test_multi_activity_usage(experiment_setup, default_bw_config: dict,
                               default_method_tuple: tuple[str, ...]):
     scenario = {
-        "bw_project"         : default_bw_config["bw_project"],
+        "bw_project": default_bw_config["bw_project"],
         "bw_default_database": default_bw_config["bw_default_database"],
-        "activities"         : {
-            "single_activity"  : {
+        "activities": {
+            "single_activity": {
                 "id": {
-                    "name"    : "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit"    : "kilowatt hour",
+                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit": "kilowatt hour",
                     "location": "DK"
                 }
             },
             "single_activity_2": {
                 "id": {
-                    "name"    : "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit"    : "kilowatt hour",
+                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "unit": "kilowatt hour",
                     "location": "DK"
                 }
             }
         },
-        "methods"            : [
+        "methods": [
             {
                 "id": default_method_tuple
             }
         ],
-        "scenarios"          : {
+        "scenarios": {
             "scenario1": {
                 "activities": {
                     "single_activity": [
@@ -383,7 +384,7 @@ def test_multi_activity_usage(experiment_setup, default_bw_config: dict,
             },
             "scenario2": {
                 "activities": {
-                    "single_activity"  : [
+                    "single_activity": [
                         "MWh",
                         2
                     ],
@@ -424,6 +425,12 @@ def test_lca_distribution(experiment_setup,
     experiment = Experiment(ExperimentData(**scenario_data))
     result = experiment.run()
     result["default scenario"].children
+
+    # "id": {
+    #     "name": "concentrated solar power plant construction, solar tower power plant, 20 MW",
+    #     "code": "19978cf531d88e55aed33574e1087d78"
+    # },
+
     # expected_value = experiment_setup["expected_result_tree"]["data"].results[default_method_str]
     # bw_activity = run_basic_experiment._activities["single_activity"].bw_activity
     # assert regular_score == pytest.approx(expected_value, abs=1e-6)
