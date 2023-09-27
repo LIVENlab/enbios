@@ -278,7 +278,8 @@ def test_scaled_demand_unit(experiment_setup, default_method_str: str):
         expected_value, abs = 1e-7)
 
 
-def test_stacked_lca(default_bw_config, default_method_tuple, second_activity_id):
+def test_stacked_lca(default_bw_config, default_method_tuple, first_activity_id,
+                     second_activity_id):
     """
     {
         "id": ["Cumulative Exergy Demand (CExD)", "energy resources: renewable, solar", "exergy content"]

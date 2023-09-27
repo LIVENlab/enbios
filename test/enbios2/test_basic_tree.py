@@ -547,7 +547,7 @@ def test_from_compact_dict():
 
     for x in [a, b, c]:
         tree = BasicTreeNode.from_dict(x, compact=True)
-        print(json.dumps(tree.as_dict(), indent=2))
+        # print(json.dumps(tree.as_dict(), indent=2))
 
     # assert tree.name == "root"
     # assert len(tree.children) == 2

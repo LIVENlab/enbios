@@ -304,7 +304,7 @@ class Experiment:
         """
         try:
             target_quantity: Quantity = (
-                    ureg.parse_expression(target_output.unit, case_sensitive = False)
+                    ureg.parse_expression(bw_unit_fix(target_output.unit), case_sensitive = False)
                     * target_output.magnitude
             )
             bw_activity_unit = bw_activity["unit"]
