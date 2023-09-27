@@ -245,7 +245,8 @@ class Scenario:
         for i in range(distributions_config):
             raw_results: ndarray = StackedMultiLCA(bw_calc_setup,
                                                    distribution_results).results
-            result_tree = self.set_results(raw_results, i == distribution_results)
+            result_tree = self.set_results(raw_results, distribution_results,
+                                           i == distributions_config - 1)
         self._execution_time = time.time() - start_time
         return result_tree
 

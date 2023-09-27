@@ -255,7 +255,8 @@ class Experiment:
                 output = activity.output
 
         else:
-            output = ActivityOutput(unit = bw_unit_fix(bw_activity["unit"]), magnitude = 1.0)
+            output = ActivityOutput(unit = bw_unit_fix(bw_activity["unit"]),
+                                    magnitude = 1.0)
         default_output_value = Experiment._validate_output(
             output, bw_activity, activity.id
         )
@@ -418,7 +419,7 @@ class Experiment:
             def convert_output(output) -> ActivityOutput:
                 if isinstance(output, tuple):
                     return ActivityOutput(
-                        unit = output[0], magnitude = output[1]
+                        unit = bw_unit_fix(output[0]), magnitude = output[1]
                     )
                 else:
                     return output  # type: ignore

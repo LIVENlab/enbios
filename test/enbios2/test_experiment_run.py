@@ -448,5 +448,5 @@ def test_lca_distribution(experiment_setup,
          }
     ]
     experiment = Experiment(ExperimentData(**scenario_data))
-    result = experiment.run()
+    result = experiment.scenarios[0].run()
     pass

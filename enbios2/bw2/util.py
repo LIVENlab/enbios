@@ -126,6 +126,7 @@ def bw_unit_fix(unit_str: str):
         return "kilowatt_hour"
     if unit_str == "unit":
         return "unspecificEcoinventUnit"
+    return unit_str
 
 
 def delete_all_projects():
