@@ -22,7 +22,7 @@ def info_exchanges(act: Activity) -> dict:
 
 
 def iter_exchange_by_ids(
-    ids: Iterator[int], batch_size: int = 1000
+        ids: Iterator[int], batch_size: int = 1000
 ) -> Generator[ExchangeDataset, None, None]:
     """
     Iterate over exchanges by ids
@@ -46,7 +46,7 @@ def iter_exchange_by_ids(
 
 
 def iter_activities_by_codes(
-    codes: Iterator[str], batch_size: int = 1000
+        codes: Iterator[str], batch_size: int = 1000
 ) -> Generator[ActivityDataset, None, None]:
     """
     Iterate over activities by codes
@@ -81,7 +81,7 @@ def get_activity(code: str) -> Activity:
     return Activity(activity_ds)
 
 
-def full_duplicate(activity: Activity, code=None, **kwargs) -> Activity:
+def full_duplicate(activity: Activity, code = None, **kwargs) -> Activity:
     """
     Make a copy of an activity with its upstream exchanges
     (Otherwise, you cannot calculate the lca of the copy)
@@ -93,7 +93,7 @@ def full_duplicate(activity: Activity, code=None, **kwargs) -> Activity:
     activity_copy = activity.copy(code, **kwargs)
     for upstream in activity.upstream():
         upstream.output.new_exchange(
-            input=activity_copy, type=upstream["type"], amount=upstream.amount
+            input = activity_copy, type = upstream["type"], amount = upstream.amount
         ).save()
     activity_copy.save()
     return activity_copy
@@ -124,6 +124,8 @@ def report():
 def bw_unit_fix(unit_str: str):
     if unit_str == "kilowatt hour":
         return "kilowatt_hour"
+    if unit_str == "unit":
+        return "unspecificEcoinventUnit"
 
 
 def delete_all_projects():

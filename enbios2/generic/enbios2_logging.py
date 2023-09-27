@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional, Any
 
 from enbios2.const import PROJECT_PATH
-from enbios2.init_appdir import get_init_appdir
+from generic.files import DataPath
 
 default_log_config = {
     "version": 1,
@@ -41,7 +41,7 @@ class EnbiosLogger:
 
     @classmethod
     def init_logger(cls):
-        cls.log_config_file = get_init_appdir() / "logging.json"
+        cls.log_config_file = DataPath("") / "logging.json"
         # check if  exists
         if not cls.log_config_file.exists():
             print(f"Creating logging config file at: {cls.log_config_file}")

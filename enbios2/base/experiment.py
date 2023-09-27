@@ -19,7 +19,7 @@ from enbios2.base.db_models import BWProjectIndex
 from enbios2.base.scenario import Scenario
 from enbios2.base.stacked_MultiLCA import StackedMultiLCA
 from enbios2.base.unit_registry import ureg
-from enbios2.bw2.util import get_activity
+from enbios2.bw2.util import bw_unit_fix, get_activity
 from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.files import PathLike, ReadPath
@@ -78,6 +78,13 @@ class Experiment:
         self._execution_time: float = float("NaN")
 
     def _validate_bw_config(self) -> None:
+
+        if self.config.use_k_bw_distributions < 1:
+            raise ValueError(
+                f"config.use_k_bw_distributions must be greater than 0, "
+                f"but is {self.config.use_k_bw_distributions}"
+            )
+
         def validate_bw_project_bw_database(
                 bw_project: str, bw_default_database: Optional[str] = None
         ):
@@ -248,7 +255,7 @@ class Experiment:
                 output = activity.output
 
         else:
-            output = ActivityOutput(unit = bw_activity["unit"], magnitude = 1.0)
+            output = ActivityOutput(unit = bw_unit_fix(bw_activity["unit"]), magnitude = 1.0)
         default_output_value = Experiment._validate_output(
             output, bw_activity, activity.id
         )
@@ -290,7 +297,8 @@ class Experiment:
         """
         validate and convert to the bw-activity unit
         :param target_output:
-        :param activity:
+        :param bw_activity:
+        :param activity_id:
         :return:
         """
         try:
@@ -299,7 +307,7 @@ class Experiment:
                     * target_output.magnitude
             )
             bw_activity_unit = bw_activity["unit"]
-            return target_quantity.to(bw_activity_unit).magnitude
+            return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
         except UndefinedUnitError as err:
             logger.error(
                 f"Cannot parse output unit '{target_output.unit}'- "
@@ -410,7 +418,7 @@ class Experiment:
             def convert_output(output) -> ActivityOutput:
                 if isinstance(output, tuple):
                     return ActivityOutput(
-                        unit = activity.bw_activity["unit"], magnitude = output[1]
+                        unit = output[0], magnitude = output[1]
                     )
                 else:
                     return output  # type: ignore
