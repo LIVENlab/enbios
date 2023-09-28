@@ -222,10 +222,27 @@ class ExperimentConfig:
 
 ActivitiesDataRows = list[ExperimentActivityData]
 ActivitiesDataTypes = Union[ActivitiesDataRows, dict[str, ExperimentActivityData]]
+# with path
+ActivitiesDataTypesExt = Union[
+    ActivitiesDataRows, dict[str, ExperimentActivityData], PathLike
+]
+
 MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
+# with path
+MethodsDataTypesExt = Union[
+    list[ExperimentMethodData], dict[str, tuple[str, ...]], PathLike
+]
+
 HierarchyDataTypes = Union[list, dict]
+# with path
+HierarchyDataTypesExt = Union[list, dict, PathLike]
+
 ScenariosDataTypes = Union[
     list[ExperimentScenarioData], dict[str, ExperimentScenarioData]
+]
+# with path
+ScenariosDataTypesExt = Union[
+    list[ExperimentScenarioData], dict[str, ExperimentScenarioData], PathLike
 ]
 
 
@@ -238,42 +255,26 @@ class ExperimentData:
     bw_project: Union[str, EcoInventSimpleIndex] = Field(
         ..., description="The brightway project name"
     )
-    activities: ActivitiesDataTypes = Field(
+    activities: ActivitiesDataTypesExt = Field(
         ..., description="The activities to be used in the experiment"
     )
-    methods: MethodsDataTypes = Field(
+    methods: MethodsDataTypesExt = Field(
         ..., description="The impact methods to be used in the experiment"
     )
     bw_default_database: Optional[str] = Field(
         None,
         description="The default database of activities to be used " "in the experiment",
     )
-    hierarchy: Optional[Union[list, dict]] = Field(
+    hierarchy: Optional[HierarchyDataTypesExt] = Field(
         None, description="The activity hierarchy to be used in the experiment"
     )
-    scenarios: Optional[ScenariosDataTypes] = Field(
+    scenarios: Optional[ScenariosDataTypesExt] = Field(
         None, description="The scenarios for this experiment"
     )
     config: ExperimentConfig = Field(
         default_factory=ExperimentConfig,
         description="The configuration of this experiment",
     )
-
-
-@pydantic_dataclass
-class ExperimentDataIO:
-    bw_project: Union[str, EcoInventSimpleIndex]
-    bw_default_database: Optional[str] = None
-    activities: Optional[Union[ActivitiesDataTypes, PathLike]] = None
-    methods: Optional[Union[MethodsDataTypes, PathLike]] = None
-    hierarchy: Optional[Union[HierarchyDataTypes, str]] = None
-    scenarios: Optional[Union[ScenariosDataTypes, str]] = None
-    config: Optional[ExperimentConfig] = Field(default_factory=ExperimentConfig)
-
-    def read(self) -> ExperimentData:  # type: ignore
-        from base.experiment_io import read_experiment_io
-
-        return read_experiment_io(self)
 
 
 @dataclass
