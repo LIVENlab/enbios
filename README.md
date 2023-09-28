@@ -39,7 +39,7 @@ Install enbios2 with
 (linux)
 `python3 -m pip install enbios`
 
-## Demo
+## Demos
 
 The repository contains a few notebooks (require jupyter notebook) in the demos folder.
 
