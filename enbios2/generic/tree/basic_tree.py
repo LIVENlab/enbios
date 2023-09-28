@@ -36,7 +36,7 @@ class BasicTreeNode(Generic[T]):
         children: Optional[list[Union["BasicTreeNode[T]", dict[str, Any]]]] = None,
         data: Optional[T] = None,
         data_factory: Optional[Callable[["BasicTreeNode"], T]] = None,
-        **kwargs,
+        temp_data: Optional[dict[str, Any]] = None,
     ):
         """
         Initialize the HierarchyNode.
@@ -55,9 +55,7 @@ class BasicTreeNode(Generic[T]):
                     child = BasicTreeNode.from_dict(child, data_factory=data_factory)
                 self.add_child(child)
         self.parent: Optional[BasicTreeNode[T]] = None
-        self.temp_data: dict[
-            str, Any
-        ] = kwargs  # this is used for temporary storage of data
+        self.temp_data: dict[str, Any] = temp_data if temp_data else {}
         self._id: bytes = self.generate_id()
         if data:
             self._data: T = data
@@ -127,6 +125,8 @@ class BasicTreeNode(Generic[T]):
         """
         if node is self or node in self:
             raise ValueError(f"Node {node} is already a child of {self}")
+        if node.parent:
+            raise ValueError(f"Node {node} already has a parent")
         self.children.append(node)
         node.parent = self
         return node
@@ -140,15 +140,17 @@ class BasicTreeNode(Generic[T]):
         for node in nodes:
             self.add_child(node)
 
-    def remove_child(self, node: Union["BasicTreeNode[T]", int]) -> "BasicTreeNode":
+    def remove_child(self, node: Union["BasicTreeNode[T]", int, str]) -> "BasicTreeNode":
         """
         Remove a child node from this node.
 
         :param node: The node to be removed.
         :return: The node that was removed.
         """
-        if isinstance(node, int):
-            node = self.children[node]
+        if isinstance(node, int) or isinstance(node, str):
+            node = self[node]
+        if not isinstance(node, BasicTreeNode):
+            raise ValueError(f"Node {node} is of wrong type {type(node)}")
         self.children.remove(node)
         node.parent = None
         return node
@@ -384,7 +386,7 @@ class BasicTreeNode(Generic[T]):
 
         return rec_find_child(self)
 
-    def get_leaves(self) -> Generator["BasicTreeNode[T]", None, None]:
+    def iter_leaves(self) -> Generator["BasicTreeNode[T]", None, None]:
         """
         Get all leaf nodes of this node.
 

@@ -209,7 +209,8 @@ class ExperimentConfig:
     store_raw_results: bool = False  # store numpy arrays of lca results
     use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
     # only used by ExperimentDataIO
-    base_directory: Optional[str] = None
+    # base_directory when loading files (activities, methods, ...)
+    base_directory: Optional[Union[str, PathLike]] = None
     # those are only used for testing
     debug_test_is_valid: bool = True
     debug_test_replace_bw_config: Union[
