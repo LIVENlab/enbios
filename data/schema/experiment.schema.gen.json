@@ -202,6 +202,10 @@
               "type": "string"
             },
             {
+              "format": "path",
+              "type": "string"
+            },
+            {
               "type": "null"
             }
           ],
@@ -448,6 +452,13 @@
             "$ref": "#/$defs/ExperimentActivityData"
           },
           "type": "object"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "format": "path",
+          "type": "string"
         }
       ],
       "description": "The activities to be used in the experiment",
@@ -469,6 +480,13 @@
             "type": "array"
           },
           "type": "object"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "format": "path",
+          "type": "string"
         }
       ],
       "description": "The impact methods to be used in the experiment",
@@ -497,6 +515,13 @@
           "type": "object"
         },
         {
+          "type": "string"
+        },
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
           "type": "null"
         }
       ],
@@ -517,6 +542,13 @@
             "$ref": "#/$defs/ExperimentScenarioData"
           },
           "type": "object"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "format": "path",
+          "type": "string"
         },
         {
           "type": "null"

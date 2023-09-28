@@ -374,8 +374,8 @@ class Scenario:
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         alt_result_tree = self.experiment.validate_hierarchy(hierarchy)
 
-        activity_nodes = self.result_tree.get_leaves()
-        alt_activity_nodes = list(alt_result_tree.get_leaves())
+        activity_nodes = self.result_tree.iter_leaves()
+        alt_activity_nodes = list(alt_result_tree.iter_leaves())
         for node in activity_nodes:
             try:
                 alt_node = next(filter(lambda n: n.name == node.name, alt_activity_nodes))

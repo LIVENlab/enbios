@@ -14,4 +14,4 @@ if not ecoinvent_units_file_path.exists():
     ecoinvent_units_file_path.touch()
 
 ureg.load_definitions(ecoinvent_units_file_path)
-print("loaded ecoinvent units")
+# print("loaded ecoinvent units")

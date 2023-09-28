@@ -5,8 +5,6 @@ from flatten_dict import unflatten
 from frictionless import Schema, Resource, validate, system
 from frictionless.fields import NumberField, StringField
 
-if TYPE_CHECKING:
-    from enbios2.base.experiment import Experiment
 
 
 from enbios2.generic.files import ReadPath
@@ -78,7 +76,6 @@ def parse_method_row(row: dict) -> ExperimentMethodData:
 
 
 def get_abs_path(path: Union[str, PathLike], base_dir: Optional[str] = None) -> ReadPath:
-
     if base_dir:
         return ReadPath(base_dir) / path
     else:
@@ -118,7 +115,9 @@ def resolve_input_files(raw_input: ExperimentData):
 
     # methods
     if isinstance(raw_input.methods, str) or isinstance(raw_input.methods, PathLike):
-        methods_file: ReadPath = get_abs_path(raw_input.methods)
+        methods_file: ReadPath = get_abs_path(
+            raw_input.methods, raw_input.config.base_directory
+        )
         if methods_file.suffix == ".json":
             data = methods_file.read_data()
             raw_input.methods = data
@@ -139,7 +138,9 @@ def resolve_input_files(raw_input: ExperimentData):
 
     # hierarchy
     if isinstance(raw_input.hierarchy, str) or isinstance(raw_input.hierarchy, PathLike):
-        hierarchy_file: ReadPath = get_abs_path(raw_input.hierarchy)
+        hierarchy_file: ReadPath = get_abs_path(
+            raw_input.hierarchy, raw_input.config.base_directory
+        )
         if hierarchy_file.suffix == ".json":
             data = hierarchy_file.read_data()
             raw_input.hierarchy = data
@@ -151,7 +152,9 @@ def resolve_input_files(raw_input: ExperimentData):
 
     # scenarios
     if isinstance(raw_input.scenarios, str) or isinstance(raw_input.scenarios, PathLike):
-        scenario_file: ReadPath = get_abs_path(raw_input.scenarios)
+        scenario_file: ReadPath = get_abs_path(
+            raw_input.scenarios, raw_input.config.base_directory
+        )
         if scenario_file.suffix == ".json":
             data = scenario_file.read_data()
             raw_input.scenario = data
