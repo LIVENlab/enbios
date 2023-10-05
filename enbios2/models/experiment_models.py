@@ -46,7 +46,7 @@ class ExperimentActivityId:
     alias: Optional[str] = None
 
     def get_bw_activity(
-            self, allow_multiple: bool = False
+        self, allow_multiple: bool = False
     ) -> Union[Activity, list[Activity]]:
         if self.code:
             if not self.database:
@@ -58,7 +58,7 @@ class ExperimentActivityId:
             if self.location:
                 filters["location"] = self.location
                 assert (
-                        self.database in bw2data.databases
+                    self.database in bw2data.databases
                 ), f"database {self.database} not found"
                 search_results = bw2data.Database(self.database).search(
                     self.name, filter=filters
@@ -86,7 +86,7 @@ class ExperimentActivityId:
             raise ValueError("No code or name specified")
 
     def fill_empty_fields(
-            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
+        self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
     ):
         if not fields:
             fields = []
@@ -210,7 +210,8 @@ class ExperimentConfig:
     store_raw_results: bool = False  # store numpy arrays of lca results
     use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
     run_scenarios: Optional[
-        list[str]] = None  # list of scenario-alias to run, ALSO AS ENV-VAR
+        list[str]
+    ] = None  # list of scenario-alias to run, ALSO AS ENV-VAR
     # only used by ExperimentDataIO
     # base_directory when loading files (activities, methods, ...)
     base_directory: Optional[Union[str, PathLike]] = None

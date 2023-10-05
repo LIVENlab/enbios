@@ -1,10 +1,9 @@
 from os import PathLike
-from typing import TYPE_CHECKING, Union, Optional
+from typing import Union, Optional
 
 from flatten_dict import unflatten
 from frictionless import Schema, Resource, validate, system
 from frictionless.fields import NumberField, StringField
-
 
 
 from enbios2.generic.files import ReadPath
