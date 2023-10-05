@@ -196,6 +196,21 @@
           "title": "Use K Bw Distributions",
           "type": "integer"
         },
+        "run_scenarios": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run Scenarios"
+        },
         "base_directory": {
           "anyOf": [
             {
