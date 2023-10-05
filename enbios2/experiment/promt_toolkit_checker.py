@@ -35,7 +35,7 @@ class State(Enum):
     METHOD = "method"
 
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class CustomBuffer(Buffer):

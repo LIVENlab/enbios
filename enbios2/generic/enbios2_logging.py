@@ -71,6 +71,7 @@ class EnbiosLogger:
 
     @classmethod
     def get_or_create_logger(cls, name: str) -> logging.Logger:
+
         if not cls.initialized:
             cls.init_logger()
         if name not in cls.config_data["loggers"]:
@@ -94,7 +95,7 @@ def get_logger(file_path: str) -> logging.Logger:
     Takes the logging config from logging.json.
     Creates a new entry in that file if it does not exist yet with
     'new_logger_default_config'.
-    logger = get_logger(__file__)
+    logger = get_logger(__name__)
     :param file_path:  absolute file path
     :return: logger for the module...
     """

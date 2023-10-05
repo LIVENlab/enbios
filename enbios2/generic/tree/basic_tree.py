@@ -10,7 +10,7 @@ from enbios2.generic.files import PathLike
 
 T = TypeVar("T")
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class BasicTreeNode(Generic[T]):

@@ -18,7 +18,7 @@ from enbios2.generic.enbios2_logging import get_logger
 
 projects = bw2data.projects
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def _read_bw_index_file() -> list[BWProjectIndex]:

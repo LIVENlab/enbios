@@ -14,7 +14,7 @@ from enbios2.generic.files import PathLike
 from enbios2.generic.tree.basic_tree import BasicTreeNode
 from enbios2.models.experiment_models import ScenarioResultNodeData
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def bar_plot(

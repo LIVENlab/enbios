@@ -14,7 +14,7 @@ from enbios2.experiment.db_models import BW_Activity, FTS_BW_ActivitySimple
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.files import ReadDataPath
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 def build_fts(bw_project: str, db_path: Path, ecoinvent_geo_xml_path: Optional[str] = None):
     logger.info(f"Building FTS for {bw_project} to {db_path}")

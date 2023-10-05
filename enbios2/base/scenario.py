@@ -26,7 +26,7 @@ from enbios2.models.experiment_models import (
     Activity_Outputs,
 )
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 @dataclass

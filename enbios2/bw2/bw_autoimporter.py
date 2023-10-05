@@ -14,7 +14,7 @@ from enbios2.const import BASE_DATA_PATH
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.models.bw_project_models import BWProject, BWProjectDatabase
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def list_importers() -> dict[str, Union[dict[str, list[TypeVar]], dict[str, TypeVar]]]:

@@ -36,7 +36,7 @@ from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.util import get_enum_by_value
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class DBTypes(Enum):

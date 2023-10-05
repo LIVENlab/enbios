@@ -16,7 +16,7 @@ import yaml
 from enbios2.const import BASE_DATA_PATH
 from enbios2.generic.enbios2_logging import get_logger
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def read_data(path: Path, config: Optional[dict] = None):

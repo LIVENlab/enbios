@@ -10,7 +10,7 @@ from enbios2.base.db_models import EcoinventDataset, BWProjectIndex
 from enbios2.const import BASE_ECOINVENT_DATASETS_PATH
 from enbios2.generic.enbios2_logging import get_logger
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def analyze_directory(

@@ -11,7 +11,7 @@ from bw2data.errors import DuplicateNode
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.util import get_data_file_path
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def read_dot_file(file_path: Path) -> pydot.Dot:

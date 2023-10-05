@@ -37,7 +37,7 @@ from enbios2.models.experiment_models import (ActivitiesDataTypes, ActivityOutpu
                                               MethodsDataTypes, ScenarioResultNodeData,
                                               Settings, SimpleScenarioActivityId)
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 class Experiment:
