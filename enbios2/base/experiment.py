@@ -7,16 +7,16 @@ from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Optional, Union, Any, cast
+from typing import Any, Optional, Union, cast
 
 import bw2data as bd
 import numpy as np
 from bw2data.backends import Activity
-from pint import Quantity, UndefinedUnitError, DimensionalityError
+from pint import DimensionalityError, Quantity, UndefinedUnitError
 from pydantic import ValidationError
 
-from base.experiment_io import resolve_input_files
 from enbios2.base.db_models import BWProjectIndex
+from enbios2.base.experiment_io import resolve_input_files
 from enbios2.base.scenario import Scenario
 from enbios2.base.stacked_MultiLCA import StackedMultiLCA
 from enbios2.base.unit_registry import ureg
@@ -25,25 +25,17 @@ from enbios2.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.files import PathLike, ReadPath
 from enbios2.generic.tree.basic_tree import BasicTreeNode
-from enbios2.models.experiment_models import (
-    ExperimentActivityId,
-    ExtendedExperimentActivityData,
-    ExperimentMethodData,
-    ExperimentScenarioData,
-    ExperimentData,
-    EcoInventSimpleIndex,
-    MethodsDataTypes,
-    ActivitiesDataTypes,
-    ScenarioResultNodeData,
-    ExperimentMethodPrepData,
-    ActivityOutput,
-    Settings,
-    SimpleScenarioActivityId,
-    Activity_Outputs,
-    BWCalculationSetup,
-    ExperimentActivityData,
-    ExperimentConfig,
-)
+from enbios2.models.experiment_models import (ActivitiesDataTypes, ActivityOutput,
+                                              Activity_Outputs, BWCalculationSetup,
+                                              EcoInventSimpleIndex,
+                                              ExperimentActivityData,
+                                              ExperimentActivityId, ExperimentConfig,
+                                              ExperimentData, ExperimentMethodData,
+                                              ExperimentMethodPrepData,
+                                              ExperimentScenarioData,
+                                              ExtendedExperimentActivityData,
+                                              MethodsDataTypes, ScenarioResultNodeData,
+                                              Settings, SimpleScenarioActivityId)
 
 logger = get_logger(__file__)
 
