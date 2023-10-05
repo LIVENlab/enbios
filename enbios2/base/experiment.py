@@ -37,7 +37,7 @@ from enbios2.models.experiment_models import (
     ScenarioResultNodeData,
     ExperimentMethodPrepData,
     ActivityOutput,
-    SimpleScenarioActivityId,
+    Settings, SimpleScenarioActivityId,
     Activity_Outputs,
     BWCalculationSetup,
     ExperimentActivityData,
@@ -50,7 +50,18 @@ logger = get_logger(__file__)
 class Experiment:
     DEFAULT_SCENARIO_ALIAS = "default scenario"
 
-    def __init__(self, raw_data: Union[ExperimentData, dict]):
+    def __init__(self, raw_data: Optional[Union[ExperimentData, dict, str]] = None):
+        self.env_settings = Settings()
+        if not raw_data:
+            raw_data = self.env_settings.CONFIG_FILE
+            if not isinstance(raw_data, str):
+                raise ValueError(
+                    f"Experiment config-file-path must be specified as environment "
+                    f"variable: 'CONFIG_FILE'"
+                )
+        if isinstance(raw_data, str):
+            config_file_path = ReadPath(raw_data)
+            raw_data = config_file_path.read_data()
         if isinstance(raw_data, dict):
             input_data = ExperimentData(**raw_data)
         else:
@@ -78,6 +89,7 @@ class Experiment:
             self._prepare_methods()
         )
         self.scenarios: list[Scenario] = self._validate_scenarios()
+        self._validate_run_scenario_setting()
         self._lca: Optional[StackedMultiLCA] = None
         self._execution_time: float = float("NaN")
 
@@ -89,7 +101,7 @@ class Experiment:
             )
 
         def validate_bw_project_bw_database(
-            bw_project: str, bw_default_database: Optional[str] = None
+                bw_project: str, bw_default_database: Optional[str] = None
         ):
             if bw_project not in bd.projects:
                 raise ValueError(f"Project {bw_project} not found")
@@ -130,9 +142,24 @@ class Experiment:
                 bw_project_index.project_name, bw_project_index.database_name
             )
 
+    def _validate_run_scenario_setting(self):
+        if self.env_settings.RUN_SCENARIOS:
+            if self.config.run_scenarios:
+                logger.info(
+                    "Environment variable 'RUN_SCENARIOS' is set "
+                    "and overwriting experiment config.")
+            self.config.run_scenarios = self.env_settings.RUN_SCENARIOS
+        if self.config.run_scenarios:
+            for scenario in self.config.run_scenarios:
+                if scenario not in self.scenario_aliases:
+                    raise ValueError(
+                        f"Scenario '{scenario}' not found in experiment scenarios. "
+                        f"Scenarios are: {self.scenario_aliases}"
+                    )
+
     @staticmethod
     def _prepare_activities(
-        activities: ActivitiesDataTypes,
+            activities: ActivitiesDataTypes,
     ) -> list[ExperimentActivityData]:
         raw_activities_list: list[ExperimentActivityData] = []
         if isinstance(activities, list):
@@ -155,9 +182,9 @@ class Experiment:
 
     @staticmethod
     def _validate_activities(
-        activities: list[ExperimentActivityData],
-        bw_default_database: Optional[str] = None,
-        output_required: bool = False,
+            activities: list[ExperimentActivityData],
+            bw_default_database: Optional[str] = None,
+            output_required: bool = False,
     ) -> dict[str, ExtendedExperimentActivityData]:
         """
         Check if all activities exist in the bw database, and check if the
@@ -233,9 +260,9 @@ class Experiment:
 
     @staticmethod
     def _validate_activity(
-        activity: ExperimentActivityData,
-        default_id_attr: ExperimentActivityId,
-        required_output: bool = False,
+            activity: ExperimentActivityData,
+            default_id_attr: ExperimentActivityId,
+            required_output: bool = False,
     ) -> "ExtendedExperimentActivityData":
         """
         This method checks if the activity exists in the database by several ways.
@@ -293,9 +320,9 @@ class Experiment:
 
     @staticmethod
     def _validate_output(
-        target_output: ActivityOutput,
-        bw_activity: Activity,
-        activity_id: ExperimentActivityId,
+            target_output: ActivityOutput,
+            bw_activity: Activity,
+            activity_id: ExperimentActivityId,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -306,10 +333,10 @@ class Experiment:
         """
         try:
             target_quantity: Quantity = (
-                ureg.parse_expression(
-                    bw_unit_fix(target_output.unit), case_sensitive=False
-                )
-                * target_output.magnitude
+                    ureg.parse_expression(
+                        bw_unit_fix(target_output.unit), case_sensitive=False
+                    )
+                    * target_output.magnitude
             )
             bw_activity_unit = bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -330,7 +357,7 @@ class Experiment:
             raise Exception(f"Unit error for activity: {activity_id}")
 
     def _prepare_methods(
-        self, methods: Optional[MethodsDataTypes] = None
+            self, methods: Optional[MethodsDataTypes] = None
     ) -> dict[str, ExperimentMethodData]:
         if not methods:
             methods = self.raw_data.methods
@@ -348,7 +375,7 @@ class Experiment:
 
     @staticmethod
     def _validate_method(
-        method: ExperimentMethodData, alias: str
+            method: ExperimentMethodData, alias: str
     ) -> ExperimentMethodPrepData:
         method.id = tuple(method.id)
         bw_method = bd.methods.get(method.id)
@@ -368,7 +395,7 @@ class Experiment:
 
     @staticmethod
     def _validate_methods(
-        method_dict: dict[str, ExperimentMethodData]
+            method_dict: dict[str, ExperimentMethodData]
     ) -> dict[str, ExperimentMethodPrepData]:
         # all methods must exist
         return {
@@ -377,7 +404,7 @@ class Experiment:
         }
 
     def _has_activity(
-        self, alias_or_id: Union[str, ExperimentActivityId]
+            self, alias_or_id: Union[str, ExperimentActivityId]
     ) -> Optional[ExtendedExperimentActivityData]:
         if isinstance(alias_or_id, str):
             activity = self._activities.get(alias_or_id, None)
@@ -389,7 +416,7 @@ class Experiment:
             return None
 
     def get_activity(
-        self, alias_or_id: Union[str, ExperimentActivityId]
+            self, alias_or_id: Union[str, ExperimentActivityId]
     ) -> ExtendedExperimentActivityData:
         """
         Get an activity by either its alias or its original "id"
@@ -408,7 +435,7 @@ class Experiment:
         """
 
         def validate_activity_id(
-            activity_id: Union[str, ExperimentActivityId]
+                activity_id: Union[str, ExperimentActivityId]
         ) -> SimpleScenarioActivityId:
             activity = self.get_activity(activity_id)
             id_ = activity.id
@@ -444,7 +471,7 @@ class Experiment:
             return result
 
         def validate_scenario(
-            _scenario: ExperimentScenarioData, _scenario_alias: str
+                _scenario: ExperimentScenarioData, _scenario_alias: str
         ) -> Scenario:
             """
             Validate one scenario
@@ -537,7 +564,7 @@ class Experiment:
         )
 
     def validate_hierarchy(
-        self, hierarchy: Union[dict, list]
+            self, hierarchy: Union[dict, list]
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         tech_tree: BasicTreeNode[ScenarioResultNodeData] = BasicTreeNode.from_dict(
             hierarchy, compact=True
@@ -578,7 +605,14 @@ class Experiment:
         """
         methods = [m.id for m in self.methods.values()]
         inventories: list[list[dict[Activity, float]]] = []
-        for scenario in self.scenarios:
+
+        if self.config.run_scenarios:
+            run_scenarios = [self.get_scenario(s) for s in self.config.run_scenarios]
+            logger.info(f"Running selected scenarios: {[s.alias for s in run_scenarios]}")
+        else:
+            run_scenarios = self.scenarios
+
+        for scenario in run_scenarios:
             scenario.reset_execution_time()
             if scenario.methods:
                 raise ValueError(
@@ -603,8 +637,8 @@ class Experiment:
         results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
         for i in range(self.config.use_k_bw_distributions):
             raw_results = StackedMultiLCA(calculation_setup, distribution_results).results
-            scenario_results = np.split(raw_results, len(self.scenarios))
-            for index, scenario in enumerate(self.scenarios):
+            scenario_results = np.split(raw_results, len(run_scenarios))
+            for index, scenario in enumerate(run_scenarios):
                 results[scenario.alias] = scenario.set_results(
                     scenario_results[index],
                     distribution_results,
@@ -635,11 +669,11 @@ class Experiment:
                 return "not run"
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        scenario_alias: Optional[str] = None,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = True,
+            self,
+            file_path: PathLike,
+            scenario_alias: Optional[str] = None,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = True,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
