@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 
-from generic.files import PathLike
+from enbios2.generic.files import PathLike
 
 
 def csv_tree2dict(csv_file: PathLike, ignore_header: bool = True) -> dict:

@@ -17,6 +17,7 @@ cycler==0.11.0
 et-xmlfile==1.1.0
 flatten-dict==0.4.2
 fonttools==4.41.1
+frictionless==5.16.0
 fs==2.4.16
 idna==3.4
 importlib-resources==6.0.0

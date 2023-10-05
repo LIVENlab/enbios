@@ -12,7 +12,7 @@ from enbios2.models.experiment_models import (
     ActivitiesDataRows,
     ExperimentMethodData,
 )
-from generic.tree.csv2dict import csv_tree2dict
+from enbios2.generic.tree.csv2dict import csv_tree2dict
 
 activities_schema = Schema(
     fields=[

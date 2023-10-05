@@ -1,6 +1,6 @@
 from pint import UnitRegistry
 
-from generic.files import DataPath
+from enbios2.generic.files import DataPath
 
 ureg = UnitRegistry()
 

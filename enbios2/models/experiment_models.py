@@ -8,7 +8,7 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
 
 from enbios2.bw2.util import get_activity
-from generic.files import PathLike
+from enbios2.generic.files import PathLike
 
 
 @pydantic_dataclass
