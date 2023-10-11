@@ -58,4 +58,3 @@ def tsne_html(embeddings_2d: ndarray, labels: list[str], file_name: str):
     # Create HTML file
     fig.write_html(file_name)
 
-from scipy.cluster.hierarchy import linkage, fcluster, dendrogram

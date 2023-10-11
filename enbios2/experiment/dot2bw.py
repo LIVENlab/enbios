@@ -11,7 +11,7 @@ from bw2data.errors import DuplicateNode
 from enbios2.generic.enbios2_logging import get_logger
 from enbios2.generic.util import get_data_file_path
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def read_dot_file(file_path: Path) -> pydot.Dot:
@@ -84,7 +84,7 @@ def get_external_activities(graph: pydot.Dot):
             activity = bd.Database(attributes["database"]).get(name=attributes["name_"],
                                                                categories=tuple(attributes["categories"]),
                                                                type=attributes["type"])
-            logger.debug(f"external activity : %s", attributes["name_"])
+            logger.debug("external activity : %s", attributes["name_"])
             external_activity_map[node.get_name()] = activity
         else:
             pass

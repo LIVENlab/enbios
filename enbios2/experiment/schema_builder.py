@@ -1,11 +1,7 @@
 
 
-import json
-from os import listdir
-from pathlib import Path
 from typing import Optional
 
-from deepdiff.diff import DeepDiff
 from genson import SchemaBuilder
 
 

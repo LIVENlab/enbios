@@ -45,7 +45,7 @@ def create_database(db_name, user, password, host='localhost'):
     conn = engine.raw_connection()
     try:
         conn.set_isolation_level(0)  # AUTOCOMMIT
-        conn.cursor().execute(f"CREATE EXTENSION IF NOT EXISTS vector;")
+        conn.cursor().execute("CREATE EXTENSION IF NOT EXISTS vector;")
     finally:
         conn.set_isolation_level(1)  # reset isolation level
         conn.close()

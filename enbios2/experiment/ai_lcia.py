@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit, jit
+from numba import jit
 from pint import UnitRegistry
 
 ureg = UnitRegistry()
@@ -24,7 +24,7 @@ class LCAData:
     def quantities(self):
         # todo: implement
         A_quantities = [ureg.Quantity(1, unit) for unit in A_units]
-        A_normalization = np.array([quantity.to_base_units().magnitude for quantity in A_quantities])
+        np.array([quantity.to_base_units().magnitude for quantity in A_quantities])
 
         pass
 

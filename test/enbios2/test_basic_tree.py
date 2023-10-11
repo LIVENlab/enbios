@@ -254,7 +254,7 @@ def test_get_leaves():
     node3 = BasicTreeNode("node3")
     node1.add_child(node2)
     node2.add_child(node3)
-    leaves = list(node1.get_leaves())
+    leaves = list(node1.iter_leaves())
     assert leaves == [node3]
 
 
@@ -547,7 +547,7 @@ def test_from_compact_dict():
 
     for x in [a, b, c]:
         tree = BasicTreeNode.from_dict(x, compact=True)
-        print(json.dumps(tree.as_dict(), indent=2))
+        # print(json.dumps(tree.as_dict(), indent=2))
 
     # assert tree.name == "root"
     # assert len(tree.children) == 2

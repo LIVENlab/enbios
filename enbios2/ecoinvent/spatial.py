@@ -7,18 +7,22 @@ def get_ecoinvent_geo_data(file_path: ReadDataPath) -> list[dict]:
     :return:
     """
     return [
-        {"name": geo['name']['#text'],
-         "code": geo['shortname']['#text'],
-         "longitude": geo.get('@longitude'),
-         "latitude": geo.get('@latitude')}
-        for geo in file_path.read_data()['validGeographies']['geography']]
+        {
+            "name": geo["name"]["#text"],
+            "code": geo["shortname"]["#text"],
+            "longitude": geo.get("@longitude"),
+            "latitude": geo.get("@latitude"),
+        }
+        for geo in file_path.read_data()["validGeographies"]["geography"]
+    ]
 
 
 def geo_code2name(ecoinvent_geo_data: list[dict]) -> dict[str, str]:
-    return {geo['code']: geo['name'] for geo in ecoinvent_geo_data}
+    return {geo["code"]: geo["name"] for geo in ecoinvent_geo_data}
 
 
-# a = get_ecoinvent_geo_data(ReadDataPath("ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/MasterData/Geographies.xml"))
+# a = get_ecoinvent_geo_data(
+# ReadDataPath("ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/MasterData/Geographies.xml"))
 # code2name
 
 # TODO next step... geoquery...

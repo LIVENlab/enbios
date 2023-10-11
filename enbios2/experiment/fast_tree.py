@@ -7,7 +7,6 @@ import numpy
 import orjson as orjson
 from bw2data.backends import ActivityDataset, ExchangeDataset, Activity
 from networkx import DiGraph
-from playhouse.shortcuts import model_to_dict
 
 # print(projects)
 # projects.set_current("ecoi_dbs")

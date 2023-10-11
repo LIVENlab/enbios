@@ -9,9 +9,9 @@ try:
 except ImportError:
     calculation_setups = None
 
-
     class Activity:
         pass
+
 
 from bw2calc.lca import LCA
 from bw2calc.utils import wrap_functional_unit
@@ -32,20 +32,35 @@ class InventoryMatrices:
 
 
 class StackedMultiLCA:
-    """Wrapper class for performing LCA calculations with many functional units and LCIA methods.
+    """Wrapper class for performing LCA calculations with
+    many functional units and LCIA methods.
 
     Needs to be passed a ``calculation_setup`` name.
 
-    This class does not subclass the `LCA` class, and performs all calculations upon instantiation.
+    This class does not subclass the `LCA` class, and performs all
+    calculations upon instantiation.
 
-    Initialization creates `self.results`, which is a NumPy array of LCA scores, with rows of functional units and columns of LCIA methods. Ordering is the same as in the `calculation_setup`.
+    Initialization creates `self.results`, which is a NumPy array of LCA scores,
+    with rows of functional units and columns of LCIA methods.
+    Ordering is the same as in the `calculation_setup`.
 
     """
 
-    def __init__(self, calc_setup: BWCalculationSetup, log_config=None):
+    def __init__(
+        self,
+        calc_setup: BWCalculationSetup,
+        use_distributions: bool = False,
+        log_config=None,
+    ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
-        self.lca = LCA(demand=self.all, method=self.methods[0], log_config=log_config)
+
+        self.lca = LCA(
+            demand=self.all,
+            method=self.methods[0],
+            log_config=log_config,
+            use_distributions=use_distributions,
+        )
         logger.info(
             {
                 "message": "Started MultiLCA calculation",
@@ -80,9 +95,7 @@ class StackedMultiLCA:
                 self.lca.lcia_calculation()
                 self.results[row, col] = self.lca.score
 
-        self.inventory = InventoryMatrices(
-            self.lca.biosphere_matrix, self.supply_arrays
-        )
+        self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
     @property
     def all(self):

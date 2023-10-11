@@ -6,11 +6,15 @@ from typing import Optional
 from enbios2.generic.files import DataPath
 
 
-def parse_xml(file_path: Path, tag: str, attributes: list[str], value_tag: Optional[list[str]] = None) -> list[
-    dict[str, Optional[str]]]:
+def parse_xml(
+    file_path: Path,
+    tag: str,
+    attributes: list[str],
+    value_tag: Optional[list[str]] = None,
+) -> list[dict[str, Optional[str]]]:
     def get_namespace(element):
-        m = re.match('\{.*\}', element.tag)
-        return m.group(0) if m else ''
+        m = re.match("\{.*\}", element.tag)
+        return m.group(0) if m else ""
 
     text = file_path.read_text(encoding="utf-8")
 
@@ -34,5 +38,7 @@ def parse_xml(file_path: Path, tag: str, attributes: list[str], value_tag: Optio
 
 
 if __name__ == "__main__":
-    data_path: DataPath = DataPath("ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/MasterData/Units.xml")
+    data_path: DataPath = DataPath(
+        "ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/MasterData/Units.xml"
+    )
     res = parse_xml(data_path, "unit", [], ["name"])

@@ -1,5 +1,8 @@
 from enbios2.base.databases import init_databases
-from enbios2.ecoinvent.ecoinvent_index import analyze_directory, get_ecoinvent_dataset_index
+from enbios2.ecoinvent.ecoinvent_index import (
+    analyze_directory,
+    get_ecoinvent_dataset_index,
+)
 
 if __name__ == "__main__":
     init_databases()

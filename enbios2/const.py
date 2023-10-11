@@ -1,8 +1,8 @@
 from pathlib import Path
-
+import os
 
 # enbios2/enbios2/const.py
-PROJECT_PATH = Path(__file__).parent.parent.absolute()
+PROJECT_PATH = Path(os.getcwd())
 BASE_DATA_PATH = PROJECT_PATH / "data"
 BASE_ECOINVENT_DATASETS_PATH = BASE_DATA_PATH / "ecoinvent"
 BASE_DATABASES_PATH = BASE_DATA_PATH / "databases"

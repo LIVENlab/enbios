@@ -1,8 +1,7 @@
-from typing import Generator, Iterator, Union
+from typing import Generator, Iterator
 
 import bw2data
 from bw2data import databases as bw_databases
-from bw2data import methods as bw_methods
 from bw2data.project import projects as bw_projects
 
 from bw2data.backends import Activity, ExchangeDataset, ActivityDataset
@@ -22,7 +21,9 @@ def info_exchanges(act: Activity) -> dict:
     return {exc.input: exc for exc in act.exchanges()}
 
 
-def iter_exchange_by_ids(ids: Iterator[int], batch_size: int = 1000) -> Generator[ExchangeDataset, None, None]:
+def iter_exchange_by_ids(
+    ids: Iterator[int], batch_size: int = 1000
+) -> Generator[ExchangeDataset, None, None]:
     """
     Iterate over exchanges by ids
     :param ids:
@@ -44,7 +45,9 @@ def iter_exchange_by_ids(ids: Iterator[int], batch_size: int = 1000) -> Generato
             break
 
 
-def iter_activities_by_codes(codes: Iterator[str], batch_size: int = 1000) -> Generator[ActivityDataset, None, None]:
+def iter_activities_by_codes(
+    codes: Iterator[str], batch_size: int = 1000
+) -> Generator[ActivityDataset, None, None]:
     """
     Iterate over activities by codes
     :param codes:
@@ -89,7 +92,9 @@ def full_duplicate(activity: Activity, code=None, **kwargs) -> Activity:
     """
     activity_copy = activity.copy(code, **kwargs)
     for upstream in activity.upstream():
-        upstream.output.new_exchange(input=activity_copy, type=upstream["type"], amount=upstream.amount).save()
+        upstream.output.new_exchange(
+            input=activity_copy, type=upstream["type"], amount=upstream.amount
+        ).save()
     activity_copy.save()
     return activity_copy
 
@@ -106,7 +111,6 @@ def clean_delete(activity: Activity):
 
 
 def report():
-    projects = list(bw_projects)
     current_ = bw2data.projects.current
     projects = list(bw2data.projects)
     for project in projects:
@@ -116,6 +120,27 @@ def report():
         print(databases)
     bw2data.projects.set_current(current_)
 
-if __name__ == '__main__':
+
+def bw_unit_fix(unit_str: str):
+    if unit_str == "kilowatt hour":
+        return "kilowatt_hour"
+    if unit_str == "unit":
+        return "unspecificEcoinventUnit"
+    return unit_str
+
+
+def delete_all_projects():
+    resp = input("Are you sure you want to delete all projects? [y]")
+    if resp != "y":
+        print("cancelled")
+        return
+    for project in bw2data.projects:
+        if project.name != "default":
+            bw2data.projects.delete_project(project.name, True)
+            print(f"Deleted {project.name}")
+    bw2data.projects.purge_deleted_directories()
+
+
+if __name__ == "__main__":
     report()
     # bw2data.projects.purge_deleted_directories()

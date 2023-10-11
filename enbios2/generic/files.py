@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Generator, Union, Optional
 
 try:
-    from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CLoader as Loader
 except ImportError:
-    from yaml import Loader, Dumper
+    from yaml import Loader
 import openpyxl
 import xmltodict as xmltodict
 
@@ -16,7 +16,7 @@ import yaml
 from enbios2.const import BASE_DATA_PATH
 from enbios2.generic.enbios2_logging import get_logger
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
 
 
 def read_data(path: Path, config: Optional[dict] = None):
@@ -45,10 +45,12 @@ def read_data(path: Path, config: Optional[dict] = None):
         except ImportError:
             raise ImportError("xmltodict not installed")
         return xmltodict.parse(path.read_text(encoding="utf-8"))
+    else:
+        raise NotImplementedError(f"File format {path.suffix} not supported")
 
 
 class DataPath(Path):
-    _flavour = Path('.')._flavour  # type: ignore
+    _flavour = Path(".")._flavour  # type: ignore
 
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls, BASE_DATA_PATH, *args, **kwargs)
@@ -69,7 +71,8 @@ class ReadPath(Path):
     """
     Checks on instantiation that the file exists
     """
-    _flavour = Path('.')._flavour  # type: ignore
+
+    _flavour = Path(".")._flavour  # type: ignore
 
     def __new__(cls, *args, **kwargs):
         instance = super().__new__(cls, *args, **kwargs)

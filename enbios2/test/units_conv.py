@@ -1,5 +1,4 @@
 from enbios2.base.unit_registry import ureg
-import bw2data
 
 
 # ureg.define('Wh_from_battery = 3 * kg')  # Define a new unit
@@ -36,7 +35,6 @@ us = [
     ureg("kilowatt_hour") * 2,
     ureg("kilowatt_hour") * 3,
     ureg("kilowatt_hour") * 40000,
-    ureg("megawatt_hour") * 3
+    ureg("megawatt_hour") * 3,
 ]
 c = us[3].to_compact()
-

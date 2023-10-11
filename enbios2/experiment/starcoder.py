@@ -1,9 +1,20 @@
-from huggingface_hub import login
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from enbios2.settings import settings
+from typing import Optional
 
-from datasets import list_datasets, load_dataset
+from pydantic import BaseSettings
+
+
+class Settings(BaseSettings):
+    huggingface_token: Optional[str] = None
+
+    class Config:
+        # `.env.prod` takes priority over `.env`
+        env_file = '.env', 'template.env'
+
+
+settings = Settings()
+
+
 import datasets
 # Print all the available datasets
 # print(list_datasets())

@@ -1,6 +1,8 @@
 """
-A shortcut of initializing the project in brightway2. The motivation is to have a local brightway project index file.
-Now if someone uses this module to set the current index, that is independent of the machine that is used, as long as the index file exists.
+A shortcut of initializing the project in brightway2.
+The motivation is to have a local brightway project index file.
+Now if someone uses this module to set the current index,
+that is independent of the machine that is used, as long as the index file exists.
 This helps with the problem of different bw project names on different machines
 """
 from typing import Optional
@@ -16,7 +18,8 @@ from enbios2.generic.enbios2_logging import get_logger
 
 projects = bw2data.projects
 
-logger = get_logger(__file__)
+logger = get_logger(__name__)
+
 
 def _read_bw_index_file() -> list[BWProjectIndex]:
     return list(BWProjectIndex.select())
@@ -37,15 +40,22 @@ def get_existing(project_name: str, database_name: str) -> Optional[BWProjectInd
     :param database_name:
     :return:
     """
-    existing = list(BWProjectIndex.select(BWProjectIndex, EcoinventDataset).join(EcoinventDataset).where(
-        (BWProjectIndex.project_name == project_name) &
-        (BWProjectIndex.database_name == database_name)))
+    existing = list(
+        BWProjectIndex.select(BWProjectIndex, EcoinventDataset)
+        .join(EcoinventDataset)
+        .where(
+            (BWProjectIndex.project_name == project_name)
+            & (BWProjectIndex.database_name == database_name)
+        )
+    )
     if existing:
         return existing[0]
     return None
 
 
-def set_bw_index(project_name: str, database_name: str, ecoinvent_dataset: EcoinventDataset) -> BWProjectIndex:
+def set_bw_index(
+    project_name: str, database_name: str, ecoinvent_dataset: EcoinventDataset
+) -> BWProjectIndex:
     """
     set a new index
     :param project_name:
@@ -56,11 +66,16 @@ def set_bw_index(project_name: str, database_name: str, ecoinvent_dataset: Ecoin
     existing = get_existing(project_name, database_name)
     if existing:
         logger.info(
-            f"Index for {project_name},{database_name} exists already with Ecoinvent dataset: {existing.ecoinvent_dataset.identity}")
+            f"Index for {project_name},{database_name} exists already with "
+            f"Ecoinvent dataset: {existing.ecoinvent_dataset.identity}"
+        )
         return existing
 
-    bw_project_index = BWProjectIndex.create(project_name=project_name, database_name=database_name,
-                                             ecoinvent_dataset=ecoinvent_dataset)
+    bw_project_index = BWProjectIndex.create(
+        project_name=project_name,
+        database_name=database_name,
+        ecoinvent_dataset=ecoinvent_dataset,
+    )
     return bw_project_index
 
 
@@ -72,9 +87,10 @@ def project_index_creation_helper():
     projects_overview = {}
     for project in projects:
         bw2data.projects.set_current(project.name)
-        projects_overview[project.name] = {k: {key: value
-                                               for key, value in v.items() if key in ["format", "number"]}
-                                           for k, v in bw2data.databases.data.items()}
+        projects_overview[project.name] = {
+            k: {key: value for key, value in v.items() if key in ["format", "number"]}
+            for k, v in bw2data.databases.data.items()
+        }
     print(yaml.dump(projects_overview))
 
 
@@ -85,20 +101,31 @@ def set_bw_current_project(system_model: str, version: str) -> Optional[BWProjec
     :param version:
     :return: the BWProjectIndex, if the project was set
     """
-    bwp = BWProjectIndex.select().join(
-        EcoinventDataset,
-        on=(BWProjectIndex.ecoinvent_dataset == EcoinventDataset.id)).where(
-        (EcoinventDataset.system_model == system_model) &
-        (EcoinventDataset.version == version) &
-        (EcoinventDataset.type == "default") &
-        (EcoinventDataset.xlsx == False))
+    bwp = (
+        BWProjectIndex.select()
+        .join(
+            EcoinventDataset,
+            on=(BWProjectIndex.ecoinvent_dataset == EcoinventDataset.id),
+        )
+        .where(
+            (EcoinventDataset.system_model == system_model)
+            & (EcoinventDataset.version == version)
+            & (EcoinventDataset.type == "default")
+            & (EcoinventDataset.xlsx is False)
+        )
+    )
     if bwp:
         bwp = bwp[0]
         bw2data.projects.set_current(bwp.project_name)
-        logger.info(f"Set current project to '{bwp.project_name}'. Ecoinvent database is '{bwp.database_name}'")
+        logger.info(
+            f"Set current project to '{bwp.project_name}'. "
+            f"Ecoinvent database is '{bwp.database_name}'"
+        )
         return bwp
     else:
-        logger.error(f"No brightway project found for ecoinvent dataset: {system_model}, {version}")
+        logger.error(
+            f"No brightway project found for ecoinvent dataset: {system_model}, {version}"
+        )
         return None
 
 
@@ -113,7 +140,9 @@ if __name__ == "__main__":
     init_databases()
     project_index_creation_helper()
     # print_bw_index()
-    candidates = list(get_ecoinvent_dataset_index(version="3.9.1", system_model="cutoff", xlsx=False))
+    candidates = list(
+        get_ecoinvent_dataset_index(version="3.9.1", system_model="cutoff", xlsx=False)
+    )
     # print(list(candidates))
     set_bw_index("ecoi_dbs", "cutoff391", candidates[0])
 

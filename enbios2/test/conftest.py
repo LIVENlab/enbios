@@ -12,5 +12,3 @@ def pytest_sessionfinish(session, exitstatus):
     print("Cleaning up test data...")
     # would delte the project and cause data to be loaded again
     # clean_project()
-
-

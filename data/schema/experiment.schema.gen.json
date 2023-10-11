@@ -1,115 +1,25 @@
 {
-  "title": "ExperimentData",
-  "description": "This class is used to store the data of an experiment.",
-  "type": "object",
-  "properties": {
-    "bw_project": {
-      "title": "Bw Project",
-      "description": "The brightway project name",
-      "anyOf": [
-        {
+  "$defs": {
+    "ActivityOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "title": "Unit",
           "type": "string"
         },
-        {
-          "$ref": "#/definitions/EcoInventSimpleIndex"
+        "magnitude": {
+          "default": 1.0,
+          "title": "Magnitude",
+          "type": "number"
         }
-      ]
+      },
+      "required": [
+        "unit"
+      ],
+      "title": "ActivityOutput",
+      "type": "object"
     },
-    "activities": {
-      "title": "Activities",
-      "description": "The activities to be used in the experiment",
-      "anyOf": [
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ExperimentActivityData"
-          }
-        },
-        {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/ExperimentActivityData"
-          }
-        }
-      ]
-    },
-    "methods": {
-      "title": "Methods",
-      "description": "The impact methods to be used in the experiment",
-      "anyOf": [
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ExperimentMethodData"
-          }
-        },
-        {
-          "type": "object",
-          "additionalProperties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      ]
-    },
-    "bw_default_database": {
-      "title": "Bw Default Database",
-      "description": "The default database of activities to be used in the experiment",
-      "type": "string"
-    },
-    "hierarchy": {
-      "title": "Hierarchy",
-      "description": "The activity hierarchy to be used in the experiment",
-      "anyOf": [
-        {
-          "type": "array",
-          "items": {}
-        },
-        {
-          "type": "object"
-        }
-      ]
-    },
-    "scenarios": {
-      "title": "Scenarios",
-      "description": "The scenarios for this experiment",
-      "anyOf": [
-        {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ExperimentScenarioData"
-          }
-        },
-        {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/ExperimentScenarioData"
-          }
-        }
-      ]
-    },
-    "config": {
-      "title": "Config",
-      "description": "The configuration of this experiment",
-      "allOf": [
-        {
-          "$ref": "#/definitions/ScenarioConfig"
-        }
-      ]
-    }
-  },
-  "required": [
-    "bw_project",
-    "activities",
-    "methods"
-  ],
-  "additionalProperties": false,
-  "definitions": {
     "EcoInventSimpleIndex": {
-      "title": "EcoInventSimpleIndex",
-      "type": "object",
       "properties": {
         "version": {
           "title": "Version",
@@ -123,270 +33,560 @@
       "required": [
         "version",
         "system_model"
-      ]
-    },
-    "ExperimentActivityId": {
-      "title": "ExperimentActivityId",
-      "type": "object",
-      "properties": {
-        "database": {
-          "title": "Database",
-          "type": "string"
-        },
-        "code": {
-          "title": "Code",
-          "type": "string"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "location": {
-          "title": "Location",
-          "type": "string"
-        },
-        "unit": {
-          "title": "Unit",
-          "type": "string"
-        },
-        "alias": {
-          "title": "Alias",
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-    "ActivityOutput": {
-      "title": "ActivityOutput",
-      "type": "object",
-      "properties": {
-        "unit": {
-          "title": "Unit",
-          "type": "string"
-        },
-        "magnitude": {
-          "title": "Magnitude",
-          "default": 1.0,
-          "type": "number"
-        }
-      },
-      "required": [
-        "unit"
       ],
-      "additionalProperties": false
+      "title": "EcoInventSimpleIndex",
+      "type": "object"
     },
     "ExperimentActivityData": {
-      "title": "ExperimentActivityData",
+      "additionalProperties": false,
       "description": "This is the dataclass for the activities in the experiment.\nthe id, is",
-      "type": "object",
       "properties": {
         "id": {
-          "title": "Id",
-          "description": "The identifies (method to find) an activity",
           "allOf": [
             {
-              "$ref": "#/definitions/ExperimentActivityId"
+              "$ref": "#/$defs/ExperimentActivityId"
             }
-          ]
+          ],
+          "description": "The identifies (method to find) an activity"
         },
         "output": {
-          "title": "Output",
-          "description": "The default output of the activity",
           "anyOf": [
             {
-              "$ref": "#/definitions/ActivityOutput"
+              "$ref": "#/$defs/ActivityOutput"
             },
             {
-              "type": "array",
-              "minItems": 2,
               "maxItems": 2,
-              "items": [
+              "minItems": 2,
+              "prefixItems": [
                 {
                   "type": "string"
                 },
                 {
                   "type": "number"
                 }
-              ]
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
             }
-          ]
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "additionalProperties": false
-    },
-    "ExperimentMethodData": {
-      "title": "ExperimentMethodData",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "Id",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          ],
+          "default": null,
+          "description": "The default output of the activity",
+          "title": "Output"
         },
-        "alias": {
-          "title": "Alias",
-          "type": "string"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "additionalProperties": false
-    },
-    "ExperimentScenarioData": {
-      "title": "ExperimentScenarioData",
-      "type": "object",
-      "properties": {
-        "activities": {
-          "title": "Activities",
+        "orig_id": {
           "anyOf": [
             {
-              "type": "array",
+              "$ref": "#/$defs/ExperimentActivityId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Temporary copy of the id"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ExperimentActivityData",
+      "type": "object"
+    },
+    "ExperimentActivityId": {
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Database"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alias"
+        }
+      },
+      "title": "ExperimentActivityId",
+      "type": "object"
+    },
+    "ExperimentConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "warn_default_demand": {
+          "default": true,
+          "title": "Warn Default Demand",
+          "type": "boolean"
+        },
+        "include_bw_activity_in_nodes": {
+          "default": true,
+          "title": "Include Bw Activity In Nodes",
+          "type": "boolean"
+        },
+        "store_raw_results": {
+          "default": false,
+          "title": "Store Raw Results",
+          "type": "boolean"
+        },
+        "use_k_bw_distributions": {
+          "default": 1,
+          "title": "Use K Bw Distributions",
+          "type": "integer"
+        },
+        "run_scenarios": {
+          "anyOf": [
+            {
               "items": {
-                "type": "array",
-                "minItems": 2,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run Scenarios"
+        },
+        "base_directory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Directory"
+        },
+        "debug_test_is_valid": {
+          "default": true,
+          "title": "Debug Test Is Valid",
+          "type": "boolean"
+        },
+        "debug_test_replace_bw_config": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "default": true,
+          "title": "Debug Test Replace Bw Config"
+        },
+        "debug_test_expected_error_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Debug Test Expected Error Code"
+        },
+        "debug_test_run": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false,
+          "title": "Debug Test Run"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "title": "ExperimentConfig",
+      "type": "object"
+    },
+    "ExperimentMethodData": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Id",
+          "type": "array"
+        },
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alias"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ExperimentMethodData",
+      "type": "object"
+    },
+    "ExperimentScenarioData": {
+      "additionalProperties": false,
+      "properties": {
+        "activities": {
+          "anyOf": [
+            {
+              "items": {
                 "maxItems": 2,
-                "items": [
+                "minItems": 2,
+                "prefixItems": [
                   {
                     "anyOf": [
                       {
                         "type": "string"
                       },
                       {
-                        "$ref": "#/definitions/ExperimentActivityId"
+                        "$ref": "#/$defs/ExperimentActivityId"
                       }
                     ]
                   },
                   {
                     "anyOf": [
                       {
-                        "$ref": "#/definitions/ActivityOutput"
+                        "$ref": "#/$defs/ActivityOutput"
                       },
                       {
-                        "type": "array",
-                        "minItems": 2,
                         "maxItems": 2,
-                        "items": [
+                        "minItems": 2,
+                        "prefixItems": [
                           {
                             "type": "string"
                           },
                           {
                             "type": "number"
                           }
-                        ]
+                        ],
+                        "type": "array"
                       }
                     ]
                   }
-                ]
-              }
+                ],
+                "type": "array"
+              },
+              "type": "array"
             },
             {
-              "type": "object",
               "additionalProperties": {
                 "anyOf": [
                   {
-                    "$ref": "#/definitions/ActivityOutput"
+                    "$ref": "#/$defs/ActivityOutput"
                   },
                   {
-                    "type": "array",
-                    "minItems": 2,
                     "maxItems": 2,
-                    "items": [
+                    "minItems": 2,
+                    "prefixItems": [
                       {
                         "type": "string"
                       },
                       {
                         "type": "number"
                       }
-                    ]
+                    ],
+                    "type": "array"
                   }
                 ]
-              }
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
             }
-          ]
+          ],
+          "default": null,
+          "title": "Activities"
         },
         "methods": {
-          "title": "Methods",
           "anyOf": [
             {
-              "type": "array",
               "items": {
                 "anyOf": [
                   {
-                    "$ref": "#/definitions/ExperimentMethodData"
+                    "$ref": "#/$defs/ExperimentMethodData"
                   },
                   {
                     "type": "string"
                   }
                 ]
-              }
+              },
+              "type": "array"
             },
             {
-              "type": "object",
               "additionalProperties": {
-                "type": "array",
                 "items": {
                   "type": "string"
-                }
-              }
-            }
-          ]
-        },
-        "alias": {
-          "title": "Alias",
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-    "ScenarioConfig": {
-      "title": "ScenarioConfig",
-      "type": "object",
-      "properties": {
-        "base_directory": {
-          "title": "Base Directory",
-          "type": "string"
-        },
-        "debug_test_is_valid": {
-          "title": "Debug Test Is Valid",
-          "default": true,
-          "type": "boolean"
-        },
-        "debug_test_replace_bw_config": {
-          "title": "Debug Test Replace Bw Config",
-          "default": true,
-          "anyOf": [
-            {
-              "type": "boolean"
+                },
+                "type": "array"
+              },
+              "type": "object"
             },
             {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+              "type": "null"
             }
-          ]
+          ],
+          "default": null,
+          "title": "Methods"
         },
-        "debug_test_expected_error_code": {
-          "title": "Debug Test Expected Error Code",
-          "type": "integer"
-        },
-        "debug_test_run": {
-          "title": "Debug Test Run",
-          "default": false,
-          "type": "boolean"
-        },
-        "note": {
-          "title": "Note",
-          "type": "string"
+        "alias": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alias"
         }
       },
-      "additionalProperties": false
+      "title": "ExperimentScenarioData",
+      "type": "object"
     }
-  }
+  },
+  "additionalProperties": false,
+  "description": "This class is used to store the data of an experiment.",
+  "properties": {
+    "bw_project": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/EcoInventSimpleIndex"
+        }
+      ],
+      "description": "The brightway project name",
+      "title": "Bw Project"
+    },
+    "activities": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/ExperimentActivityData"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/ExperimentActivityData"
+          },
+          "type": "object"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "format": "path",
+          "type": "string"
+        }
+      ],
+      "description": "The activities to be used in the experiment",
+      "title": "Activities"
+    },
+    "methods": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/ExperimentMethodData"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "format": "path",
+          "type": "string"
+        }
+      ],
+      "description": "The impact methods to be used in the experiment",
+      "title": "Methods"
+    },
+    "bw_default_database": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The default database of activities to be used in the experiment",
+      "title": "Bw Default Database"
+    },
+    "hierarchy": {
+      "anyOf": [
+        {
+          "items": {},
+          "type": "array"
+        },
+        {
+          "type": "object"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The activity hierarchy to be used in the experiment",
+      "title": "Hierarchy"
+    },
+    "scenarios": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/ExperimentScenarioData"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/ExperimentScenarioData"
+          },
+          "type": "object"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "format": "path",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The scenarios for this experiment",
+      "title": "Scenarios"
+    },
+    "config": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/ExperimentConfig"
+        }
+      ],
+      "description": "The configuration of this experiment"
+    }
+  },
+  "required": [
+    "bw_project",
+    "activities",
+    "methods"
+  ],
+  "title": "ExperimentData",
+  "type": "object"
 }
