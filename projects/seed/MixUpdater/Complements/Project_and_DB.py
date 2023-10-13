@@ -9,7 +9,7 @@ We're going to import ecoinvent in our new project
 """
 #Spold files here
 
-spold_files = r'C:\Users\Administrator\PycharmProjects\enbios2\data\ecoinvent\ecoinvent 3.9.1_cutoff_ecoSpold02\datasets'            #Import spolds from local
+spold_files = r'C:\Users\altz7\UAB\LIVENlab - SEEDS - _Alex\ecoinvent\datasets'            #Import spolds from local
 
 # Load biosphere3 and LCIA Methods
 bi.bw2setup()

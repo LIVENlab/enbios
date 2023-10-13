@@ -391,4 +391,10 @@ pass
 
 
 
+def data_to_ENBIOS(calliope,motherfile):
+
+    scenarios,activ_names=generate_scenarios(calliope)
+    pass
+
+
 

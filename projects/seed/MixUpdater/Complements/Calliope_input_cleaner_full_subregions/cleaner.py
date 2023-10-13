@@ -3,11 +3,10 @@ This cleaner doesn't aggregate technologies by region
 """
 
 
-
-
 import pandas as pd
-data=pd.read_csv('flow_out_sum.csv',delimiter=',')
-mother_file=r'C:\Users\Administrator\PycharmProjects\enbios2\projects\seed\Data\base_file_simplified.xlsx'
+
+
+
 def create_df():
     columns=[
         "spores",
@@ -19,7 +18,6 @@ def create_df():
     ]
     df=pd.DataFrame(columns=columns)
     return df
-
 
 
 
@@ -47,12 +45,14 @@ def manage_regions(arg):
 
     return region
 
-def changer(df):
+def changer(data):
     """
     Group subregions in regions and sum the value for each technology /carrier
     :param df:
     :return:
+
     """
+    df=pd.read_csv(data,delimiter=',')
     df=df.dropna()
 
     gen_df=create_df()
@@ -70,7 +70,27 @@ def changer(df):
 
 
 
-if __name__=='__main__':
+def preprocess_calliope(data, motherfile):
+    """
+    data: csv from calliope
+    motherfile: xlsx basefile
+    """
+
     df=changer(data)
+    final_df=(motherfile,df)
+
+    return final_df
+
+
+
+if __name__=='__main__':
+
+    data = pd.read_csv('flow_out_sum.csv', delimiter=',')
+    mother_file = r'C:\Users\Administrator\PycharmProjects\enbios2\projects\seed\Data\base_file_simplified.xlsx'
+
+    df=changer(data)
+
     final_df=filter_techs(mother_file,df)
     final_df.to_csv(r'C:\Users\Administrator\PycharmProjects\enbios2\projects\seed\Data\flow_out_sum_modified_full_subregions.csv')
+else:
+    pass

@@ -53,14 +53,11 @@ def create_template_df():
 
 def get_list(*args):
     """
-
-
     :param args: We're looking for the activities under that define a "future market for electricity". Hence, we specify here
                 the keys that point something like "Electricity generation" in the hierarchy
     :return:  List of the activities
     """
     present_dict=map_names
-
     for arg in args:
         if arg in present_dict:
             present_dict=present_dict[arg]
@@ -135,7 +132,8 @@ def template_market_4_electricity(market_el_list,Location=None, Activity_name=No
     #df['Amount'] = df_gruoped
     #df = df.drop_duplicates(subset='Activity_code')
 
-    df.to_csv(r'C:\Users\Administrator\PycharmProjects\enbios2\projects\seed\MixUpdater\Intermediate_data/template_market_subregions.csv',index=False,sep=',')
+    df.to_csv(r'C:\Users\altz7\PycharmProjects\enbios__git\projectsMixUpdater\Intermediate_data/template_market_subregions.csv',index=False,sep=',')
+
 
     return df
 
