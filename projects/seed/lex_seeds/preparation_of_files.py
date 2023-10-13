@@ -398,3 +398,100 @@ def data_to_ENBIOS(calliope,motherfile):
 
 
 
+
+
+
+
+''''
+===========================================================
+
+Under Development
+
+
+===========================================================
+'''
+class SoftLinkCalEnb():
+    def __init__(self):
+        pass
+
+    def generate_scenarios(self, calliope_data, smaller_vers=None):
+        """
+        Iterate through the data from calliope (data.csv, output results...)
+            -Create new columns, such as alias
+        The function includes an intermediate step to create the hierarchy
+        :param calliope_data:
+        :param smaller_vers: BOOL, if true, a small version of the data for testing gets produced
+        :return:scen_dict, acts
+                *scen dict --> dictionary of the different scenarios
+                *acts --> list including all the unique activities
+        """
+
+        cal_dat = pd.read_csv(calliope_data, delimiter=',')
+
+        cal_dat['aliases'] = cal_dat['techs'] + '__' + cal_dat['carriers'] + '___' + cal_dat['locs']  # Use ___ to split the loc for the recognision of the activities
+        scenarios = cal_dat['scenarios'].unique().tolist()
+        if smaller_vers is not None:  # get a small version of the data ( only 3 scenarios )
+            try:
+                scenarios = scenarios[:smaller_vers]
+            except:
+                raise ValueError('Scenarios out of bonds')
+        scen_dict = {}
+
+        for scenario in scenarios:
+            df = cal_dat[cal_dat['scenarios'] == scenario]
+            stuff = get_scenario(df)
+            scen_dict[scenario] = {}
+            scen_dict[scenario]['activities'] = stuff
+
+        # GENERATE KEYS FOR THE SCENARIOS
+
+        scens = random.choice(list(scen_dict.keys()))  # select a random scenario from the list
+        print(f'techs from scenario {scens} chosen')
+        acts = list(scen_dict[scens]['activities'].keys())
+
+        # Intermediate step
+        # Generate a code-region alias name dictionary to create the hierarchy
+
+        general = {}
+        for act in set(acts):
+            act_key = act.split('___')[0]
+            if act_key not in general.keys():
+                elements_to_append = []
+                for act2 in set(acts):
+                    act_key2 = act2.split('___')[0]
+                    if act_key2 == act_key:
+                        elements_to_append.append(act2)
+                general[act_key] = elements_to_append
+
+        with open(dict_gen, 'w') as file:
+            json.dump(general, file, indent=4)
+
+        return scen_dict, acts
+
+    @staticmethod
+    def get_scenario(df) -> dict:
+        """
+        Iters through 1 scenario of the data.csv (scenarios data), storing basic data in a dictionary
+        Get {
+        activities : {
+            alias : [
+            unit,
+            amount]}}
+        :param df:
+        :return:
+        """
+        scenario = {}
+        for index, row in df.iterrows():
+            other_stuff = []
+            alias = row['aliases']
+            flow_out_sum = (row['flow_out_sum'])
+            unit = row['units']
+            other_stuff.append(unit)
+            other_stuff.append(flow_out_sum)
+
+            scenario[alias] = other_stuff
+        return scenario
+
+
+
+    pass

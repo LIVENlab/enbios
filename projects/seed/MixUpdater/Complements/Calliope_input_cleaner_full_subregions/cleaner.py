@@ -2,7 +2,7 @@
 This cleaner doesn't aggregate technologies by region
 """
 
-
+from projects.seed.MixUpdater.errors.errors import *
 import pandas as pd
 
 
@@ -47,12 +47,17 @@ def manage_regions(arg):
 
 def changer(data):
     """
+    *Assume that the csv is comma separated*
     Group subregions in regions and sum the value for each technology /carrier
     :param df:
     :return:
 
     """
-    df=pd.read_csv(data,delimiter=',')
+    try:
+        df=pd.read_csv(data,delimiter=',')
+    except FileNotFoundError:
+        print(f'File {data} does not exist. Please check it')
+
     df=df.dropna()
 
     gen_df=create_df()
@@ -70,6 +75,15 @@ def changer(data):
 
 
 
+def input_checker(data):
+    """
+    Check whether the input from Calliope follows the expected structure
+    data: pd.Dataframe
+    """
+    expected_cols=['spores','techs','locs','carriers,unit','flow_out_sum']
+
+
+
 def preprocess_calliope(data, motherfile):
     """
     data: csv from calliope
@@ -77,7 +91,7 @@ def preprocess_calliope(data, motherfile):
     """
 
     df=changer(data)
-    final_df=(motherfile,df)
+    final_df=filter_techs(motherfile,df)
 
     return final_df
 

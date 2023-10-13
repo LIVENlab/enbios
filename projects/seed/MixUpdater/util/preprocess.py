@@ -37,6 +37,7 @@ class UpdaterExperiment(Experiment):
 
     def data_for_ENBIOS(self):
         raise NotImplementedError('Not implemented yet')
+
         """
         Transform the data into enbios like dictionary
         """
