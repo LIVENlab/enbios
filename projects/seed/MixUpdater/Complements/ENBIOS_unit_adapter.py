@@ -34,6 +34,7 @@ def data_merge(basefile: Path):
 
 
     """
+
     df = pd.read_excel(basefile)
     general_dict = {}
     for index, row in tqdm(df.iterrows()):
@@ -77,7 +78,7 @@ def modify_data(calliope_data, gen_dict: dict):
         df = calliope_data
 
     # Create a modified column name to match  the names
-
+    print('Preparing to change and adapt the units...')
     name2 = []
     for index, row in df.iterrows():
         try:
@@ -103,7 +104,8 @@ def modify_data(calliope_data, gen_dict: dict):
             act_name = activity['name']
 
         except bw2data.errors.UnknownObject:
-            print(code, 'from activity', key, 'not found')
+
+            print(f"{code} from activity, {key} not found. Please check your database")
             unit = "none"
             act_name='unknown'
 
@@ -123,14 +125,14 @@ def modify_data(calliope_data, gen_dict: dict):
     # General To check
     #df.to_csv(save_in, index=False)
 
-    # Prepare an enbios-like file
+    # Prepare an enbios-like file    cols = ['spores', 'locs', 'techs', 'carriers', 'units', 'new_vals']
     cols = ['spores', 'locs', 'techs', 'carriers', 'units', 'new_vals']
     df = df[cols]
     df.rename(columns={'spores': 'scenarios', 'new_vals': 'flow_out_sum'}, inplace=True)
 
 
     df.dropna(axis=0, inplace=True)
-
+    print('Units adapted and ready to go')
     return df
 
 
@@ -145,20 +147,6 @@ def unit_adapter(caliope,basefile):
 
 
 
-if __name__ == '__main__':
-    # Get paths
-    processors_path = r'C:\Users\Administrator\PycharmProjects\enbios2\projects\seed\Data\base_file_simplified.xlsx'
-    calliope = r'C:\Users\Administrator\PycharmProjects\enbios2\projects\seed\Data\flow_out_sum_modified_full_subregions.csv'
-    # dict_path=data_path /'dict.json'
-    flow_out_path = r'C:\Users\Administrator\PycharmProjects\enbios2\projects\seed\Data\flow_out_sum_modified_unit_checked_full_subregions.csv'
-
-    # Select bw project and db
-
-    print(list(bd.databases))
-    a = data_merge(processors_path)  # Generate the dictionary
-    names = modify_data(calliope, a)  # Generate the new csv
-
-# present,absent=check_elements(a,list1)
 
 
-pass
+

@@ -1,7 +1,0 @@
-lvl0,lvl1,unit,amount,ozone depletion potential (ODPinfinite) (kg CFC-11-Eq),agricultural land occupation (LOP) (m2*a crop-Eq)
-root,,,,780.102857296523,609593388.6542039
-,battery_electricity___PRT_1,kilogram,2186627.023973747,18.93645387541244,1150749.926890187
-,battery_electricity___PRT_2,kilogram,2392524.3514573355,20.71954957614831,1259106.9221789031
-,battery_electricity___PRT_1x5,kilogram,10933135.119868737,94.6822693782066,5753749.607527316
-,biofuel_boiler_heat___PRT_1,megajoule,32291365319.295486,645.7367311032313,601403841.0996325
-,biofuel_boiler_heat___PRT_2,megajoule,1392863.5210272877,0.027853363524421308,25941.09797505471

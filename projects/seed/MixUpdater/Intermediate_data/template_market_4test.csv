@@ -1,7 +1,0 @@
-Amount,Location,Activity name,Activity_code,Reference_product,Unit,Act_to,Technosphere,Database
-1,PT,this_is_a_test,f_test_test,"electricity production, 2050 in Portugal",TWh,marker,Yes,db_experiments
-1,PT,wind_onshore__electricity___PRT_1,81174ec2c20931c1a36f65c654bbd11e,DIFF,TWh,this_is_a_test,Yes,db_experiments
-1,PT,wind_offshore__electricity___PRT_1,46839adbc3cf15621ddbbe687eaa6df1,DIFF,TWh,this_is_a_test,Yes,db_experiments
-1,PT,hydro_run_of_river__electricity___PRT_1,b870e3d3ddd5b634d016940064b27532,DIFF,TWh,this_is_a_test,Yes,db_experiments
-1,PT,hydro_run_of_river__electricity___PRT_2,b870e3d3ddd5b634d016940064b27532,DIFF,TWh,this_is_a_test,Yes,db_experiments
-
