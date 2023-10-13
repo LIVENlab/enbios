@@ -4,18 +4,29 @@ import pandas as pd
 from enbios2.base.experiment import Experiment
 from projects.seed.MixUpdater.Complements.Calliope_input_cleaner_full_subregions.cleaner import preprocess_calliope
 from projects.seed.MixUpdater.Complements.ENBIOS_unit_adapter import unit_adapter
+from projects.seed.MixUpdater.util.enbios_input import SoftLinkCalEnb
 
 
-class UpdaterExperiment(Experiment):
-    def __init__(self):
+
+
+class UpdaterExperiment(SoftLinkCalEnb):
+    def __init__(self,caliope,mother):
+
+
+        self.calliope=caliope
+        self.mother=mother
         self.techs=[]
         self.scenarios=[]
+        self.preprocessed=None
         self.template_electricity_market = pd.DataFrame()
+        self.SofLink=None
+
         pass
 
-    #TODO: project checker
+    # Create an instance for the Softlink
 
-    def preprocess(self,cal_file,moth_file):      #TODO: Give feedback on what's doing behind
+
+    def preprocess(self):      #TODO: Give feedback on what's doing behind
         """
         cal_file: str path to flow_out_sum data
 
@@ -28,26 +39,35 @@ class UpdaterExperiment(Experiment):
                 -Filtered activities contained in the mother file
         ___________________________
         """
-        preprocessed=preprocess_calliope(cal_file,moth_file)[1]
-        preprocessed_units=unit_adapter(preprocessed,moth_file)
+        preprocessed=preprocess_calliope(self.calliope,self.mother)
+        self.preprocessed_1=preprocessed
+        preprocessed_units=unit_adapter(preprocessed,self.mother)
         self.preprocessed = preprocessed_units
         self.techs = preprocessed_units['techs'].unique().tolist() #give some info
         self.scenarios = preprocessed_units['scenarios'].unique().tolist()
 
 
     def data_for_ENBIOS(self):
+        self.SofLink=SoftLinkCalEnb(self.preprocessed,self.mother)
+        self.SoftLink.run()
+
+
+        """
+               Transform the data into enbios like dictionary
+        """
+
         raise NotImplementedError('Not implemented yet')
 
-        """
-        Transform the data into enbios like dictionary
-        """
+
 
     def template_electricity(self):
+        raise NotImplementedError('Not implemented yet. Working on it')
         pass
 
 
 if __name__=='__main__':
-    tr=UpdaterExperiment()
-    tr.preprocess(r'C:\Users\altz7\PycharmProjects\enbios__git\projects\seed\MixUpdater\Complements\Calliope_input_cleaner_full_subregions\flow_out_sum.csv',r'C:\Users\altz7\PycharmProjects\enbios__git\projects\seed\Data\base_file_simplified.xlsx')
+    tr=UpdaterExperiment(r'C:\Users\Alex\PycharmProjects\pythonProject\enbios_2\projects\seed\MixUpdater\Complements\Calliope_input_cleaner_full_subregions\flow_out_sum.csv',r'C:\Users\Alex\PycharmProjects\pythonProject\enbios_2\projects\seed\MixUpdater\Complements\base_file_simplified.xlsx')
+    tr.preprocess()
+    tr.run()
 
 

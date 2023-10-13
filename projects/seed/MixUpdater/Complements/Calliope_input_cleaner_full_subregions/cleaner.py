@@ -1,5 +1,5 @@
 """
-This cleaner doesn't aggregate technologies by region
+
 """
 
 from projects.seed.MixUpdater.errors.errors import *
@@ -19,6 +19,19 @@ def create_df():
     df=pd.DataFrame(columns=columns)
     return df
 
+def input_checker(data):
+    """
+    Check whether the input from Calliope follows the expected structure
+    data: pd.Dataframe
+    """
+    expected_cols=set(['spores','techs','locs','carriers','unit','flow_out_sum'])
+    cols=set(data.columns.tolist())
+
+    if expected_cols == cols:
+        print('Input checked. Columns look ok')
+    else:
+        raise ExpectedColumns(f"Columns {cols} do not match the expected columns: {expected_cols}")
+
 
 
 
@@ -29,6 +42,7 @@ def filter_techs(mother_path,df):
     :param df:
     :return:
     """
+    # TODO: Check input
     df_techs=pd.read_excel(mother_path,sheet_name='BareProcessors simulation')
     techs=df_techs['Processor'].tolist()
     mark=df['techs'].isin(techs)
@@ -53,58 +67,46 @@ def changer(data):
     :return:
 
     """
+    print('Adapting input data...')
     try:
         df=pd.read_csv(data,delimiter=',')
+
     except FileNotFoundError:
-        print(f'File {data} does not exist. Please check it')
+        raise FileNotFoundError(f'File {data} does not exist. Please check it')
 
-    df=df.dropna()
+    else:
+        input_checker(df)  # Check columns
+        df = df.dropna()
 
-    gen_df=create_df()
-    scenarios=list(df.spores.unique())
+        gen_df = create_df()
+        scenarios = list(df.spores.unique())
 
-    for scenario in scenarios:
-        df_sub=df.loc[df['spores']==scenario]
+        for scenario in scenarios:
+            df_sub = df.loc[df['spores'] == scenario]
 
-        df_sub['locs']=df['locs'].apply(manage_regions)
+            df_sub['locs'] = df['locs'].apply(manage_regions)
 
-
-        gen_df=pd.concat([gen_df,df_sub])
+            gen_df = pd.concat([gen_df, df_sub])
 
     return gen_df
 
 
 
-def input_checker(data):
-    """
-    Check whether the input from Calliope follows the expected structure
-    data: pd.Dataframe
-    """
-    expected_cols=['spores','techs','locs','carriers,unit','flow_out_sum']
 
 
 
 def preprocess_calliope(data, motherfile):
+
     """
     data: csv from calliope
     motherfile: xlsx basefile
     """
 
-    df=changer(data)
-    final_df=filter_techs(motherfile,df)
+    dat=changer(data)
+    final_df=filter_techs(motherfile,dat)
 
     return final_df
 
 
 
-if __name__=='__main__':
 
-    data = pd.read_csv('flow_out_sum.csv', delimiter=',')
-    mother_file = r'C:\Users\Administrator\PycharmProjects\enbios2\projects\seed\Data\base_file_simplified.xlsx'
-
-    df=changer(data)
-
-    final_df=filter_techs(mother_file,df)
-    final_df.to_csv(r'C:\Users\Administrator\PycharmProjects\enbios2\projects\seed\Data\flow_out_sum_modified_full_subregions.csv')
-else:
-    pass
