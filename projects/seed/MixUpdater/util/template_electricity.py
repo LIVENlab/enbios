@@ -53,7 +53,7 @@ def create_template_df():
 
 def get_list(*args):
     """
-    :param args: We're looking for the activities under that define a "future market for electricity". Hence, we specify here
+    :param args: We're looking for the activities under that define a "future market for electricity". Hence, we specify
                 the keys that point something like "Electricity generation" in the hierarchy
     :return:  List of the activities
     """
@@ -66,9 +66,11 @@ def get_list(*args):
     if isinstance(present_dict,list):
         return present_dict
 
-def template_market_4_electricity(market_el_list,Location=None, Activity_name=None, Activity_code=None, Reference_product=None, Unit=None,Database=None):
+def template_market_4_electricity(market_el_list,Location=None,
+                                  Activity_name=None, Activity_code=None,
+                                  Reference_product=None, Unit=None,Database=None):
     """
-    This function returns a template of the "default_market_for electricity" in order to create an inventory
+    This function returns a template of the "default_market_for electricity" in order to create an inventory.
 
     Check the template_market.csv to do some changes
 
