@@ -49,7 +49,7 @@ The repository contains a few notebooks (require jupyter notebook) in the demos 
 
 [Splitting the configuration](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/multiple_config_files.ipynb)
 
-[Working with trees](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/tree.ipynb)
+[Working with trees](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/trees.ipynb)
 
 ## Experiment configuration json schema
 
