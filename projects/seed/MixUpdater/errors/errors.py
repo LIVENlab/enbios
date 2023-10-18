@@ -8,6 +8,4 @@ class ColumnsError(Exception):
 
 
 
-class ColumnError(KeyError):
-    def __init__(self,message,key):
-        super().__init__(message,key)
+
