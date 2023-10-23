@@ -3,7 +3,7 @@ import json
 import pandas as pd
 import bw2data as bd
 from enbios2.base.experiment import Experiment
-
+import os
 from projects.seed.MixUpdater.util.preprocess.cleaner import preprocess_calliope
 from projects.seed.MixUpdater.util.preprocess.ENBIOS_unit_adapter import unit_adapter
 from projects.seed.MixUpdater.util.preprocess.SoftLink import SoftLinkCalEnb
@@ -97,32 +97,29 @@ class UpdaterExperiment(SoftLinkCalEnb):
                 -Filtered activities contained in the mother file
         ___________________________
         """
-        preprocessed=preprocess_calliope(self.calliope,self.mother)
-        self.preprocessed_1=preprocessed
-        preprocessed_units=unit_adapter(preprocessed,self.mother)
+        self.preprocessed_init=preprocess_calliope(self.calliope,self.mother)
+
+        preprocessed_units=unit_adapter(self.preprocessed_init,self.mother)
         self.preprocessed = preprocessed_units
         self.techs = preprocessed_units['techs'].unique().tolist() #give some info
         self.scenarios = preprocessed_units['scenarios'].unique().tolist()
 
 
 
-    def data_for_ENBIOS(self, path_save=None):
+    def data_for_ENBIOS(self, path_save=None,smaller_vers=None):
         """
         Transform the data into enbios like dictionary
         """
 
-        self.SoftLink=SoftLinkCalEnb(self.preprocessed,self.mother)
+        # TODO: Consider saving it in a default folder rather than texting it
+
+        self.SoftLink=SoftLinkCalEnb(self.preprocessed,self.mother,smaller_vers)
         self.SoftLink.run(path_save)
         self.enbios2_data = self.SoftLink.enbios2_data
+        self.save_json_data(self.enbios2_data, path_save)
 
 
 
-    @property
-    def tree(self):
-        """
-        make the tree accesible
-        """
-        return self.enbios2
 
 
 
@@ -156,28 +153,41 @@ class UpdaterExperiment(SoftLinkCalEnb):
     def run(self):
         # TODO: Implement
         general=self.enbios2_data
+        general_path=self.path_saved
 
         scenarios = list(general['scenarios'].keys())
         # reduce for testing
         # scenarios= scenarios[:2]
         # TODO change
-        exp = Experiment(general)
-        for scen in scenarios:
-            print(scen)
-            """
-            
-            template = inventoryModify(scen)
-            exchange_updater(template, 'f_test')
 
-            exp.run_scenario(scen)
+        exp = Experiment(general_path)
 
-            result = exp.result_to_dict()
-            with open(path_save_json, 'w') as outfile:
-                json.dump(result, outfile, indent=4)
 
-            exp.results_to_csv(path_save_csv, scen)
-       
-        """
+
+
+    def save_json_data(self,data, path):
+        if path is not None:
+            try:
+                with open(path, 'w') as file:
+                    json.dump(data, indent=4)
+                self.path_saved=path
+            except FileNotFoundError:
+                raise FileNotFoundError(f'Path {path} does not exist. Please check it')
+        else:
+            current=os.path.dirname(os.path.abspath(__file__))
+            folder_path=os.path.join(current,'Default')
+            os.makedirs(folder_path,exist_ok=True)
+            file_path=os.path.join(folder_path,'data_enbios.json')
+
+
+            with open(file_path, 'w') as file:
+                json.dump(data, file,indent=4)
+            print(f'Data for enbios saved in {file_path}')
+            self.path_saved=file_path
+
+
+
+
 
 
 if __name__=='__main__':

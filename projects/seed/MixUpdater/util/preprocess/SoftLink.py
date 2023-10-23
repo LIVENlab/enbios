@@ -19,7 +19,7 @@ class SoftLinkCalEnb():
 
     """
 
-    def __init__(self,calliope,motherfile):
+    def __init__(self,calliope,motherfile,smaller_vers=None):
         #TODO: Add input checker
 
         self.calliope=calliope
@@ -29,6 +29,7 @@ class SoftLinkCalEnb():
         self.aliases=[]
         self.final_acts={}
         self.hierarchy_tree=None
+        self.smaller_vers=smaller_vers
 
 
 
@@ -151,6 +152,7 @@ class SoftLinkCalEnb():
 
             except UnknownObject:
                 print(row['Processor'], 'has an unknown object')
+                continue
 
 
             name = act['name']
@@ -332,7 +334,7 @@ class SoftLinkCalEnb():
 
     def run(self, path= None):
 
-        self.generate_scenarios(smaller_vers=10)
+        self.generate_scenarios(self.smaller_vers)
         self.generate_activities(*self.acts)
         self.hierarchy(*self.final_acts)
         self.hierarchy_refinement(hierarchy_dict=self.hierarchy_tree)
@@ -382,4 +384,4 @@ if __name__=='__main__':
     # TODO: Calliope path will be the atribute of a preprocess class.
     # Keep the path link for testing
     a=SoftLinkCalEnb(r'C:\Users\Alex\PycharmProjects\pythonProject\enbios_2\projects\seed\Data\flow_out_sum_modified_unit_checked_full_subregions.csv',r'C:\Users\Alex\PycharmProjects\pythonProject\enbios_2\projects\seed\Data\base_file_simplified.xlsx')
-    a.run(path=r'C:\Users\altz7\PycharmProjects\enbios__git\projects\seed\MixUpdater\results\res.json')
+    a.run()

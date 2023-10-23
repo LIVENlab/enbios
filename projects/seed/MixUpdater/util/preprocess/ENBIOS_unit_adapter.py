@@ -108,6 +108,7 @@ def modify_data(calliope_data, gen_dict: dict):
             print(f"{code} from activity, {key} not found. Please check your database")
             unit = "none"
             act_name='unknown'
+            continue #If activity doesn't exists, do nothing
 
         for index, row in df.iterrows():
             if str(key) == str(row['names2']):

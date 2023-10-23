@@ -56,8 +56,8 @@ def manage_regions(arg):
     if arg =='ESP-sink':
         region='ESP'
     else:
-        region=arg.replace('-','_')
-
+        region = arg.split('_')[-1]
+        region = "PRT_" + region
     return region
 
 def changer(data):
@@ -86,8 +86,17 @@ def changer(data):
             df_sub = df.loc[df['spores'] == scenario]
 
             df_sub['locs'] = df['locs'].apply(manage_regions)
+            df_sub = df_sub.groupby(['techs', 'locs']).agg({
+                "spores": "first",
+                "carriers": "first",
+                "unit": "first",
+                "flow_out_sum": "sum"
+            }).reset_index()
+            gen_df = pd.concat([gen_df, df_sub])
 
             gen_df = pd.concat([gen_df, df_sub])
+            # Simplify, no need for extra regions
+
 
     return gen_df
 

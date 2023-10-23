@@ -9,7 +9,7 @@ tr = UpdaterExperiment(r'C:\Users\altz7\PycharmProjects\enbios__git\projects\see
                        r'C:\Users\altz7\PycharmProjects\enbios__git\projects\seed\MixUpdater\data\base_file_simplified.xlsx',
                        'Seeds_exp4', 'db_experiments')
 tr.preprocess()
-tr.data_for_ENBIOS()
-tr.template_electricity('Electricity_generation', Location='PT',
-                        Reference_product='electricity production, 2050 in Portugal test', Units='kWh')
+tr.data_for_ENBIOS(smaller_vers=1)
+#tr.template_electricity('Electricity_generation', Location='PT',
+                        #Reference_product='electricity production, 2050 in Portugal test', Units='kWh')
 tr.run()
