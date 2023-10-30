@@ -333,6 +333,20 @@ class SoftLinkCalEnb():
 
         self.hierarchy_tree = hierarchy_dict
 
+    def get_methods(self):
+        methods = {}
+        processors = pd.read_excel(
+            self.motherfile,
+            sheet_name='Methods')
+        processors['Formula'] = processors['Formula'].apply(eval)
+
+        for method in processors['Formula']:
+            methods.update({str(method[-1]): method})
+
+        return methods
+
+
+
 
     def run(self, path= None):
 
@@ -344,25 +358,7 @@ class SoftLinkCalEnb():
         #TODO: Implement function to generate this data
 
 
-        enbios2_methods = {
-
-            'agricultural land occupation (LOP)': ('ReCiPe 2016 v1.03, midpoint (H)',
-                                                   'land use',
-                                                   'agricultural land occupation (LOP)'),
-            'surplus ore potential (SOP)': ('ReCiPe 2016 v1.03, midpoint (H)',
-                                            'material resources: metals/minerals',
-                                            'surplus ore potential (SOP)'),
-            'global warming potential (GWP1000)': ('ReCiPe 2016 v1.03, midpoint (H)',
-                                                   'climate change',
-                                                   'global warming potential (GWP1000)'),
-            'water consumption potential (WCP)': ('ReCiPe 2016 v1.03, midpoint (H)',
-                                                  'water use',
-                                                  'water consumption potential (WCP)'),
-            'freshwater eutrophication potential (FEP)': ('ReCiPe 2016 v1.03, midpoint (H)',
-                                                          'eutrophication: freshwater',
-                                                          'freshwater eutrophication potential (FEP)')
-
-        }
+        enbios2_methods= self.get_methods()
 
         self.enbios2_data = {
             "bw_project": bw_project,
