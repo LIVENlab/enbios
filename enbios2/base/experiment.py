@@ -581,7 +581,7 @@ class Experiment:
         for scenario in self.scenarios:
             if scenario.alias == scenario_alias:
                 return scenario
-        raise ValueError(f"Scenario '{scenario_alias}' not found")
+        raise ValueError(f"Scenario '{scenario_alias}', with type {type(scenario_alias)} not found. Expected {scenario.alias}, {type(scenario.alias)}")
 
     def run_scenario(self, scenario_alias: str) -> dict[str, Any]:
         """

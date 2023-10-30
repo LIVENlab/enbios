@@ -59,7 +59,7 @@ class SoftLinkCalEnb():
 
 
         cal_dat['aliases'] = cal_dat['techs'] + '__' + cal_dat['carriers'] + '___' + cal_dat['locs']  # Use ___ to split the loc for the recognision of the activities
-
+        cal_dat['scenarios']=cal_dat['scenarios'].astype(str)
 
         try:
             scenarios = cal_dat['scenarios'].unique().tolist()
@@ -73,12 +73,14 @@ class SoftLinkCalEnb():
             except:
                 raise ValueError('Scenarios out of bonds')
 
+
+        scenarios=[str(x) for x in scenarios ] # Convert to string, just in case the scenario is a number
         scen_dict = {}
         for scenario in scenarios:
             df = cal_dat[cal_dat['scenarios'] == scenario]
-            stuff = SoftLinkCalEnb.get_scenario(df)
+            info = SoftLinkCalEnb.get_scenario(df)
             scen_dict[scenario] = {}
-            scen_dict[scenario]['activities'] = stuff
+            scen_dict[scenario]['activities'] = info
 
         # GENERATE KEYS FOR THE SCENARIOS
         scens = random.choice(list(scen_dict.keys()))  # select a random scenario from the list
@@ -108,7 +110,7 @@ class SoftLinkCalEnb():
     @staticmethod
     def get_scenario(df) -> dict:
         """
-        Iters through 1 scenario of the data.csv (scenarios data), storing basic data in a dictionary
+        Iters through 1 scenario of the calliope_flow_out_sum.csv (scenarios data), storing basic data in a dictionary
         Get {
         activities : {
             alias : [
@@ -119,14 +121,14 @@ class SoftLinkCalEnb():
         """
         scenario = {}
         for index, row in df.iterrows():
-            other_stuff = []
+            info = []
             alias = row['aliases']
             flow_out_sum = (row['flow_out_sum'])
             unit = row['units']
-            other_stuff.append(unit)
-            other_stuff.append(flow_out_sum)
+            info.append(unit)
+            info.append(flow_out_sum)
 
-            scenario[alias] = other_stuff
+            scenario[alias] = info
         return scenario
 
 
@@ -141,7 +143,7 @@ class SoftLinkCalEnb():
         :return:
         """
 
-        processors = pd.read_excel(self.motherfile, sheet_name='BareProcessors simulation')
+        processors = pd.read_excel(self.motherfile, sheet_name='Processors')
 
         activities_cool = {}
         for index, row in processors.iterrows():
@@ -197,8 +199,8 @@ class SoftLinkCalEnb():
         :return:
         """
         print('Creating tree following the structure defined in the basefile')
-        df = pd.read_excel(self.motherfile, sheet_name='parents')
-        df2 = pd.read_excel(self.motherfile, sheet_name='BareProcessors simulation')
+        df = pd.read_excel(self.motherfile, sheet_name='Dendrogram_top')
+        df2 = pd.read_excel(self.motherfile, sheet_name='Processors')
 
         # Do some changes to match the regions and aliases
 
@@ -340,6 +342,8 @@ class SoftLinkCalEnb():
         self.hierarchy_refinement(hierarchy_dict=self.hierarchy_tree)
 
         #TODO: Implement function to generate this data
+
+
         enbios2_methods = {
 
             'agricultural land occupation (LOP)': ('ReCiPe 2016 v1.03, midpoint (H)',

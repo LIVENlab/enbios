@@ -4,7 +4,7 @@ import bw2data as bd
 import pandas as pd
 from bw2data.errors import UnknownObject
 from projects.seed.MixUpdater.const.const import bw_project,bw_db
-
+from .activity_creator import InventoryFromExcel
 
 
 
@@ -143,6 +143,9 @@ class Market_for_electricity():
         # df = df.drop_duplicates(subset='Activity_code')
 
         print(f'Template for {Activity_name} created')
+        # TODO: Add the activity in the DB
+        InventoryFromExcel(df)
+
         return df
 
 

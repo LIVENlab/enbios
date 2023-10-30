@@ -1,4 +1,3 @@
-import dataclasses
 import json
 import pandas as pd
 import bw2data as bd
@@ -10,13 +9,11 @@ from projects.seed.MixUpdater.util.preprocess.SoftLink import SoftLinkCalEnb
 import bw2io as bi
 from projects.seed.MixUpdater.const import const
 from dataclasses import dataclass
-from projects.seed.MixUpdater.util.updater.exchange_updater import exchange_updater
-from projects.seed.MixUpdater.util.updater.recrusive_dict_changer import inventoryModify
 from projects.seed.MixUpdater.util.preprocess.template_market_4_electricity import Market_for_electricity
-
+from projects.seed.MixUpdater.util.updater.background_updater import Updater
 
 @dataclass
-class UpdaterExperiment(SoftLinkCalEnb):
+class UpdaterExperiment():
 
     def __init__(self,caliope : str | pd.DataFrame, mother_file: [str],project : [str],database):
         """
@@ -41,6 +38,8 @@ class UpdaterExperiment(SoftLinkCalEnb):
         self.SoftLink=None
         self.input=None
         self.database=database
+        self.template_code=None
+        self.exp=None
 
         #Check project and db
         self.BW_project_and_DB()
@@ -51,7 +50,8 @@ class UpdaterExperiment(SoftLinkCalEnb):
 
     def BW_project_and_DB(self):
         """
-        Check the BW project and database. Also allow for the creation of a new one
+        Check the BW project and database.
+        It also allows for the creation of a new one
         """
         projects=list(bd.projects)
 
@@ -120,10 +120,6 @@ class UpdaterExperiment(SoftLinkCalEnb):
 
 
 
-
-
-
-
     def template_electricity(self, final_key,Location='Undefined',Reference_product=None,
         Activity_name='Future_market_for_electricity', Activity_code='FM4E'
         ,Units=None):
@@ -147,22 +143,45 @@ class UpdaterExperiment(SoftLinkCalEnb):
                                                    Activity_code,
                                                    Reference_product,
                                                    Units)
+        self.template_code=Activity_code
 
 
+    def classic_run(self):
 
-    def run(self):
-        # TODO: Implement
-        general=self.enbios2_data
         general_path=self.path_saved
+        self.exp = Experiment(general_path)
+        self.exp.run()
+        result=self.exp.result_to_dict()
 
+
+
+    def updater_run(self):
+
+
+        # check if template created
+
+        if self.template_code is None:
+            raise TypeError(
+                f'An error occurred. The template for electricity is {self.template_code}. Please, consider running {self.template_electricity.__name__} before')
+
+        general = self.enbios2_data
+        general_path = self.path_saved
         scenarios = list(general['scenarios'].keys())
-        # reduce for testing
-        # scenarios= scenarios[:2]
-        # TODO change
 
         exp = Experiment(general_path)
+        updater=Updater(general,self.default_market)
+
+        for scenario in scenarios:
+            print(f'parsing scenario {scenario}')
+
+            template=updater.inventoryModify(scenario)
+            self.template_electricity_market=template # update the table
+            updater.exchange_updater(self.template_code)
+
+            exp.run_scenario(scenario)
 
 
+        pass
 
 
     def save_json_data(self,data, path):
@@ -175,10 +194,13 @@ class UpdaterExperiment(SoftLinkCalEnb):
                 raise FileNotFoundError(f'Path {path} does not exist. Please check it')
         else:
             current=os.path.dirname(os.path.abspath(__file__))
-            folder_path=os.path.join(current,'Default')
+            folder_path=os.path.join(os.path.dirname(current),'Default')
+
+            print(current)
+
             os.makedirs(folder_path,exist_ok=True)
             file_path=os.path.join(folder_path,'data_enbios.json')
-
+            print(file_path)
 
             with open(file_path, 'w') as file:
                 json.dump(data, file,indent=4)

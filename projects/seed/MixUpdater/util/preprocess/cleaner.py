@@ -44,7 +44,7 @@ def filter_techs(mother_path,df):
     :return:
     """
     # TODO: Check input
-    df_techs=pd.read_excel(mother_path,sheet_name='BareProcessors simulation')
+    df_techs=pd.read_excel(mother_path,sheet_name='Processors')
     techs=df_techs['Processor'].tolist()
     mark=df['techs'].isin(techs)
     df_filtered=df[mark]
