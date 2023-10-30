@@ -68,6 +68,7 @@ def changer(data):
     :return:
 
     """
+
     print('Adapting input data...')
     try:
         df=pd.read_csv(data,delimiter=',')

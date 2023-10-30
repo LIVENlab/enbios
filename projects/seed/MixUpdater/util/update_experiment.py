@@ -1,4 +1,7 @@
+
 import json
+from typing import Union
+
 import pandas as pd
 import bw2data as bd
 from enbios2.base.experiment import Experiment
@@ -11,11 +14,12 @@ from projects.seed.MixUpdater.const import const
 from dataclasses import dataclass
 from projects.seed.MixUpdater.util.preprocess.template_market_4_electricity import Market_for_electricity
 from projects.seed.MixUpdater.util.updater.background_updater import Updater
+from pathlib import Path
 
 @dataclass
 class UpdaterExperiment():
 
-    def __init__(self,caliope : str | pd.DataFrame, mother_file: [str],project : [str],database):
+    def __init__(self, caliope : Union[str, pd.DataFrame], mother_file: [str], project : [str], database):
         """
 
         @param caliope: path to the caliope data (flow_out_sum.csv)
@@ -167,8 +171,21 @@ class UpdaterExperiment():
         general = self.enbios2_data
         general_path = self.path_saved
         scenarios = list(general['scenarios'].keys())
+        try:
+            exp = Experiment(general_path)
+        except Exception as e:
+            # Generally the exception is the unspecificEcoinvent error from ENBIOS
+            from enbios2.base.unit_registry import ecoinvent_units_file_path
+            text_to_write = 'unspecificEcoinventUnit = []'
+            # Abre el archivo en modo escritura ('w')
+            with open(ecoinvent_units_file_path, 'w') as file:
+                file.write(text_to_write)
+            print(f'error {e} covered and solved')
+            exp=Experiment(general_path)
+            pass
 
-        exp = Experiment(general_path)
+
+
         updater=Updater(general,self.default_market)
 
         for scenario in scenarios:
