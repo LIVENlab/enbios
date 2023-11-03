@@ -1,20 +1,18 @@
 
 import json
-from typing import Union
-
+from typing import Union,Optional
 import pandas as pd
 import bw2data as bd
 from enbios2.base.experiment import Experiment
 import os
-from projects.seed.MixUpdater.util.preprocess.cleaner import preprocess_calliope
-from projects.seed.MixUpdater.util.preprocess.ENBIOS_unit_adapter import unit_adapter
+from projects.seed.MixUpdater.util.preprocess.cleaner import Cleaner
 from projects.seed.MixUpdater.util.preprocess.SoftLink import SoftLinkCalEnb
 import bw2io as bi
 from projects.seed.MixUpdater.const import const
 from dataclasses import dataclass
 from projects.seed.MixUpdater.util.preprocess.template_market_4_electricity import Market_for_electricity
 from projects.seed.MixUpdater.util.updater.background_updater import Updater
-from pathlib import Path
+import time
 
 @dataclass
 class UpdaterExperiment():
@@ -31,13 +29,14 @@ class UpdaterExperiment():
         @param database: db name in bw
         @type database: str
         """
-        self.default_market = None
+        self.default_market = None #
         self.project=project
         self.calliope=caliope
         self.mother=mother_file
         self.techs=[]
         self.scenarios=[]
         self.preprocessed=None
+        self.preprocessed_starter=None
         self.template_electricity_market = None
         self.SoftLink=None
         self.input=None
@@ -48,8 +47,15 @@ class UpdaterExperiment():
         #Check project and db
         self.BW_project_and_DB()
 
+    @staticmethod
+    def timer(func):
+        def wrapper(*args, **kwargs):
+            start = time.time()
+            func(*args,**kwargs)
+            end = time.time()
+            print(f'function {func.__name__} executed in {end - start} seconds')
 
-
+        return wrapper
 
 
     def BW_project_and_DB(self):
@@ -88,7 +94,8 @@ class UpdaterExperiment():
         ei.write_database()
         pass
 
-    def preprocess(self):
+    @timer
+    def preprocess(self,subregions : [bool,Optional] = False):
         """
         cal_file: str path to flow_out_sum data
 
@@ -101,12 +108,18 @@ class UpdaterExperiment():
                 -Filtered activities contained in the mother file
         ___________________________
         """
-        self.preprocessed_init=preprocess_calliope(self.calliope,self.mother)
 
-        preprocessed_units=unit_adapter(self.preprocessed_init,self.mother)
-        self.preprocessed = preprocessed_units
-        self.techs = preprocessed_units['techs'].unique().tolist() #give some info
-        self.scenarios = preprocessed_units['scenarios'].unique().tolist()
+        # Create an instance of the Cleaner class
+        cleaner=Cleaner(self.calliope,self.mother,subregions)
+        self.preprocessed_starter=cleaner.preprocess_data()
+        self.preprocessed_units=cleaner.adapt_units()
+        self.exluded_techs_and_regions=cleaner.techs_region_not_included
+        pass
+
+       # preprocessed_units=unit_adapter(self.preprocessed_starter, self.mother)
+        #self.preprocessed = preprocessed_units
+        #self.techs = preprocessed_units['techs'].unique().tolist() #give some info
+        #self.scenarios = preprocessed_units['scenarios'].unique().tolist()
 
 
 
@@ -223,6 +236,7 @@ class UpdaterExperiment():
                 json.dump(data, file,indent=4)
             print(f'Data for enbios saved in {file_path}')
             self.path_saved=file_path
+
 
 
 
