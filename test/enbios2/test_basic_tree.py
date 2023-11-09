@@ -8,24 +8,24 @@ from typing import Generator
 import pytest
 import sys
 
-from enbios2.const import BASE_TEST_DATA_PATH
-from enbios2.generic.files import ReadDataPath
+from enbios.const import BASE_TEST_DATA_PATH
+from enbios.generic.files import ReadDataPath
 
 try:
-    import enbios2
-    import enbios2.generic
-    import enbios2.generic.tree
-    import enbios2.generic.tree.basic_tree
-    from enbios2.generic.tree.basic_tree import BasicTreeNode
+    import enbios
+    import enbios.generic
+    import enbios.generic.tree
+    import enbios.generic.tree.basic_tree
+    from enbios.generic.tree.basic_tree import BasicTreeNode
 except ImportError as e:
-    print("Could not import enbios2", e)
+    print("Could not import enbios", e)
 
 print(sys.path)
 sys.path = sys.path[1:]
 print(sys.path)
 
 
-# from enbios2.generic.tree.basic_tree import BasicTreeNode
+# from enbios.generic.tree.basic_tree import BasicTreeNode
 @pytest.fixture
 def csv_file_path(tmp_path) -> Generator[Path, None, None]:
     path = tmp_path / "test.csv"

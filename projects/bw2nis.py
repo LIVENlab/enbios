@@ -6,9 +6,9 @@ import bw2data
 import openpyxl
 from bw2data.backends import ActivityDataset, Activity
 
-from enbios2.bw2.project_index import get_bw_database, set_bw_current_project
-from enbios2.const import BASE_DATA_PATH
-from enbios2.enbios_extend.bw_lci2nis import read_exising_nis_file, export_solved_inventory, insert_activity_processor
+from enbios.bw2.project_index import get_bw_database, set_bw_current_project
+from enbios.const import BASE_DATA_PATH
+from enbios.enbios_extend.bw_lci2nis import read_exising_nis_file, export_solved_inventory, insert_activity_processor
 from input.data_preparation.lci_to_nis import spold2nis
 from processing.main import Enviro
 

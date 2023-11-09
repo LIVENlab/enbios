@@ -8,11 +8,11 @@ import pytest
 from bw2data.backends import Activity
 from deprecated.classic import deprecated
 
-from enbios2.base.experiment import Experiment, ScenarioResultNodeData
-from enbios2.const import BASE_DATA_PATH, BASE_TEST_DATA_PATH
-from enbios2.generic.files import ReadPath
-from enbios2.generic.tree.basic_tree import BasicTreeNode
-from enbios2.models.experiment_models import ExperimentData
+from enbios.base.experiment import Experiment, ScenarioResultNodeData
+from enbios.const import BASE_DATA_PATH, BASE_TEST_DATA_PATH
+from enbios.generic.files import ReadPath
+from enbios.generic.tree.basic_tree import BasicTreeNode
+from enbios.models.experiment_models import ExperimentData
 from test.enbios2.test_project_fixture import TEST_BW_PROJECT, TEST_BW_DATABASE
 
 

@@ -1,5 +1,5 @@
-from enbios2.const import BASE_DATA_PATH
-from enbios2.generic.files import ReadPath, ReadDataPath
+from enbios.const import BASE_DATA_PATH
+from enbios.generic.files import ReadPath, ReadDataPath
 
 
 def test_json_reader():

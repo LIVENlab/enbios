@@ -3,9 +3,9 @@ import pickle
 import numpy as np
 import pytest
 
-from enbios2.base.result_select import ResultsSelector
-from enbios2.base.experiment import Experiment
-from enbios2.generic.files import DataPath
+from enbios.base.result_select import ResultsSelector
+from enbios.base.experiment import Experiment
+from enbios.generic.files import DataPath
 
 
 @pytest.fixture
