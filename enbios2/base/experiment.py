@@ -1,5 +1,6 @@
 import csv
 import itertools
+import logging
 import math
 import time
 from copy import copy
@@ -97,7 +98,9 @@ class Experiment:
             bw_project: str, bw_default_database: Optional[str] = None
         ):
             if bw_project not in bd.projects:
-                raise ValueError(f"Project {bw_project} not found")
+                raise ValueError(
+                    f"Brightway Project '{bw_project}' not found. Candidates can be found with the report() "
+                    f"function from 'from enbios.bw2.util'")
             if bw_project in bd.projects:
                 bd.projects.set_current(bw_project)
 
@@ -564,7 +567,16 @@ class Experiment:
             hierarchy, compact=True
         )
         for leaf in tech_tree.iter_leaves():
-            leaf.temp_data = {"activity": self.get_activity(leaf.name)}
+            try:
+                leaf.temp_data = {"activity": self.get_activity(leaf.name)}
+            except ValueError as err:
+                logger.error(
+                    "Validation of the hierarchy failed. One activity that is specified in the hierarchy "
+                    "is not defined in the activities. Turn logger (in data/logging.json) for"
+                    "'enbios.base.experiment' to level DEBUG to see possible candidates.")
+                logger.error(err)
+                logger.debug(f"Candidates:  {self.activities_aliases}")
+                raise err
         missing = set(self.activities_aliases) - set(
             n.name for n in tech_tree.iter_leaves()
         )
@@ -593,7 +605,7 @@ class Experiment:
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         """
-        Run all scenarios. Returns an dict with the scenario alias as key
+        Run all scenarios. Returns a dict with the scenario alias as key
         and the result_tree as value
         :return: dictionary scenario-alias : result_tree
         """
