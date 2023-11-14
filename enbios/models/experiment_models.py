@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Callable, Optional, Union, Any
+from typing import Optional, Union
 
 import bw2data
 from bw2data.backends import Activity
@@ -12,10 +12,10 @@ from enbios.const import ACTIVITY_TYPE
 from enbios.generic.files import PathLike
 
 
-@pydantic_dataclass
-class EcoInventSimpleIndex:
-    version: str
-    system_model: str
+# @pydantic_dataclass
+# class EcoInventSimpleIndex:
+#     version: str
+#     system_model: str
 
 
 class StrictInputConfig:
@@ -283,10 +283,15 @@ class ScenarioResultNodeData:
     output: tuple[Optional[str], Optional[float]] = (None, None)
     results: dict[str, float] = field(default_factory=dict)
     distribution_results: dict[str, list[float]] = field(default_factory=dict)
-    bw_activity: Optional[Activity] = None
 
 
 class AdapterModel(BaseModel):
+    name: Optional[str] = None
+    module_path: PathLike
+    config: Optional[dict] = None
+
+
+class AggregationModel(BaseModel):
     name: Optional[str] = None
     module_path: PathLike
     config: Optional[dict] = None

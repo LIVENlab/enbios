@@ -76,10 +76,6 @@ def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
     return bw_activity
 
 
-def run(scenario: str) -> dict:
-    return {}
-
-
 @dataclass
 class BWActivityData:
     bw_activity: Activity
@@ -249,7 +245,7 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup.register()
         self.scenario_calc_setups[scenario.alias] = calculation_setup
 
-    def run_scenario(self, scenario: Scenario):
+    def run_scenario(self, scenario: Scenario) -> dict[str, Any]:
         use_distributions = self.config.use_k_bw_distributions > 1
         raw_results: Union[list[ndarray], ndarray] = []
         for i in range(self.config.use_k_bw_distributions):
@@ -271,7 +267,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 else:
                     result_data[act_alias][method] = raw_results[0][act_idx, m_idx]
 
-        result_tree = scenario.set_results(result_data)
+        return result_data
 
     def run(self):
         pass
