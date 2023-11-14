@@ -7,7 +7,7 @@ from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, Union
 
 import numpy as np
 from bw2data.backends import Activity
@@ -16,7 +16,6 @@ from enbios.base.adapters import load_adapter
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
-
 from enbios.bw2.util import bw_unit_fix
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
@@ -30,7 +29,6 @@ from enbios.models.experiment_models import (
     ExperimentActivityId,
     ExperimentConfig,
     ExperimentData,
-    ExperimentMethodData,
     ExperimentMethodPrepData,
     ExperimentScenarioData,
     ExtendedExperimentActivityData,
@@ -67,15 +65,15 @@ class Experiment:
 
         # alias to activity
         self.adapters: list[Adapter] = self._validate_adapters()
+        self.adapter_indicator_map: dict[str, Adapter] = {adapter.model.activity_indicator: adapter for adapter in
+                                                     self.adapters}
         for adapter in self.adapters:
             adapter.validate_config()
 
         self._activities: dict[
-            str, ExtendedExperimentActivityData
+            str, ExperimentActivityData
         ] = self._validate_activities(
-            self._prepare_activities(self.raw_data.activities),
-            self.raw_data.bw_default_database,
-        )
+            self._prepare_activities(self.raw_data.activities))
 
         self.methods: dict[str, ExperimentMethodPrepData] = {}
         for adapter in self.adapters:
@@ -149,9 +147,8 @@ class Experiment:
 
     def _validate_activities(self,
                              activities: list[ExperimentActivityData],
-                             bw_default_database: Optional[str] = None,
                              output_required: bool = False,
-                             ) -> dict[str, ExtendedExperimentActivityData]:
+                             ) -> dict[str, ExperimentActivityData]:
         """
         Check if all activities exist in the bw database, and check if the
         given activities are unique
@@ -159,12 +156,12 @@ class Experiment:
         """
         # if activities is a list, convert validate and convert to dict
         # default_id_data = ExperimentActivityId(database=bw_default_database)
-        activities_map: dict[str, ExtendedExperimentActivityData] = {}
+        activities_map: dict[str, ExperimentActivityData] = {}
         # validate
-        adapter_indicator_map: dict[str, Adapter] = {adapter.model.activity_indicator: adapter for adapter in self.adapters}
+
         for activity in activities:
-            ext_activity: ExtendedExperimentActivityData = self._validate_activity(
-                activity, adapter_indicator_map, output_required
+            ext_activity: ExperimentActivityData = self._validate_activity(
+                activity, self.adapter_indicator_map, output_required
             )
             # check unique aliases
             if ext_activity.alias in activities_map:
@@ -182,11 +179,11 @@ class Experiment:
         assert len(activities_map) > 0, "There are no activities in the experiment"
         return activities_map
 
-    def _validate_activity(self,
-                           activity: ExperimentActivityData,
+    @staticmethod
+    def _validate_activity(activity: ExperimentActivityData,
                            adapter_indicator_map: dict[str, Adapter],
                            required_output: bool = False,
-                           ) -> "ExtendedExperimentActivityData":
+                           ) -> "ExperimentActivityData":
         """
         This method checks if the activity exists in the database by several ways.
         :param activity:
@@ -199,9 +196,8 @@ class Experiment:
             raise ValueError(
                 f"Activity source '{activity.id.source}' not found in adapters"
             )
-        activity_spec: ExtendedExperimentActivityData = adapter.functions.validate_activity(activity, required_output)
+        activity_spec: ExperimentActivityData = adapter.functions.validate_activity(activity, required_output)
         return activity_spec
-
 
     def _has_activity(
             self, alias_or_id: Union[str, ExperimentActivityId]
@@ -264,6 +260,9 @@ class Experiment:
                 activity = self.get_activity(activity_id)
                 simple_id = validate_activity_id(activity_id)
                 output_ = convert_output(activity_output)
+
+                adapter = self.adapter_indicator_map[activity.id.source]
+                adapter.validate_activity_output(activity, output_)
                 # TODO VALIDATE ADAPTER OUTPUT
                 # if activity.id.source == BRIGHTWAY_ACTIVITY:
                 #     scenario_output = validate_brightway_output(
@@ -301,20 +300,11 @@ class Experiment:
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
             if _scenario.methods:
-                if isinstance(_scenario.methods, list):
-                    for index_, method_ in enumerate(_scenario.methods):
-                        if isinstance(method_, str):
-                            global_method = self.methods.get(method_)
-                            assert global_method
-                            resolved_methods[global_method.alias] = global_method
-                # else:
-                #     method_dict: dict[str, tuple[str, ...]] = cast(
-                #         dict[str, tuple[str, ...]], _scenario.methods
-                #     )
-                #     for method_alias, method_ in method_dict.items():  # type: ignore
-                #         md = ExperimentMethodData(id=cast(tuple[str, ...], method_))
-                #         prep_method = self._validate_method(md, method_alias)
-                #         resolved_methods[prep_method.alias] = prep_method
+                for index_, method_ in enumerate(_scenario.methods):
+                    if isinstance(method_, str):
+                        global_method = self.methods.get(method_)
+                        assert global_method
+                        resolved_methods[global_method.alias] = global_method
 
             return Scenario(
                 experiment=self,  # type: ignore

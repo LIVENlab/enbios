@@ -72,81 +72,6 @@ def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
     return bw_activity
 
 
-def validate_brightway_output(
-        target_output: ActivityOutput,
-        bw_activity: Activity,
-        activity_id: ExperimentActivityId,
-) -> float:
-    """
-    validate and convert to the bw-activity unit
-    :param target_output:
-    :param bw_activity:
-    :param activity_id:
-    :return:
-    """
-    try:
-        target_quantity: Quantity = (
-                ureg.parse_expression(bw_unit_fix(target_output.unit), case_sensitive=False)
-                * target_output.magnitude
-        )
-        bw_activity_unit = bw_activity["unit"]
-        return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
-    except UndefinedUnitError as err:
-        logger.error(
-            f"Cannot parse output unit '{target_output.unit}'- "
-            f"of activity {activity_id}. {err}. "
-            f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
-        )
-        raise Exception(f"Unit error, {err}; For activity: {activity_id}")
-    except DimensionalityError as err:
-        logger.error(
-            f"Cannot convert output of activity {activity_id}. -"
-            f"From- \n{target_output}\n-To-"
-            f"\n{bw_activity['unit']} (brightway unit)"
-            f"\n{err}"
-        )
-        raise Exception(f"Unit error for activity: {activity_id}")
-
-
-def validate_activity(
-        activity: ExperimentActivityData,
-        # default_id_attr: ExperimentActivityId,
-        required_output: bool = False,
-) -> "ExtendedExperimentActivityData":
-    # get the brightway activity
-    bw_activity = _bw_activity_search(activity)
-
-    # create output: ActivityOutput and default_output_value
-    if activity.output:
-        if isinstance(activity.output, tuple):
-            output = ActivityOutput(unit=activity.output[0], magnitude=activity.output[1])
-        else:  # if isinstance(activity.output, ActivityOutput):
-            output = activity.output
-
-    else:
-        output = ActivityOutput(unit=bw_unit_fix(bw_activity["unit"]), magnitude=1.0)
-    default_output_value = validate_brightway_output(output, bw_activity, activity.id)
-
-    activity_dict = asdict(activity)
-    activity_dict["output"] = asdict(output)
-    result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(
-        **activity_dict,
-        bw_activity=bw_activity,
-        default_output_value=default_output_value,
-    )
-
-    result.id.fill_empty_fields(
-        ["name", "code", "location", "unit", ("alias", "name")],
-        **result.bw_activity.as_dict(),
-    )
-    if required_output:
-        assert activity.output is not None, (
-            f"Since there is no scenario, activity output is required: "
-            f"{activity.orig_id}"
-        )
-    return result
-
-
 def validate_config(config: BWAdapterConfig):
     if config.use_k_bw_distributions < 1:
         raise ValueError(
@@ -217,6 +142,82 @@ def validate_methods(config: BWAdapterConfig):
         for alias, method in prepare_methods(config.methods).items()
     }
     return methods
+
+
+def validate_activity_output(
+        activity: ExtendedExperimentActivityData,
+        target_output: ActivityOutput,
+        # bw_activity: Activity,
+        # activity_id: ExperimentActivityId,
+) -> float:
+    """
+    validate and convert to the bw-activity unit
+    :param activity:
+    :param target_output:
+    :return:
+    """
+    try:
+        target_quantity: Quantity = (
+                ureg.parse_expression(bw_unit_fix(target_output.unit), case_sensitive=False)
+                * target_output.magnitude
+        )
+        bw_activity_unit = bw_activity["unit"]
+        return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
+    except UndefinedUnitError as err:
+        logger.error(
+            f"Cannot parse output unit '{target_output.unit}'- "
+            f"of activity {activity_id}. {err}. "
+            f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
+        )
+        raise Exception(f"Unit error, {err}; For activity: {activity_id}")
+    except DimensionalityError as err:
+        logger.error(
+            f"Cannot convert output of activity {activity_id}. -"
+            f"From- \n{target_output}\n-To-"
+            f"\n{bw_activity['unit']} (brightway unit)"
+            f"\n{err}"
+        )
+        raise Exception(f"Unit error for activity: {activity_id}")
+
+
+def validate_activity(
+        activity: ExperimentActivityData,
+        # default_id_attr: ExperimentActivityId,
+        required_output: bool = False,
+) -> "ExtendedExperimentActivityData":
+    # get the brightway activity
+    bw_activity = _bw_activity_search(activity)
+
+    # create output: ActivityOutput and default_output_value
+    if activity.output:
+        if isinstance(activity.output, tuple):
+            output = ActivityOutput(unit=activity.output[0], magnitude=activity.output[1])
+        else:  # if isinstance(activity.output, ActivityOutput):
+            output = activity.output
+
+    else:
+        output = ActivityOutput(unit=bw_unit_fix(bw_activity["unit"]), magnitude=1.0)
+    default_output_value = validate_activity_output(output, bw_activity, activity.id)
+
+    activity_dict = asdict(activity)
+    activity_dict["output"] = asdict(output)
+    result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(
+        **activity_dict,
+        bw_activity=bw_activity,
+        default_output_value=default_output_value,
+    )
+
+    result.id.fill_empty_fields(
+        ["name", "code", "location", "unit", ("alias", "name")],
+        **result.bw_activity.as_dict(),
+    )
+    if required_output:
+        assert activity.output is not None, (
+            f"Since there is no scenario, activity output is required: "
+            f"{activity.orig_id}"
+        )
+    return result
+
 
 
 def run(scenario: str) -> dict:

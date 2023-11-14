@@ -7,6 +7,30 @@ from typing import Optional, get_type_hints
 from enbios.models.experiment_models import Adapter, AdapterFunctions, AdapterModel
 
 
+from abc import ABC, abstractmethod
+
+
+class EnbiosAdapter(ABC):
+
+
+    @abstractmethod
+    def validate_config(self):
+        pass
+
+    @abstractmethod
+    def validate_methods(self):
+        pass
+
+    @abstractmethod
+    def validate_activity_output(self):
+        pass
+
+    @abstractmethod
+    def validate_activity(self):
+        pass
+
+
+
 def load_adapter(adapter_model: AdapterModel) -> Adapter:
     _path = Path(adapter_model.module_path)
     sys.path.insert(0, _path.parent.as_posix())
@@ -26,6 +50,9 @@ def load_adapter(adapter_model: AdapterModel) -> Adapter:
             # print(func_types)
             assert len(func_types) > 0
             assert isinstance(func_types[0], dict.__class__)
+        elif func_name == adapter_model.activity_output_validation_function:
+            assert len(get_type_hints(function)) > 2
+            adapter_functions["validate_activity_output"] = function
         elif func_name == adapter_model.run_function:
             func_types = list(get_type_hints(function).values())
             # print(func_types)

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Any
 
 import bw2data
 from bw2data.backends import Activity
@@ -309,6 +309,7 @@ class AdapterModel(BaseModel):
     module_path: PathLike
     config: Optional[dict] = None
     activity_validator_function: Optional[str] = "validate_activity"
+    activity_output_validation_function: Optional[str] = "validate_activity_output"
     methods_validation_function: Optional[str] = "validate_methods"
     run_function: Optional[str] = "run"
     config_model_name: Optional[str] = None
@@ -316,8 +317,9 @@ class AdapterModel(BaseModel):
 
 
 class AdapterFunctions(BaseModel):
-    validate_activity: Callable[[ExperimentActivityData, ...], ExtendedExperimentActivityData]
     validate_config: Callable[[dict, ...], None]
+    validate_activity: Callable[[ExperimentActivityData, ...], ExperimentActivityData]
+    validate_activity_output: Callable[[ActivityOutput, Activity, ExperimentActivityId], float]
     validate_methods: Callable[[dict, ...], dict[str, ExperimentMethodPrepData]]
     run: Callable[[Optional[str], ...], dict]
 
@@ -327,6 +329,7 @@ class Adapter(BaseModel):
     model: AdapterModel
     functions: AdapterFunctions
     methods: dict[str, ExperimentMethodPrepData] = Field(default_factory=dict)
+    data: Optional[Any] = None
 
     def validate_config(self):
         self.functions.validate_config(self.model.config)
@@ -334,6 +337,9 @@ class Adapter(BaseModel):
     def validate_methods(self) -> dict[str, ExperimentMethodPrepData]:
         self.methods = self.functions.validate_methods(self.model.config)
         return self.methods
+
+    def validate_activity_output(self, activity: ExtendedExperimentActivityData, output: ActivityOutput):
+        return self.functions.validate_activity_output(activity, output)
 
 
 class Settings(BaseSettings):
