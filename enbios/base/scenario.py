@@ -246,34 +246,11 @@ class Scenario:
         self._execution_time = float("NaN")
 
     def set_results(self, result_data: dict[str, Any]):
-        # self.result_tree = BasicTreeNode.from_dict(result_data)
-
-        # self.result_tree = self._add_lca_results_to_tree(
-        #     results, add_to_distribution, propagate
-        # )
-
-        # if not self.result_tree:
-        #     raise ValueError(f"Scenario '{self.alias}' has no results...")
-        # activity_ids = list(self.activities_outputs.keys())
         for activity, activity_result in result_data.items():
             activity_node = self.result_tree.find_subnode_by_name(activity)
             activity_node.data.results = activity_result
 
-        # methods_aliases: list[str] = list(self._get_methods().keys())
-        #     assert activity_node
-        #     for method_idx, method_name in enumerate(methods_aliases):
-        #         if add_to_distribution:
-        #             node_data = activity_node.data
-        #             if method_name not in node_data.distribution_results:
-        #                 node_data.distribution_results[method_name] = []
-        #             node_data.distribution_results[method_name].append(
-        #                 lca_results[result_idx][method_idx]
-        #             )
-        #         else:
-        #             activity_node.data.results[method_name] = lca_results[result_idx][
-        #                 method_idx
-        #             ]
-        #
+
         # if propagate:
         #     self.result_tree.recursive_apply(
         #         Scenario._propagate_results_upwards,
@@ -282,8 +259,6 @@ class Scenario:
         #     )
 
         self._has_run = True
-        # return self.result_tree
-
 
     def wrapper_data_serializer(self, include_method_units: bool = False):
         method_alias2units: dict[str, str] = {

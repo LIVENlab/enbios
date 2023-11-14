@@ -93,8 +93,8 @@ class BrightwayAdapter(EnbiosAdapter):
         self.config = BWAdapterConfig(**config)
         self.activityMap: dict[str, BWActivityData] = {}
         self.methods: dict[str, ExperimentMethodPrepData] = {}
-        self.scenario_calc_setups: dict[str,BWCalculationSetup] = {}
-        self.results: Optional[ndarray] = None
+        self.scenario_calc_setups: dict[str, BWCalculationSetup] = {}  # scenario_alias to BWCalculationSetup
+        self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
 
     @property
     def name(self) -> str:
@@ -259,19 +259,19 @@ class BrightwayAdapter(EnbiosAdapter):
             raw_results.append(_raw_results)
 
         if self.config.store_raw_results:
-            self.results = raw_results
-
-        # if not use_distributions:
-        #     raw_results = raw_results[0]
+            self.raw_results[scenario.alias] = raw_results
 
         result_data: dict[str, Any] = {}
         method_aliases = [m.alias for m in self.methods.values()]
-        for idx, act_alias in enumerate(self.activityMap.keys()):
-            result_data[act_alias] = [
-                dict(zip(method_aliases, res[idx])) for res in raw_results
-            ]
+        for act_idx, act_alias in enumerate(self.activityMap.keys()):
+            result_data[act_alias] = {}
+            for m_idx, method in enumerate(method_aliases):
+                if use_distributions:
+                    result_data[act_alias][method] = [res[act_idx, m_idx] for res in raw_results]
+                else:
+                    result_data[act_alias][method] = raw_results[0][act_idx, m_idx]
+
         result_tree = scenario.set_results(result_data)
-        return result_tree
 
     def run(self):
         pass
