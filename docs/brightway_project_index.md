@@ -9,7 +9,7 @@ projects of typical databases (ecoinvent)
 Get a overview of all brightway projects on a system with:
 
 ```python
-from enbios2.bw2.project_index import print_bw_index
+from enbios.bw2.project_index import print_bw_index
 
 # see what is indexed:
 print_bw_index()
