@@ -10,10 +10,10 @@ from enbios.const import BASE_TEST_DATA_PATH
 from enbios.generic.files import ReadPath
 from enbios.models.experiment_models import ExperimentData
 try:
-    from test.enbios2.test_project_fixture import TEST_BW_DATABASE, TEST_BW_PROJECT
+    from test.enbios.test_project_fixture import TEST_BW_DATABASE, TEST_BW_PROJECT
 except ImportError as err:
-    getLogger("test-logger").error("Please copy test/enbios2/test_project_fixture.py.example to "
-                                   "test/enbios2/test_project_fixture.py and fill in the values.")
+    getLogger("test-logger").error("Please copy test/enbios/test_project_fixture.py.example to "
+                                   "test/enbios/test_project_fixture.py and fill in the values.")
     sys.exit(1)
 
 # This fixture scans a directory and returns all files in the directory.

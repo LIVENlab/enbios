@@ -1,6 +1,5 @@
 import csv
 import itertools
-import logging
 import math
 import time
 from copy import copy

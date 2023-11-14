@@ -12,8 +12,8 @@ from enbios.base.experiment import Experiment, ScenarioResultNodeData
 from enbios.generic.files import ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import ExperimentData
-from test.enbios2.conftest import tempfolder
-from test.enbios2.test_project_fixture import TEST_BW_PROJECT, TEST_BW_DATABASE
+from test.enbios.conftest import tempfolder
+from test.enbios.test_project_fixture import TEST_BW_PROJECT, TEST_BW_DATABASE
 
 
 @pytest.fixture

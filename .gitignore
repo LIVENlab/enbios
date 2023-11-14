@@ -1,6 +1,6 @@
 /data/ecoinvent/
 /data/ecoinventJson/
-/test/enbios2/test_project_fixture.py
+/test/enbios/test_project_fixture.py
 /venv/
 /.idea/
 /data/temp/
