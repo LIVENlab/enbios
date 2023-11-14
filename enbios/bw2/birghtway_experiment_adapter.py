@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from logging import getLogger
-from typing import Optional
+from typing import Optional, Any, Union
 
 import bw2data as bd
 from bw2data.backends import Activity
@@ -30,6 +30,7 @@ class BWAdapterConfig:
     methods: MethodsDataTypesExt
     use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
     bw_default_database: Optional[str] = None
+    store_raw_results: Optional[bool] = False  # store numpy arrays of lca results
 
 
 def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
@@ -93,6 +94,7 @@ class BrightwayAdapter(EnbiosAdapter):
         self.activityMap: dict[str, BWActivityData] = {}
         self.methods: dict[str, ExperimentMethodPrepData] = {}
         self.scenario_calc_setups: dict[str,BWCalculationSetup] = {}
+        self.results: Optional[ndarray] = None
 
     @property
     def name(self) -> str:
@@ -133,6 +135,7 @@ class BrightwayAdapter(EnbiosAdapter):
         def validate_method(
                 method: ExperimentMethodData, alias: str
         ) -> ExperimentMethodPrepData:
+            # todo: should complain, if the same method is passed twice
             method.id = tuple(method.id)
             bw_method = bd.methods.get(method.id)
             if not bw_method:
@@ -164,11 +167,11 @@ class BrightwayAdapter(EnbiosAdapter):
                     method_dict[method__.alias_] = method__
             return method_dict
 
-        methods: dict[str, ExperimentMethodPrepData] = {
+        self.methods: dict[str, ExperimentMethodPrepData] = {
             alias: validate_method(method, alias)
             for alias, method in prepare_methods(self.config.methods).items()
         }
-        return methods
+        return self.methods
 
     def validate_activity_output(
             self,
@@ -233,9 +236,13 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def prepare_scenario(self, scenario: Scenario):
         inventory: list[dict[Activity, float]] = []
-        for activity_alias, act_out in scenario.activities_outputs.items():
-            bw_activity = self.activityMap[activity_alias.alias].bw_activity
-            inventory.append({bw_activity: act_out})
+        # for activity_alias, act_out in scenario.activities_outputs.items():
+        #     bw_activity = self.activityMap[activity_alias.alias].bw_activity
+        #     inventory.append({bw_activity: act_out})
+        # do the order we have in this map
+        for act_alias, activity in self.activityMap.items():
+            act_output = scenario.activities_outputs[act_alias]
+            inventory.append({activity.bw_activity: act_output})
 
         methods = [m.id for m in self.methods.values()]
         calculation_setup = BWCalculationSetup(scenario.alias, inventory, methods)
@@ -244,13 +251,26 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def run_scenario(self, scenario: Scenario):
         use_distributions = self.config.use_k_bw_distributions > 1
+        raw_results: Union[list[ndarray], ndarray] = []
         for i in range(self.config.use_k_bw_distributions):
-            raw_results: ndarray = StackedMultiLCA(
+            _raw_results: ndarray = StackedMultiLCA(
                 self.scenario_calc_setups[scenario.alias], use_distributions
             ).results
-            result_tree = self.set_results(
-                raw_results, use_distributions, i == self.config.use_k_bw_distributions - 1
-            )
+            raw_results.append(_raw_results)
+
+        if self.config.store_raw_results:
+            self.results = raw_results
+
+        # if not use_distributions:
+        #     raw_results = raw_results[0]
+
+        result_data: dict[str, Any] = {}
+        method_aliases = [m.alias for m in self.methods.values()]
+        for idx, act_alias in enumerate(self.activityMap.keys()):
+            result_data[act_alias] = [
+                dict(zip(method_aliases, res[idx])) for res in raw_results
+            ]
+        result_tree = scenario.set_results(result_data)
         return result_tree
 
     def run(self):

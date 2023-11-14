@@ -32,7 +32,7 @@ from enbios.models.experiment_models import (
     ExperimentMethodPrepData,
     ExperimentScenarioData,
     ScenarioResultNodeData,
-    Settings, SimpleScenarioActivityId,
+    Settings
 )
 
 logger = get_logger(__name__)
@@ -241,17 +241,17 @@ class Experiment:
         :return:
         """
 
-        def validate_activity_id(
-                activity_id: Union[str, ExperimentActivityId]
-        ) -> SimpleScenarioActivityId:
-            activity = self.get_activity(activity_id)
-            id_ = activity.id
-            assert id_.name and id_.code and id_.alias
-            return SimpleScenarioActivityId(name=id_.name, alias=id_.alias, code=id_.code)
+        # def validate_activity_id(
+        #         activity_id: Union[str, ExperimentActivityId]
+        # ) -> SimpleScenarioActivityId:
+        #     activity = self.get_activity(activity_id)
+        #     id_ = activity.id
+        #     assert id_.name and id_.code and id_.alias
+        #     return SimpleScenarioActivityId(name=id_.name, alias=id_.alias, code=id_.code)
 
         def validate_activities(scenario_: ExperimentScenarioData) -> Activity_Outputs:
             activities = scenario_.activities
-            result: dict[SimpleScenarioActivityId, float] = {}
+            result: dict[str, float] = {}
 
             def convert_output(output) -> ActivityOutput:
                 if isinstance(output, tuple):
@@ -269,7 +269,7 @@ class Experiment:
             )
             for activity_id, activity_output in scenarios_activities:
                 activity = self.get_activity(activity_id)
-                simple_id = validate_activity_id(activity_id)
+                # simple_id = validate_activity_id(activity_id)
                 output_ = convert_output(activity_output)
 
                 adapter = self.adapter_indicator_map[activity.id.source]
@@ -292,20 +292,19 @@ class Experiment:
             :return:
             """
             scenario_activities_outputs: Activity_Outputs = validate_activities(_scenario)
-            defined_aliases = [
-                output_id.alias for output_id in scenario_activities_outputs.keys()
-            ]
+            defined_aliases = list(scenario_activities_outputs.keys())
+
             # fill up the missing activities with default values
             for activity in self._activities.values():
                 activity_alias = activity.alias
                 if activity_alias not in defined_aliases:
                     # print(activity)
-                    id_ = SimpleScenarioActivityId(
-                        name=str(activity.id.name),
-                        code=str(activity.id.code),
-                        alias=activity.alias,
-                    )
-                    scenario_activities_outputs[id_] = self.get_activity_default_output(activity.alias)
+                    # id_ = SimpleScenarioActivityId(
+                    #     name=str(activity.id.name),
+                    #     code=str(activity.id.code),
+                    #     alias=activity.alias,
+                    # )
+                    scenario_activities_outputs[activity.alias] = self.get_activity_default_output(activity.alias)
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
             if _scenario.methods:
@@ -400,7 +399,8 @@ class Experiment:
         :param scenario_alias:
         :return: The result_tree converted into a dict
         """
-        return self.get_scenario(scenario_alias).run().as_dict(include_data=True)
+        # todo return results
+        return self.get_scenario(scenario_alias).run()#.as_dict(include_data=True)
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         """

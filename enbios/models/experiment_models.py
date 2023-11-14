@@ -101,16 +101,6 @@ class ExperimentActivityId:
                     setattr(self, _field, kwargs[_field])
 
 
-@pydantic_dataclass(config=StrictInputConfig)
-class SimpleScenarioActivityId:
-    name: str
-    code: str
-    alias: str
-
-    def __hash__(self):
-        return hash(self.code)
-
-
 # this is just for the schema to accept an array.
 ExperimentActivityOutputArray = tuple[str, float]
 
@@ -198,7 +188,7 @@ class ExperimentScenarioData:
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentScenarioPrepData:
-    activities: dict[SimpleScenarioActivityId, ExperimentActivityOutput] = Field(
+    activities: dict[str, ExperimentActivityOutput] = Field(
         default_factory=dict
     )
     methods: list[ExperimentMethodData] = Field(default_factory=list)
@@ -307,4 +297,4 @@ class Settings(BaseSettings):
     RUN_SCENARIOS: Optional[list[str]] = None
 
 
-Activity_Outputs = dict[SimpleScenarioActivityId, float]
+Activity_Outputs = dict[str, float]

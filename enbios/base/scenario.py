@@ -4,14 +4,11 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Optional, Union, TYPE_CHECKING, Any
 
-from bw2data.backends import Activity
 from numpy import ndarray
 from pint import DimensionalityError, Quantity, UndefinedUnitError
 from pint.facets.plain import PlainQuantity
 
-from enbios.base.stacked_MultiLCA import StackedMultiLCA
 from enbios.base.unit_registry import ureg
-from enbios.bw2.util import bw_unit_fix
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike
 
@@ -20,7 +17,6 @@ if TYPE_CHECKING:
     from enbios.base.experiment import Experiment
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
-    BWCalculationSetup,
     ScenarioResultNodeData,
     ExperimentMethodPrepData,
     Activity_Outputs,
@@ -34,7 +30,7 @@ class Scenario:
     experiment: "Experiment"
     alias: str
     result_tree: BasicTreeNode[ScenarioResultNodeData]
-    results: Optional[ndarray] = None
+
     _has_run: bool = False
     # this should be a simpler type - just str: float
     activities_outputs: Activity_Outputs = field(default_factory=dict)
@@ -50,8 +46,7 @@ class Scenario:
 
         # activity_nodes = list(self.result_tree.get_leaves())
         activities_simple_ids = list(self.activities_outputs.keys())
-        for result_index, activity_id in enumerate(activities_simple_ids):
-            activity_alias = activity_id.alias
+        for result_index, activity_alias in enumerate(activities_simple_ids):
             # bw_activity = self.experiment.get_activity(activity_alias).bw_activity
             try:
                 activity_node = self.result_tree.find_subnode_by_name(activity_alias)
@@ -60,7 +55,7 @@ class Scenario:
             activity_node._data = ScenarioResultNodeData(
                 output=(
                     self.experiment.get_activity_unit(activity_alias),
-                    self.activities_outputs[activity_id],
+                    self.activities_outputs[activity_alias],
                 )
             )
             # if self.experiment.config.include_bw_activity_in_nodes:
@@ -100,57 +95,57 @@ class Scenario:
                         if node.data.results.get(key) is None:
                             node.data.results[key] = 0
                         node.data.results[key] += value
-
-    def _add_lca_results_to_tree(
-        self,
-        lca_results: ndarray,
-        add_to_distribution: bool = False,
-        propagate: bool = True,
-    ) -> BasicTreeNode[ScenarioResultNodeData]:
-        """Add LCA results to each node in the technology tree.
-
-        This takes an array of LCA results and assigns them to each activity
-        node in the tree. It loops through activity IDs, gets the node,
-        and adds the result for each LCA method to the node's results dict.
-
-        It calls propagate_results_upwards to sum child results in parent nodes.
-
-        Args:
-            lca_results: Array of LCA results for each activity and method.
-
-        Returns:
-            The updated result tree with all nodes containing results.
-        """
-
-        if not self.result_tree:
-            raise ValueError(f"Scenario '{self.alias}' has no results...")
-        activity_ids = list(self.activities_outputs.keys())
-
-        methods_aliases: list[str] = list(self._get_methods().keys())
-        for result_idx, activity_id in enumerate(activity_ids):
-            activity_alias = activity_id.alias
-            activity_node = self.result_tree.find_subnode_by_name(activity_alias)
-            assert activity_node
-            for method_idx, method_name in enumerate(methods_aliases):
-                if add_to_distribution:
-                    node_data = activity_node.data
-                    if method_name not in node_data.distribution_results:
-                        node_data.distribution_results[method_name] = []
-                    node_data.distribution_results[method_name].append(
-                        lca_results[result_idx][method_idx]
-                    )
-                else:
-                    activity_node.data.results[method_name] = lca_results[result_idx][
-                        method_idx
-                    ]
-
-        if propagate:
-            self.result_tree.recursive_apply(
-                Scenario._propagate_results_upwards,
-                depth_first=True,
-                add_to_distribution=add_to_distribution,
-            )
-        return self.result_tree
+    #
+    # def _add_lca_results_to_tree(
+    #     self,
+    #     lca_results: ndarray,
+    #     add_to_distribution: bool = False,
+    #     propagate: bool = True,
+    # ) -> BasicTreeNode[ScenarioResultNodeData]:
+    #     """Add LCA results to each node in the technology tree.
+    #
+    #     This takes an array of LCA results and assigns them to each activity
+    #     node in the tree. It loops through activity IDs, gets the node,
+    #     and adds the result for each LCA method to the node's results dict.
+    #
+    #     It calls propagate_results_upwards to sum child results in parent nodes.
+    #
+    #     Args:
+    #         lca_results: Array of LCA results for each activity and method.
+    #
+    #     Returns:
+    #         The updated result tree with all nodes containing results.
+    #     """
+    #
+    #     if not self.result_tree:
+    #         raise ValueError(f"Scenario '{self.alias}' has no results...")
+    #     activity_ids = list(self.activities_outputs.keys())
+    #
+    #     methods_aliases: list[str] = list(self._get_methods().keys())
+    #     for result_idx, activity_id in enumerate(activity_ids):
+    #         activity_alias = activity_id.alias
+    #         activity_node = self.result_tree.find_subnode_by_name(activity_alias)
+    #         assert activity_node
+    #         for method_idx, method_name in enumerate(methods_aliases):
+    #             if add_to_distribution:
+    #                 node_data = activity_node.data
+    #                 if method_name not in node_data.distribution_results:
+    #                     node_data.distribution_results[method_name] = []
+    #                 node_data.distribution_results[method_name].append(
+    #                     lca_results[result_idx][method_idx]
+    #                 )
+    #             else:
+    #                 activity_node.data.results[method_name] = lca_results[result_idx][
+    #                     method_idx
+    #                 ]
+    #
+    #     if propagate:
+    #         self.result_tree.recursive_apply(
+    #             Scenario._propagate_results_upwards,
+    #             depth_first=True,
+    #             add_to_distribution=add_to_distribution,
+    #         )
+    #     return self.result_tree
 
     def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
         if self.methods:
@@ -235,7 +230,7 @@ class Scenario:
 
         result_tree = {}
         for adapter in self.experiment.adapters:
-            adapter.run_scenario(self)
+            result_tree = adapter.run_scenario(self)
 
         self._execution_time = time.time() - start_time
         return result_tree
@@ -250,16 +245,45 @@ class Scenario:
     def reset_execution_time(self):
         self._execution_time = float("NaN")
 
-    def set_results(
-        self, results: ndarray, add_to_distribution: bool = False, propagate: bool = True
-    ) -> BasicTreeNode[ScenarioResultNodeData]:
-        if self.experiment.config.store_raw_results:
-            self.results = results
-        self.result_tree = self._add_lca_results_to_tree(
-            results, add_to_distribution, propagate
-        )
+    def set_results(self, result_data: dict[str, Any]):
+        # self.result_tree = BasicTreeNode.from_dict(result_data)
+
+        # self.result_tree = self._add_lca_results_to_tree(
+        #     results, add_to_distribution, propagate
+        # )
+
+        # if not self.result_tree:
+        #     raise ValueError(f"Scenario '{self.alias}' has no results...")
+        # activity_ids = list(self.activities_outputs.keys())
+        for activity, activity_result in result_data.items():
+            activity_node = self.result_tree.find_subnode_by_name(activity)
+            activity_node.data.results = activity_result
+
+        # methods_aliases: list[str] = list(self._get_methods().keys())
+        #     assert activity_node
+        #     for method_idx, method_name in enumerate(methods_aliases):
+        #         if add_to_distribution:
+        #             node_data = activity_node.data
+        #             if method_name not in node_data.distribution_results:
+        #                 node_data.distribution_results[method_name] = []
+        #             node_data.distribution_results[method_name].append(
+        #                 lca_results[result_idx][method_idx]
+        #             )
+        #         else:
+        #             activity_node.data.results[method_name] = lca_results[result_idx][
+        #                 method_idx
+        #             ]
+        #
+        # if propagate:
+        #     self.result_tree.recursive_apply(
+        #         Scenario._propagate_results_upwards,
+        #         depth_first=True,
+        #         add_to_distribution=add_to_distribution,
+        #     )
+
         self._has_run = True
-        return self.result_tree
+        # return self.result_tree
+
 
     def wrapper_data_serializer(self, include_method_units: bool = False):
         method_alias2units: dict[str, str] = {
