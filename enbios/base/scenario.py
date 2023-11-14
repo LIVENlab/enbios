@@ -52,19 +52,19 @@ class Scenario:
         activities_simple_ids = list(self.activities_outputs.keys())
         for result_index, activity_id in enumerate(activities_simple_ids):
             activity_alias = activity_id.alias
-            bw_activity = self.experiment.get_activity(activity_alias).bw_activity
+            # bw_activity = self.experiment.get_activity(activity_alias).bw_activity
             try:
                 activity_node = self.result_tree.find_subnode_by_name(activity_alias)
             except StopIteration:
                 raise ValueError(f"Activity {activity_alias} not found in result tree")
             activity_node._data = ScenarioResultNodeData(
                 output=(
-                    bw_unit_fix(bw_activity["unit"]),
+                    self.experiment.get_activity_unit(activity_alias),
                     self.activities_outputs[activity_id],
                 )
             )
-            if self.experiment.config.include_bw_activity_in_nodes:
-                activity_node.data.bw_activity = bw_activity
+            # if self.experiment.config.include_bw_activity_in_nodes:
+            #     activity_node.data.bw_activity = bw_activity
         self.result_tree.recursive_apply(
             Scenario._recursive_resolve_outputs,
             depth_first=True,
@@ -72,17 +72,6 @@ class Scenario:
             cancel_parents_of=set(),
         )
 
-    def _create_bw_calculation_setup(self, register: bool = True) -> BWCalculationSetup:
-        inventory: list[dict[Activity, float]] = []
-        for activity_alias, act_out in self.activities_outputs.items():
-            bw_activity = self.experiment.get_activity(activity_alias.alias).bw_activity
-            inventory.append({bw_activity: act_out})
-
-        methods = [m.id for m in self._get_methods().values()]
-        calculation_setup = BWCalculationSetup(self.alias, inventory, methods)
-        if register:
-            calculation_setup.register()
-        return calculation_setup
 
     @staticmethod
     def _propagate_results_upwards(
@@ -240,15 +229,14 @@ class Scenario:
         distributions_config = self.experiment.config.use_k_bw_distributions
         distribution_results = distributions_config > 1
         start_time = time.time()
-        bw_calc_setup = self._create_bw_calculation_setup()
+
+        for adapter in self.experiment.adapters:
+            adapter.prepare_scenario(self)
+
         result_tree = {}
-        for i in range(distributions_config):
-            raw_results: ndarray = StackedMultiLCA(
-                bw_calc_setup, distribution_results
-            ).results
-            result_tree = self.set_results(
-                raw_results, distribution_results, i == distributions_config - 1
-            )
+        for adapter in self.experiment.adapters:
+            adapter.run_scenario(self)
+
         self._execution_time = time.time() - start_time
         return result_tree
 

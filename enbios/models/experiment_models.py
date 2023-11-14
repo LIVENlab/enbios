@@ -207,7 +207,7 @@ class ExperimentScenarioPrepData:
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentConfig:
     warn_default_demand: bool = True  # todo: bring this back
-    include_bw_activity_in_nodes: bool = True
+    # include_bw_activity_in_nodes: bool = True
     store_raw_results: bool = False  # store numpy arrays of lca results
     use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
     run_scenarios: Optional[
@@ -258,16 +258,9 @@ class ExperimentData:
     """
     This class is used to store the data of an experiment.
     """
-
-    # bw_project: Union[str, EcoInventSimpleIndex] = Field(
-    #     ..., description="The brightway project name"
-    # )
     activities: ActivitiesDataTypesExt = Field(
         ..., description="The activities to be used in the experiment"
     )
-    # methods: MethodsDataTypesExt = Field(
-    #     ..., description="The impact methods to be used in the experiment"
-    # )
     bw_default_database: Optional[str] = Field(
         None,
         description="The default database of activities to be used " "in the experiment",
@@ -305,41 +298,8 @@ class ScenarioResultNodeData:
 
 class AdapterModel(BaseModel):
     name: Optional[str] = None
-    activity_indicator: str
     module_path: PathLike
     config: Optional[dict] = None
-    activity_validator_function: Optional[str] = "validate_activity"
-    activity_output_validation_function: Optional[str] = "validate_activity_output"
-    methods_validation_function: Optional[str] = "validate_methods"
-    run_function: Optional[str] = "run"
-    config_model_name: Optional[str] = None
-    config_validation_function: Optional[str] = "validate_config"
-
-
-class AdapterFunctions(BaseModel):
-    validate_config: Callable[[dict, ...], None]
-    validate_activity: Callable[[ExperimentActivityData, ...], ExperimentActivityData]
-    validate_activity_output: Callable[[ActivityOutput, Activity, ExperimentActivityId], float]
-    validate_methods: Callable[[dict, ...], dict[str, ExperimentMethodPrepData]]
-    run: Callable[[Optional[str], ...], dict]
-
-
-class Adapter(BaseModel):
-    name: str
-    model: AdapterModel
-    functions: AdapterFunctions
-    methods: dict[str, ExperimentMethodPrepData] = Field(default_factory=dict)
-    data: Optional[Any] = None
-
-    def validate_config(self):
-        self.functions.validate_config(self.model.config)
-
-    def validate_methods(self) -> dict[str, ExperimentMethodPrepData]:
-        self.methods = self.functions.validate_methods(self.model.config)
-        return self.methods
-
-    def validate_activity_output(self, activity: ExtendedExperimentActivityData, output: ActivityOutput):
-        return self.functions.validate_activity_output(activity, output)
 
 
 class Settings(BaseSettings):

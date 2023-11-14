@@ -12,7 +12,7 @@ from typing import Any, Optional, Union
 import numpy as np
 from bw2data.backends import Activity
 
-from enbios.base.adapters import load_adapter
+from enbios.base.adapters import load_adapter, EnbiosAdapter
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
@@ -24,14 +24,13 @@ from enbios.models.experiment_models import (
     ActivitiesDataTypes,
     ActivityOutput,
     Activity_Outputs,
-    Adapter, BWCalculationSetup,
+    BWCalculationSetup,
     ExperimentActivityData,
     ExperimentActivityId,
     ExperimentConfig,
     ExperimentData,
     ExperimentMethodPrepData,
     ExperimentScenarioData,
-    ExtendedExperimentActivityData,
     ScenarioResultNodeData,
     Settings, SimpleScenarioActivityId,
 )
@@ -64,9 +63,9 @@ class Experiment:
         self.raw_data = ExperimentData(**asdict(input_data))
 
         # alias to activity
-        self.adapters: list[Adapter] = self._validate_adapters()
-        self.adapter_indicator_map: dict[str, Adapter] = {adapter.model.activity_indicator: adapter for adapter in
-                                                     self.adapters}
+        self.adapters: list[EnbiosAdapter] = self._validate_adapters()
+        self.adapter_indicator_map: dict[str, EnbiosAdapter] = {adapter.activity_indicator: adapter for adapter in
+                                                                self.adapters}
         for adapter in self.adapters:
             adapter.validate_config()
 
@@ -112,8 +111,8 @@ class Experiment:
                         f"Scenarios are: {self.scenario_aliases}"
                     )
 
-    def _validate_adapters(self) -> list[Adapter]:
-        adapters: list[Adapter] = []
+    def _validate_adapters(self) -> list[EnbiosAdapter]:
+        adapters: list[EnbiosAdapter] = []
         for adapter in self.raw_data.adapters or []:
             adapter.module_path = Path(adapter.module_path)
             assert adapter.module_path.exists(), (f"Adapter module path "
@@ -160,17 +159,17 @@ class Experiment:
         # validate
 
         for activity in activities:
-            ext_activity: ExperimentActivityData = self._validate_activity(
-                activity, self.adapter_indicator_map, output_required
+            self._validate_activity(
+                activity, output_required
             )
             # check unique aliases
-            if ext_activity.alias in activities_map:
+            if activity.alias in activities_map:
                 raise Exception(
-                    f"Activity-alias '{ext_activity.alias}' passed more then once. "
+                    f"Activity-alias '{activity.alias}' passed more then once. "
                     f"Consider using a dictionary for activities or include "
                     f"'alias' in the ids."
                 )
-            activities_map[ext_activity.alias] = ext_activity
+            activities_map[activity.alias] = activity
 
         # all codes should only appear once
         # unique_activities = set()
@@ -179,29 +178,27 @@ class Experiment:
         assert len(activities_map) > 0, "There are no activities in the experiment"
         return activities_map
 
-    @staticmethod
-    def _validate_activity(activity: ExperimentActivityData,
-                           adapter_indicator_map: dict[str, Adapter],
+    def _validate_activity(self,
+                           activity: ExperimentActivityData,
                            required_output: bool = False,
-                           ) -> "ExperimentActivityData":
+                           ):
         """
         This method checks if the activity exists in the database by several ways.
         :param activity:
         :param required_output:
         :return:
         """
-        adapter = adapter_indicator_map.get(activity.id.source)
+        adapter = self.adapter_indicator_map.get(activity.id.source)
         if not adapter:
-            logger.debug(f"Candidates are: {adapter_indicator_map.keys()}")
+            logger.debug(f"Candidates are: {self.adapter_indicator_map.keys()}")
             raise ValueError(
                 f"Activity source '{activity.id.source}' not found in adapters"
             )
-        activity_spec: ExperimentActivityData = adapter.functions.validate_activity(activity, required_output)
-        return activity_spec
+        adapter.validate_activity(activity, required_output)
 
     def _has_activity(
             self, alias_or_id: Union[str, ExperimentActivityId]
-    ) -> Optional[ExtendedExperimentActivityData]:
+    ) -> Optional[ExperimentActivityData]:
         if isinstance(alias_or_id, str):
             activity = self._activities.get(alias_or_id, None)
             return activity
@@ -213,7 +210,7 @@ class Experiment:
 
     def get_activity(
             self, alias_or_id: Union[str, ExperimentActivityId]
-    ) -> ExtendedExperimentActivityData:
+    ) -> ExperimentActivityData:
         """
         Get an activity by either its alias or its original "id"
         as it is defined in the experiment data
@@ -224,6 +221,20 @@ class Experiment:
         if not activity:
             raise ValueError(f"Activity with id {alias_or_id} not found")
         return activity
+
+    def get_activity_default_output(self, activity_alias: Union[ExperimentActivityData, str]) -> float:
+        if isinstance(activity_alias, str):
+            activity = self.get_activity(activity_alias)
+        else:
+            activity = activity_alias
+        return self.adapter_indicator_map[activity.id.source].get_default_output_value(activity.alias)
+
+    def get_activity_unit(self, activity_alias: Union[ExperimentActivityData, str]) -> str:
+        if isinstance(activity_alias, str):
+            activity = self.get_activity(activity_alias)
+        else:
+            activity = activity_alias
+        return self.adapter_indicator_map[activity.id.source].get_activity_unit(activity.alias)
 
     def _validate_scenarios(self) -> list[Scenario]:
         """
@@ -294,9 +305,7 @@ class Experiment:
                         code=str(activity.id.code),
                         alias=activity.alias,
                     )
-                    scenario_activities_outputs[
-                        id_
-                    ] = activity.default_output_value  # type: ignore
+                    scenario_activities_outputs[id_] = self.get_activity_default_output(activity.alias)
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
             if _scenario.methods:
@@ -380,6 +389,10 @@ class Experiment:
             if scenario.alias == scenario_alias:
                 return scenario
         raise ValueError(f"Scenario '{scenario_alias}' not found")
+
+    # def prepare_scenario(self, scenario: Scenario):
+    #     for adapter in self.adapters:
+    #         adapter.prepare_scenario(scenario)
 
     def run_scenario(self, scenario_alias: str) -> dict[str, Any]:
         """

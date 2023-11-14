@@ -1,7 +1,7 @@
 from enbios.base.experiment import Experiment
 from enbios.models.experiment_models import ExperimentData
 
-#             "bw_default_database": "{BW_DATABASE}",
+
 a1 = {
     "activities": {
         "single_activity": {
@@ -17,10 +17,7 @@ a1 = {
         }
     },
     "adapters": [{
-        "name": "brightway_experiment_adapter",
-        "activity_indicator": "bw",
         "module_path": "/home/ra/projects/enbios/enbios/bw2/birghtway_experiment_adapter.py",
-        "config_model_name": "BWAdapterConfig",
         "config": {
             "bw_project": "ecoinvent_391",
             "methods": [
