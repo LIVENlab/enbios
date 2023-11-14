@@ -12,12 +12,6 @@ from enbios.const import ACTIVITY_TYPE
 from enbios.generic.files import PathLike
 
 
-# @pydantic_dataclass
-# class EcoInventSimpleIndex:
-#     version: str
-#     system_model: str
-
-
 class StrictInputConfig:
     validate_assignment = True
     extra = "forbid"
@@ -248,13 +242,12 @@ class ExperimentData:
     """
     This class is used to store the data of an experiment.
     """
+
     activities: ActivitiesDataTypesExt = Field(
         ..., description="The activities to be used in the experiment"
     )
-    bw_default_database: Optional[str] = Field(
-        None,
-        description="The default database of activities to be used " "in the experiment",
-    )
+    adapters: list["AdapterModel"] = Field(..., description="The adapters to be used")
+    aggregators: list["AggregationModel"] = Field(..., description="The aggregators to be used")
     hierarchy: Optional[HierarchyDataTypesExt] = Field(
         None, description="The activity hierarchy to be used in the experiment"
     )
@@ -265,7 +258,6 @@ class ExperimentData:
         default_factory=ExperimentConfig,
         description="The configuration of this experiment",
     )
-    adapters: Optional[list["AdapterModel"]] = None
 
 
 @dataclass
@@ -286,15 +278,17 @@ class ScenarioResultNodeData:
 
 
 class AdapterModel(BaseModel):
-    name: Optional[str] = None
+    # do we need the name?
+    # name: Optional[str] = None
     module_path: PathLike
-    config: Optional[dict] = None
+    config: Optional[dict] = Field(default_factory=dict)
+    # aggregates: Optional[bool] = False # todo: later allow one class to also aggregate
 
 
 class AggregationModel(BaseModel):
-    name: Optional[str] = None
+    # name: Optional[str] = None
     module_path: PathLike
-    config: Optional[dict] = None
+    config: Optional[dict] = Field(default_factory=dict)
 
 
 class Settings(BaseSettings):

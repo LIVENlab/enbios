@@ -12,7 +12,7 @@ from typing import Any, Optional, Union
 import numpy as np
 from bw2data.backends import Activity
 
-from enbios.base.adapters import load_adapter, EnbiosAdapter
+from enbios.base.adapters import load_adapter, EnbiosAdapter, EnbiosAggregator, load_aggregator
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
@@ -64,6 +64,7 @@ class Experiment:
 
         # alias to activity
         self.adapters: list[EnbiosAdapter] = self._validate_adapters()
+        self._validate_aggregators: list[EnbiosAggregator] = self._validate_aggregators()
         self.adapter_indicator_map: dict[str, EnbiosAdapter] = {adapter.activity_indicator: adapter for adapter in
                                                                 self.adapters}
         for adapter in self.adapters:
@@ -112,14 +113,16 @@ class Experiment:
                     )
 
     def _validate_adapters(self) -> list[EnbiosAdapter]:
-        adapters: list[EnbiosAdapter] = []
-        for adapter in self.raw_data.adapters or []:
-            adapter.module_path = Path(adapter.module_path)
-            assert adapter.module_path.exists(), (f"Adapter module path "
-                                                  f"'{adapter.module_path}' "
-                                                  f"does not exist")
-            adapters.append(load_adapter(adapter))
-        return adapters
+        return [
+            load_adapter(adapter)
+            for adapter in self.raw_data.adapters
+        ]
+
+    def _validate_aggregators(self) -> list[EnbiosAggregator]:
+        return [
+            load_aggregator(adapter)
+            for adapter in self.raw_data.aggregators
+        ]
 
     @staticmethod
     def _prepare_activities(
@@ -236,18 +239,14 @@ class Experiment:
             activity = activity_alias
         return self.adapter_indicator_map[activity.id.source].get_activity_unit(activity.alias)
 
+
+    def get_node_aggregator(self, node: BasicTreeNode[ScenarioResultNodeData]) -> EnbiosAggregator:
+        pass
+
     def _validate_scenarios(self) -> list[Scenario]:
         """
         :return:
         """
-
-        # def validate_activity_id(
-        #         activity_id: Union[str, ExperimentActivityId]
-        # ) -> SimpleScenarioActivityId:
-        #     activity = self.get_activity(activity_id)
-        #     id_ = activity.id
-        #     assert id_.name and id_.code and id_.alias
-        #     return SimpleScenarioActivityId(name=id_.name, alias=id_.alias, code=id_.code)
 
         def validate_activities(scenario_: ExperimentScenarioData) -> Activity_Outputs:
             activities = scenario_.activities
@@ -298,12 +297,6 @@ class Experiment:
             for activity in self._activities.values():
                 activity_alias = activity.alias
                 if activity_alias not in defined_aliases:
-                    # print(activity)
-                    # id_ = SimpleScenarioActivityId(
-                    #     name=str(activity.id.name),
-                    #     code=str(activity.id.code),
-                    #     alias=activity.alias,
-                    # )
                     scenario_activities_outputs[activity.alias] = self.get_activity_default_output(activity.alias)
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
@@ -389,10 +382,6 @@ class Experiment:
                 return scenario
         raise ValueError(f"Scenario '{scenario_alias}' not found")
 
-    # def prepare_scenario(self, scenario: Scenario):
-    #     for adapter in self.adapters:
-    #         adapter.prepare_scenario(scenario)
-
     def run_scenario(self, scenario_alias: str) -> dict[str, Any]:
         """
         Run a specific scenario
@@ -400,7 +389,7 @@ class Experiment:
         :return: The result_tree converted into a dict
         """
         # todo return results
-        return self.get_scenario(scenario_alias).run()#.as_dict(include_data=True)
+        return self.get_scenario(scenario_alias).run()  # .as_dict(include_data=True)
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         """

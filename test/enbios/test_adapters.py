@@ -13,30 +13,39 @@ a1 = {
                 "MWh",
                 30
             ]
-        },
-        "solar1": {'id': {'name': 'electricity production, wind, >3MW turbine, onshore',
-                          'code': '0d48975a3766c13e68cedeb6c24f6f74'},
-                   'output': ['kilowatt_hour', 3]},
-        "solar2":
-            {'id': {'name': 'electricity production, wind, 1-3MW turbine, onshore',
-                    'code': 'ed3da88fc23311ee183e9ffd376de89b'},
-             'output': ['kilowatt_hour', 4]}
+        }
+        # ,
+        # "solar1": {'id': {'name': 'electricity production, wind, >3MW turbine, onshore',
+        #                   'code': '0d48975a3766c13e68cedeb6c24f6f74'},
+        #            'output': ['kilowatt_hour', 3]},
+        # "solar2":
+        #     {'id': {'name': 'electricity production, wind, 1-3MW turbine, onshore',
+        #             'code': 'ed3da88fc23311ee183e9ffd376de89b'},
+        #      'output': ['kilowatt_hour', 4]}
     },
     "adapters": [{
-        "module_path": "/home/ra/projects/enbios/enbios/bw2/birghtway_experiment_adapter.py",
+        "module_path": "/home/ra/projects/enbios/enbios/bw2/brightway_experiment_adapter.py",
         "config": {
             "bw_project": "ecoinvent_391",
             "methods": [
                 {
                     "id": ["EDIP 2003 no LT", "non-renewable resources no LT", "zinc no LT"]
-                },
-                {'id': ('ReCiPe 2016 v1.03, midpoint (H)',
-                        'ozone depletion',
-                        'ozone depletion potential (ODPinfinite)')
-                 }
+                }
+                # ,
+                # {'id': ('ReCiPe 2016 v1.03, midpoint (H)',
+                #         'ozone depletion',
+                #         'ozone depletion potential (ODPinfinite)')
+                #  }
             ],
         }
-    }]
+    }],
+    "aggregators": [{
+        "module_path": "/home/ra/projects/enbios/enbios/bw2/brightway_experiment_adapter.py",
+        "config": {
+
+        }
+    }
+    ]
 }
 
 

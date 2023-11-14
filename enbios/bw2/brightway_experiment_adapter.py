@@ -8,15 +8,16 @@ from numpy import ndarray
 from pint import DimensionalityError, Quantity, UndefinedUnitError
 
 from enbios import get_enbios_ureg
-from enbios.base.adapters import EnbiosAdapter
+from enbios.base.adapters import EnbiosAdapter, EnbiosAggregator
 from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
+from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     ActivityOutput,
     ExperimentActivityData,
     ExperimentMethodData, ExperimentMethodPrepData,
-    MethodsDataTypes, MethodsDataTypesExt, BWCalculationSetup,
+    MethodsDataTypes, MethodsDataTypesExt, BWCalculationSetup, ScenarioResultNodeData,
 )
 
 logger = getLogger(__file__)
@@ -31,6 +32,13 @@ class BWAdapterConfig:
     use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
     bw_default_database: Optional[str] = None
     store_raw_results: Optional[bool] = False  # store numpy arrays of lca results
+
+
+@dataclass
+class BWAggregatorConfig:
+    # bw_project: str
+    # methods: MethodsDataTypesExt
+    use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
 
 
 def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
@@ -271,3 +279,50 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def run(self):
         pass
+
+
+class BrightwayAggregator(EnbiosAggregator):
+
+    def __init__(self, config: dict):
+        super(BrightwayAggregator, self).__init__()
+        self.config = BWAggregatorConfig(**config)
+        self.activityMap: dict[str, BWActivityData] = {}
+        self.methods: dict[str, ExperimentMethodPrepData] = {}
+        self.scenario_calc_setups: dict[str, BWCalculationSetup] = {}  # scenario_alias to BWCalculationSetup
+        self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
+
+    @property
+    def node_indicator(self) -> str:
+        return "bw"
+
+    def validate_config(self):
+        pass
+
+    def validate_node_output(self, node: BasicTreeNode[ScenarioResultNodeData]):
+        pass
+
+    def aggregate_results(self, node: BasicTreeNode[ScenarioResultNodeData]):
+        pass
+        # for child in node.children:
+        #     if child.data:
+        #         if add_to_distribution:
+        #             for key, value in child.data.distribution_results.items():
+        #                 if node.data.distribution_results.get(key) is None:
+        #                     num_distribution = len(
+        #                         list(child.data.distribution_results.values())[0]
+        #                     )
+        #                     node.data.distribution_results[key] = [0] * num_distribution
+        #                 node.data.distribution_results[key] = list(
+        #                     [
+        #                         a + b
+        #                         for a, b in zip(
+        #                         node.data.distribution_results[key],
+        #                         child.data.distribution_results[key],
+        #                     )
+        #                     ]
+        #                 )
+        #         else:
+        #             for key, value in child.data.results.items():
+        #                 if node.data.results.get(key) is None:
+        #                     node.data.results[key] = 0
+        #                 node.data.results[key] += value

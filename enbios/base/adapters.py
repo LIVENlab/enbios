@@ -6,7 +6,9 @@ from pathlib import Path
 from typing import Union, Type
 
 from enbios.base.scenario import Scenario
-from enbios.models.experiment_models import AdapterModel, ExperimentActivityData, ActivityOutput, AggregationModel
+from enbios.generic.tree.basic_tree import BasicTreeNode
+from enbios.models.experiment_models import AdapterModel, ExperimentActivityData, ActivityOutput, AggregationModel, \
+    ScenarioResultNodeData
 
 
 class EnbiosAdapter(ABC):
@@ -65,11 +67,11 @@ class EnbiosAggregator(ABC):
         pass
 
     @abstractmethod
-    def validate_node_output(self):
+    def validate_node_output(self,node: BasicTreeNode[ScenarioResultNodeData]):
         pass
 
     @abstractmethod
-    def aggregate_results(self):
+    def aggregate_results(self,node: BasicTreeNode[ScenarioResultNodeData]):
         pass
 
     @property
@@ -93,13 +95,13 @@ def create_module_object(adapter_model: Union[AdapterModel, AggregationModel], b
         adapter_module = load_module(adapter_model.module_path)
     except Exception as err:
         raise ValueError(f"Could not load module '{adapter_model.module_path}' ({err})")
-    for cl in inspect.getmembers(adapter_module, inspect.isclass):
+    for inspect_clazz in inspect.getmembers(adapter_module, inspect.isclass):
         # check if cl is subclass of EnbiosAdapter/EnbiosAggregation
-        if cl[1].__bases__[0].__name__ == base_class.__name__:
-            adapter = cl[1](adapter_model.config)
-            return adapter
+        clazz = inspect_clazz[1]
+        if any(base.__name__ == base_class.__name__ for base in clazz.__bases__):
+            return clazz(adapter_model.config)
 
-    raise ValueError(f"Adapter '{adapter_model.name}' has no class that inherits from {base_class.__name__}")
+    raise ValueError(f"'{Path(adapter_model.module_path).name}' has no class that inherits from '{base_class.__name__}'")
 
 
 def load_adapter(adapter_model: AdapterModel) -> EnbiosAdapter:

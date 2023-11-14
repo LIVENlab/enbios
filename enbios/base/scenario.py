@@ -67,32 +67,11 @@ class Scenario:
         )
 
     @staticmethod
-    def _propagate_results_upwards(
-        node: BasicTreeNode[ScenarioResultNodeData], add_to_distribution: bool = False
-    ):
-        for child in node.children:
-            if child.data:
-                if add_to_distribution:
-                    for key, value in child.data.distribution_results.items():
-                        if node.data.distribution_results.get(key) is None:
-                            num_distribution = len(
-                                list(child.data.distribution_results.values())[0]
-                            )
-                            node.data.distribution_results[key] = [0] * num_distribution
-                        node.data.distribution_results[key] = list(
-                            [
-                                a + b
-                                for a, b in zip(
-                                    node.data.distribution_results[key],
-                                    child.data.distribution_results[key],
-                                )
-                            ]
-                        )
-                else:
-                    for key, value in child.data.results.items():
-                        if node.data.results.get(key) is None:
-                            node.data.results[key] = 0
-                        node.data.results[key] += value
+    def _propagate_results_upwards(node: BasicTreeNode[ScenarioResultNodeData]):
+        if node.is_leaf:
+            return
+        else:
+            pass
 
     def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
         if self.methods:
