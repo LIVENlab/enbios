@@ -12,9 +12,7 @@ if not ecoinvent_units_file_path.exists():
         f"{ecoinvent_units_file_path.as_posix()}"
     )
     ecoinvent_units_file_path.touch()
-    ecoinvent_units_file_path.write_text("""
-    unspecificEcoinventUnit = []
-    """)
+    ecoinvent_units_file_path.write_text("unspecificEcoinventUnit = []\n")
 
 ureg.load_definitions(ecoinvent_units_file_path)
 # print("loaded ecoinvent units")

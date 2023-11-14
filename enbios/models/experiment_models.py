@@ -1,12 +1,13 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Callable, Optional, Union
 
 import bw2data
 from bw2data.backends import Activity
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
 
+from enbios.const import ACTIVITY_TYPE
 from enbios.bw2.util import get_activity
 from enbios.generic.files import PathLike
 
@@ -35,18 +36,19 @@ class ActivityOutput:
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentActivityId:
-    database: Optional[str] = None
-    code: Optional[str] = None
+    database: Optional[str] = None  # brightway database
+    code: Optional[str] = None  # brightway code
     # search and filter
-    name: Optional[str] = None
-    location: Optional[str] = None
+    name: Optional[str] = None  # (brightway) name
+    location: Optional[str] = None  # location
     # additional filter
-    unit: Optional[str] = None
+    unit: Optional[str] = None  # unit
     # internal-name
-    alias: Optional[str] = None
+    alias: Optional[str] = None  # experiment alias
+    source: Optional[ACTIVITY_TYPE] = "bw"  # = type (e.g. "bw", "")
 
     def get_bw_activity(
-        self, allow_multiple: bool = False
+            self, allow_multiple: bool = False
     ) -> Union[Activity, list[Activity]]:
         if self.code:
             if not self.database:
@@ -58,7 +60,7 @@ class ExperimentActivityId:
             if self.location:
                 filters["location"] = self.location
                 assert (
-                    self.database in bw2data.databases
+                        self.database in bw2data.databases
                 ), f"database {self.database} not found"
                 search_results = bw2data.Database(self.database).search(
                     self.name, filter=filters
@@ -86,7 +88,7 @@ class ExperimentActivityId:
             raise ValueError("No code or name specified")
 
     def fill_empty_fields(
-        self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
+            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
     ):
         if not fields:
             fields = []
@@ -280,6 +282,7 @@ class ExperimentData:
         default_factory=ExperimentConfig,
         description="The configuration of this experiment",
     )
+    adapters: Optional[list["AdapterModel"]] = None
 
 
 @dataclass
@@ -298,6 +301,24 @@ class ScenarioResultNodeData:
     results: dict[str, float] = field(default_factory=dict)
     distribution_results: dict[str, list[float]] = field(default_factory=dict)
     bw_activity: Optional[Activity] = None
+
+
+class AdapterModel(BaseModel):
+    name: Optional[str] = None
+    module_path: PathLike
+    activity_validator_function: Optional[str] = "validate_activity"
+    run_function: Optional[str] = "run"
+
+
+class AdapterFunctions(BaseModel):
+    validate_activity: Callable[[ExperimentActivityData, ...], None]
+    run: Callable[[Optional[str], ...], dict]
+
+
+class Adapter(BaseModel):
+    name: str
+    model: AdapterModel
+    functions: AdapterFunctions
 
 
 class Settings(BaseSettings):

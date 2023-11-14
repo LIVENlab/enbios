@@ -83,8 +83,8 @@ class EnbiosLogger:
 def get_module_name(file_path: str) -> str:
     """Get the module name based on the file's location in the project."""
     relative_path = os.path.relpath(file_path, PROJECT_PATH)
-    # module_name = os.path.splitext(relative_path)[0]
-    module_name = relative_path.replace(os.sep, ".")
+    module_name = os.path.splitext(relative_path)[0]
+    module_name = module_name.replace(os.sep, ".")
     return module_name
 
 
