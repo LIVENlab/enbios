@@ -1,24 +1,32 @@
 from dataclasses import asdict, dataclass
 from logging import getLogger
-from typing import Optional, Union
+from typing import Optional
 
 import bw2data as bd
 from bw2data.backends import Activity
 from pint import DimensionalityError, Quantity, UndefinedUnitError
 
-# from enbios.base.db_models import BWProjectIndex
-from enbios.base.unit_registry import ureg
+from enbios import get_enbios_ureg
 from enbios.bw2.util import bw_unit_fix, get_activity
-# from enbios.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios.models.experiment_models import (
     ActivityOutput,
     ExperimentActivityData,
     ExperimentActivityId,
-    ExtendedExperimentActivityData, EcoInventSimpleIndex, ExperimentMethodData, ExperimentMethodPrepData,
+    ExtendedExperimentActivityData, ExperimentMethodData, ExperimentMethodPrepData,
     MethodsDataTypes, MethodsDataTypesExt,
 )
 
 logger = getLogger(__file__)
+
+ureg = get_enbios_ureg()
+
+
+@dataclass
+class BWAdapterConfig:
+    bw_project: str
+    methods: MethodsDataTypesExt
+    use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
+    bw_default_database: Optional[str] = None
 
 
 def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
@@ -126,7 +134,6 @@ def validate_activity(
         bw_activity=bw_activity,
         default_output_value=default_output_value,
     )
-    # result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
 
     result.id.fill_empty_fields(
         ["name", "code", "location", "unit", ("alias", "name")],
@@ -140,17 +147,7 @@ def validate_activity(
     return result
 
 
-@dataclass
-class BWAdapterConfig:
-    bw_project: Union[str, EcoInventSimpleIndex]
-    methods: MethodsDataTypesExt
-    use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
-    bw_default_database: Optional[str] = None
-
-
 def validate_config(config: BWAdapterConfig):
-    if isinstance(config, dict):
-        config = BWAdapterConfig(**config)
     if config.use_k_bw_distributions < 1:
         raise ValueError(
             f"config.use_k_bw_distributions must be greater than 0, "
@@ -173,6 +170,14 @@ def validate_config(config: BWAdapterConfig):
                     f"not found. Options are: {list(bd.databases)}"
                 )
 
+    # print("validate_bw_config***************", self.raw_data.bw_project)
+    # if isinstance(config.bw_project, str):
+    validate_bw_project_bw_database(
+        config.bw_project, config.bw_default_database
+    )
+
+
+def validate_methods(config: BWAdapterConfig):
     def validate_method(
             method: ExperimentMethodData, alias: str
     ) -> ExperimentMethodPrepData:
@@ -192,8 +197,7 @@ def validate_config(config: BWAdapterConfig):
             id=method.id, alias=method.alias, bw_method_unit=bw_method["unit"]
         )
 
-    def prepare_methods(methods: MethodsDataTypes
-    ) -> dict[str, ExperimentMethodData]:
+    def prepare_methods(methods: MethodsDataTypes) -> dict[str, ExperimentMethodData]:
         # if not methods:
         #     methods = self.raw_data.methods
         method_dict: dict[str, ExperimentMethodData] = {}
@@ -208,40 +212,11 @@ def validate_config(config: BWAdapterConfig):
                 method_dict[method__.alias_] = method__
         return method_dict
 
-    # print("validate_bw_config***************", self.raw_data.bw_project)
-    # if isinstance(config.bw_project, str):
-    validate_bw_project_bw_database(
-        config.bw_project, config.bw_default_database
-    )
-
-    # else:
-    #     simple_index: EcoInventSimpleIndex = config.bw_project
-    #     # todo out...
-    #     ecoinvent_index = get_ecoinvent_dataset_index(
-    #         version=simple_index.version,
-    #         system_model=simple_index.system_model,
-    #         type_="default",
-    #     )
-    #     if ecoinvent_index:
-    #         ecoinvent_index = ecoinvent_index[0]
-    #     else:
-    #         raise ValueError(f"Ecoinvent index {config.bw_project} not found")
-    #
-    #     if not ecoinvent_index.bw_project_index:
-    #         raise ValueError(
-    #             f"Ecoinvent index {ecoinvent_index}, has not BWProject index"
-    #         )
-    #     # todo. ... out?
-    #     bw_project_index: BWProjectIndex = ecoinvent_index.bw_project_index
-    #     validate_bw_project_bw_database(
-    #         bw_project_index.project_name, bw_project_index.database_name
-    #     )
-
     methods: dict[str, ExperimentMethodPrepData] = {
         alias: validate_method(method, alias)
         for alias, method in prepare_methods(config.methods).items()
     }
-
+    return methods
 
 
 def run(scenario: str) -> dict:

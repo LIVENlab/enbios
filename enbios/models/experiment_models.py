@@ -188,9 +188,7 @@ class ExperimentScenarioData:
     ] = None  # alias to output, null means default-output (check exists)
 
     # either the alias, or the id of any method. not method means running them all
-    methods: Optional[
-        Union[list[Union[ExperimentMethodData, str]], dict[str, tuple[str, ...]]]
-    ] = None
+    methods: Optional[list[Union[str]]] = None
     alias: Optional[str] = None
 
     @staticmethod
@@ -311,6 +309,7 @@ class AdapterModel(BaseModel):
     module_path: PathLike
     config: Optional[dict] = None
     activity_validator_function: Optional[str] = "validate_activity"
+    methods_validation_function: Optional[str] = "validate_methods"
     run_function: Optional[str] = "run"
     config_model_name: Optional[str] = None
     config_validation_function: Optional[str] = "validate_config"
@@ -319,6 +318,7 @@ class AdapterModel(BaseModel):
 class AdapterFunctions(BaseModel):
     validate_activity: Callable[[ExperimentActivityData, ...], ExtendedExperimentActivityData]
     validate_config: Callable[[dict, ...], None]
+    validate_methods: Callable[[dict, ...], dict[str, ExperimentMethodPrepData]]
     run: Callable[[Optional[str], ...], dict]
 
 
@@ -326,9 +326,14 @@ class Adapter(BaseModel):
     name: str
     model: AdapterModel
     functions: AdapterFunctions
+    methods: dict[str, ExperimentMethodPrepData] = Field(default_factory=dict)
 
     def validate_config(self):
         self.functions.validate_config(self.model.config)
+
+    def validate_methods(self) -> dict[str, ExperimentMethodPrepData]:
+        self.methods = self.functions.validate_methods(self.model.config)
+        return self.methods
 
 
 class Settings(BaseSettings):
