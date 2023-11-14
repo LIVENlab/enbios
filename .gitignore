@@ -19,3 +19,8 @@
 /enbios/experiment/class_static_me.py
 /data/databases/*
 /data/logging.json
+/enbios.egg-info/dependency_links.txt
+/enbios.egg-info/PKG-INFO
+/enbios.egg-info/requires.txt
+/enbios.egg-info/SOURCES.txt
+/enbios.egg-info/top_level.txt

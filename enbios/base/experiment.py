@@ -9,22 +9,19 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Any, Optional, Union, cast
 
-import bw2data as bd
 import numpy as np
 from bw2data.backends import Activity
 
 from enbios.base.adapters import load_adapter
-from enbios.const import BRIGHTWAY_ACTIVITY
-from enbios.base.db_models import BWProjectIndex
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
-from enbios.bw2.birghtway_experiment_adapter import (
-    validate_brightway_activity,
-    validate_brightway_output,
-)
+# from enbios.bw2.birghtway_experiment_adapter import (
+#     validate_brightway_activity,
+#     validate_brightway_output,
+# )
 from enbios.bw2.util import bw_unit_fix
-from enbios.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
+from enbios.const import BRIGHTWAY_ACTIVITY
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
@@ -33,7 +30,6 @@ from enbios.models.experiment_models import (
     ActivityOutput,
     Activity_Outputs,
     Adapter, BWCalculationSetup,
-    EcoInventSimpleIndex,
     ExperimentActivityData,
     ExperimentActivityId,
     ExperimentConfig,
@@ -75,10 +71,14 @@ class Experiment:
         self.raw_data = ExperimentData(**asdict(input_data))
 
         # alias to activity
-        self._validate_bw_config()
+        # TODO validate adapters...
+        self.adapters: list[Adapter] = self._validate_adapters()
+        for adapter in self.adapters:
+            adapter.validate_config()
+        # self._validate_bw_config()
         self._activities: dict[
             str, ExtendedExperimentActivityData
-        ] = Experiment._validate_activities(
+        ] = self._validate_activities(
             self._prepare_activities(self.raw_data.activities),
             self.raw_data.bw_default_database,
         )
@@ -88,65 +88,61 @@ class Experiment:
             ScenarioResultNodeData
         ] = self.validate_hierarchy(self.raw_data.hierarchy)
 
-        self.methods: dict[str, ExperimentMethodPrepData] = Experiment._validate_methods(
-            self._prepare_methods()
-        )
         self.scenarios: list[Scenario] = self._validate_scenarios()
         self._validate_run_scenario_setting()
-        self.adapters: list[Adapter] = self._validate_adapters()
 
         self._lca: Optional[StackedMultiLCA] = None
         self._execution_time: float = float("NaN")
 
-    def _validate_bw_config(self) -> None:
-        if self.config.use_k_bw_distributions < 1:
-            raise ValueError(
-                f"config.use_k_bw_distributions must be greater than 0, "
-                f"but is {self.config.use_k_bw_distributions}"
-            )
-
-        def validate_bw_project_bw_database(
-                bw_project: str, bw_default_database: Optional[str] = None
-        ):
-            if bw_project not in bd.projects:
-                raise ValueError(f"Project {bw_project} not found")
-
-            if bw_project in bd.projects:
-                bd.projects.set_current(bw_project)
-
-            if bw_default_database:
-                if bw_default_database not in bd.databases:
-                    raise ValueError(
-                        f"Database {bw_default_database} "
-                        f"not found. Options are: {list(bd.databases)}"
-                    )
-
-        # print("validate_bw_config***************", self.raw_data.bw_project)
-        if isinstance(self.raw_data.bw_project, str):
-            validate_bw_project_bw_database(
-                self.raw_data.bw_project, self.raw_data.bw_default_database
-            )
-
-        else:
-            simple_index: EcoInventSimpleIndex = self.raw_data.bw_project
-            ecoinvent_index = get_ecoinvent_dataset_index(
-                version=simple_index.version,
-                system_model=simple_index.system_model,
-                type_="default",
-            )
-            if ecoinvent_index:
-                ecoinvent_index = ecoinvent_index[0]
-            else:
-                raise ValueError(f"Ecoinvent index {self.raw_data.bw_project} not found")
-
-            if not ecoinvent_index.bw_project_index:
-                raise ValueError(
-                    f"Ecoinvent index {ecoinvent_index}, has not BWProject index"
-                )
-            bw_project_index: BWProjectIndex = ecoinvent_index.bw_project_index
-            validate_bw_project_bw_database(
-                bw_project_index.project_name, bw_project_index.database_name
-            )
+    # def _validate_bw_config(self) -> None:
+    #     if self.config.use_k_bw_distributions < 1:
+    #         raise ValueError(
+    #             f"config.use_k_bw_distributions must be greater than 0, "
+    #             f"but is {self.config.use_k_bw_distributions}"
+    #         )
+    #
+    #     def validate_bw_project_bw_database(
+    #             bw_project: str, bw_default_database: Optional[str] = None
+    #     ):
+    #         if bw_project not in bd.projects:
+    #             raise ValueError(f"Project {bw_project} not found")
+    #
+    #         if bw_project in bd.projects:
+    #             bd.projects.set_current(bw_project)
+    #
+    #         if bw_default_database:
+    #             if bw_default_database not in bd.databases:
+    #                 raise ValueError(
+    #                     f"Database {bw_default_database} "
+    #                     f"not found. Options are: {list(bd.databases)}"
+    #                 )
+    #
+    #     # print("validate_bw_config***************", self.raw_data.bw_project)
+    #     if isinstance(self.raw_data.bw_project, str):
+    #         validate_bw_project_bw_database(
+    #             self.raw_data.bw_project, self.raw_data.bw_default_database
+    #         )
+    #
+    #     else:
+    #         simple_index: EcoInventSimpleIndex = self.raw_data.bw_project
+    #         ecoinvent_index = get_ecoinvent_dataset_index(
+    #             version=simple_index.version,
+    #             system_model=simple_index.system_model,
+    #             type_="default",
+    #         )
+    #         if ecoinvent_index:
+    #             ecoinvent_index = ecoinvent_index[0]
+    #         else:
+    #             raise ValueError(f"Ecoinvent index {self.raw_data.bw_project} not found")
+    #
+    #         if not ecoinvent_index.bw_project_index:
+    #             raise ValueError(
+    #                 f"Ecoinvent index {ecoinvent_index}, has not BWProject index"
+    #             )
+    #         bw_project_index: BWProjectIndex = ecoinvent_index.bw_project_index
+    #         validate_bw_project_bw_database(
+    #             bw_project_index.project_name, bw_project_index.database_name
+    #         )
 
     def _validate_run_scenario_setting(self):
         if self.env_settings.RUN_SCENARIOS:
@@ -197,24 +193,24 @@ class Experiment:
                 raw_activities_list.append(activity)
         return raw_activities_list
 
-    @staticmethod
-    def _validate_activities(
-            activities: list[ExperimentActivityData],
-            bw_default_database: Optional[str] = None,
-            output_required: bool = False,
-    ) -> dict[str, ExtendedExperimentActivityData]:
+    def _validate_activities(self,
+                             activities: list[ExperimentActivityData],
+                             bw_default_database: Optional[str] = None,
+                             output_required: bool = False,
+                             ) -> dict[str, ExtendedExperimentActivityData]:
         """
         Check if all activities exist in the bw database, and check if the
         given activities are unique
         In case there is only one scenario, all activities are required to have outputs
         """
         # if activities is a list, convert validate and convert to dict
-        default_id_data = ExperimentActivityId(database=bw_default_database)
+        # default_id_data = ExperimentActivityId(database=bw_default_database)
         activities_map: dict[str, ExtendedExperimentActivityData] = {}
         # validate
+        adapter_indicator_map: dict[str, Adapter] = {adapter.model.activity_indicator: adapter for adapter in self.adapters}
         for activity in activities:
-            ext_activity: ExtendedExperimentActivityData = Experiment._validate_activity(
-                activity, default_id_data, output_required
+            ext_activity: ExtendedExperimentActivityData = self._validate_activity(
+                activity, adapter_indicator_map, output_required
             )
             # check unique aliases
             if ext_activity.alias in activities_map:
@@ -232,12 +228,11 @@ class Experiment:
         assert len(activities_map) > 0, "There are no activities in the experiment"
         return activities_map
 
-    @staticmethod
-    def _validate_activity(
-            activity: ExperimentActivityData,
-            default_id_attr: ExperimentActivityId,
-            required_output: bool = False,
-    ) -> "ExtendedExperimentActivityData":
+    def _validate_activity(self,
+                           activity: ExperimentActivityData,
+                           adapter_indicator_map: dict[str, Adapter],
+                           required_output: bool = False,
+                           ) -> "ExtendedExperimentActivityData":
         """
         This method checks if the activity exists in the database by several ways.
         :param activity:
@@ -245,55 +240,17 @@ class Experiment:
         :param required_output:
         :return:
         """
-        if activity.id.source == BRIGHTWAY_ACTIVITY:
-            return validate_brightway_activity(activity, default_id_attr, required_output)
+        # TODO validate adapter activities
+        adapter = adapter_indicator_map.get(activity.id.source)
+        if not adapter:
+            logger.debug(f"Candidates are: {adapter_indicator_map.keys()}")
+            raise ValueError(
+                f"Activity source '{activity.id.source}' not found in adapters"
+            )
+        activity_spec: ExtendedExperimentActivityData = adapter.functions.validate_activity(activity, required_output)
+        return activity_spec
 
-    def _prepare_methods(
-            self, methods: Optional[MethodsDataTypes] = None
-    ) -> dict[str, ExperimentMethodData]:
-        if not methods:
-            methods = self.raw_data.methods
-        method_dict: dict[str, ExperimentMethodData] = {}
-        if isinstance(methods, dict):
-            for method_alias, method in methods.items():
-                method_dict[method_alias] = ExperimentMethodData(method, method_alias)
-        elif isinstance(self.raw_data.methods, list):
-            method_list: list[ExperimentMethodData] = self.raw_data.methods
-            for method_ in method_list:
-                alias = method_.alias if method_.alias else "_".join(method_.id)
-                method__ = ExperimentMethodData(method_.id, alias)
-                method_dict[method__.alias_] = method__
-        return method_dict
-
-    @staticmethod
-    def _validate_method(
-            method: ExperimentMethodData, alias: str
-    ) -> ExperimentMethodPrepData:
-        method.id = tuple(method.id)
-        bw_method = bd.methods.get(method.id)
-        if not bw_method:
-            raise Exception(f"Method with id: {method.id} does not exist")
-        if method.alias:
-            if method.alias != alias:
-                raise Exception(
-                    f"Method alias: {method.alias} does not match with "
-                    f"the given alias: {alias}"
-                )
-        else:
-            method.alias = alias
-        return ExperimentMethodPrepData(
-            id=method.id, alias=method.alias, bw_method_unit=bw_method["unit"]
-        )
-
-    @staticmethod
-    def _validate_methods(
-            method_dict: dict[str, ExperimentMethodData]
-    ) -> dict[str, ExperimentMethodPrepData]:
-        # all methods must exist
-        return {
-            alias: Experiment._validate_method(method, alias)
-            for alias, method in method_dict.items()
-        }
+    # return validate_brightway_activity(activity, default_id_attr, required_output)
 
     def _has_activity(
             self, alias_or_id: Union[str, ExperimentActivityId]
@@ -356,11 +313,12 @@ class Experiment:
                 activity = self.get_activity(activity_id)
                 simple_id = validate_activity_id(activity_id)
                 output_ = convert_output(activity_output)
-                if activity.id.source == BRIGHTWAY_ACTIVITY:
-                    scenario_output = validate_brightway_output(
-                        output_, activity.bw_activity, activity.id
-                    )
-                    result[simple_id] = scenario_output
+                # TODO VALIDATE ADAPTER OUTPUT
+                # if activity.id.source == BRIGHTWAY_ACTIVITY:
+                #     scenario_output = validate_brightway_output(
+                #         output_, activity.bw_activity, activity.id
+                #     )
+                #     result[simple_id] = scenario_output
             return result
 
         def validate_scenario(
@@ -492,7 +450,7 @@ class Experiment:
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         """
-        Run all scenarios. Returns an dict with the scenario alias as key
+        Run all scenarios. Returns a dict with the scenario alias as key
         and the result_tree as value
         :return: dictionary scenario-alias : result_tree
         """
@@ -553,7 +511,7 @@ class Experiment:
             any_scenario_run = False
             scenario_results = ""
             for scenario in self.scenarios:
-                if not math.isnan(scenario._execution_time):
+                if not math.isnan(scenario.get_execution_time()):
                     any_scenario_run = True
                     scenario_results += f"{scenario.alias}: {scenario.execution_time}\n"
             if any_scenario_run:

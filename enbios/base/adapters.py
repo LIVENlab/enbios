@@ -16,6 +16,7 @@ def load_adapter(adapter_model: AdapterModel) -> Adapter:
 
     adapter_functions: dict[str, callable] = {}
 
+    # validate the functions for: activity_validator_function, run_function, config_validation_function
     for func_name, function in inspect.getmembers(adapter_module, inspect.isfunction):
         if func_name == adapter_model.activity_validator_function:
             adapter_functions["validate_activity"] = function
@@ -27,16 +28,28 @@ def load_adapter(adapter_model: AdapterModel) -> Adapter:
             func_types = list(get_type_hints(function).values())
             # print(func_types)
             assert len(
-                func_types) > 1, ("run function must have at least one argument of type "
-                                  "str (scenario name) and a return type of dict")
-            assert func_types[0] == Optional[
-                str], "first argument must be of type str (scenario name)"
+                func_types) > 1, (f"Adapter '{adapter_model.name}' 'run' function must have at least one argument "
+                                  f"of type str (scenario name) and a return type of dict")
+            assert (func_types[0] == Optional[
+                str] or func_types[0] == str), "first argument must be of type str/Optional[str] (scenario name)"
             assert isinstance(get_type_hints(function)["return"],
                               dict.__class__), "return type must be of type dict"
             adapter_functions["run"] = function
+        elif func_name == adapter_model.config_validation_function:
+            adapter_functions["validate_config"] = function
 
-    # todo, why does it only acceept adapter_model as dict...
+    if adapter_model.config_model_name:
+        model_class = list(filter(lambda m: m[0] == adapter_model.config_model_name,
+                                  inspect.getmembers(adapter_module)))
+        if not model_class:
+            raise ValueError(f"Adapter '{adapter_model.name}' has no config model named "
+                             f"'{adapter_model.config_model_name}'")
+        model_class = model_class[0]
+
+
+    # todo, why does it only accept adapter_model as dict...
     return Adapter(
         name=adapter_name,
-        model=dict(adapter_model),
+        model=adapter_model,
+        # activity_indicator= adapter_model.activity_indicator,
         functions=AdapterFunctions(**adapter_functions))

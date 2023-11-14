@@ -113,27 +113,28 @@ def resolve_input_files(raw_input: ExperimentData):
                 )
 
     # methods
-    if isinstance(raw_input.methods, str) or isinstance(raw_input.methods, PathLike):
-        methods_file: ReadPath = get_abs_path(
-            raw_input.methods, raw_input.config.base_directory
-        )
-        if methods_file.suffix == ".json":
-            data = methods_file.read_data()
-            raw_input.methods = data
-        if methods_file.suffix == ".csv":
-            with system.use_context(trusted=True):
-                resource: Resource = Resource(
-                    path=methods_file.as_posix(), schema=methods_schema
-                )
-                report = validate(resource)
-                if not report.valid:
-                    raise Exception(
-                        f"Invalid methods file: {raw_input.methods}; "
-                        f"errors: {report.task.errors}"
-                    )
-                raw_input.methods = list(
-                    (parse_method_row(r) for r in resource.read_rows())
-                )
+    # allow this for adapters
+    # if isinstance(raw_input.methods, str) or isinstance(raw_input.methods, PathLike):
+    #     methods_file: ReadPath = get_abs_path(
+    #         raw_input.methods, raw_input.config.base_directory
+    #     )
+    #     if methods_file.suffix == ".json":
+    #         data = methods_file.read_data()
+    #         raw_input.methods = data
+    #     if methods_file.suffix == ".csv":
+    #         with system.use_context(trusted=True):
+    #             resource: Resource = Resource(
+    #                 path=methods_file.as_posix(), schema=methods_schema
+    #             )
+    #             report = validate(resource)
+    #             if not report.valid:
+    #                 raise Exception(
+    #                     f"Invalid methods file: {raw_input.methods}; "
+    #                     f"errors: {report.task.errors}"
+    #                 )
+    #             raw_input.methods = list(
+    #                 (parse_method_row(r) for r in resource.read_rows())
+    #             )
 
     # hierarchy
     if isinstance(raw_input.hierarchy, str) or isinstance(raw_input.hierarchy, PathLike):

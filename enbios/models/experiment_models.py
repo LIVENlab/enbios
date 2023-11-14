@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
 
-from enbios.const import ACTIVITY_TYPE
 from enbios.bw2.util import get_activity
+from enbios.const import ACTIVITY_TYPE
 from enbios.generic.files import PathLike
 
 
@@ -157,6 +157,7 @@ class ExtendedExperimentActivityData:
         return self.id.alias
 
 
+# BW Specific
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentMethodData:
     id: tuple[str, ...]
@@ -234,6 +235,7 @@ ActivitiesDataTypesExt = Union[
     ActivitiesDataRows, dict[str, ExperimentActivityData], PathLike
 ]
 
+# BW Specific
 MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
 # with path
 MethodsDataTypesExt = Union[
@@ -259,15 +261,15 @@ class ExperimentData:
     This class is used to store the data of an experiment.
     """
 
-    bw_project: Union[str, EcoInventSimpleIndex] = Field(
-        ..., description="The brightway project name"
-    )
+    # bw_project: Union[str, EcoInventSimpleIndex] = Field(
+    #     ..., description="The brightway project name"
+    # )
     activities: ActivitiesDataTypesExt = Field(
         ..., description="The activities to be used in the experiment"
     )
-    methods: MethodsDataTypesExt = Field(
-        ..., description="The impact methods to be used in the experiment"
-    )
+    # methods: MethodsDataTypesExt = Field(
+    #     ..., description="The impact methods to be used in the experiment"
+    # )
     bw_default_database: Optional[str] = Field(
         None,
         description="The default database of activities to be used " "in the experiment",
@@ -305,13 +307,18 @@ class ScenarioResultNodeData:
 
 class AdapterModel(BaseModel):
     name: Optional[str] = None
+    activity_indicator: str
     module_path: PathLike
+    config: Optional[dict] = None
     activity_validator_function: Optional[str] = "validate_activity"
     run_function: Optional[str] = "run"
+    config_model_name: Optional[str] = None
+    config_validation_function: Optional[str] = "validate_config"
 
 
 class AdapterFunctions(BaseModel):
-    validate_activity: Callable[[ExperimentActivityData, ...], None]
+    validate_activity: Callable[[ExperimentActivityData, ...], ExtendedExperimentActivityData]
+    validate_config: Callable[[dict, ...], None]
     run: Callable[[Optional[str], ...], dict]
 
 
@@ -319,6 +326,9 @@ class Adapter(BaseModel):
     name: str
     model: AdapterModel
     functions: AdapterFunctions
+
+    def validate_config(self):
+        self.functions.validate_config(self.model.config)
 
 
 class Settings(BaseSettings):

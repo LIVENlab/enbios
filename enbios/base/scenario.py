@@ -64,7 +64,7 @@ class Scenario:
                 )
             )
             if self.experiment.config.include_bw_activity_in_nodes:
-                activity_node._data.bw_activity = bw_activity
+                activity_node.data.bw_activity = bw_activity
         self.result_tree.recursive_apply(
             Scenario._recursive_resolve_outputs,
             depth_first=True,
@@ -306,6 +306,7 @@ class Scenario:
     ):
         """
         Save the results (as tree) to a csv file
+         :param warn_no_results:
          :param file_path:  path to save the results to
          :param level_names: names of the levels to include in the csv
          (must not match length of levels)
@@ -355,7 +356,7 @@ class Scenario:
             return result
 
         def recursive_transform(node: BasicTreeNode[ScenarioResultNodeData]) -> dict:
-            result: dict[str, Any] = {"alias": node.name, **data_serializer(node._data)}
+            result: dict[str, Any] = {"alias": node.name, **data_serializer(node.data)}
             if node.children:
                 result["children"] = [
                     recursive_transform(child) for child in node.children
@@ -395,6 +396,9 @@ class Scenario:
             Scenario._propagate_results_upwards, depth_first=True
         )
         return alt_result_tree
+
+    def get_execution_time(self) -> float:
+        return self._execution_time
 
     def __repr__(self):
         return f"<Scenario '{self.alias}'>"

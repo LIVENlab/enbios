@@ -1,19 +1,21 @@
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from logging import getLogger
-from typing import Optional
+from typing import Optional, Union
 
-from bw2data.backends import Activity
 import bw2data as bd
+from bw2data.backends import Activity
 from pint import DimensionalityError, Quantity, UndefinedUnitError
-from pydantic import ValidationError
 
+# from enbios.base.db_models import BWProjectIndex
 from enbios.base.unit_registry import ureg
 from enbios.bw2.util import bw_unit_fix, get_activity
+# from enbios.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
 from enbios.models.experiment_models import (
     ActivityOutput,
     ExperimentActivityData,
     ExperimentActivityId,
-    ExtendedExperimentActivityData,
+    ExtendedExperimentActivityData, EcoInventSimpleIndex, ExperimentMethodData, ExperimentMethodPrepData,
+    MethodsDataTypes, MethodsDataTypesExt,
 )
 
 logger = getLogger(__file__)
@@ -63,9 +65,9 @@ def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
 
 
 def validate_brightway_output(
-    target_output: ActivityOutput,
-    bw_activity: Activity,
-    activity_id: ExperimentActivityId,
+        target_output: ActivityOutput,
+        bw_activity: Activity,
+        activity_id: ExperimentActivityId,
 ) -> float:
     """
     validate and convert to the bw-activity unit
@@ -76,8 +78,8 @@ def validate_brightway_output(
     """
     try:
         target_quantity: Quantity = (
-            ureg.parse_expression(bw_unit_fix(target_output.unit), case_sensitive=False)
-            * target_output.magnitude
+                ureg.parse_expression(bw_unit_fix(target_output.unit), case_sensitive=False)
+                * target_output.magnitude
         )
         bw_activity_unit = bw_activity["unit"]
         return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -98,10 +100,10 @@ def validate_brightway_output(
         raise Exception(f"Unit error for activity: {activity_id}")
 
 
-def validate_brightway_activity(
-    activity: ExperimentActivityData,
-    default_id_attr: ExperimentActivityId,
-    required_output: bool = False,
+def validate_activity(
+        activity: ExperimentActivityData,
+        # default_id_attr: ExperimentActivityId,
+        required_output: bool = False,
 ) -> "ExtendedExperimentActivityData":
     # get the brightway activity
     bw_activity = _bw_activity_search(activity)
@@ -124,7 +126,7 @@ def validate_brightway_activity(
         bw_activity=bw_activity,
         default_output_value=default_output_value,
     )
-    result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
+    # result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
 
     result.id.fill_empty_fields(
         ["name", "code", "location", "unit", ("alias", "name")],
@@ -136,3 +138,111 @@ def validate_brightway_activity(
             f"{activity.orig_id}"
         )
     return result
+
+
+@dataclass
+class BWAdapterConfig:
+    bw_project: Union[str, EcoInventSimpleIndex]
+    methods: MethodsDataTypesExt
+    use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
+    bw_default_database: Optional[str] = None
+
+
+def validate_config(config: BWAdapterConfig):
+    if isinstance(config, dict):
+        config = BWAdapterConfig(**config)
+    if config.use_k_bw_distributions < 1:
+        raise ValueError(
+            f"config.use_k_bw_distributions must be greater than 0, "
+            f"but is {config.use_k_bw_distributions}"
+        )
+
+    def validate_bw_project_bw_database(
+            bw_project: str, bw_default_database: Optional[str] = None
+    ):
+        if bw_project not in bd.projects:
+            raise ValueError(f"Project {bw_project} not found")
+
+        if bw_project in bd.projects:
+            bd.projects.set_current(bw_project)
+
+        if bw_default_database:
+            if bw_default_database not in bd.databases:
+                raise ValueError(
+                    f"Database {bw_default_database} "
+                    f"not found. Options are: {list(bd.databases)}"
+                )
+
+    def validate_method(
+            method: ExperimentMethodData, alias: str
+    ) -> ExperimentMethodPrepData:
+        method.id = tuple(method.id)
+        bw_method = bd.methods.get(method.id)
+        if not bw_method:
+            raise Exception(f"Method with id: {method.id} does not exist")
+        if method.alias:
+            if method.alias != alias:
+                raise Exception(
+                    f"Method alias: {method.alias} does not match with "
+                    f"the given alias: {alias}"
+                )
+        else:
+            method.alias = alias
+        return ExperimentMethodPrepData(
+            id=method.id, alias=method.alias, bw_method_unit=bw_method["unit"]
+        )
+
+    def prepare_methods(methods: MethodsDataTypes
+    ) -> dict[str, ExperimentMethodData]:
+        # if not methods:
+        #     methods = self.raw_data.methods
+        method_dict: dict[str, ExperimentMethodData] = {}
+        if isinstance(methods, dict):
+            for method_alias, method in methods.items():
+                method_dict[method_alias] = ExperimentMethodData(method, method_alias)
+        elif isinstance(methods, list):
+            method_list: list[ExperimentMethodData] = [ExperimentMethodData(**m) for m in methods]
+            for method_ in method_list:
+                alias = method_.alias if method_.alias else "_".join(method_.id)
+                method__ = ExperimentMethodData(method_.id, alias)
+                method_dict[method__.alias_] = method__
+        return method_dict
+
+    # print("validate_bw_config***************", self.raw_data.bw_project)
+    # if isinstance(config.bw_project, str):
+    validate_bw_project_bw_database(
+        config.bw_project, config.bw_default_database
+    )
+
+    # else:
+    #     simple_index: EcoInventSimpleIndex = config.bw_project
+    #     # todo out...
+    #     ecoinvent_index = get_ecoinvent_dataset_index(
+    #         version=simple_index.version,
+    #         system_model=simple_index.system_model,
+    #         type_="default",
+    #     )
+    #     if ecoinvent_index:
+    #         ecoinvent_index = ecoinvent_index[0]
+    #     else:
+    #         raise ValueError(f"Ecoinvent index {config.bw_project} not found")
+    #
+    #     if not ecoinvent_index.bw_project_index:
+    #         raise ValueError(
+    #             f"Ecoinvent index {ecoinvent_index}, has not BWProject index"
+    #         )
+    #     # todo. ... out?
+    #     bw_project_index: BWProjectIndex = ecoinvent_index.bw_project_index
+    #     validate_bw_project_bw_database(
+    #         bw_project_index.project_name, bw_project_index.database_name
+    #     )
+
+    methods: dict[str, ExperimentMethodPrepData] = {
+        alias: validate_method(method, alias)
+        for alias, method in prepare_methods(config.methods).items()
+    }
+
+
+
+def run(scenario: str) -> dict:
+    return {}

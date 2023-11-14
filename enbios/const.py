@@ -14,6 +14,8 @@ BASE_TEST_DATA_PATH = BASE_DATA_PATH / "test_data"
 
 # Important data paths/files
 BW_PROJECT_INDEX_FILE = BASE_DATA_PATH / "bw_project_index.json"
+
+
 BRIGHTWAY_ACTIVITY = "bw"
 
 ACTIVITY_TYPE = Literal["bw", "*"]
