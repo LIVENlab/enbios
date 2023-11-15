@@ -8,7 +8,7 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
 
 from enbios.bw2.util import get_activity
-from enbios.const import ACTIVITY_TYPE
+from enbios.const import DEFAULT_SUM_AGGREGATOR
 from enbios.generic.files import PathLike
 
 
@@ -39,7 +39,7 @@ class ExperimentActivityId:
     unit: Optional[str] = None  # unit
     # internal-name
     alias: Optional[str] = None  # experiment alias
-    source: Optional[ACTIVITY_TYPE] = "bw"  # = type (e.g. "bw", "")
+    source: Optional[str] = "bw"  # = type (e.g. "bw", "")
 
     def get_bw_activity(
             self, allow_multiple: bool = False
@@ -111,30 +111,13 @@ class ExperimentActivityData:
     id: ExperimentActivityId = Field(
         ..., description="The identifies (method to find) an activity"
     )
+    adapter: str = Field(..., description="The adapter to be used")
     output: Optional[ExperimentActivityOutput] = Field(
         None, description="The default output of the activity"
     )
     orig_id: Optional[ExperimentActivityId] = Field(
         None, description="Temporary copy of the id"
     )
-
-    @property
-    def alias(self):
-        return self.id.alias
-
-
-@pydantic_dataclass(config=OperationConfig)
-class ExtendedExperimentActivityData:
-    id: ExperimentActivityId
-    orig_id: ExperimentActivityId
-    output: "ActivityOutput"
-    bw_activity: Activity
-    default_output_value: Optional[
-        float
-    ] = 1.0  # this is the value converted to the default (bw) unit
-
-    def __hash__(self):
-        return self.bw_activity["code"]
 
     @property
     def alias(self):
@@ -191,9 +174,10 @@ class ExperimentScenarioPrepData:
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentConfig:
     warn_default_demand: bool = True  # todo: bring this back
-    # include_bw_activity_in_nodes: bool = True
+    auto_aggregate: Optional[bool] = True  # aggregate, with same indicator, as all children, if given.
+    # include_bw_activity_in_nodes: bool = True # todo: bring this to aggregator
     store_raw_results: bool = False  # store numpy arrays of lca results
-    use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
+    # use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
     run_scenarios: Optional[
         list[str]
     ] = None  # list of scenario-alias to run, ALSO AS ENV-VAR
@@ -207,7 +191,6 @@ class ExperimentConfig:
     ] = True  # standard replacement, or bw-project, bw-database
     debug_test_expected_error_code: Optional[int] = None
     debug_test_run: Optional[bool] = False
-    note: Optional[str] = None
 
 
 ActivitiesDataRows = list[ExperimentActivityData]
@@ -271,10 +254,18 @@ class BWCalculationSetup:
 
 
 @dataclass
+class TechTreeNodeData:
+    adapter: Optional[str] = None
+    aggregator: Optional[str] = DEFAULT_SUM_AGGREGATOR
+
+
+@dataclass
 class ScenarioResultNodeData:
     output: tuple[Optional[str], Optional[float]] = (None, None)
     results: dict[str, float] = field(default_factory=dict)
     distribution_results: dict[str, list[float]] = field(default_factory=dict)
+    # adapter: Optional[str] = None
+    # aggregator: Optional[str] = DEFAULT_SUM_AGGREGATOR
 
 
 class AdapterModel(BaseModel):

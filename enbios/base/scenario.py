@@ -43,10 +43,8 @@ class Scenario:
         If config is set, it also stores the BW activity dict with the node.
         """
 
-        # activity_nodes = list(self.result_tree.get_leaves())
-        activities_simple_ids = list(self.activities_outputs.keys())
-        for result_index, activity_alias in enumerate(activities_simple_ids):
-            # bw_activity = self.experiment.get_activity(activity_alias).bw_activity
+        activities_aliases = list(self.activities_outputs.keys())
+        for result_index, activity_alias in enumerate(activities_aliases):
             try:
                 activity_node = self.result_tree.find_subnode_by_name(activity_alias)
             except StopIteration:
@@ -57,6 +55,7 @@ class Scenario:
                     self.activities_outputs[activity_alias],
                 )
             )
+            # todo adapter/aggregator specific additional data
             # if self.experiment.config.include_bw_activity_in_nodes:
             #     activity_node.data.bw_activity = bw_activity
         self.result_tree.recursive_apply(

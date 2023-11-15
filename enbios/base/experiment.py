@@ -9,11 +9,12 @@ from pathlib import Path
 from tempfile import gettempdir
 from typing import Any, Optional, Union
 
-import numpy as np
 from bw2data.backends import Activity
+from pydantic import ValidationError
 
 from enbios.base.adapters import load_adapter, EnbiosAdapter, EnbiosAggregator, load_aggregator
 from enbios.base.experiment_io import resolve_input_files
+from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
 from enbios.bw2.util import bw_unit_fix
@@ -32,7 +33,7 @@ from enbios.models.experiment_models import (
     ExperimentMethodPrepData,
     ExperimentScenarioData,
     ScenarioResultNodeData,
-    Settings
+    Settings, TechTreeNodeData
 )
 
 logger = get_logger(__name__)
@@ -54,13 +55,13 @@ class Experiment:
             config_file_path = ReadPath(raw_data)
             raw_data = config_file_path.read_data()
         if isinstance(raw_data, dict):
-            input_data = ExperimentData(**raw_data)
+            input_data = validate_experiment_data(**raw_data)
         else:
             input_data = raw_data
         # todo. look at how reading a hierarchy from a csv file or a json
         # creates an additional root node
         resolve_input_files(input_data)
-        self.raw_data = ExperimentData(**asdict(input_data))
+        self.raw_data = validate_experiment_data(asdict(input_data))
 
         # alias to activity
         self.adapters: list[EnbiosAdapter] = self._validate_adapters()
@@ -87,7 +88,7 @@ class Experiment:
 
         self.raw_data.hierarchy = self._prepare_hierarchy()
         self.hierarchy_root: BasicTreeNode[
-            ScenarioResultNodeData
+            TechTreeNodeData
         ] = self.validate_hierarchy(self.raw_data.hierarchy)
 
         self.scenarios: list[Scenario] = self._validate_scenarios()
@@ -239,7 +240,6 @@ class Experiment:
             activity = activity_alias
         return self.adapter_indicator_map[activity.id.source].get_activity_unit(activity.alias)
 
-
     def get_node_aggregator(self, node: BasicTreeNode[ScenarioResultNodeData]) -> EnbiosAggregator:
         pass
 
@@ -358,9 +358,16 @@ class Experiment:
 
     def validate_hierarchy(
             self, hierarchy: Union[dict, list]
-    ) -> BasicTreeNode[ScenarioResultNodeData]:
-        tech_tree: BasicTreeNode[ScenarioResultNodeData] = BasicTreeNode.from_dict(
-            hierarchy, compact=True
+    ) -> BasicTreeNode[TechTreeNodeData]:
+
+        def create_node_data(node: BasicTreeNode[TechTreeNodeData], data: TechTreeNodeData, temp_data: dict):
+            return TechTreeNodeData(
+                adapter=data.get("adapter"),
+                aggregator=data.get("aggregator")
+            )
+
+        tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
+            hierarchy, compact=True, data_factory=create_node_data
         )
         for leaf in tech_tree.iter_leaves():
             leaf.temp_data = {"activity": self.get_activity(leaf.name)}
@@ -369,7 +376,40 @@ class Experiment:
         )
         if missing:
             raise ValueError(f"Activities {missing} not found in hierarchy")
+        self._validate_node_calculations(tech_tree)
         return tech_tree
+
+    def _validate_node_calculations(self, tech_tree: BasicTreeNode[TechTreeNodeData]):
+
+        def validate_node(node: BasicTreeNode[TechTreeNodeData]):
+
+            if node.is_leaf:
+                # todo we validate that before right?
+                #self.get_activity(node.name).adapter
+                # if not node.data.adapter:
+                #     raise ValueError(
+                #         f"Node '{node.name}' is a leaf and does not have an adapter"
+                #     )
+                # return
+                pass
+            if not node.data.aggregator:
+                if self.config.auto_aggregate:
+                    all_aggregators = [child.data.aggregator for child in node.children]
+                    if len(set(all_aggregators)) == 1:
+                        node.data.aggregator = all_aggregators[0]
+                    raise ValueError(
+                        f"Node '{node.name}' is not a leaf and does not have an aggregator. "
+                        f"Auto-aggregate is on, but the children have different aggregators: {all_aggregators}"
+                    )
+
+                raise ValueError(
+                    f"Node '{node.name}' is not a leaf and does not have an aggregator"
+                )
+
+        tech_tree.recursive_apply(
+            validate_node,
+            depth_first=True
+        )
 
     def get_scenario(self, scenario_alias: str) -> Scenario:
         """
@@ -406,19 +446,20 @@ class Experiment:
         else:
             run_scenarios = self.scenarios
 
-        for scenario in run_scenarios:
-            scenario.reset_execution_time()
-            if scenario.methods:
-                raise ValueError(
-                    f"Scenario cannot have individual methods. '{scenario.alias}'"
-                )
-            inventory: list[dict[Activity, float]] = []
-            for activity_alias, act_out in scenario.activities_outputs.items():
-                bw_activity = scenario.experiment.get_activity(
-                    activity_alias.alias
-                ).bw_activity
-                inventory.append({bw_activity: act_out})
-            inventories.append(inventory)
+        # TODO JUST PREPARE SCENARIOS...
+        # for scenario in run_scenarios:
+        #     scenario.reset_execution_time()
+        #     if scenario.methods:
+        #         raise ValueError(
+        #             f"Scenario cannot have individual methods. '{scenario.alias}'"
+        #         )
+        #     inventory: list[dict[Activity, float]] = []
+        #     for activity_alias, act_out in scenario.activities_outputs.items():
+        #         bw_activity = scenario.experiment.get_activity(
+        #             activity_alias.alias
+        #         ).bw_activity
+        #         inventory.append({bw_activity: act_out})
+        #     inventories.append(inventory)
 
         # run experiment
         start_time = time.time()
@@ -426,20 +467,21 @@ class Experiment:
             "experiment", list(itertools.chain(*inventories)), methods
         )
 
-        distribution_results = self.config.use_k_bw_distributions > 1
-
-        results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
-        for i in range(self.config.use_k_bw_distributions):
-            raw_results = StackedMultiLCA(calculation_setup, distribution_results).results
-            scenario_results = np.split(raw_results, len(run_scenarios))
-            for index, scenario in enumerate(run_scenarios):
-                results[scenario.alias] = scenario.set_results(
-                    scenario_results[index],
-                    distribution_results,
-                    i == self.config.use_k_bw_distributions - 1,
-                )
-            self._execution_time = time.time() - start_time
-        return results
+        # todo not in this config
+        # TODO RUN
+        # distribution_results = self.config.use_k_bw_distributions > 1
+        # results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
+        # for i in range(self.config.use_k_bw_distributions):
+        #     raw_results = StackedMultiLCA(calculation_setup, distribution_results).results
+        #     scenario_results = np.split(raw_results, len(run_scenarios))
+        #     for index, scenario in enumerate(run_scenarios):
+        #         results[scenario.alias] = scenario.set_results(
+        #             scenario_results[index],
+        #             distribution_results,
+        #             i == self.config.use_k_bw_distributions - 1,
+        #         )
+        #     self._execution_time = time.time() - start_time
+        # return results
 
     @property
     def execution_time(self) -> str:

@@ -35,7 +35,7 @@ class BasicTreeNode(Generic[T]):
         name: str,
         children: Optional[list[Union["BasicTreeNode[T]", dict[str, Any]]]] = None,
         data: Optional[T] = None,
-        data_factory: Optional[Callable[["BasicTreeNode"], T]] = None,
+        data_factory: Optional[Callable[["BasicTreeNode['T']", T, dict], T]] = None,
         temp_data: Optional[dict[str, Any]] = None,
     ):
         """
@@ -60,7 +60,7 @@ class BasicTreeNode(Generic[T]):
         if data:
             self._data: T = data
         elif data_factory:
-            self._data: T = data_factory(self)
+            self._data: T = data_factory(self, data, temp_data)
         else:
             self._data = None
 
@@ -73,7 +73,7 @@ class BasicTreeNode(Generic[T]):
 
     @property
     def data(self) -> T:
-        assert self._data is not None, f"data shoould be set before (node: '{self.name}')"
+        assert self._data is not None, f"data should be set before (node: '{self.name}')"
         return self._data
 
     @property

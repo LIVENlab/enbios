@@ -1,4 +1,5 @@
 from enbios.base.experiment import Experiment
+from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.models.experiment_models import ExperimentData
 
 a1 = {
@@ -12,7 +13,8 @@ a1 = {
             "output": [
                 "MWh",
                 30
-            ]
+            ],
+            "adapter": "bw"
         }
         # ,
         # "solar1": {'id': {'name': 'electricity production, wind, >3MW turbine, onshore',
@@ -40,17 +42,14 @@ a1 = {
         }
     }],
     "aggregators": [{
-        "module_path": "/home/ra/projects/enbios/enbios/bw2/brightway_experiment_adapter.py",
-        "config": {
-
-        }
+        "module_path": "/home/ra/projects/enbios/enbios/bw2/brightway_experiment_adapter.py"
     }
     ]
 }
 
 
 def test_a():
-    data = ExperimentData(**a1)
+    data = validate_experiment_data(a1)
     exp = Experiment(data)
     res = exp.run_scenario(Experiment.DEFAULT_SCENARIO_ALIAS)
     pass
