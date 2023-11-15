@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import bw2data
 from bw2data.backends import Activity
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
 
@@ -33,13 +33,13 @@ class ExperimentActivityId:
     database: Optional[str] = None  # brightway database
     code: Optional[str] = None  # brightway code
     # search and filter
-    name: Optional[str] = None  # (brightway) name
     location: Optional[str] = None  # location
     # additional filter
     unit: Optional[str] = None  # unit
     # internal-name
     alias: Optional[str] = None  # experiment alias
-    source: Optional[str] = "bw"  # = type (e.g. "bw", "")
+
+    # source: Optional[str] = "bw"  # = type (e.g. "bw", "")
 
     def get_bw_activity(
             self, allow_multiple: bool = False
@@ -102,12 +102,20 @@ ExperimentActivityOutput = Union[ActivityOutput, ExperimentActivityOutputArray]
 
 
 @pydantic_dataclass(config=StrictInputConfig)
+class ExperimentHierarchyNodeData:
+    name: str
+    aggregator: str
+    children: Optional[list[Union["ExperimentHierarchyNodeData", "ExperimentActivityData"]]] = None
+
+
+@pydantic_dataclass(config=StrictInputConfig)
 class ExperimentActivityData:
     """
     This is the dataclass for the activities in the experiment.
     the id, is
     """
 
+    name: str
     id: ExperimentActivityId = Field(
         ..., description="The identifies (method to find) an activity"
     )
@@ -193,12 +201,12 @@ class ExperimentConfig:
     debug_test_run: Optional[bool] = False
 
 
-ActivitiesDataRows = list[ExperimentActivityData]
-ActivitiesDataTypes = Union[ActivitiesDataRows, dict[str, ExperimentActivityData]]
-# with path
-ActivitiesDataTypesExt = Union[
-    ActivitiesDataRows, dict[str, ExperimentActivityData], PathLike
-]
+# ActivitiesDataRows = list[ExperimentActivityData]
+# ActivitiesDataTypes = Union[ActivitiesDataRows, dict[str, ExperimentActivityData]]
+# # with path
+# ActivitiesDataTypesExt = Union[
+#     ActivitiesDataRows, dict[str, ExperimentActivityData], PathLike
+# ]
 
 # BW Specific
 MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
@@ -207,9 +215,8 @@ MethodsDataTypesExt = Union[
     list[ExperimentMethodData], dict[str, tuple[str, ...]], PathLike
 ]
 
-HierarchyDataTypes = Union[list, dict]
 # with path
-HierarchyDataTypesExt = Union[list, dict, PathLike]
+HierarchyDataTypesExt = Union[ExperimentHierarchyNodeData, PathLike]
 
 ScenariosDataTypes = Union[
     list[ExperimentScenarioData], dict[str, ExperimentScenarioData]
@@ -226,9 +233,9 @@ class ExperimentData:
     This class is used to store the data of an experiment.
     """
 
-    activities: ActivitiesDataTypesExt = Field(
-        ..., description="The activities to be used in the experiment"
-    )
+    # activities: ActivitiesDataTypesExt = Field(
+    #     ..., description="The activities to be used in the experiment"
+    # )
     adapters: list["AdapterModel"] = Field(..., description="The adapters to be used")
     aggregators: list["AggregationModel"] = Field(..., description="The aggregators to be used")
     hierarchy: Optional[HierarchyDataTypesExt] = Field(
@@ -253,10 +260,26 @@ class BWCalculationSetup:
         bw2data.calculation_setups[self.name] = {"inv": self.inv, "ia": self.ia}
 
 
-@dataclass
-class TechTreeNodeData:
+class TechTreeNodeData(BaseModel):
     adapter: Optional[str] = None
     aggregator: Optional[str] = DEFAULT_SUM_AGGREGATOR
+    # for
+    id: Optional[ExperimentActivityId] = Field(
+        None, description="The identifies (method to find) an activity"
+    )
+    output: Optional[ExperimentActivityOutput] = Field(
+        None, description="The default output of the activity"
+    )
+
+    @model_validator(mode='before')
+    @classmethod
+    def check_card_number_omitted(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            leaf_node = "adapter" in data and "id" in data
+            non_leaf_node = "aggregator" in data
+            assert leaf_node or non_leaf_node, ("Node must be either leaf ('id', 'adapter`) "
+                                                "or non-leaf ('aggregator')")
+        return data
 
 
 @dataclass

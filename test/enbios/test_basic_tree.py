@@ -224,6 +224,17 @@ def test_make_names_unique(tree_fixture):
     # now all names in the tree should be unique
     tree.assert_all_names_unique()
 
+    # test 2
+    node = BasicTreeNode("root")
+    child1 = node.add_child(BasicTreeNode("child1"))
+    child1.add_child(BasicTreeNode("child1"))
+    child2 = node.add_child(BasicTreeNode("child2"))
+    child2.add_child(BasicTreeNode("child1"))
+    child2.add_child(BasicTreeNode("child2"))
+    node.make_names_unique()
+    assert node.get_child_names() == ["root_child1", "root_child2"]
+    assert child1.get_child_names() == ["child1_child1"]
+    assert child2.get_child_names() == ["child2_child1", "child2_child2"]
 
 def test_join_tree():
     node1 = BasicTreeNode("node1")
@@ -519,19 +530,6 @@ def test_from_dict():
     assert len(root.children[0].children) == 1
     assert root.children[1].name == "child2"
     assert len(root.children[1].children) == 0
-
-
-def test_make_names_unique():
-    node = BasicTreeNode("root")
-    child1 = node.add_child(BasicTreeNode("child1"))
-    child1.add_child(BasicTreeNode("child1"))
-    child2 = node.add_child(BasicTreeNode("child2"))
-    child2.add_child(BasicTreeNode("child1"))
-    child2.add_child(BasicTreeNode("child2"))
-    node.make_names_unique()
-    assert node.get_child_names() == ["root_child1", "root_child2"]
-    assert child1.get_child_names() == ["child1_child1"]
-    assert child2.get_child_names() == ["child2_child1", "child2_child2"]
 
 
 def test_from_compact_dict():
