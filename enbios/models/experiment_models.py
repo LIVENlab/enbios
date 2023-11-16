@@ -30,6 +30,7 @@ class ActivityOutput:
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentActivityId:
+    name: Optional[str] = None  # brightway name
     database: Optional[str] = None  # brightway database
     code: Optional[str] = None  # brightway code
     # search and filter
@@ -147,6 +148,7 @@ class ExperimentMethodData:
 class ExperimentMethodPrepData:
     id: tuple[str, ...]
     alias: str
+    # todo should go...
     bw_method_unit: str
 
 
@@ -201,13 +203,6 @@ class ExperimentConfig:
     debug_test_run: Optional[bool] = False
 
 
-# ActivitiesDataRows = list[ExperimentActivityData]
-# ActivitiesDataTypes = Union[ActivitiesDataRows, dict[str, ExperimentActivityData]]
-# # with path
-# ActivitiesDataTypesExt = Union[
-#     ActivitiesDataRows, dict[str, ExperimentActivityData], PathLike
-# ]
-
 # BW Specific
 MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
 # with path
@@ -232,10 +227,6 @@ class ExperimentData:
     """
     This class is used to store the data of an experiment.
     """
-
-    # activities: ActivitiesDataTypesExt = Field(
-    #     ..., description="The activities to be used in the experiment"
-    # )
     adapters: list["AdapterModel"] = Field(..., description="The adapters to be used")
     aggregators: list["AggregationModel"] = Field(..., description="The aggregators to be used")
     hierarchy: Optional[HierarchyDataTypesExt] = Field(
@@ -287,20 +278,15 @@ class ScenarioResultNodeData:
     output: tuple[Optional[str], Optional[float]] = (None, None)
     results: dict[str, float] = field(default_factory=dict)
     distribution_results: dict[str, list[float]] = field(default_factory=dict)
-    # adapter: Optional[str] = None
-    # aggregator: Optional[str] = DEFAULT_SUM_AGGREGATOR
 
 
 class AdapterModel(BaseModel):
-    # do we need the name?
-    # name: Optional[str] = None
     module_path: PathLike
     config: Optional[dict] = Field(default_factory=dict)
     # aggregates: Optional[bool] = False # todo: later allow one class to also aggregate
 
 
 class AggregationModel(BaseModel):
-    # name: Optional[str] = None
     module_path: PathLike
     config: Optional[dict] = Field(default_factory=dict)
 

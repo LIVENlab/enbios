@@ -1,30 +1,51 @@
 from enbios.base.experiment import Experiment
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
-from enbios.models.experiment_models import ExperimentData
 
 a1 = {
-    "activities": {
-        "single_activity": {
-            "id": {
-                "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                "location": "DK",
-                "unit": "kilowatt hour"
-            },
-            "output": [
-                "MWh",
-                30
-            ],
-            "adapter": "bw"
-        }
-        # ,
-        # "solar1": {'id': {'name': 'electricity production, wind, >3MW turbine, onshore',
-        #                   'code': '0d48975a3766c13e68cedeb6c24f6f74'},
-        #            'output': ['kilowatt_hour', 3]},
-        # "solar2":
-        #     {'id': {'name': 'electricity production, wind, 1-3MW turbine, onshore',
-        #             'code': 'ed3da88fc23311ee183e9ffd376de89b'},
-        #      'output': ['kilowatt_hour', 4]}
+    "hierarchy": {
+        "name": "root",
+        "aggregator": "sum",
+        "children": [
+            {
+                "name": "x",
+                "id": {
+                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                    "location": "DK",
+                    "unit": "kilowatt hour"
+                },
+                "adapter": "bw"
+            }
+            # {
+            #     "name": "aa",
+            #     "id": {
+            #         "code": "xxx",
+            #     },
+            #     "adapter": "bw"
+            # }
+        ]
     },
+    # "activities": {
+    #     "single_activity": {
+    #         "id": {
+    #             "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+    #             "location": "DK",
+    #             "unit": "kilowatt hour"
+    #         },
+    #         "output": [
+    #             "MWh",
+    #             30
+    #         ],
+    #         "adapter": "bw"
+    #     }
+    #     # ,
+    #     # "solar1": {'id': {'name': 'electricity production, wind, >3MW turbine, onshore',
+    #     #                   'code': '0d48975a3766c13e68cedeb6c24f6f74'},
+    #     #            'output': ['kilowatt_hour', 3]},
+    #     # "solar2":
+    #     #     {'id': {'name': 'electricity production, wind, 1-3MW turbine, onshore',
+    #     #             'code': 'ed3da88fc23311ee183e9ffd376de89b'},
+    #     #      'output': ['kilowatt_hour', 4]}
+    # },
     "adapters": [{
         "module_path": "/home/ra/projects/enbios/enbios/bw2/brightway_experiment_adapter.py",
         "config": {

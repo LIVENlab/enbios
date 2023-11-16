@@ -9,7 +9,6 @@ from frictionless.fields import NumberField, StringField
 from enbios.generic.files import ReadPath
 from enbios.models.experiment_models import (
     ExperimentData,
-    ActivitiesDataRows,
     ExperimentMethodData,
 )
 from enbios.generic.tree.csv2dict import csv_tree2dict
@@ -83,34 +82,34 @@ def get_abs_path(path: Union[str, PathLike], base_dir: Optional[str] = None) -> 
 
 def resolve_input_files(raw_input: ExperimentData):
     # activities
-    if isinstance(raw_input.activities, str) or isinstance(
-        raw_input.activities, PathLike
-    ):
-        activities_file: ReadPath = get_abs_path(
-            raw_input.activities, raw_input.config.base_directory
-        )
-        if activities_file.suffix == ".json":
-            data = activities_file.read_data()
-            raw_input.activities = data
-        elif activities_file.suffix == ".csv":
-            with system.use_context(trusted=True):
-                resource: Resource = Resource(
-                    path=activities_file.as_posix(), schema=activities_schema
-                )
-                report = validate(resource)
-                if not report.valid:
-                    raise Exception(
-                        f"Invalid activities file: {raw_input.activities}; "
-                        f"errors: {report.task.errors}"
-                    )
-                raw_input.activities = ActivitiesDataRows(
-                    list(
-                        (
-                            unflatten_data(r, activities_unflatten_map)
-                            for r in resource.read_rows()
-                        )
-                    )
-                )
+    # if isinstance(raw_input.activities, str) or isinstance(
+    #     raw_input.activities, PathLike
+    # ):
+    #     activities_file: ReadPath = get_abs_path(
+    #         raw_input.activities, raw_input.config.base_directory
+    #     )
+    #     if activities_file.suffix == ".json":
+    #         data = activities_file.read_data()
+    #         raw_input.activities = data
+    #     elif activities_file.suffix == ".csv":
+    #         with system.use_context(trusted=True):
+    #             resource: Resource = Resource(
+    #                 path=activities_file.as_posix(), schema=activities_schema
+    #             )
+    #             report = validate(resource)
+    #             if not report.valid:
+    #                 raise Exception(
+    #                     f"Invalid activities file: {raw_input.activities}; "
+    #                     f"errors: {report.task.errors}"
+    #                 )
+    #             raw_input.activities = ActivitiesDataRows(
+    #                 list(
+    #                     (
+    #                         unflatten_data(r, activities_unflatten_map)
+    #                         for r in resource.read_rows()
+    #                     )
+    #                 )
+    #             )
 
     # methods
     # allow this for adapters

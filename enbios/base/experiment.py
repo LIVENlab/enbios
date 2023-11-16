@@ -2,7 +2,6 @@ import csv
 import itertools
 import math
 import time
-from copy import copy
 from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
@@ -10,7 +9,6 @@ from tempfile import gettempdir
 from typing import Any, Optional, Union
 
 from bw2data.backends import Activity
-from pydantic import ValidationError
 
 from enbios.base.adapters import load_adapter, EnbiosAdapter, EnbiosAggregator, load_aggregator
 from enbios.base.experiment_io import resolve_input_files
@@ -22,18 +20,16 @@ from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
-    ActivitiesDataTypes,
     ActivityOutput,
     Activity_Outputs,
     BWCalculationSetup,
-    ExperimentActivityData,
     ExperimentActivityId,
     ExperimentConfig,
     ExperimentData,
     ExperimentMethodPrepData,
     ExperimentScenarioData,
     ScenarioResultNodeData,
-    Settings, TechTreeNodeData
+    Settings, TechTreeNodeData, ExperimentHierarchyNodeData
 )
 
 logger = get_logger(__name__)
@@ -71,10 +67,16 @@ class Experiment:
         for adapter in self.adapters:
             adapter.validate_config()
 
-        self._activities: dict[
-            str, ExperimentActivityData
-        ] = self._validate_activities(
-            self._prepare_activities(self.raw_data.activities))
+        self.hierarchy_root: BasicTreeNode[
+            TechTreeNodeData
+        ] = self.validate_hierarchy(self.raw_data.hierarchy)
+        self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {n.name: n for n in
+                                                                        self.hierarchy_root.iter_leaves()}
+        for activity_node in self._activities.values():
+            self.get_activity_adapter(activity_node).validate_activity(activity_node.name,
+                                                                       activity_node.data.id,
+                                                                       activity_node.data.output,
+                                                                       False)
 
         self.methods: dict[str, ExperimentMethodPrepData] = {}
         for adapter in self.adapters:
@@ -85,11 +87,6 @@ class Experiment:
                     f"another adapter"
                 )
             self.methods.update(adapter_methods)
-
-        self.raw_data.hierarchy = self._prepare_hierarchy()
-        self.hierarchy_root: BasicTreeNode[
-            TechTreeNodeData
-        ] = self.validate_hierarchy(self.raw_data.hierarchy)
 
         self.scenarios: list[Scenario] = self._validate_scenarios()
         self._validate_run_scenario_setting()
@@ -125,96 +122,90 @@ class Experiment:
             for adapter in self.raw_data.aggregators
         ]
 
-    @staticmethod
-    def _prepare_activities(
-            activities: ActivitiesDataTypes,
-    ) -> list[ExperimentActivityData]:
-        raw_activities_list: list[ExperimentActivityData] = []
-        if isinstance(activities, list):
-            raw_activities_list = activities
-            for activity in raw_activities_list:
-                activity.orig_id = copy(activity.id)
+    # @staticmethod
+    # def _prepare_activities(
+    #         activities: ActivitiesDataTypes,
+    # ) -> list[ExperimentActivityData]:
+    #     raw_activities_list: list[ExperimentActivityData] = []
+    #     if isinstance(activities, list):
+    #         raw_activities_list = activities
+    #         for activity in raw_activities_list:
+    #             activity.orig_id = copy(activity.id)
+    #
+    #     elif isinstance(activities, dict):
+    #         for activity_alias, activity in activities.items():
+    #             if activity_alias == activity.alias:
+    #                 raise ValueError(
+    #                     f"Activity in activities-dict declared with alias: "
+    #                     f"'{activity_alias}', "
+    #                     f"different than in the activity.id: '{activity.alias}'"
+    #                 )
+    #             activity.orig_id = copy(activity.id)
+    #             activity.id.alias = activity_alias
+    #             raw_activities_list.append(activity)
+    #     return raw_activities_list
 
-        elif isinstance(activities, dict):
-            for activity_alias, activity in activities.items():
-                if activity_alias == activity.alias:
-                    raise ValueError(
-                        f"Activity in activities-dict declared with alias: "
-                        f"'{activity_alias}', "
-                        f"different than in the activity.id: '{activity.alias}'"
-                    )
-                activity.orig_id = copy(activity.id)
-                activity.id.alias = activity_alias
-                raw_activities_list.append(activity)
-        return raw_activities_list
-
-    def _validate_activities(self,
-                             activities: list[ExperimentActivityData],
-                             output_required: bool = False,
-                             ) -> dict[str, ExperimentActivityData]:
-        """
-        Check if all activities exist in the bw database, and check if the
-        given activities are unique
-        In case there is only one scenario, all activities are required to have outputs
-        """
-        # if activities is a list, convert validate and convert to dict
-        # default_id_data = ExperimentActivityId(database=bw_default_database)
-        activities_map: dict[str, ExperimentActivityData] = {}
-        # validate
-
-        for activity in activities:
-            self._validate_activity(
-                activity, output_required
-            )
-            # check unique aliases
-            if activity.alias in activities_map:
-                raise Exception(
-                    f"Activity-alias '{activity.alias}' passed more then once. "
-                    f"Consider using a dictionary for activities or include "
-                    f"'alias' in the ids."
-                )
-            activities_map[activity.alias] = activity
-
-        # all codes should only appear once
-        # unique_activities = set()
-        # for ext_activity in activities_map.values():
-        #     unique_activities.add((ext_activity.id.database, ext_activity.id.code))
-        assert len(activities_map) > 0, "There are no activities in the experiment"
-        return activities_map
-
-    def _validate_activity(self,
-                           activity: ExperimentActivityData,
-                           required_output: bool = False,
-                           ):
-        """
-        This method checks if the activity exists in the database by several ways.
-        :param activity:
-        :param required_output:
-        :return:
-        """
-        adapter = self.adapter_indicator_map.get(activity.id.source)
-        if not adapter:
-            logger.debug(f"Candidates are: {self.adapter_indicator_map.keys()}")
-            raise ValueError(
-                f"Activity source '{activity.id.source}' not found in adapters"
-            )
-        adapter.validate_activity(activity, required_output)
+    # def _validate_activities(self,
+    #                          activities: list[ExperimentActivityData],
+    #                          output_required: bool = False,
+    #                          ) -> dict[str, ExperimentActivityData]:
+    #     """
+    #     Check if all activities exist in the bw database, and check if the
+    #     given activities are unique
+    #     In case there is only one scenario, all activities are required to have outputs
+    #     """
+    #     # if activities is a list, convert validate and convert to dict
+    #     # default_id_data = ExperimentActivityId(database=bw_default_database)
+    #     activities_map: dict[str, ExperimentActivityData] = {}
+    #     # validate
+    #
+    #     for activity in activities:
+    #         self._validate_activity(
+    #             activity, output_required
+    #         )
+    #         # check unique aliases
+    #         if activity.alias in activities_map:
+    #             raise Exception(
+    #                 f"Activity-alias '{activity.alias}' passed more then once. "
+    #                 f"Consider using a dictionary for activities or include "
+    #                 f"'alias' in the ids."
+    #             )
+    #         activities_map[activity.alias] = activity
+    #
+    #     # all codes should only appear once
+    #     # unique_activities = set()
+    #     # for ext_activity in activities_map.values():
+    #     #     unique_activities.add((ext_activity.id.database, ext_activity.id.code))
+    #     assert len(activities_map) > 0, "There are no activities in the experiment"
+    #     return activities_map
+    #
+    # def _validate_activity(self,
+    #                        activity: ExperimentActivityData,
+    #                        required_output: bool = False,
+    #                        ):
+    #     """
+    #     This method checks if the activity exists in the database by several ways.
+    #     :param activity:
+    #     :param required_output:
+    #     :return:
+    #     """
+    #     adapter = self.adapter_indicator_map.get(activity.id.source)
+    #     if not adapter:
+    #         logger.debug(f"Candidates are: {self.adapter_indicator_map.keys()}")
+    #         raise ValueError(
+    #             f"Activity source '{activity.id.source}' not found in adapters"
+    #         )
+    #     adapter.validate_activity(activity, required_output)
 
     def _has_activity(
-            self, alias_or_id: Union[str, ExperimentActivityId]
-    ) -> Optional[ExperimentActivityData]:
-        if isinstance(alias_or_id, str):
-            activity = self._activities.get(alias_or_id, None)
-            return activity
-        else:  # isinstance(alias_or_id, ExperimentActivityId):
-            for activity in self._activities.values():
-                if asdict(activity.orig_id) == asdict(alias_or_id):
-                    return activity
-            return None
+            self, name: str
+    ) -> Optional[BasicTreeNode[TechTreeNodeData]]:
+        activity = self._activities.get(name, None)
+        return activity
 
     def get_activity(
             self, alias_or_id: Union[str, ExperimentActivityId]
-    ) -> ExperimentActivityData:
+    ) -> BasicTreeNode[TechTreeNodeData]:
         """
         Get an activity by either its alias or its original "id"
         as it is defined in the experiment data
@@ -226,19 +217,16 @@ class Experiment:
             raise ValueError(f"Activity with id {alias_or_id} not found")
         return activity
 
-    def get_activity_default_output(self, activity_alias: Union[ExperimentActivityData, str]) -> float:
-        if isinstance(activity_alias, str):
-            activity = self.get_activity(activity_alias)
-        else:
-            activity = activity_alias
-        return self.adapter_indicator_map[activity.id.source].get_default_output_value(activity.alias)
+    def get_activity_adapter(self, activity_node: BasicTreeNode[TechTreeNodeData]) -> EnbiosAdapter:
+        return self.adapter_indicator_map[activity_node.data.adapter]
 
-    def get_activity_unit(self, activity_alias: Union[ExperimentActivityData, str]) -> str:
-        if isinstance(activity_alias, str):
-            activity = self.get_activity(activity_alias)
-        else:
-            activity = activity_alias
-        return self.adapter_indicator_map[activity.id.source].get_activity_unit(activity.alias)
+    def get_activity_default_output(self, activity_node_name: str) -> float:
+        activity = self.get_activity(activity_node_name)
+        return self.get_activity_adapter(activity).get_default_output_value(activity.name)
+
+    def get_activity_unit(self, activity_node_name: str) -> str:
+        activity = self.get_activity(activity_node_name)
+        return self.get_activity_adapter(activity).get_activity_unit(activity_node_name)
 
     def get_node_aggregator(self, node: BasicTreeNode[ScenarioResultNodeData]) -> EnbiosAggregator:
         pass
@@ -266,13 +254,13 @@ class Experiment:
             scenarios_activities = (
                 activities if isinstance(activities, list) else activities.items()
             )
-            for activity_id, activity_output in scenarios_activities:
-                activity = self.get_activity(activity_id)
+            for activity_name, activity_output in scenarios_activities:
+                activity = self.get_activity(activity_name)
                 # simple_id = validate_activity_id(activity_id)
                 output_ = convert_output(activity_output)
 
-                adapter = self.adapter_indicator_map[activity.id.source]
-                adapter.validate_activity_output(activity, output_)
+                adapter = self.adapter_indicator_map[activity.data.adapter]
+                adapter.validate_activity_output(activity_name, output_)
                 # TODO VALIDATE ADAPTER OUTPUT
                 # if activity.id.source == BRIGHTWAY_ACTIVITY:
                 #     scenario_output = validate_brightway_output(
@@ -295,9 +283,9 @@ class Experiment:
 
             # fill up the missing activities with default values
             for activity in self._activities.values():
-                activity_alias = activity.alias
+                activity_alias = activity.name
                 if activity_alias not in defined_aliases:
-                    scenario_activities_outputs[activity.alias] = self.get_activity_default_output(activity.alias)
+                    scenario_activities_outputs[activity.name] = self.get_activity_default_output(activity.name)
 
             resolved_methods: dict[str, ExperimentMethodPrepData] = {}
             if _scenario.methods:
@@ -349,34 +337,30 @@ class Experiment:
             scenario.prepare_tree()
         return scenarios
 
-    def _prepare_hierarchy(self) -> Union[dict, list]:
-        return (
-            self.raw_data.hierarchy
-            if self.raw_data.hierarchy
-            else list(self._activities.keys())
-        )
+    # def _prepare_hierarchy(self) -> Union[dict, list]:
+    #     return (
+    #         self.raw_data.hierarchy
+    #         if self.raw_data.hierarchy
+    #         else list(self._activities.keys())
+    #     )
 
+    @staticmethod
     def validate_hierarchy(
-            self, hierarchy: Union[dict, list]
+            hierarchy: ExperimentHierarchyNodeData
     ) -> BasicTreeNode[TechTreeNodeData]:
 
-        def create_node_data(node: BasicTreeNode[TechTreeNodeData], data: TechTreeNodeData, temp_data: dict):
-            return TechTreeNodeData(
-                adapter=data.get("adapter"),
-                aggregator=data.get("aggregator")
-            )
-
         tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
-            hierarchy, compact=True, data_factory=create_node_data
+            asdict(hierarchy), dataclass=TechTreeNodeData
         )
-        for leaf in tech_tree.iter_leaves():
-            leaf.temp_data = {"activity": self.get_activity(leaf.name)}
-        missing = set(self.activities_aliases) - set(
-            n.name for n in tech_tree.iter_leaves()
-        )
-        if missing:
-            raise ValueError(f"Activities {missing} not found in hierarchy")
-        self._validate_node_calculations(tech_tree)
+
+        def validate_node_data(node: BasicTreeNode[TechTreeNodeData]):
+            good_leaf = node.is_leaf and node.data.adapter
+            good_internal = not node.is_leaf and node.data.aggregator
+            assert good_leaf or good_internal, (f"Node should have the leaf properties (id, adapter) "
+                                                f"or non-leaf properties (children, aggregator): "
+                                                f"{node.location_names()})")
+
+        tech_tree.recursive_apply(validate_node_data, depth_first=True)
         return tech_tree
 
     def _validate_node_calculations(self, tech_tree: BasicTreeNode[TechTreeNodeData]):
@@ -385,7 +369,7 @@ class Experiment:
 
             if node.is_leaf:
                 # todo we validate that before right?
-                #self.get_activity(node.name).adapter
+                # self.get_activity(node.name).adapter
                 # if not node.data.adapter:
                 #     raise ValueError(
                 #         f"Node '{node.name}' is a leaf and does not have an adapter"
@@ -422,14 +406,15 @@ class Experiment:
                 return scenario
         raise ValueError(f"Scenario '{scenario_alias}' not found")
 
-    def run_scenario(self, scenario_alias: str) -> dict[str, Any]:
+    def run_scenario(self, scenario_name: str) -> dict[str, Any]:
         """
         Run a specific scenario
-        :param scenario_alias:
+        :param scenario_name:
         :return: The result_tree converted into a dict
         """
         # todo return results
-        return self.get_scenario(scenario_alias).run()  # .as_dict(include_data=True)
+        self.get_scenario(scenario_name).run()
+        return {}  # self.get_scenario(scenario_alias).run()  # .as_dict(include_data=True)
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         """
@@ -482,6 +467,7 @@ class Experiment:
         #         )
         #     self._execution_time = time.time() - start_time
         # return results
+        return {}
 
     @property
     def execution_time(self) -> str:
@@ -602,7 +588,7 @@ class Experiment:
         """
         activity_rows: list[str] = []
         for activity_alias, activity in self._activities.items():
-            activity_rows.append(f"  {activity.alias} - {activity.id.name}")
+            activity_rows.append(f"  {activity.name} - {activity.id.name}")
         activity_rows_str = "\n".join(activity_rows)
         methods_str = "\n".join([f" {m.id}" for m in self.methods.values()])
         return (

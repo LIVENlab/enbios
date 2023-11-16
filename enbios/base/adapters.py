@@ -8,7 +8,7 @@ from typing import Union, Type
 from enbios.base.scenario import Scenario
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import AdapterModel, ExperimentActivityData, ActivityOutput, AggregationModel, \
-    ScenarioResultNodeData
+    ScenarioResultNodeData, ExperimentActivityId
 
 
 class EnbiosAdapter(ABC):
@@ -22,11 +22,15 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def validate_activity_output(self, activity: ExperimentActivityData, target_output: ActivityOutput):
+    def validate_activity_output(self, node_name: str, target_output: ActivityOutput):
         pass
 
     @abstractmethod
-    def validate_activity(self, activity: ExperimentActivityData, required_output: bool = False):
+    def validate_activity(self,
+                          node_name: str,
+                          activity_id: ExperimentActivityId,
+                          output: ActivityOutput,
+                          required_output: bool = False):
         pass
 
     @abstractmethod

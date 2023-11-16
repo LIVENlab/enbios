@@ -15,9 +15,8 @@ from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     ActivityOutput,
-    ExperimentActivityData,
     ExperimentMethodData, ExperimentMethodPrepData,
-    MethodsDataTypes, MethodsDataTypesExt, BWCalculationSetup, ScenarioResultNodeData,
+    MethodsDataTypes, MethodsDataTypesExt, BWCalculationSetup, ScenarioResultNodeData, ExperimentActivityId,
 )
 
 logger = getLogger(__file__)
@@ -41,13 +40,13 @@ class BWAggregatorConfig:
     use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
 
 
-def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
+def _bw_activity_search(activity_id: ExperimentActivityId) -> Activity:
     """
     Search for the activity in the brightway project
-    :param activity:
+    :param activity_id:
     :return: brightway activity
     """
-    id_ = activity.id
+    id_ = activity_id
     bw_activity: Optional[Activity] = None
     if id_.code:
         if id_.database:
@@ -80,7 +79,7 @@ def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
                     f"the code of the activity you want to use:\n{activities_str}"
                 )
     if not bw_activity:
-        raise ValueError(f"No activity found for {activity.id}")
+        raise ValueError(f"No activity found for {activity_id}")
     return bw_activity
 
 
@@ -179,12 +178,12 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def validate_activity_output(
             self,
-            activity: ExperimentActivityData,
+            node_name: str,
             target_output: ActivityOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
-        :param activity:
+        :param node_name:
         :param target_output:
         :return:
         """
@@ -194,43 +193,43 @@ class BrightwayAdapter(EnbiosAdapter):
                     ureg.parse_expression(bw_unit_fix(target_output.unit), case_sensitive=False)
                     * target_output.magnitude
             )
-            bw_activity_unit = self.activityMap[activity.alias].bw_activity["unit"]
+            bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
         except UndefinedUnitError as err:
             logger.error(
                 f"Cannot parse output unit '{target_output.unit}'- "
-                f"of activity {activity.id}. {err}. "
+                f"of activity {node_name}. {err}. "
                 f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
             )
-            raise Exception(f"Unit error, {err}; For activity: {activity.id}")
+            raise Exception(f"Unit error, {err}; For activity: {node_name}")
         except DimensionalityError as err:
             logger.error(
-                f"Cannot convert output of activity {activity.id}. -"
+                f"Cannot convert output of activity {node_name}. -"
                 f"From- \n{target_output}\n-To-"
                 f"\n{bw_activity_unit} (brightway unit)"
                 f"\n{err}"
             )
-            raise Exception(f"Unit error for activity: {activity.id}")
+            raise Exception(f"Unit error for activity: {node_name}")
 
-    def validate_activity(
-            self,
-            activity: ExperimentActivityData,
-            required_output: bool = False,
-    ):
+    def validate_activity(self,
+                          node_name: str,
+                          activity_id: ExperimentActivityId,
+                          output: ActivityOutput,
+                          required_output: bool = False):
         # get the brightway activity
-        bw_activity = _bw_activity_search(activity)
-        self.activityMap[activity.alias] = BWActivityData(bw_activity=bw_activity,
+        bw_activity = _bw_activity_search(activity_id)
+        self.activityMap[node_name] = BWActivityData(bw_activity=bw_activity,
                                                           default_output=ActivityOutput(
                                                               bw_unit_fix(bw_activity["unit"]), 1))
         # create output: ActivityOutput and default_output_value
-        if activity.output:
-            if isinstance(activity.output, tuple):
-                output = ActivityOutput(unit=activity.output[0], magnitude=activity.output[1])
+        if output:
+            if isinstance(output, tuple):
+                output = ActivityOutput(unit=output[0], magnitude=output[1])
             else:  # if isinstance(activity.output, ActivityOutput):
-                output = activity.output
-            self.activityMap[activity.alias].default_output = output
+                output = output
+            self.activityMap[node_name].default_output = output
             # todo do we need to use that value?
-            default_output_value = self.validate_activity_output(activity, output)
+            # default_output_value = self.validate_activity_output(activity, output)
 
     def get_default_output_value(self, activity_alias: str) -> float:
         return self.activityMap[activity_alias].default_output.magnitude
