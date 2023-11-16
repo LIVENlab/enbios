@@ -87,9 +87,14 @@ class Experiment:
                                                                   node.data.id,
                                                                   node.data.output,
                                                                   False)
-            # todo still validate here?
-            # else:
-            #     self.get_node_aggregator(node.data.aggregator).validate_node_output(node)
+        # make a validation of output units...
+        self.base_result_tree = self.convert_tech_tree2result_tree()
+        self.base_result_tree.recursive_apply(
+            Experiment.recursive_resolve_outputs,
+            experiment=self,
+            depth_first=True,
+            cancel_parents_of=set(),
+        )
 
         self.methods: dict[str, ExperimentMethodPrepData] = {}
         for adapter in self.adapters:
@@ -106,6 +111,25 @@ class Experiment:
 
         self._lca: Optional[StackedMultiLCA] = None
         self._execution_time: float = float("NaN")
+
+    @staticmethod
+    def recursive_resolve_outputs(
+            node: BasicTreeNode[ScenarioResultNodeData],
+            experiment: "Experiment", **kwargs
+    ):
+        # todo, does this takes default values when an activity is not defined
+        #  in the scenario?
+        if node.is_leaf:
+            return
+        cancel_parts_of: set = kwargs["cancel_parents_of"]
+        if any(child.id in cancel_parts_of for child in node.children):
+            node.set_data(ScenarioResultNodeData())
+            cancel_parts_of.add(node.id)
+
+        aggregator = experiment.get_node_aggregator(node.data.aggregator)
+        valid = aggregator.validate_node_output(node)
+        if not valid:
+            cancel_parts_of.add(node.id)
 
     def _validate_run_scenario_setting(self):
         if self.env_settings.RUN_SCENARIOS:
@@ -244,21 +268,22 @@ class Experiment:
     def get_node_aggregator(self, aggregator_indicator: str) -> EnbiosAggregator:
         return self.aggregator_indicator_map[aggregator_indicator]
 
-    def convert_tech_tree2result_tree(self):
-        def recursive_convert(node: BasicTreeNode[TechTreeNodeData]):
+    def convert_tech_tree2result_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
+        def recursive_convert(node: BasicTreeNode[TechTreeNodeData]) -> BasicTreeNode[ScenarioResultNodeData]:
             output: tuple[Optional[str], Optional[float]] = (None, None)
             if node.is_leaf:
                 output = (self.get_activity_adapter(node).get_activity_output_unit(node.name), 0)
-            result_node: BasicTreeNode[ScenarioResultNodeData] = BasicTreeNode(
+            return BasicTreeNode(
                 name=node.name,
                 data=ScenarioResultNodeData(
                     output=output,
                     adapter=node.data.adapter,
                     aggregator=node.data.aggregator
                 ),
+                children=[recursive_convert(child) for child in node.children]
             )
 
-        return self.hierarchy_root.recursive_apply(recursive_convert)
+        return recursive_convert(self.hierarchy_root)
 
     def _validate_scenarios(self) -> list[Scenario]:
         """
@@ -329,7 +354,7 @@ class Experiment:
                 alias=_scenario_alias,
                 activities_outputs=scenario_activities_outputs,
                 methods=resolved_methods,
-                result_tree=self.hierarchy_root.copy(),
+                result_tree=self.base_result_tree.copy(),
             )
 
         raw_scenarios = self.raw_data.scenarios
@@ -365,13 +390,6 @@ class Experiment:
         for scenario in scenarios:
             scenario.prepare_tree()
         return scenarios
-
-    # def _prepare_hierarchy(self) -> Union[dict, list]:
-    #     return (
-    #         self.raw_data.hierarchy
-    #         if self.raw_data.hierarchy
-    #         else list(self._activities.keys())
-    #     )
 
     @staticmethod
     def validate_hierarchy(
@@ -435,15 +453,14 @@ class Experiment:
                 return scenario
         raise ValueError(f"Scenario '{scenario_alias}' not found")
 
-    def run_scenario(self, scenario_name: str) -> dict[str, Any]:
+    def run_scenario(self, scenario_name: str) -> BasicTreeNode[ScenarioResultNodeData]:
         """
         Run a specific scenario
         :param scenario_name:
         :return: The result_tree converted into a dict
         """
         # todo return results
-        self.get_scenario(scenario_name).run()
-        return {}  # self.get_scenario(scenario_alias).run()  # .as_dict(include_data=True)
+        return self.get_scenario(scenario_name).run()
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         """

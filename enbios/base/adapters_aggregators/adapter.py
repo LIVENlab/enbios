@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from enbios.base.scenario import Scenario
 from enbios.models.experiment_models import ActivityOutput, ExperimentActivityId
@@ -47,7 +48,7 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def run_scenario(self, scenario: Scenario):
+    def run_scenario(self, scenario: Scenario) -> dict[str, Any]:
         pass
 
     @property

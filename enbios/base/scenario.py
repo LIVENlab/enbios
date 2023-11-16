@@ -4,10 +4,6 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Optional, Union, TYPE_CHECKING, Any
 
-from pint import DimensionalityError, Quantity, UndefinedUnitError
-from pint.facets.plain import PlainQuantity
-
-from enbios.base.unit_registry import ureg
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike
 
@@ -59,91 +55,24 @@ class Scenario:
             # if self.experiment.config.include_bw_activity_in_nodes:
             #     activity_node.data.bw_activity = bw_activity
         self.result_tree.recursive_apply(
-            Scenario._recursive_resolve_outputs,
-            scenario=self,
+            self.experiment.recursive_resolve_outputs,
+            experiment=self.experiment,
             depth_first=True,
             cancel_parents_of=set(),
         )
 
     @staticmethod
-    def _propagate_results_upwards(node: BasicTreeNode[ScenarioResultNodeData]):
+    def _propagate_results_upwards(node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"):
         if node.is_leaf:
             return
         else:
-            pass
+            experiment.get_node_aggregator(node.data.aggregator).aggregate_results(node)
 
     def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
         if self.methods:
             return self.methods
         else:
             return self.experiment.methods
-
-    @staticmethod
-    def _recursive_resolve_outputs(
-            node: BasicTreeNode[ScenarioResultNodeData], scenario: "Scenario",  **kwargs
-    ):
-        # todo, does this takes default values when an activity is not defined
-        #  in the scenario?
-        # scenario: Scenario = kwargs["scenario"]
-        cancel_parts_of: set = kwargs["cancel_parents_of"]
-        if node.is_leaf:
-            return
-        aggregator = scenario.experiment.get_node_aggregator(node.data.aggregator)
-        aggregator.validate_node_output(node)
-
-        node_output: Optional[Union[Quantity, PlainQuantity]] = None
-        if any(child.id in cancel_parts_of for child in node.children):
-            node.set_data(ScenarioResultNodeData())
-            cancel_parts_of.add(node.id)
-            return
-        for child in node.children:
-            # if not child._data:
-            #     raise ValueError(f"Node {child.name} has no data")
-            activity_output = child.data.output[0]
-            if activity_output is None:
-                node_output = None
-                logger.warning(f"No output unit of activity '{child.name}'.")
-                break
-            output = None
-            try:
-                output = ureg.parse_expression(activity_output) * child.data.output[1]
-                if not node_output:
-                    node_output = output
-                else:
-                    node_output += output
-            except UndefinedUnitError as err:
-                logger.error(
-                    f"Cannot parse output unit '{activity_output}' of activity "
-                    f"{child.name}. {err}. "
-                    f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
-                )
-                node_output = None
-                break
-            except DimensionalityError as err:
-                set_base_unit = node_output.to_base_units() if node_output else ""
-                logger.warning(
-                    f"Cannot aggregate output to parent: {node.name}. "
-                    f"From earlier children the base unit is {set_base_unit} "
-                    f"and from {child.name} it is {output}."
-                    f" {err}"
-                )
-                node_output = None
-                break
-        if node_output:
-            node_output = node_output.to_compact()
-            node.set_data(
-                ScenarioResultNodeData(
-                    output=(str(node_output.units), node_output.magnitude)
-                )
-            )
-        else:
-            node.set_data(ScenarioResultNodeData())
-            logger.warning(
-                f"Scenario: '{scenario.alias}': No output for node: '{node.name}' "
-                f"(lvl: {node.level}). "
-                f"Not calculating any upper nodes."
-            )
-            cancel_parts_of.add(node.id)
 
     def run(self) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self._get_methods():
@@ -156,19 +85,19 @@ class Scenario:
         for adapter in self.experiment.adapters:
             adapter.prepare_scenario(self)
 
-        result_tree = {}
         for adapter in self.experiment.adapters:
             result_data = adapter.run_scenario(self)
             self.set_results(result_data)
 
-            self.result_tree.recursive_apply(
-                Scenario._propagate_results_upwards,
-                depth_first=True
-            )
+        self.result_tree.recursive_apply(
+            Scenario._propagate_results_upwards,
+            experiment=self.experiment,
+            depth_first=True
+        )
 
         self._has_run = True
         self._execution_time = time.time() - start_time
-        return result_tree
+        return self.result_tree
 
     @property
     def execution_time(self) -> str:

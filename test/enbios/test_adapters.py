@@ -61,11 +61,7 @@ a1 = {
                 #  }
             ],
         }
-    }],
-    "aggregators": [{
-        "module_path": "/home/ra/projects/enbios/enbios/bw2/brightway_experiment_adapter.py"
-    }
-    ]
+    }]
 }
 
 

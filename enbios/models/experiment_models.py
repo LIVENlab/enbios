@@ -228,7 +228,7 @@ class ExperimentData:
     This class is used to store the data of an experiment.
     """
     adapters: list["AdapterModel"] = Field(..., description="The adapters to be used")
-    aggregators: list["AggregationModel"] = Field(..., description="The aggregators to be used")
+    aggregators: list["AggregationModel"] = Field([], description="The aggregators to be used")
     hierarchy: Optional[HierarchyDataTypesExt] = Field(
         None, description="The activity hierarchy to be used in the experiment"
     )
