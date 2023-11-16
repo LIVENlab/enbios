@@ -25,7 +25,6 @@ from enbios.models.experiment_models import (
     ActivityOutput,
     Activity_Outputs,
     BWCalculationSetup,
-    ExperimentActivityId,
     ExperimentConfig,
     ExperimentData,
     ExperimentMethodPrepData,
@@ -61,23 +60,11 @@ class Experiment:
         resolve_input_files(input_data)
         self.raw_data = validate_experiment_data(asdict(input_data))
 
-        # alias to activity
-        self.adapters: list[EnbiosAdapter] = self._validate_adapters()
-        self.aggregators: list[EnbiosAggregator] = self._validate_aggregators()
+        self._adapters: dict[str, EnbiosAdapter] = self._validate_adapters()
+        self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
 
-        self._validate_aggregators: list[EnbiosAggregator] = self._validate_aggregators()
-        self.adapter_indicator_map: dict[str, EnbiosAdapter] = {adapter.activity_indicator: adapter for adapter in
-                                                                self.adapters}
-        self.aggregator_indicator_map: dict[str, EnbiosAggregator] = {aggregator.node_indicator: aggregator for
-                                                                      aggregator in
-                                                                      self.aggregators}
+        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = self.validate_hierarchy(self.raw_data.hierarchy)
 
-        for adapter in self.adapters:
-            adapter.validate_config()
-
-        self.hierarchy_root: BasicTreeNode[
-            TechTreeNodeData
-        ] = self.validate_hierarchy(self.raw_data.hierarchy)
         self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {n.name: n for n in
                                                                         self.hierarchy_root.iter_leaves()}
 
@@ -87,8 +74,21 @@ class Experiment:
                                                                   node.data.id,
                                                                   node.data.output,
                                                                   False)
-        # make a validation of output units...
-        self.base_result_tree = self.convert_tech_tree2result_tree()
+        def recursive_convert(node_: BasicTreeNode[TechTreeNodeData]) -> BasicTreeNode[ScenarioResultNodeData]:
+            output: tuple[Optional[str], Optional[float]] = (None, None)
+            if node_.is_leaf:
+                output = (self.get_activity_adapter(node_).get_activity_output_unit(node_.name), 0)
+            return BasicTreeNode(
+                name=node_.name,
+                data=ScenarioResultNodeData(
+                    output=output,
+                    adapter=node_.data.adapter,
+                    aggregator=node_.data.aggregator
+                ),
+                children=[recursive_convert(child) for child in node_.children]
+            )
+
+        self.base_result_tree: BasicTreeNode[ScenarioResultNodeData] = recursive_convert(self.hierarchy_root)
         self.base_result_tree.recursive_apply(
             Experiment.recursive_resolve_outputs,
             experiment=self,
@@ -147,143 +147,56 @@ class Experiment:
                         f"Scenarios are: {self.scenario_aliases}"
                     )
 
-    def _validate_adapters(self) -> list[EnbiosAdapter]:
-        return [
+    def _validate_adapters(self) -> dict[str: EnbiosAdapter]:
+        adapters = [
             load_adapter(adapter)
             for adapter in self.raw_data.adapters
         ]
 
-    def _validate_aggregators(self) -> list[EnbiosAggregator]:
-        return [
-            load_aggregator(adapter)
-            for adapter in self.raw_data.aggregators
-        ] + [SumAggregator()]
+        for adapter in adapters:
+            adapter.validate_config()
 
-    # @staticmethod
-    # def _prepare_activities(
-    #         activities: ActivitiesDataTypes,
-    # ) -> list[ExperimentActivityData]:
-    #     raw_activities_list: list[ExperimentActivityData] = []
-    #     if isinstance(activities, list):
-    #         raw_activities_list = activities
-    #         for activity in raw_activities_list:
-    #             activity.orig_id = copy(activity.id)
-    #
-    #     elif isinstance(activities, dict):
-    #         for activity_alias, activity in activities.items():
-    #             if activity_alias == activity.alias:
-    #                 raise ValueError(
-    #                     f"Activity in activities-dict declared with alias: "
-    #                     f"'{activity_alias}', "
-    #                     f"different than in the activity.id: '{activity.alias}'"
-    #                 )
-    #             activity.orig_id = copy(activity.id)
-    #             activity.id.alias = activity_alias
-    #             raw_activities_list.append(activity)
-    #     return raw_activities_list
+        return {adapter.activity_indicator: adapter for adapter in
+                adapters}
 
-    # def _validate_activities(self,
-    #                          activities: list[ExperimentActivityData],
-    #                          output_required: bool = False,
-    #                          ) -> dict[str, ExperimentActivityData]:
-    #     """
-    #     Check if all activities exist in the bw database, and check if the
-    #     given activities are unique
-    #     In case there is only one scenario, all activities are required to have outputs
-    #     """
-    #     # if activities is a list, convert validate and convert to dict
-    #     # default_id_data = ExperimentActivityId(database=bw_default_database)
-    #     activities_map: dict[str, ExperimentActivityData] = {}
-    #     # validate
-    #
-    #     for activity in activities:
-    #         self._validate_activity(
-    #             activity, output_required
-    #         )
-    #         # check unique aliases
-    #         if activity.alias in activities_map:
-    #             raise Exception(
-    #                 f"Activity-alias '{activity.alias}' passed more then once. "
-    #                 f"Consider using a dictionary for activities or include "
-    #                 f"'alias' in the ids."
-    #             )
-    #         activities_map[activity.alias] = activity
-    #
-    #     # all codes should only appear once
-    #     # unique_activities = set()
-    #     # for ext_activity in activities_map.values():
-    #     #     unique_activities.add((ext_activity.id.database, ext_activity.id.code))
-    #     assert len(activities_map) > 0, "There are no activities in the experiment"
-    #     return activities_map
-    #
-    # def _validate_activity(self,
-    #                        activity: ExperimentActivityData,
-    #                        required_output: bool = False,
-    #                        ):
-    #     """
-    #     This method checks if the activity exists in the database by several ways.
-    #     :param activity:
-    #     :param required_output:
-    #     :return:
-    #     """
-    #     adapter = self.adapter_indicator_map.get(activity.id.source)
-    #     if not adapter:
-    #         logger.debug(f"Candidates are: {self.adapter_indicator_map.keys()}")
-    #         raise ValueError(
-    #             f"Activity source '{activity.id.source}' not found in adapters"
-    #         )
-    #     adapter.validate_activity(activity, required_output)
+    def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
+        aggregators = [
+                          load_aggregator(adapter)
+                          for adapter in self.raw_data.aggregators
+                      ] + [SumAggregator()]
 
-    def _has_activity(
-            self, name: str
-    ) -> Optional[BasicTreeNode[TechTreeNodeData]]:
-        activity = self._activities.get(name, None)
-        return activity
+        for aggregator in aggregators:
+            aggregator.validate_config()
 
-    def get_activity(
-            self, alias_or_id: Union[str, ExperimentActivityId]
-    ) -> BasicTreeNode[TechTreeNodeData]:
+        return {aggregator.node_indicator: aggregator for
+                aggregator in
+                aggregators}
+
+    def get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
         Get an activity by either its alias or its original "id"
         as it is defined in the experiment data
-        :param alias_or_id:
+        :param name:
         :return: ExtendedExperimentActivityData
         """
-        activity = self._has_activity(alias_or_id)
+        activity = self._activities.get(name, None)
         if not activity:
-            raise ValueError(f"Activity with id {alias_or_id} not found")
+            raise ValueError(f"Activity with name '{name}' not found")
         return activity
 
     def get_activity_adapter(self, activity_node: BasicTreeNode[TechTreeNodeData]) -> EnbiosAdapter:
-        return self.adapter_indicator_map[activity_node.data.adapter]
+        return self._adapters[activity_node.data.adapter]
 
-    def get_activity_default_output(self, activity_node_name: str) -> float:
-        activity = self.get_activity(activity_node_name)
+    def get_activity_default_output(self, activity_name: str) -> float:
+        activity = self.get_activity(activity_name)
         return self.get_activity_adapter(activity).get_default_output_value(activity.name)
 
-    def get_activity_unit(self, activity_node_name: str) -> str:
-        activity = self.get_activity(activity_node_name)
-        return self.get_activity_adapter(activity).get_activity_output_unit(activity_node_name)
+    def get_activity_unit(self, activity_name: str) -> str:
+        activity = self.get_activity(activity_name)
+        return self.get_activity_adapter(activity).get_activity_output_unit(activity_name)
 
     def get_node_aggregator(self, aggregator_indicator: str) -> EnbiosAggregator:
-        return self.aggregator_indicator_map[aggregator_indicator]
-
-    def convert_tech_tree2result_tree(self) -> BasicTreeNode[ScenarioResultNodeData]:
-        def recursive_convert(node: BasicTreeNode[TechTreeNodeData]) -> BasicTreeNode[ScenarioResultNodeData]:
-            output: tuple[Optional[str], Optional[float]] = (None, None)
-            if node.is_leaf:
-                output = (self.get_activity_adapter(node).get_activity_output_unit(node.name), 0)
-            return BasicTreeNode(
-                name=node.name,
-                data=ScenarioResultNodeData(
-                    output=output,
-                    adapter=node.data.adapter,
-                    aggregator=node.data.aggregator
-                ),
-                children=[recursive_convert(child) for child in node.children]
-            )
-
-        return recursive_convert(self.hierarchy_root)
+        return self._aggregators[aggregator_indicator]
 
     def _validate_scenarios(self) -> list[Scenario]:
         """
@@ -313,7 +226,7 @@ class Experiment:
                 # simple_id = validate_activity_id(activity_id)
                 output_ = convert_output(activity_output)
 
-                adapter = self.adapter_indicator_map[activity.data.adapter]
+                adapter = self._adapters[activity.data.adapter]
                 adapter.validate_activity_output(activity_name, output_)
                 # TODO VALIDATE ADAPTER OUTPUT
                 # if activity.id.source == BRIGHTWAY_ACTIVITY:
@@ -626,6 +539,13 @@ class Experiment:
     @property
     def scenario_aliases(self) -> list[str]:
         return list([s.alias for s in self.scenarios])
+
+    @property
+    def adapters(self) -> list[EnbiosAdapter]:
+        return list(self._adapters.values())
+
+    def adapter(self, activity_indicator: str) -> EnbiosAdapter:
+        return self._adapters[activity_indicator]
 
     def info(self) -> str:
         """

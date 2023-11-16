@@ -8,16 +8,14 @@ from numpy import ndarray
 from pint import DimensionalityError, Quantity, UndefinedUnitError
 
 from enbios import get_enbios_ureg
-from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
-from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     ActivityOutput,
     ExperimentMethodData, ExperimentMethodPrepData,
-    MethodsDataTypes, MethodsDataTypesExt, BWCalculationSetup, ScenarioResultNodeData, ExperimentActivityId,
+    MethodsDataTypes, MethodsDataTypesExt, BWCalculationSetup, ExperimentActivityId,
 )
 
 logger = getLogger(__file__)
@@ -243,10 +241,6 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def prepare_scenario(self, scenario: Scenario):
         inventory: list[dict[Activity, float]] = []
-        # for activity_alias, act_out in scenario.activities_outputs.items():
-        #     bw_activity = self.activityMap[activity_alias.alias].bw_activity
-        #     inventory.append({bw_activity: act_out})
-        # do the order we have in this map
         for act_alias, activity in self.activityMap.items():
             act_output = scenario.activities_outputs[act_alias]
             inventory.append({activity.bw_activity: act_output})

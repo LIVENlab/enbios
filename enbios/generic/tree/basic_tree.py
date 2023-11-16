@@ -198,7 +198,7 @@ class BasicTreeNode(Generic[T]):
         """
         Parse a dict and create a tree from it.
         :param data:
-        :param data_from_other_data, take
+        :param dataclass:
         :param data_factory:
         :return: a node containing the whole tree
         """
@@ -383,10 +383,10 @@ class BasicTreeNode(Generic[T]):
         :return: The node if found, None otherwise.
         """
 
-        def rec_find_child(node: BasicTreeNode[T]) -> Optional["BasicTreeNode[T]"]:
-            if node.name == name:
-                return node
-            for child in node.children:
+        def rec_find_child(node_: BasicTreeNode[T]) -> Optional["BasicTreeNode[T]"]:
+            if node_.name == name:
+                return node_
+            for child in node_.children:
                 found_node = rec_find_child(child)
                 if found_node:
                     return found_node
@@ -528,9 +528,9 @@ class BasicTreeNode(Generic[T]):
         :param value_key: The key to use for the value of the links.
         """
 
-        def rec_add_link_row(node, writer: csv.DictWriter, level: int = 0):
+        def rec_add_link_row(node, writer_: csv.DictWriter, level: int = 0):
             for child in node.children:
-                writer.writerow(
+                writer_.writerow(
                     {
                         "source": node.name,
                         "target": child.name,
@@ -538,7 +538,7 @@ class BasicTreeNode(Generic[T]):
                         "target_level": level + 1,
                     }
                 )
-                rec_add_link_row(child, writer, level + 1)
+                rec_add_link_row(child, writer_, level + 1)
 
         with file_path.open("w", encoding="utf-8") as fout:
             writer = csv.DictWriter(
@@ -583,16 +583,16 @@ class BasicTreeNode(Generic[T]):
         """
 
         def rec_get_sub_tree(
-                node: BasicTreeNode[T], max_level: int, **kwargs
+                node: BasicTreeNode[T], max_level_: int, **kwargs
         ) -> BasicTreeNode[T]:
-            if max_level == 0:
+            if max_level_ == 0:
                 return BasicTreeNode[T](
                     node.name, **{k: getattr(node, k) for k in kwargs}
                 )
             else:
                 sub_tree = BasicTreeNode[T](node.name)
                 for child in node.children:
-                    sub_tree.add_child(child.get_sub_tree(max_level - 1))
+                    sub_tree.add_child(child.get_sub_tree(max_level_ - 1))
                 return sub_tree
 
         return rec_get_sub_tree(self, max_level)
@@ -642,10 +642,10 @@ class BasicTreeNode(Generic[T]):
         :return:
         """
 
-        def reset_parents(node: BasicTreeNode):
-            node.generate_id()
-            for child in node.children:
-                child.parent = node
+        def reset_parents(node_: BasicTreeNode):
+            node_.generate_id()
+            for child in node_.children:
+                child.parent = node_
                 reset_parents(child)
 
         node = deepcopy(self)

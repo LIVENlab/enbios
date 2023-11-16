@@ -13,7 +13,8 @@ a1 = {
                     "location": "DK",
                     "unit": "kilowatt hour"
                 },
-                "adapter": "bw"
+                "adapter": "bw",
+                "output": ["MWh", 30]
             }
             # {
             #     "name": "aa",
