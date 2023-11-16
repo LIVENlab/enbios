@@ -3,7 +3,7 @@ from typing import Optional, Union, Any
 
 import bw2data
 from bw2data.backends import Activity
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator, ValidationError
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
 
@@ -258,9 +258,24 @@ class TechTreeNodeData(BaseModel):
     id: Optional[ExperimentActivityId] = Field(
         None, description="The identifies (method to find) an activity"
     )
-    output: Optional[ExperimentActivityOutput] = Field(
+    output: Optional[ActivityOutput] = Field(
         None, description="The default output of the activity"
     )
+
+    @field_validator('output', mode="before")
+    @classmethod
+    def validate_output(cls, v: Any) -> Any:
+        try:
+            out = ActivityOutput(**v)
+            return out
+        except (ValidationError, Exception):
+            pass
+        try:
+            out_tuple = ExperimentActivityOutputArray(v)
+            print(out_tuple)
+            return {"unit": out_tuple[0], "magnitude": out_tuple[1]}
+        except ValidationError:
+            raise ValidationError("Output must be either {unit, magnitude} or tuple[str, float]")
 
     @model_validator(mode='before')
     @classmethod

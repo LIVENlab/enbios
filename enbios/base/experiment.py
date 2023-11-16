@@ -74,6 +74,7 @@ class Experiment:
                                                                   node.data.id,
                                                                   node.data.output,
                                                                   False)
+
         def recursive_convert(node_: BasicTreeNode[TechTreeNodeData]) -> BasicTreeNode[ScenarioResultNodeData]:
             output: tuple[Optional[str], Optional[float]] = (None, None)
             if node_.is_leaf:

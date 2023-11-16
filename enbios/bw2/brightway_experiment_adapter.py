@@ -6,6 +6,7 @@ import bw2data as bd
 from bw2data.backends import Activity
 from numpy import ndarray
 from pint import DimensionalityError, Quantity, UndefinedUnitError
+from pydantic import BaseModel
 
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
@@ -200,7 +201,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 f"of activity {node_name}. {err}. "
                 f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
             )
-            raise Exception(f"Unit error, {err}; For activity: {node_name}")
+            # raise Exception(f"Unit error, {err}; For activity: {node_name}")
         except DimensionalityError as err:
             logger.error(
                 f"Cannot convert output of activity {node_name}. -"
@@ -208,7 +209,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 f"\n{bw_activity_unit} (brightway unit)"
                 f"\n{err}"
             )
-            raise Exception(f"Unit error for activity: {node_name}")
+            # raise Exception(f"Unit error for activity: {node_name}")
 
     def validate_activity(self,
                           node_name: str,
@@ -217,18 +218,12 @@ class BrightwayAdapter(EnbiosAdapter):
                           required_output: bool = False):
         # get the brightway activity
         bw_activity = _bw_activity_search(activity_id)
+
         self.activityMap[node_name] = BWActivityData(bw_activity=bw_activity,
-                                                          default_output=ActivityOutput(
-                                                              bw_unit_fix(bw_activity["unit"]), 1))
-        # create output: ActivityOutput and default_output_value
+                                                     default_output=ActivityOutput(
+                                                         bw_unit_fix(bw_activity["unit"]), 1))
         if output:
-            if isinstance(output, tuple):
-                output = ActivityOutput(unit=output[0], magnitude=output[1])
-            else:  # if isinstance(activity.output, ActivityOutput):
-                output = output
-            self.activityMap[node_name].default_output = output
-            # todo do we need to use that value?
-            # default_output_value = self.validate_activity_output(activity, output)
+            self.activityMap[node_name].default_output.magnitude = self.validate_activity_output(node_name, output)
 
     def get_default_output_value(self, activity_name: str) -> float:
         return self.activityMap[activity_name].default_output.magnitude
