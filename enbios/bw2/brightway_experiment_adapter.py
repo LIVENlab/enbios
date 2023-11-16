@@ -8,7 +8,8 @@ from numpy import ndarray
 from pint import DimensionalityError, Quantity, UndefinedUnitError
 
 from enbios import get_enbios_ureg
-from enbios.base.adapters import EnbiosAdapter, EnbiosAggregator
+from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
+from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
@@ -231,11 +232,14 @@ class BrightwayAdapter(EnbiosAdapter):
             # todo do we need to use that value?
             # default_output_value = self.validate_activity_output(activity, output)
 
-    def get_default_output_value(self, activity_alias: str) -> float:
-        return self.activityMap[activity_alias].default_output.magnitude
+    def get_default_output_value(self, activity_name: str) -> float:
+        return self.activityMap[activity_name].default_output.magnitude
 
-    def get_activity_unit(self, activity_alias: str) -> str:
-        return bw_unit_fix(self.activityMap[activity_alias].bw_activity["unit"])
+    def get_activity_output_unit(self, activity_name: str) -> str:
+        return bw_unit_fix(self.activityMap[activity_name].bw_activity["unit"])
+
+    def get_activity_result_units(self, activity_name: str) -> list[str]:
+        return [m.bw_method_unit for m in self.methods.values()]
 
     def prepare_scenario(self, scenario: Scenario):
         inventory: list[dict[Activity, float]] = []

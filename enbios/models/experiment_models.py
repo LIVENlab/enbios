@@ -278,6 +278,8 @@ class ScenarioResultNodeData:
     output: tuple[Optional[str], Optional[float]] = (None, None)
     results: dict[str, float] = field(default_factory=dict)
     distribution_results: dict[str, list[float]] = field(default_factory=dict)
+    adapter: Optional[str] = None
+    aggregator: Optional[str] = None
 
 
 class AdapterModel(BaseModel):

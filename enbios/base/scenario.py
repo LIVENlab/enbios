@@ -60,8 +60,8 @@ class Scenario:
             #     activity_node.data.bw_activity = bw_activity
         self.result_tree.recursive_apply(
             Scenario._recursive_resolve_outputs,
-            depth_first=True,
             scenario=self,
+            depth_first=True,
             cancel_parents_of=set(),
         )
 
@@ -80,14 +80,17 @@ class Scenario:
 
     @staticmethod
     def _recursive_resolve_outputs(
-        node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None, **kwargs
+            node: BasicTreeNode[ScenarioResultNodeData], scenario: "Scenario",  **kwargs
     ):
         # todo, does this takes default values when an activity is not defined
         #  in the scenario?
-        scenario: Scenario = kwargs["scenario"]
+        # scenario: Scenario = kwargs["scenario"]
         cancel_parts_of: set = kwargs["cancel_parents_of"]
         if node.is_leaf:
             return
+        aggregator = scenario.experiment.get_node_aggregator(node.data.aggregator)
+        aggregator.validate_node_output(node)
+
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
         if any(child.id in cancel_parts_of for child in node.children):
             node.set_data(ScenarioResultNodeData())
@@ -206,12 +209,12 @@ class Scenario:
         return data_serializer
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = False,
-        warn_no_results: bool = True,
-        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            self,
+            file_path: PathLike,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = False,
+            warn_no_results: bool = True,
+            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ):
         """
         Save the results (as tree) to a csv file
@@ -241,10 +244,10 @@ class Scenario:
         )
 
     def result_to_dict(
-        self,
-        include_output: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            self,
+            include_output: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
@@ -281,7 +284,7 @@ class Scenario:
             return recursive_transform(self.result_tree.copy())
 
     def rearrange_results(
-        self, hierarchy: Union[list, dict]
+            self, hierarchy: Union[list, dict]
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         alt_result_tree = self.experiment.validate_hierarchy(hierarchy)
 

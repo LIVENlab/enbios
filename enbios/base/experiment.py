@@ -10,7 +10,9 @@ from typing import Any, Optional, Union
 
 from bw2data.backends import Activity
 
-from enbios.base.adapters import load_adapter, EnbiosAdapter, EnbiosAggregator, load_aggregator
+from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
+from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator, SumAggregator
+from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
@@ -61,9 +63,15 @@ class Experiment:
 
         # alias to activity
         self.adapters: list[EnbiosAdapter] = self._validate_adapters()
+        self.aggregators: list[EnbiosAggregator] = self._validate_aggregators()
+
         self._validate_aggregators: list[EnbiosAggregator] = self._validate_aggregators()
         self.adapter_indicator_map: dict[str, EnbiosAdapter] = {adapter.activity_indicator: adapter for adapter in
                                                                 self.adapters}
+        self.aggregator_indicator_map: dict[str, EnbiosAggregator] = {aggregator.node_indicator: aggregator for
+                                                                      aggregator in
+                                                                      self.aggregators}
+
         for adapter in self.adapters:
             adapter.validate_config()
 
@@ -72,11 +80,16 @@ class Experiment:
         ] = self.validate_hierarchy(self.raw_data.hierarchy)
         self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {n.name: n for n in
                                                                         self.hierarchy_root.iter_leaves()}
-        for activity_node in self._activities.values():
-            self.get_activity_adapter(activity_node).validate_activity(activity_node.name,
-                                                                       activity_node.data.id,
-                                                                       activity_node.data.output,
-                                                                       False)
+
+        for node in self.hierarchy_root.iter_all_nodes():
+            if node.is_leaf:
+                self.get_activity_adapter(node).validate_activity(node.name,
+                                                                  node.data.id,
+                                                                  node.data.output,
+                                                                  False)
+            # todo still validate here?
+            # else:
+            #     self.get_node_aggregator(node.data.aggregator).validate_node_output(node)
 
         self.methods: dict[str, ExperimentMethodPrepData] = {}
         for adapter in self.adapters:
@@ -120,7 +133,7 @@ class Experiment:
         return [
             load_aggregator(adapter)
             for adapter in self.raw_data.aggregators
-        ]
+        ] + [SumAggregator()]
 
     # @staticmethod
     # def _prepare_activities(
@@ -226,10 +239,26 @@ class Experiment:
 
     def get_activity_unit(self, activity_node_name: str) -> str:
         activity = self.get_activity(activity_node_name)
-        return self.get_activity_adapter(activity).get_activity_unit(activity_node_name)
+        return self.get_activity_adapter(activity).get_activity_output_unit(activity_node_name)
 
-    def get_node_aggregator(self, node: BasicTreeNode[ScenarioResultNodeData]) -> EnbiosAggregator:
-        pass
+    def get_node_aggregator(self, aggregator_indicator: str) -> EnbiosAggregator:
+        return self.aggregator_indicator_map[aggregator_indicator]
+
+    def convert_tech_tree2result_tree(self):
+        def recursive_convert(node: BasicTreeNode[TechTreeNodeData]):
+            output: tuple[Optional[str], Optional[float]] = (None, None)
+            if node.is_leaf:
+                output = (self.get_activity_adapter(node).get_activity_output_unit(node.name), 0)
+            result_node: BasicTreeNode[ScenarioResultNodeData] = BasicTreeNode(
+                name=node.name,
+                data=ScenarioResultNodeData(
+                    output=output,
+                    adapter=node.data.adapter,
+                    aggregator=node.data.aggregator
+                ),
+            )
+
+        return self.hierarchy_root.recursive_apply(recursive_convert)
 
     def _validate_scenarios(self) -> list[Scenario]:
         """
