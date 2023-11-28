@@ -15,7 +15,7 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def validate_methods(self):
+    def validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]:
         pass
 
     @abstractmethod
@@ -35,7 +35,7 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_activity_result_units(self, activity_name: str) -> list[str]:
+    def get_method_unit(self, method_name: str) -> list[str]:
         pass
 
     @abstractmethod

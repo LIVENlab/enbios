@@ -2,16 +2,15 @@ from os import PathLike
 from typing import Union, Optional
 
 from flatten_dict import unflatten
-from frictionless import Schema, Resource, validate, system
+from frictionless import Schema
 from frictionless.fields import NumberField, StringField
 
-
 from enbios.generic.files import ReadPath
+from enbios.generic.tree.csv2dict import csv_tree2dict
 from enbios.models.experiment_models import (
     ExperimentData,
-    ExperimentMethodData,
+    # ExperimentMethodData,
 )
-from enbios.generic.tree.csv2dict import csv_tree2dict
 
 activities_schema = Schema(
     fields=[
@@ -60,17 +59,17 @@ def unflatten_data(data: dict, structure_map: dict):
     return unflatten(res, splitter="dot")
 
 
-def parse_method_row(row: dict) -> ExperimentMethodData:
-    id_: list[str] = []
-    if row_id := row.get("id"):
-        id_ = row_id.split(",")
-    else:
-        for i in range(4):
-            if row_id := row.get(f"id{i}"):
-                id_.append(row_id)
-            else:
-                break
-    return ExperimentMethodData(alias=row.get("alias"), id=tuple(id_))
+# def parse_method_row(row: dict) -> ExperimentMethodData:
+#     id_: list[str] = []
+#     if row_id := row.get("id"):
+#         id_ = row_id.split(",")
+#     else:
+#         for i in range(4):
+#             if row_id := row.get(f"id{i}"):
+#                 id_.append(row_id)
+#             else:
+#                 break
+#     return ExperimentMethodData(alias=row.get("alias"), id=tuple(id_))
 
 
 def get_abs_path(path: Union[str, PathLike], base_dir: Optional[str] = None) -> ReadPath:

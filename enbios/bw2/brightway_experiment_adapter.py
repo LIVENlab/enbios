@@ -13,9 +13,7 @@ from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.models.experiment_models import (
-    ActivityOutput,
-    ExperimentMethodData, ExperimentMethodPrepData,
-    MethodsDataTypes, MethodsDataTypesExt, BWCalculationSetup, ExperimentActivityId,
+    ActivityOutput, BWCalculationSetup, ExperimentActivityId, ResultValue,
 )
 
 logger = getLogger(__file__)
@@ -24,9 +22,17 @@ ureg = get_enbios_ureg()
 
 
 @dataclass
+class ExperimentMethodPrepData:
+    id: tuple[str, ...]
+    # alias: str
+    # todo should go...
+    bw_method_unit: str
+
+
+@dataclass
 class BWAdapterConfig:
     bw_project: str
-    methods: MethodsDataTypesExt
+    # methods: MethodsDataTypesExt
     use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
     bw_default_database: Optional[str] = None
     store_raw_results: Optional[bool] = False  # store numpy arrays of lca results
@@ -134,47 +140,23 @@ class BrightwayAdapter(EnbiosAdapter):
             self.config.bw_project, self.config.bw_default_database
         )
 
-    def validate_methods(self):
+    def validate_methods(self, methods: dict[str, Any]) -> list[str]:
         def validate_method(
-                method: ExperimentMethodData, alias: str
+                method: dict
         ) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
-            method.id = tuple(method.id)
-            bw_method = bd.methods.get(method.id)
+            bw_method = bd.methods.get(method["id"])
             if not bw_method:
-                raise Exception(f"Method with id: {method.id} does not exist")
-            if method.alias:
-                if method.alias != alias:
-                    raise Exception(
-                        f"Method alias: {method.alias} does not match with "
-                        f"the given alias: {alias}"
-                    )
-            else:
-                method.alias = alias
+                raise Exception(f"Method with id: {method['id']} does not exist")
             return ExperimentMethodPrepData(
-                id=method.id, alias=method.alias, bw_method_unit=bw_method["unit"]
+                id=tuple(method["id"]), bw_method_unit=bw_method["unit"]
             )
 
-        def prepare_methods(methods: MethodsDataTypes) -> dict[str, ExperimentMethodData]:
-            # if not methods:
-            #     methods = self.raw_data.methods
-            method_dict: dict[str, ExperimentMethodData] = {}
-            if isinstance(methods, dict):
-                for method_alias, method in methods.items():
-                    method_dict[method_alias] = ExperimentMethodData(method, method_alias)
-            elif isinstance(methods, list):
-                method_list: list[ExperimentMethodData] = [ExperimentMethodData(**m) for m in methods]
-                for method_ in method_list:
-                    alias = method_.alias if method_.alias else "_".join(method_.id)
-                    method__ = ExperimentMethodData(method_.id, alias)
-                    method_dict[method__.alias_] = method__
-            return method_dict
-
         self.methods: dict[str, ExperimentMethodPrepData] = {
-            alias: validate_method(method, alias)
-            for alias, method in prepare_methods(self.config.methods).items()
+            name: validate_method(method)
+            for name, method in methods.items()
         }
-        return self.methods
+        return list(self.methods.keys())
 
     def validate_activity_output(
             self,
@@ -231,8 +213,8 @@ class BrightwayAdapter(EnbiosAdapter):
     def get_activity_output_unit(self, activity_name: str) -> str:
         return bw_unit_fix(self.activityMap[activity_name].bw_activity["unit"])
 
-    def get_activity_result_units(self, activity_name: str) -> list[str]:
-        return [m.bw_method_unit for m in self.methods.values()]
+    def get_method_unit(self, method_name: str) -> str:
+        return self.methods[method_name].bw_method_unit
 
     def prepare_scenario(self, scenario: Scenario):
         inventory: list[dict[Activity, float]] = []
@@ -258,15 +240,17 @@ class BrightwayAdapter(EnbiosAdapter):
             self.raw_results[scenario.name] = raw_results
 
         result_data: dict[str, Any] = {}
-        method_aliases = [m.alias for m in self.methods.values()]
         for act_idx, act_alias in enumerate(self.activityMap.keys()):
             result_data[act_alias] = {}
-            for m_idx, method in enumerate(method_aliases):
+            for m_idx, method in enumerate(self.methods.items()):
+                method_name, method_data = method
+                # todo this could be a type
+                method_result = ResultValue(unit= method_data.bw_method_unit)
                 if use_distributions:
-                    result_data[act_alias][method] = [res[act_idx, m_idx] for res in raw_results]
+                    method_result.amount = [res[act_idx, m_idx] for res in raw_results]
                 else:
-                    result_data[act_alias][method] = raw_results[0][act_idx, m_idx]
-
+                    method_result.amount = raw_results[0][act_idx, m_idx]
+                result_data[act_alias][method_name] = method_result
         return result_data
 
     def run(self):

@@ -1,6 +1,6 @@
 import math
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from datetime import timedelta
 from typing import Optional, Union, TYPE_CHECKING, Any
 
@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     ScenarioResultNodeData,
-    ExperimentMethodPrepData,
     Activity_Outputs,
 )
 
@@ -29,7 +28,7 @@ class Scenario:
     _has_run: bool = False
     # this should be a simpler type - just str: float
     activities_outputs: Activity_Outputs = field(default_factory=dict)
-    methods: Optional[dict[str, ExperimentMethodPrepData]] = None
+    # methods: Optional[dict[str, ExperimentMethodPrepData]] = None
     _execution_time: float = float("NaN")
 
     def prepare_tree(self):
@@ -68,15 +67,15 @@ class Scenario:
         else:
             experiment.get_node_aggregator(node.data.aggregator).aggregate_results(node)
 
-    def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
-        if self.methods:
-            return self.methods
-        else:
-            return self.experiment.methods
+    # def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
+    #     if self.methods:
+    #         return self.methods
+    #     else:
+    #         return self.experiment.methods
 
     def run(self, results_as_dict: bool = True) -> BasicTreeNode[ScenarioResultNodeData]:
-        if not self._get_methods():
-            raise ValueError(f"Scenario '{self.name}' has no methods")
+        # if not self._get_methods():
+        #     raise ValueError(f"Scenario '{self.name}' has no methods")
         logger.info(f"Running scenario '{self.name}'")
         # distributions_config = self.experiment.config.use_k_bw_distributions
         # distribution_results = distributions_config > 1
@@ -114,10 +113,10 @@ class Scenario:
             activity_node = self.result_tree.find_subnode_by_name(activity)
             activity_node.data.results = activity_result
 
-    def wrapper_data_serializer(self, include_method_units: bool = False):
+    def wrapper_data_serializer(self, include_method_units: bool = True):
         method_alias2units: dict[str, str] = {
-            method_alias: method_info.bw_method_unit
-            for method_alias, method_info in self.experiment.methods.items()
+            method_name: self.experiment.get_method_unit(method_name)
+            for method_name in self.experiment.methods
         }
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
@@ -141,7 +140,7 @@ class Scenario:
             self,
             file_path: PathLike,
             level_names: Optional[list[str]] = None,
-            include_method_units: bool = False,
+            include_method_units: bool = True,
             warn_no_results: bool = True,
             alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ):
@@ -188,7 +187,8 @@ class Scenario:
         """
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
-            result: dict[str, Any] = {"results": data.results}
+            result: dict[str, Any] = {
+                "results": {method_name: asdict(result_value) for method_name, result_value in data.results.items()}}
             if include_output:
                 result["output"] = {"unit": data.output[0], "amount": data.output[1]}
             # todo: adapter specific additional data

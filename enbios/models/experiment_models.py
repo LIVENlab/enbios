@@ -134,22 +134,14 @@ class ExperimentActivityData:
 
 
 # BW Specific
-@pydantic_dataclass(config=StrictInputConfig)
-class ExperimentMethodData:
-    id: tuple[str, ...]
-    alias: Optional[str] = None
-
-    @property
-    def alias_(self) -> str:
-        return str(self.alias)
-
-
-@pydantic_dataclass(config=StrictInputConfig)
-class ExperimentMethodPrepData:
-    id: tuple[str, ...]
-    alias: str
-    # todo should go...
-    bw_method_unit: str
+# @pydantic_dataclass(config=StrictInputConfig)
+# class ExperimentMethodData:
+#     id: tuple[str, ...]
+#     alias: Optional[str] = None
+#
+#     @property
+#     def alias_(self) -> str:
+#         return str(self.alias)
 
 
 @pydantic_dataclass(config=StrictInputConfig, repr=False)
@@ -178,7 +170,7 @@ class ExperimentScenarioPrepData:
     activities: dict[str, ExperimentActivityOutput] = Field(
         default_factory=dict
     )
-    methods: list[ExperimentMethodData] = Field(default_factory=list)
+    # methods: list[ExperimentMethodData] = Field(default_factory=list)
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -204,11 +196,11 @@ class ExperimentConfig:
 
 
 # BW Specific
-MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
-# with path
-MethodsDataTypesExt = Union[
-    list[ExperimentMethodData], dict[str, tuple[str, ...]], PathLike
-]
+# MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
+# # with path
+# MethodsDataTypesExt = Union[
+#     list[ExperimentMethodData], dict[str, tuple[str, ...]], PathLike
+# ]
 
 # with path
 HierarchyDataTypesExt = Union[ExperimentHierarchyNodeData, PathLike]
@@ -289,9 +281,15 @@ class TechTreeNodeData(BaseModel):
 
 
 @dataclass
+class ResultValue:
+    unit: str
+    amount: Optional[Union[float, list[float]]] = 0
+
+
+@dataclass
 class ScenarioResultNodeData:
     output: tuple[Optional[str], Optional[float]] = (None, None)
-    results: dict[str, float] = field(default_factory=dict)
+    results: dict[str, ResultValue] = field(default_factory=dict)
     distribution_results: dict[str, list[float]] = field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
@@ -300,6 +298,7 @@ class ScenarioResultNodeData:
 class AdapterModel(BaseModel):
     module_path: PathLike
     config: Optional[dict] = Field(default_factory=dict)
+    methods: Optional[dict[str, Any]] = None
     # aggregates: Optional[bool] = False # todo: later allow one class to also aggregate
 
 

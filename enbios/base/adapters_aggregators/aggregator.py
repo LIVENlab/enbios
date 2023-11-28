@@ -7,7 +7,7 @@ from pint.facets.plain import PlainQuantity
 import enbios
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import ScenarioResultNodeData
+from enbios.models.experiment_models import ScenarioResultNodeData, ResultValue
 
 
 class EnbiosAggregator(ABC):
@@ -91,30 +91,9 @@ class SumAggregator(EnbiosAggregator):
         for child in node.children:
             for key, value in child.data.results.items():
                 if node.data.results.get(key) is None:
-                    node.data.results[key] = 0
-                node.data.results[key] += value
-        # if child.data:
-        #         if add_to_distribution:
-        #             for key, value in child.data.distribution_results.items():
-        #                 if node.data.distribution_results.get(key) is None:
-        #                     num_distribution = len(
-        #                         list(child.data.distribution_results.values())[0]
-        #                     )
-        #                     node.data.distribution_results[key] = [0] * num_distribution
-        #                 node.data.distribution_results[key] = list(
-        #                     [
-        #                         a + b
-        #                         for a, b in zip(
-        #                         node.data.distribution_results[key],
-        #                         child.data.distribution_results[key],
-        #                     )
-        #                     ]
-        #                 )
-        #         else:
-        #             for key, value in child.data.results.items():
-        #                 if node.data.results.get(key) is None:
-        #                     node.data.results[key] = 0
-        #                 node.data.results[key] += value
+                    node.data.results[key] = ResultValue(amount=0, unit=value.unit)
+                node.data.results[key].amount += value.amount
+
 
     @property
     def node_indicator(self) -> str:

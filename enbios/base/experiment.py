@@ -1,5 +1,4 @@
 import csv
-import itertools
 import math
 import time
 from dataclasses import asdict
@@ -24,10 +23,8 @@ from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     ActivityOutput,
     Activity_Outputs,
-    BWCalculationSetup,
     ExperimentConfig,
     ExperimentData,
-    ExperimentMethodPrepData,
     ExperimentScenarioData,
     ScenarioResultNodeData,
     Settings, TechTreeNodeData, ExperimentHierarchyNodeData
@@ -97,15 +94,16 @@ class Experiment:
             cancel_parents_of=set(),
         )
 
-        self.methods: dict[str, ExperimentMethodPrepData] = {}
-        for adapter in self.adapters:
-            adapter_methods = adapter.validate_methods()
-            if any([m in self.methods for m in adapter_methods.keys()]):
-                raise ValueError(
-                    f"Some Method(s) {adapter_methods.keys()} already defined in "
-                    f"another adapter"
-                )
-            self.methods.update(adapter_methods)
+        self.methods: list[str] = []
+        for idx, adapter in enumerate(self.adapters):
+            adapter_methods = self.raw_data.adapters[idx].methods
+            adapter.validate_methods(adapter_methods)
+            # if any([m in self.methods for m in adapter_methods.keys()]):
+            #     raise ValueError(
+            #         f"Some Method(s) {adapter_methods.keys()} already defined in "
+            #         f"another adapter"
+            #     )
+            self.methods.extend([f"{adapter.name}.{m}" for m in adapter_methods.keys()])
 
         self.scenarios: list[Scenario] = self._validate_scenarios()
         self._validate_run_scenario_setting()
@@ -131,6 +129,10 @@ class Experiment:
         valid = aggregator.validate_node_output(node)
         if not valid:
             cancel_parts_of.add(node.id)
+
+    def get_method_unit(self, method_name: str) -> list[str]:
+        adapter_name, method_name = method_name.split(".")
+        return self._adapters[adapter_name].get_method_unit(method_name)
 
     def _validate_run_scenario_setting(self):
         if self.env_settings.RUN_SCENARIOS:
@@ -255,19 +257,20 @@ class Experiment:
                 if activity_alias not in defined_aliases:
                     scenario_activities_outputs[activity.name] = self.get_activity_default_output(activity.name)
 
-            resolved_methods: dict[str, ExperimentMethodPrepData] = {}
-            if _scenario.methods:
-                for index_, method_ in enumerate(_scenario.methods):
-                    if isinstance(method_, str):
-                        global_method = self.methods.get(method_)
-                        assert global_method
-                        resolved_methods[global_method.alias] = global_method
+            # todo shall we bring back. scenario specific methods??
+            # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
+            # if _scenario.methods:
+            #     for index_, method_ in enumerate(_scenario.methods):
+            #         if isinstance(method_, str):
+            #             global_method = self.methods.get(method_)
+            #             assert global_method
+            #             resolved_methods[global_method.alias] = global_method
 
             return Scenario(
                 experiment=self,  # type: ignore
                 name=_scenario_alias,
                 activities_outputs=scenario_activities_outputs,
-                methods=resolved_methods,
+                # methods={},
                 result_tree=self.base_result_tree.copy(),
             )
 
@@ -382,7 +385,7 @@ class Experiment:
         and the result_tree as value
         :return: dictionary scenario-alias : result_tree
         """
-        methods = [m.id for m in self.methods.values()]
+        # methods = [m.id for m in self.methods.values()]
         inventories: list[list[dict[Activity, float]]] = []
 
         if self.config.run_scenarios:
@@ -408,9 +411,9 @@ class Experiment:
 
         # run experiment
         start_time = time.time()
-        calculation_setup = BWCalculationSetup(
-            "experiment", list(itertools.chain(*inventories)), methods
-        )
+        # calculation_setup = BWCalculationSetup(
+        #     "experiment", list(itertools.chain(*inventories)), methods
+        # )
 
         # todo not in this config
         # TODO RUN
@@ -533,9 +536,9 @@ class Experiment:
     def activities_aliases(self) -> list[str]:
         return list(self._activities.keys())
 
-    @property
-    def method_aliases(self) -> list[str]:
-        return list(self.methods.keys())
+    # @property
+    # def method_aliases(self) -> list[str]:
+    #     return list(self.methods.keys())
 
     @property
     def scenario_aliases(self) -> list[str]:
@@ -557,7 +560,7 @@ class Experiment:
         for activity_alias, activity in self._activities.items():
             activity_rows.append(f"  {activity.name} - {activity.data.id.name}")
         activity_rows_str = "\n".join(activity_rows)
-        methods_str = "\n".join([f" {m.id}" for m in self.methods.values()])
+        methods_str = "\n".join([f" {m}" for m in self.methods])
         return (
             f"Experiment: \n"
             f"Activities: {len(self._activities)}\n"
