@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 @dataclass
 class Scenario:
     experiment: "Experiment"
-    alias: str
+    name: str
     result_tree: BasicTreeNode[ScenarioResultNodeData]
 
     _has_run: bool = False
@@ -74,10 +74,10 @@ class Scenario:
         else:
             return self.experiment.methods
 
-    def run(self) -> BasicTreeNode[ScenarioResultNodeData]:
+    def run(self, results_as_dict: bool = True) -> BasicTreeNode[ScenarioResultNodeData]:
         if not self._get_methods():
-            raise ValueError(f"Scenario '{self.alias}' has no methods")
-        logger.info(f"Running scenario '{self.alias}'")
+            raise ValueError(f"Scenario '{self.name}' has no methods")
+        logger.info(f"Running scenario '{self.name}'")
         # distributions_config = self.experiment.config.use_k_bw_distributions
         # distribution_results = distributions_config > 1
         start_time = time.time()
@@ -97,7 +97,7 @@ class Scenario:
 
         self._has_run = True
         self._execution_time = time.time() - start_time
-        return self.result_tree
+        return self.result_to_dict() if results_as_dict else self.result_tree
 
     @property
     def execution_time(self) -> str:
@@ -156,10 +156,10 @@ class Scenario:
          :param include_method_units:
         """
         if not self.result_tree:
-            raise ValueError(f"Scenario '{self.alias}' has no results")
+            raise ValueError(f"Scenario '{self.name}' has no results")
 
         if warn_no_results and not self._has_run:
-            logger.warning(f"Scenario '{self.alias}' has not been run yet")
+            logger.warning(f"Scenario '{self.name}' has not been run yet")
 
         use_tree = self.result_tree
         if alternative_hierarchy:
@@ -198,7 +198,7 @@ class Scenario:
             return result
 
         def recursive_transform(node: BasicTreeNode[ScenarioResultNodeData]) -> dict:
-            result: dict[str, Any] = {"alias": node.name, **data_serializer(node.data)}
+            result: dict[str, Any] = {"name": node.name, **data_serializer(node.data)}
             if node.children:
                 result["children"] = [
                     recursive_transform(child) for child in node.children
@@ -206,7 +206,7 @@ class Scenario:
             return result
 
         if warn_no_results and not self._has_run:
-            logger.warning(f"Scenario '{self.alias}' has not been run yet")
+            logger.warning(f"Scenario '{self.name}' has not been run yet")
         if alternative_hierarchy:
             return recursive_transform(alternative_hierarchy.copy())
         else:
@@ -243,4 +243,4 @@ class Scenario:
         return self._execution_time
 
     def __repr__(self):
-        return f"<Scenario '{self.alias}'>"
+        return f"<Scenario '{self.name}'>"

@@ -52,7 +52,7 @@ class Experiment:
             config_file_path = ReadPath(raw_data)
             raw_data = config_file_path.read_data()
         if isinstance(raw_data, dict):
-            input_data = validate_experiment_data(**raw_data)
+            input_data = validate_experiment_data(raw_data)
         else:
             input_data = raw_data
         # todo. look at how reading a hierarchy from a csv file or a json
@@ -154,8 +154,8 @@ class Experiment:
             for adapter in self.raw_data.adapters
         ]
 
-        for adapter in adapters:
-            adapter.validate_config()
+        for idx, adapter in enumerate(adapters):
+            adapter.validate_config(self.raw_data.adapters[idx].config)
 
         return {adapter.activity_indicator: adapter for adapter in
                 adapters}
@@ -265,7 +265,7 @@ class Experiment:
 
             return Scenario(
                 experiment=self,  # type: ignore
-                alias=_scenario_alias,
+                name=_scenario_alias,
                 activities_outputs=scenario_activities_outputs,
                 methods=resolved_methods,
                 result_tree=self.base_result_tree.copy(),
@@ -279,8 +279,8 @@ class Experiment:
             raw_list_scenarios: list[ExperimentScenarioData] = raw_scenarios
             for index, _scenario in enumerate(raw_list_scenarios):
                 _scenario_alias = (
-                    _scenario.alias
-                    if _scenario.alias
+                    _scenario.name
+                    if _scenario.name
                     else ExperimentScenarioData.alias_factory(index)
                 )
                 scenarios.append(validate_scenario(_scenario, _scenario_alias))
@@ -363,7 +363,7 @@ class Experiment:
         :return:
         """
         for scenario in self.scenarios:
-            if scenario.alias == scenario_alias:
+            if scenario.name == scenario_alias:
                 return scenario
         raise ValueError(f"Scenario '{scenario_alias}' not found")
 
@@ -387,7 +387,7 @@ class Experiment:
 
         if self.config.run_scenarios:
             run_scenarios = [self.get_scenario(s) for s in self.config.run_scenarios]
-            logger.info(f"Running selected scenarios: {[s.alias for s in run_scenarios]}")
+            logger.info(f"Running selected scenarios: {[s.name for s in run_scenarios]}")
         else:
             run_scenarios = self.scenarios
 
@@ -444,7 +444,7 @@ class Experiment:
             for scenario in self.scenarios:
                 if not math.isnan(scenario.get_execution_time()):
                     any_scenario_run = True
-                    scenario_results += f"{scenario.alias}: {scenario.execution_time}\n"
+                    scenario_results += f"{scenario.name}: {scenario.execution_time}\n"
             if any_scenario_run:
                 return scenario_results
             else:
@@ -481,14 +481,14 @@ class Experiment:
             header = []
             all_rows: list = []
             for scenario in self.scenarios:
-                temp_file_name = gettempdir() + f"/temp_scenario_{scenario.alias}.csv"
+                temp_file_name = gettempdir() + f"/temp_scenario_{scenario.name}.csv"
                 scenario.results_to_csv(
                     temp_file_name,
                     level_names=level_names,
                     include_method_units=include_method_units,
                 )
                 rows = ReadPath(temp_file_name).read_data()
-                rows[0]["scenario"] = scenario.alias
+                rows[0]["scenario"] = scenario.name
                 if not all_rows:
                     header = list(rows[0].keys())
                     header.remove("scenario")
@@ -539,7 +539,7 @@ class Experiment:
 
     @property
     def scenario_aliases(self) -> list[str]:
-        return list([s.alias for s in self.scenarios])
+        return list([s.name for s in self.scenarios])
 
     @property
     def adapters(self) -> list[EnbiosAdapter]:
@@ -555,7 +555,7 @@ class Experiment:
         """
         activity_rows: list[str] = []
         for activity_alias, activity in self._activities.items():
-            activity_rows.append(f"  {activity.name} - {activity.id.name}")
+            activity_rows.append(f"  {activity.name} - {activity.data.id.name}")
         activity_rows_str = "\n".join(activity_rows)
         methods_str = "\n".join([f" {m.id}" for m in self.methods.values()])
         return (

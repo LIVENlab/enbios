@@ -28,7 +28,7 @@ def create_module_object(adapter_model: Union[AdapterModel, AggregationModel], b
         # check if cl is subclass of EnbiosAdapter/EnbiosAggregation
         clazz = inspect_clazz[1]
         if any(base.__name__ == base_class.__name__ for base in clazz.__bases__):
-            return clazz(adapter_model.config)
+            return clazz()
 
     raise ValueError(f"'{Path(adapter_model.module_path).name}' has no class that inherits from '{base_class.__name__}'")
 

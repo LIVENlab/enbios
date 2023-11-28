@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 from enbios.base.scenario import Scenario
 from enbios.models.experiment_models import ActivityOutput, ExperimentActivityId
@@ -7,8 +7,11 @@ from enbios.models.experiment_models import ActivityOutput, ExperimentActivityId
 
 class EnbiosAdapter(ABC):
 
+    def __init__(self):
+        self._config = None
+
     @abstractmethod
-    def validate_config(self):
+    def validate_config(self, config: dict[str, Any]):
         pass
 
     @abstractmethod

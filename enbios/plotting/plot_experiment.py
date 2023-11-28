@@ -352,7 +352,7 @@ def plot_sankey(
         ]
     )
 
-    fig.update_layout(title_text=f"{scenario.alias} / {method_}", font_size=10)
+    fig.update_layout(title_text=f"{scenario.name} / {method_}", font_size=10)
     if image_file:
         fig.write_image(Path(image_file).as_posix(), width=1800, height=1600)
     return fig

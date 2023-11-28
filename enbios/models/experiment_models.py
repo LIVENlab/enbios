@@ -272,7 +272,7 @@ class TechTreeNodeData(BaseModel):
             pass
         try:
             out_tuple = ExperimentActivityOutputArray(v)
-            print(out_tuple)
+            # print(out_tuple)
             return {"unit": out_tuple[0], "magnitude": out_tuple[1]}
         except ValidationError:
             raise ValidationError("Output must be either {unit, magnitude} or tuple[str, float]")

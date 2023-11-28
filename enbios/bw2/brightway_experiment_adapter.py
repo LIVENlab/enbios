@@ -6,7 +6,6 @@ import bw2data as bd
 from bw2data.backends import Activity
 from numpy import ndarray
 from pint import DimensionalityError, Quantity, UndefinedUnitError
-from pydantic import BaseModel
 
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
@@ -91,9 +90,9 @@ class BWActivityData:
 
 class BrightwayAdapter(EnbiosAdapter):
 
-    def __init__(self, config: dict):
+    def __init__(self):
         super(BrightwayAdapter, self).__init__()
-        self.config = BWAdapterConfig(**config)
+        self.config = None
         self.activityMap: dict[str, BWActivityData] = {}
         self.methods: dict[str, ExperimentMethodPrepData] = {}
         self.scenario_calc_setups: dict[str, BWCalculationSetup] = {}  # scenario_alias to BWCalculationSetup
@@ -107,7 +106,8 @@ class BrightwayAdapter(EnbiosAdapter):
     def activity_indicator(self) -> str:
         return "bw"
 
-    def validate_config(self):
+    def validate_config(self, config: dict[str, Any]):
+        self.config = BWAdapterConfig(**config)
         if self.config.use_k_bw_distributions < 1:
             raise ValueError(
                 f"config.use_k_bw_distributions must be greater than 0, "
@@ -241,21 +241,21 @@ class BrightwayAdapter(EnbiosAdapter):
             inventory.append({activity.bw_activity: act_output})
 
         methods = [m.id for m in self.methods.values()]
-        calculation_setup = BWCalculationSetup(scenario.alias, inventory, methods)
+        calculation_setup = BWCalculationSetup(scenario.name, inventory, methods)
         calculation_setup.register()
-        self.scenario_calc_setups[scenario.alias] = calculation_setup
+        self.scenario_calc_setups[scenario.name] = calculation_setup
 
     def run_scenario(self, scenario: Scenario) -> dict[str, Any]:
         use_distributions = self.config.use_k_bw_distributions > 1
         raw_results: Union[list[ndarray], ndarray] = []
         for i in range(self.config.use_k_bw_distributions):
             _raw_results: ndarray = StackedMultiLCA(
-                self.scenario_calc_setups[scenario.alias], use_distributions
+                self.scenario_calc_setups[scenario.name], use_distributions
             ).results
             raw_results.append(_raw_results)
 
         if self.config.store_raw_results:
-            self.raw_results[scenario.alias] = raw_results
+            self.raw_results[scenario.name] = raw_results
 
         result_data: dict[str, Any] = {}
         method_aliases = [m.alias for m in self.methods.values()]
