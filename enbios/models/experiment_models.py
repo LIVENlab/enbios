@@ -39,9 +39,7 @@ class ExperimentActivityId:
     # additional filter
     unit: Optional[str] = None  # unit
     # internal-name
-    alias: Optional[str] = None  # experiment alias
-
-    # source: Optional[str] = "bw"  # = type (e.g. "bw", "")
+    alias: Optional[str] = None  # experiment name
 
     def get_bw_activity(
         self, allow_multiple: bool = False
@@ -129,36 +127,21 @@ class ExperimentActivityData:
         None, description="Temporary copy of the id"
     )
 
-    @property
-    def alias(self):
-        return self.id.alias
-
-
-# BW Specific
-# @pydantic_dataclass(config=StrictInputConfig)
-# class ExperimentMethodData:
-#     id: tuple[str, ...]
-#     alias: Optional[str] = None
-#
-#     @property
-#     def alias_(self) -> str:
-#         return str(self.alias)
-
 
 @pydantic_dataclass(config=StrictInputConfig, repr=False)
 class ExperimentScenarioData:
-    # map from activity id to output. id is either as original (tuple) or alias-dict
+    # map from activity id to output. id is either as original (tuple) or name-dict
     activities: Optional[
         dict[str, ExperimentActivityOutput]
-    ] = None  # alias to output, null means default-output (check exists)
+    ] = None  # name to output, null means default-output (check exists)
 
-    # either the alias, or the id of any method. not method means running them all
+    # either the name, or the id of any method. not method means running them all
     methods: Optional[list[Union[str]]] = None
-    alias: Optional[str] = None
+    name: Optional[str] = None
 
-    @staticmethod
-    def alias_factory(index: int):
-        return f"Scenario {index}"
+    def name_factory(self, index: int):
+        if not self.name:
+            self.name = f"Scenario {index}"
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -178,7 +161,7 @@ class ExperimentConfig:
     # use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
     run_scenarios: Optional[
         list[str]
-    ] = None  # list of scenario-alias to run, ALSO AS ENV-VAR
+    ] = None  # list of scenario-name to run, ALSO AS ENV-VAR
     # only used by ExperimentDataIO
     # base_directory when loading files (activities, methods, ...)
     base_directory: Optional[Union[str, PathLike]] = None
@@ -191,23 +174,12 @@ class ExperimentConfig:
     debug_test_run: Optional[bool] = False
 
 
-# BW Specific
-# MethodsDataTypes = Union[list[ExperimentMethodData], dict[str, tuple[str, ...]]]
-# # with path
-# MethodsDataTypesExt = Union[
-#     list[ExperimentMethodData], dict[str, tuple[str, ...]], PathLike
-# ]
-
 # with path
 HierarchyDataTypesExt = Union[ExperimentHierarchyNodeData, PathLike]
 
-ScenariosDataTypes = Union[
-    list[ExperimentScenarioData], dict[str, ExperimentScenarioData]
-]
+ScenariosDataTypes = list[ExperimentScenarioData]
 # with path
-ScenariosDataTypesExt = Union[
-    list[ExperimentScenarioData], dict[str, ExperimentScenarioData], PathLike
-]
+ScenariosDataTypesExt = Union[list[ExperimentScenarioData], PathLike]
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -230,16 +202,6 @@ class ExperimentData:
         default_factory=ExperimentConfig,
         description="The configuration of this experiment",
     )
-
-
-@dataclass
-class BWCalculationSetup:
-    name: str
-    inv: list[dict[Activity, float]]
-    ia: list[tuple[str, ...]]
-
-    def register(self):
-        bw2data.calculation_setups[self.name] = {"inv": self.inv, "ia": self.ia}
 
 
 class TechTreeNodeData(BaseModel):
@@ -292,7 +254,7 @@ class ResultValue:
 class ScenarioResultNodeData:
     output: tuple[Optional[str], Optional[float]] = (None, None)
     results: dict[str, ResultValue] = field(default_factory=dict)
-    distribution_results: dict[str, list[float]] = field(default_factory=dict)
+    # distribution_results: dict[str, list[float]] = field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
 

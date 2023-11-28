@@ -16,7 +16,7 @@ class ResultsSelector:
     ):
         self.experiment = experiment
 
-        all_aliases = [sc.alias for sc in self.experiment.scenarios]
+        all_aliases = [sc.name for sc in self.experiment.scenarios]
         if scenarios is not None:
             for scenario in scenarios:
                 if scenario not in all_aliases:
@@ -71,7 +71,7 @@ class ResultsSelector:
                         scenario
                     ).result_tree.data.results.items()
                 }
-                for scenario in self.experiment.scenario_aliases
+                for scenario in self.experiment.scenario_names
             ]
 
             self._complete_df = DataFrame(data)

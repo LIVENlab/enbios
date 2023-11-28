@@ -1,22 +1,26 @@
 import logging
+from dataclasses import dataclass
+
+import bw2data
 import numpy as np
 
-from enbios.models.experiment_models import BWCalculationSetup
-
-try:
-    from bw2data import calculation_setups, get_activity
-    from bw2data.backends.proxies import Activity
-except ImportError:
-    calculation_setups = None
-
-    class Activity:
-        pass
-
+from bw2data import get_activity
+from bw2data.backends import Activity
 
 from bw2calc.lca import LCA
 from bw2calc.utils import wrap_functional_unit
 
 logger = logging.getLogger("bw2calc")
+
+
+@dataclass
+class BWCalculationSetup:
+    name: str
+    inv: list[dict[Activity, float]]
+    ia: list[tuple[str, ...]]
+
+    def register(self):
+        bw2data.calculation_setups[self.name] = {"inv": self.inv, "ia": self.ia}
 
 
 class InventoryMatrices:

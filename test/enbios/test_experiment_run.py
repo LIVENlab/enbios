@@ -193,7 +193,7 @@ def run_basic_experiment(experiment_setup) -> Experiment:
 
 
 def test_write_dict(run_basic_experiment: Experiment, tempfolder: Path):
-    scenario = run_basic_experiment.get_scenario(Experiment.DEFAULT_SCENARIO_ALIAS)
+    scenario = run_basic_experiment.get_scenario(Experiment.DEFAULT_SCENARIO_NAME)
     json.dump(scenario.result_to_dict(),
               (tempfolder / "test_json_output.json").open("w"), indent=2)
     json.dump(scenario.result_to_dict(False),
@@ -204,7 +204,7 @@ def test_write_dict(run_basic_experiment: Experiment, tempfolder: Path):
 def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[
     ScenarioResultNodeData]:
     return run_basic_experiment.get_scenario(
-        Experiment.DEFAULT_SCENARIO_ALIAS).result_tree
+        Experiment.DEFAULT_SCENARIO_NAME).result_tree
 
 
 def test_single_lca_compare(run_basic_experiment: Experiment,
@@ -237,7 +237,7 @@ def test_temp_load_pickle(tempfolder: Path):
 
 
 def test_csv_output(run_basic_experiment, temp_csv_file: Path):
-    run_basic_experiment.results_to_csv(temp_csv_file, Experiment.DEFAULT_SCENARIO_ALIAS,
+    run_basic_experiment.results_to_csv(temp_csv_file, Experiment.DEFAULT_SCENARIO_NAME,
                                         include_method_units=False)
     assert temp_csv_file.exists()
     csv_data = ReadPath(temp_csv_file).read_data()
@@ -248,7 +248,7 @@ def test_csv_output(run_basic_experiment, temp_csv_file: Path):
 
 
 def test_dict_output(run_basic_experiment, tempfolder: Path):
-    scenario = run_basic_experiment.get_scenario(Experiment.DEFAULT_SCENARIO_ALIAS)
+    scenario = run_basic_experiment.get_scenario(Experiment.DEFAULT_SCENARIO_NAME)
     json_data = scenario.result_to_dict()
     expected_json_data = json.load((tempfolder / "test_json_output.json").open())
     assert json_data == expected_json_data
@@ -264,7 +264,7 @@ def test_scaled_demand(experiment_setup, default_method_str: str):
     expected_tree = experiment_setup["expected_result_tree"]
     expected_value = expected_tree["data"].results[default_method_str] * scale
     result = Experiment(ExperimentData(**scenario_data)).run()
-    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[
+    assert result[Experiment.DEFAULT_SCENARIO_NAME]._data.results[
                default_method_str] == pytest.approx(
         expected_value, abs=1e-10)
 
@@ -277,7 +277,7 @@ def test_scaled_demand_unit(experiment_setup, default_method_str: str):
     result = Experiment(ExperimentData(**scenario_data)).run()
     # print(result["default scenario"]["data"][method])
     # print(result["default scenario"]["data"][method] / expected_value)
-    assert result[Experiment.DEFAULT_SCENARIO_ALIAS]._data.results[
+    assert result[Experiment.DEFAULT_SCENARIO_NAME]._data.results[
                default_method_str] == pytest.approx(
         expected_value, abs=1e-7)
 

@@ -10,11 +10,10 @@ from pint import DimensionalityError, Quantity, UndefinedUnitError
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
-from enbios.base.stacked_MultiLCA import StackedMultiLCA
+from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
 from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.models.experiment_models import (
     ActivityOutput,
-    BWCalculationSetup,
     ExperimentActivityId,
     ResultValue,
 )

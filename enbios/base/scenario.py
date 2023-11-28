@@ -1,4 +1,3 @@
-import json
 import math
 import time
 from dataclasses import dataclass, field, asdict
@@ -39,16 +38,16 @@ class Scenario:
         If config is set, it also stores the BW activity dict with the node.
         """
 
-        activities_aliases = list(self.activities_outputs.keys())
-        for result_index, activity_alias in enumerate(activities_aliases):
+        activities_namees = list(self.activities_outputs.keys())
+        for result_index, activity_name in enumerate(activities_namees):
             try:
-                activity_node = self.result_tree.find_subnode_by_name(activity_alias)
+                activity_node = self.result_tree.find_subnode_by_name(activity_name)
             except StopIteration:
-                raise ValueError(f"Activity {activity_alias} not found in result tree")
+                raise ValueError(f"Activity {activity_name} not found in result tree")
             activity_node._data = ScenarioResultNodeData(
                 output=(
-                    self.experiment.get_activity_unit(activity_alias),
-                    self.activities_outputs[activity_alias],
+                    self.experiment.get_activity_output_unit(activity_name),
+                    self.activities_outputs[activity_name],
                 )
             )
             # todo adapter/aggregator specific additional data
@@ -118,7 +117,7 @@ class Scenario:
 
     def wrapper_data_serializer(self, include_method_units: bool = True):
         # todo: use this for json as well...
-        method_alias2units: dict[str, str] = {
+        method_name2units: dict[str, str] = {
             method_name: self.experiment.get_method_unit(method_name)
             for method_name in self.experiment.methods
         }
@@ -131,10 +130,8 @@ class Scenario:
             if not include_method_units:
                 return result | data.results
             else:
-                for method_alias, value in data.results.items():
-                    final_name = (
-                        f"{method_alias} ({method_alias2units[str(method_alias)]})"
-                    )
+                for method_name, value in data.results.items():
+                    final_name = f"{method_name} ({method_name2units[str(method_name)]})"
                     result[final_name] = value
                 return result
 
@@ -256,7 +253,7 @@ class Scenario:
     def describe(self):
         output = f"Scenario '{self.name}'\n"
 
-        #output += json.dumps(self.activities_outputs, indent=2)
+        # output += json.dumps(self.activities_outputs, indent=2)
         # todo: the tree instead...
 
         return output

@@ -69,7 +69,7 @@ a1 = {
 def test_a():
     data = validate_experiment_data(a1)
     exp = Experiment(data)
-    res = exp.run_scenario(Experiment.DEFAULT_SCENARIO_ALIAS)
+    res = exp.run_scenario(Experiment.DEFAULT_SCENARIO_NAME)
     pass
 
 

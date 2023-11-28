@@ -12,7 +12,7 @@ from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregato
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
-from enbios.base.stacked_MultiLCA import StackedMultiLCA
+from enbios.bw2.stacked_MultiLCA import StackedMultiLCA
 from enbios.bw2.util import bw_unit_fix
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 
 
 class Experiment:
-    DEFAULT_SCENARIO_ALIAS = "default scenario"
+    DEFAULT_SCENARIO_NAME = "default scenario"
 
     def __init__(self, raw_data: Optional[Union[ExperimentData, dict, str]] = None):
         self.env_settings = Settings()
@@ -151,10 +151,10 @@ class Experiment:
             self.config.run_scenarios = self.env_settings.RUN_SCENARIOS
         if self.config.run_scenarios:
             for scenario in self.config.run_scenarios:
-                if scenario not in self.scenario_aliases:
+                if scenario not in self.scenario_names:
                     raise ValueError(
                         f"Scenario '{scenario}' not found in experiment scenarios. "
-                        f"Scenarios are: {self.scenario_aliases}"
+                        f"Scenarios are: {self.scenario_names}"
                     )
 
     def _validate_adapters(self) -> dict[str:EnbiosAdapter]:
@@ -177,7 +177,7 @@ class Experiment:
 
     def get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
-        Get an activity by either its alias or its original "id"
+        Get an activity by either its name
         as it is defined in the experiment data
         :param name:
         :return: ExtendedExperimentActivityData
@@ -202,7 +202,7 @@ class Experiment:
         activity = self.get_activity(activity_name)
         return self.get_activity_adapter(activity).get_default_output_value(activity.name)
 
-    def get_activity_unit(self, activity_name: str) -> str:
+    def get_activity_output_unit(self, activity_name: str) -> str:
         activity = self.get_activity(activity_name)
         return self.get_activity_adapter(activity).get_activity_output_unit(activity_name)
 
@@ -240,25 +240,23 @@ class Experiment:
                 #     result[simple_id] = scenario_output
             return result
 
-        def validate_scenario(
-            _scenario: ExperimentScenarioData, _scenario_alias: str
-        ) -> Scenario:
+        def validate_scenario(_scenario_data: ExperimentScenarioData) -> Scenario:
             """
             Validate one scenario
-            :param _scenario:
-            :param _scenario_alias:
+            :param _scenario_data:
             :return:
             """
-            scenario_activities_outputs: Activity_Outputs = validate_activities(_scenario)
-            defined_aliases = list(scenario_activities_outputs.keys())
+            scenario_activities_outputs: Activity_Outputs = validate_activities(
+                _scenario_data
+            )
+            defined_activities = list(scenario_activities_outputs.keys())
 
             # fill up the missing activities with default values
-            for activity in self._activities.values():
-                activity_alias = activity.name
-                if activity_alias not in defined_aliases:
+            for activity_name in self._activities.keys():
+                if activity_name not in defined_activities:
                     scenario_activities_outputs[
-                        activity.name
-                    ] = self.get_activity_default_output(activity.name)
+                        activity_name
+                    ] = self.get_activity_default_output(activity_name)
 
             # todo shall we bring back. scenario specific methods??
             # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
@@ -267,47 +265,28 @@ class Experiment:
             #         if isinstance(method_, str):
             #             global_method = self.methods.get(method_)
             #             assert global_method
-            #             resolved_methods[global_method.alias] = global_method
+            #             resolved_methods[global_method.name] = global_method
 
             return Scenario(
                 experiment=self,  # type: ignore
-                name=_scenario_alias,
+                name=scenario_data.name,
                 activities_outputs=scenario_activities_outputs,
                 # methods={},
                 result_tree=self.base_result_tree.copy(),
             )
 
-        raw_scenarios = self.raw_data.scenarios
         scenarios: list[Scenario] = []
 
-        # from Union, list or dict
-        if isinstance(raw_scenarios, list):
-            raw_list_scenarios: list[ExperimentScenarioData] = raw_scenarios
-            for index, _scenario in enumerate(raw_list_scenarios):
-                _scenario_alias = (
-                    _scenario.name
-                    if _scenario.name
-                    else ExperimentScenarioData.alias_factory(index)
-                )
-                scenarios.append(validate_scenario(_scenario, _scenario_alias))
-        elif isinstance(raw_scenarios, dict):
-            raw_dict_scenarios: dict[str, ExperimentScenarioData] = raw_scenarios
-            for alias, _scenario in raw_dict_scenarios.items():
-                if _scenario.alias is not None and _scenario.alias != alias:
-                    assert False, (
-                        f"Scenario defines alias as dict-key: {alias} but "
-                        f"also in the scenario object: {_scenario.alias}"
-                    )
-                _scenario.alias = alias
-                scenarios.append(validate_scenario(_scenario, alias))
         # undefined scenarios. just one default scenario
-        elif not raw_scenarios:
-            default_scenario = ExperimentScenarioData()
-            scenarios.append(
-                validate_scenario(default_scenario, Experiment.DEFAULT_SCENARIO_ALIAS)
-            )
+        if not self.raw_data.scenarios:
+            self.raw_data.scenarios = [
+                ExperimentScenarioData(name=Experiment.DEFAULT_SCENARIO_NAME)
+            ]
 
-        for scenario in scenarios:
+        for index, scenario_data in enumerate(self.raw_data.scenarios):
+            scenario_data.name_factory(index)
+            scenario = validate_scenario(scenario_data)
+            scenarios.append(scenario)
             scenario.prepare_tree()
         return scenarios
 
@@ -332,43 +311,43 @@ class Experiment:
         tech_tree.recursive_apply(validate_node_data, depth_first=True)
         return tech_tree
 
-    def _validate_node_calculations(self, tech_tree: BasicTreeNode[TechTreeNodeData]):
-        def validate_node(node: BasicTreeNode[TechTreeNodeData]):
-            if node.is_leaf:
-                # todo we validate that before right?
-                # self.get_activity(node.name).adapter
-                # if not node.data.adapter:
-                #     raise ValueError(
-                #         f"Node '{node.name}' is a leaf and does not have an adapter"
-                #     )
-                # return
-                pass
-            if not node.data.aggregator:
-                if self.config.auto_aggregate:
-                    all_aggregators = [child.data.aggregator for child in node.children]
-                    if len(set(all_aggregators)) == 1:
-                        node.data.aggregator = all_aggregators[0]
-                    raise ValueError(
-                        f"Node '{node.name}' is not a leaf and does not have an aggregator. "
-                        f"Auto-aggregate is on, but the children have different aggregators: {all_aggregators}"
-                    )
+    # def _validate_node_calculations(self, tech_tree: BasicTreeNode[TechTreeNodeData]):
+    #     def validate_node(node: BasicTreeNode[TechTreeNodeData]):
+    #         if node.is_leaf:
+    #             # todo we validate that before right?
+    #             # self.get_activity(node.name).adapter
+    #             # if not node.data.adapter:
+    #             #     raise ValueError(
+    #             #         f"Node '{node.name}' is a leaf and does not have an adapter"
+    #             #     )
+    #             # return
+    #             pass
+    #         if not node.data.aggregator:
+    #             if self.config.auto_aggregate:
+    #                 all_aggregators = [child.data.aggregator for child in node.children]
+    #                 if len(set(all_aggregators)) == 1:
+    #                     node.data.aggregator = all_aggregators[0]
+    #                 raise ValueError(
+    #                     f"Node '{node.name}' is not a leaf and does not have an aggregator. "
+    #                     f"Auto-aggregate is on, but the children have different aggregators: {all_aggregators}"
+    #                 )
+    #
+    #             raise ValueError(
+    #                 f"Node '{node.name}' is not a leaf and does not have an aggregator"
+    #             )
+    #
+    #     tech_tree.recursive_apply(validate_node, depth_first=True)
 
-                raise ValueError(
-                    f"Node '{node.name}' is not a leaf and does not have an aggregator"
-                )
-
-        tech_tree.recursive_apply(validate_node, depth_first=True)
-
-    def get_scenario(self, scenario_alias: str) -> Scenario:
+    def get_scenario(self, scenario_name: str) -> Scenario:
         """
-        Get a scenario by its alias
-        :param scenario_alias:
+        Get a scenario by its name
+        :param scenario_name:
         :return:
         """
         for scenario in self.scenarios:
-            if scenario.name == scenario_alias:
+            if scenario.name == scenario_name:
                 return scenario
-        raise ValueError(f"Scenario '{scenario_alias}' not found")
+        raise ValueError(f"Scenario '{scenario_name}' not found")
 
     def run_scenario(self, scenario_name: str) -> BasicTreeNode[ScenarioResultNodeData]:
         """
@@ -381,9 +360,9 @@ class Experiment:
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         """
-        Run all scenarios. Returns a dict with the scenario alias as key
+        Run all scenarios. Returns a dict with the scenario name as key
         and the result_tree as value
-        :return: dictionary scenario-alias : result_tree
+        :return: dictionary scenario-name : result_tree
         """
         # methods = [m.id for m in self.methods.values()]
         # inventories: list[list[dict[Activity, float]]] = []
@@ -399,12 +378,12 @@ class Experiment:
         #     scenario.reset_execution_time()
         #     if scenario.methods:
         #         raise ValueError(
-        #             f"Scenario cannot have individual methods. '{scenario.alias}'"
+        #             f"Scenario cannot have individual methods. '{scenario.name}'"
         #         )
         #     inventory: list[dict[Activity, float]] = []
-        #     for activity_alias, act_out in scenario.activities_outputs.items():
+        #     for activity_name, act_out in scenario.activities_outputs.items():
         #         bw_activity = scenario.experiment.get_activity(
-        #             activity_alias.alias
+        #             activity_name.alias
         #         ).bw_activity
         #         inventory.append({bw_activity: act_out})
         #     inventories.append(inventory)
@@ -456,7 +435,7 @@ class Experiment:
     def results_to_csv(
         self,
         file_path: PathLike,
-        scenario_alias: Optional[str] = None,
+        scenario_name: Optional[str] = None,
         level_names: Optional[list[str]] = None,
         include_method_units: bool = True,
     ):
@@ -464,7 +443,7 @@ class Experiment:
         Turn the results into a csv file. If no scenario name is given,
         it will export all scenarios to the same file,
         :param file_path:
-        :param scenario_alias: If no scenario name is given, it will
+        :param scenario_name: If no scenario name is given, it will
         export all scenarios to the same file,
             with an additional column for the scenario alias
         :param level_names: (list of strings) If given, the results will be
@@ -472,8 +451,8 @@ class Experiment:
         :param include_method_units:  (Include the units of the methods in the header)
         :return:
         """
-        if scenario_alias:
-            scenario = self.get_scenario(scenario_alias)
+        if scenario_name:
+            scenario = self.get_scenario(scenario_name)
             scenario.results_to_csv(
                 file_path,
                 level_names=level_names,
@@ -533,15 +512,11 @@ class Experiment:
         )
 
     @property
-    def activities_aliases(self) -> list[str]:
+    def activities_names(self) -> list[str]:
         return list(self._activities.keys())
 
-    # @property
-    # def method_aliases(self) -> list[str]:
-    #     return list(self.methods.keys())
-
     @property
-    def scenario_aliases(self) -> list[str]:
+    def scenario_names(self) -> list[str]:
         return list([s.name for s in self.scenarios])
 
     @property
@@ -557,7 +532,7 @@ class Experiment:
         :return:
         """
         activity_rows: list[str] = []
-        for activity_alias, activity in self._activities.items():
+        for activity_name, activity in self._activities.items():
             activity_rows.append(f"  {activity.name} - {activity.data.id.name}")
         activity_rows_str = "\n".join(activity_rows)
         methods_str = "\n".join([f" {m}" for m in self.methods])
