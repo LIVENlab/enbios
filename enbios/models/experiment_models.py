@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Type
 
 import bw2data
 from bw2data.backends import Activity
@@ -30,6 +30,7 @@ class ActivityOutput:
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentActivityId:
+    # todo this is too bw specific
     name: Optional[str] = None  # brightway name
     database: Optional[str] = None  # brightway database
     code: Optional[str] = None  # brightway code
@@ -43,7 +44,7 @@ class ExperimentActivityId:
     # source: Optional[str] = "bw"  # = type (e.g. "bw", "")
 
     def get_bw_activity(
-            self, allow_multiple: bool = False
+        self, allow_multiple: bool = False
     ) -> Union[Activity, list[Activity]]:
         if self.code:
             if not self.database:
@@ -55,7 +56,7 @@ class ExperimentActivityId:
             if self.location:
                 filters["location"] = self.location
                 assert (
-                        self.database in bw2data.databases
+                    self.database in bw2data.databases
                 ), f"database {self.database} not found"
                 search_results = bw2data.Database(self.database).search(
                     self.name, filter=filters
@@ -83,7 +84,7 @@ class ExperimentActivityId:
             raise ValueError("No code or name specified")
 
     def fill_empty_fields(
-            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
+        self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
     ):
         if not fields:
             fields = []
@@ -106,7 +107,9 @@ ExperimentActivityOutput = Union[ActivityOutput, ExperimentActivityOutputArray]
 class ExperimentHierarchyNodeData:
     name: str
     aggregator: str
-    children: Optional[list[Union["ExperimentHierarchyNodeData", "ExperimentActivityData"]]] = None
+    children: Optional[
+        list[Union["ExperimentHierarchyNodeData", "ExperimentActivityData"]]
+    ] = None
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -117,9 +120,7 @@ class ExperimentActivityData:
     """
 
     name: str
-    id: ExperimentActivityId = Field(
-        ..., description="The identifies (method to find) an activity"
-    )
+    id: Any = Field(..., description="The identifies (method to find) an activity")
     adapter: str = Field(..., description="The adapter to be used")
     output: Optional[ExperimentActivityOutput] = Field(
         None, description="The default output of the activity"
@@ -148,12 +149,7 @@ class ExperimentActivityData:
 class ExperimentScenarioData:
     # map from activity id to output. id is either as original (tuple) or alias-dict
     activities: Optional[
-        Union[
-            list[
-                tuple[Union[str, ExperimentActivityId], ExperimentActivityOutput]
-            ],  # alias or id to output
-            dict[str, ExperimentActivityOutput],
-        ]
+        dict[str, ExperimentActivityOutput]
     ] = None  # alias to output, null means default-output (check exists)
 
     # either the alias, or the id of any method. not method means running them all
@@ -167,16 +163,16 @@ class ExperimentScenarioData:
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentScenarioPrepData:
-    activities: dict[str, ExperimentActivityOutput] = Field(
-        default_factory=dict
-    )
+    activities: dict[str, ExperimentActivityOutput] = Field(default_factory=dict)
     # methods: list[ExperimentMethodData] = Field(default_factory=list)
 
 
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentConfig:
     warn_default_demand: bool = True  # todo: bring this back
-    auto_aggregate: Optional[bool] = True  # aggregate, with same indicator, as all children, if given.
+    auto_aggregate: Optional[
+        bool
+    ] = True  # aggregate, with same indicator, as all children, if given.
     # include_bw_activity_in_nodes: bool = True # todo: bring this to aggregator
     store_raw_results: bool = False  # store numpy arrays of lca results
     # use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
@@ -219,8 +215,11 @@ class ExperimentData:
     """
     This class is used to store the data of an experiment.
     """
+
     adapters: list["AdapterModel"] = Field(..., description="The adapters to be used")
-    aggregators: list["AggregationModel"] = Field([], description="The aggregators to be used")
+    aggregators: list["AggregationModel"] = Field(
+        [], description="The aggregators to be used"
+    )
     hierarchy: Optional[HierarchyDataTypesExt] = Field(
         None, description="The activity hierarchy to be used in the experiment"
     )
@@ -247,14 +246,14 @@ class TechTreeNodeData(BaseModel):
     adapter: Optional[str] = None
     aggregator: Optional[str] = DEFAULT_SUM_AGGREGATOR
     # for
-    id: Optional[ExperimentActivityId] = Field(
+    id: Optional[Any] = Field(
         None, description="The identifies (method to find) an activity"
     )
     output: Optional[ActivityOutput] = Field(
         None, description="The default output of the activity"
     )
 
-    @field_validator('output', mode="before")
+    @field_validator("output", mode="before")
     @classmethod
     def validate_output(cls, v: Any) -> Any:
         try:
@@ -267,16 +266,19 @@ class TechTreeNodeData(BaseModel):
             # print(out_tuple)
             return {"unit": out_tuple[0], "magnitude": out_tuple[1]}
         except ValidationError:
-            raise ValidationError("Output must be either {unit, magnitude} or tuple[str, float]")
+            raise ValidationError(
+                "Output must be either {unit, magnitude} or tuple[str, float]"
+            )
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def check_card_number_omitted(cls, data: Any) -> Any:
         if isinstance(data, dict):
             leaf_node = "adapter" in data and "id" in data
             non_leaf_node = "aggregator" in data
-            assert leaf_node or non_leaf_node, ("Node must be either leaf ('id', 'adapter`) "
-                                                "or non-leaf ('aggregator')")
+            assert leaf_node or non_leaf_node, (
+                "Node must be either leaf ('id', 'adapter`) " "or non-leaf ('aggregator')"
+            )
         return data
 
 
@@ -296,10 +298,20 @@ class ScenarioResultNodeData:
 
 
 class AdapterModel(BaseModel):
-    module_path: PathLike
+    module_path: Optional[PathLike] = None
+    module_class: Optional[Type] = None
     config: Optional[dict] = Field(default_factory=dict)
     methods: Optional[dict[str, Any]] = None
+
     # aggregates: Optional[bool] = False # todo: later allow one class to also aggregate
+
+    @model_validator(mode="before")
+    @classmethod
+    def module_specified(cls, data: Any) -> Any:
+        # either module_path or module_class must be specified
+        if not ("module_path" in data or "module_class" in data):
+            raise ValueError("Either module_path or module_class must be specified")
+        return data
 
 
 class AggregationModel(BaseModel):

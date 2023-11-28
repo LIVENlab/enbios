@@ -1,13 +1,10 @@
 import csv
 import math
-import time
 from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Any, Optional, Union
-
-from bw2data.backends import Activity
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator, SumAggregator
@@ -27,7 +24,9 @@ from enbios.models.experiment_models import (
     ExperimentData,
     ExperimentScenarioData,
     ScenarioResultNodeData,
-    Settings, TechTreeNodeData, ExperimentHierarchyNodeData
+    Settings,
+    TechTreeNodeData,
+    ExperimentHierarchyNodeData,
 )
 
 logger = get_logger(__name__)
@@ -60,33 +59,42 @@ class Experiment:
         self._adapters: dict[str, EnbiosAdapter] = self._validate_adapters()
         self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
 
-        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = self.validate_hierarchy(self.raw_data.hierarchy)
+        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = self.validate_hierarchy(
+            self.raw_data.hierarchy
+        )
 
-        self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {n.name: n for n in
-                                                                        self.hierarchy_root.iter_leaves()}
+        self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {
+            n.name: n for n in self.hierarchy_root.iter_leaves()
+        }
 
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
-                self.get_activity_adapter(node).validate_activity(node.name,
-                                                                  node.data.id,
-                                                                  node.data.output,
-                                                                  False)
+                self.get_activity_adapter(node).validate_activity(
+                    node.name, node.data.id, node.data.output, False
+                )
 
-        def recursive_convert(node_: BasicTreeNode[TechTreeNodeData]) -> BasicTreeNode[ScenarioResultNodeData]:
+        def recursive_convert(
+            node_: BasicTreeNode[TechTreeNodeData],
+        ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: tuple[Optional[str], Optional[float]] = (None, None)
             if node_.is_leaf:
-                output = (self.get_activity_adapter(node_).get_activity_output_unit(node_.name), 0)
+                output = (
+                    self.get_activity_adapter(node_).get_activity_output_unit(node_.name),
+                    0,
+                )
             return BasicTreeNode(
                 name=node_.name,
                 data=ScenarioResultNodeData(
                     output=output,
                     adapter=node_.data.adapter,
-                    aggregator=node_.data.aggregator
+                    aggregator=node_.data.aggregator,
                 ),
-                children=[recursive_convert(child) for child in node_.children]
+                children=[recursive_convert(child) for child in node_.children],
             )
 
-        self.base_result_tree: BasicTreeNode[ScenarioResultNodeData] = recursive_convert(self.hierarchy_root)
+        self.base_result_tree: BasicTreeNode[ScenarioResultNodeData] = recursive_convert(
+            self.hierarchy_root
+        )
         self.base_result_tree.recursive_apply(
             Experiment.recursive_resolve_outputs,
             experiment=self,
@@ -96,14 +104,14 @@ class Experiment:
 
         self.methods: list[str] = []
         for idx, adapter in enumerate(self.adapters):
-            adapter_methods = self.raw_data.adapters[idx].methods
-            adapter.validate_methods(adapter_methods)
+            adapter_methods_config = self.raw_data.adapters[idx].methods
+            adapter_methods = adapter.validate_methods(adapter_methods_config)
             # if any([m in self.methods for m in adapter_methods.keys()]):
             #     raise ValueError(
             #         f"Some Method(s) {adapter_methods.keys()} already defined in "
             #         f"another adapter"
             #     )
-            self.methods.extend([f"{adapter.name}.{m}" for m in adapter_methods.keys()])
+            self.methods.extend([f"{adapter.name}.{m}" for m in adapter_methods])
 
         self.scenarios: list[Scenario] = self._validate_scenarios()
         self._validate_run_scenario_setting()
@@ -113,8 +121,7 @@ class Experiment:
 
     @staticmethod
     def recursive_resolve_outputs(
-            node: BasicTreeNode[ScenarioResultNodeData],
-            experiment: "Experiment", **kwargs
+        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
     ):
         # todo, does this takes default values when an activity is not defined
         #  in the scenario?
@@ -130,7 +137,7 @@ class Experiment:
         if not valid:
             cancel_parts_of.add(node.id)
 
-    def get_method_unit(self, method_name: str) -> list[str]:
+    def get_method_unit(self, method_name: str) -> str:
         adapter_name, method_name = method_name.split(".")
         return self._adapters[adapter_name].get_method_unit(method_name)
 
@@ -150,30 +157,23 @@ class Experiment:
                         f"Scenarios are: {self.scenario_aliases}"
                     )
 
-    def _validate_adapters(self) -> dict[str: EnbiosAdapter]:
-        adapters = [
-            load_adapter(adapter)
-            for adapter in self.raw_data.adapters
-        ]
+    def _validate_adapters(self) -> dict[str:EnbiosAdapter]:
+        adapters = [load_adapter(adapter) for adapter in self.raw_data.adapters]
 
         for idx, adapter in enumerate(adapters):
             adapter.validate_config(self.raw_data.adapters[idx].config)
 
-        return {adapter.activity_indicator: adapter for adapter in
-                adapters}
+        return {adapter.activity_indicator: adapter for adapter in adapters}
 
     def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
         aggregators = [
-                          load_aggregator(adapter)
-                          for adapter in self.raw_data.aggregators
-                      ] + [SumAggregator()]
+            load_aggregator(adapter) for adapter in self.raw_data.aggregators
+        ] + [SumAggregator()]
 
         for aggregator in aggregators:
             aggregator.validate_config()
 
-        return {aggregator.node_indicator: aggregator for
-                aggregator in
-                aggregators}
+        return {aggregator.node_indicator: aggregator for aggregator in aggregators}
 
     def get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
@@ -187,8 +187,16 @@ class Experiment:
             raise ValueError(f"Activity with name '{name}' not found")
         return activity
 
-    def get_activity_adapter(self, activity_node: BasicTreeNode[TechTreeNodeData]) -> EnbiosAdapter:
-        return self._adapters[activity_node.data.adapter]
+    def get_activity_adapter(
+        self, activity_node: BasicTreeNode[TechTreeNodeData]
+    ) -> EnbiosAdapter:
+        try:
+            return self._adapters[activity_node.data.adapter]
+        except KeyError:
+            raise ValueError(
+                f"Activity '{activity_node.name}' specifies an unknown adapter: {activity_node.data.adapter}."
+                + f"Available adapters are: {[a.activity_indicator for a in self.adapters]}"
+            )
 
     def get_activity_default_output(self, activity_name: str) -> float:
         activity = self.get_activity(activity_name)
@@ -207,7 +215,7 @@ class Experiment:
         """
 
         def validate_activities(scenario_: ExperimentScenarioData) -> Activity_Outputs:
-            activities = scenario_.activities
+            activities = scenario_.activities or {}
             result: dict[str, float] = {}
 
             def convert_output(output) -> ActivityOutput:
@@ -218,15 +226,8 @@ class Experiment:
                 else:
                     return output  # type: ignore
 
-            if not activities:
-                return result
-
-            scenarios_activities = (
-                activities if isinstance(activities, list) else activities.items()
-            )
-            for activity_name, activity_output in scenarios_activities:
+            for activity_name, activity_output in activities.items():
                 activity = self.get_activity(activity_name)
-                # simple_id = validate_activity_id(activity_id)
                 output_ = convert_output(activity_output)
 
                 adapter = self._adapters[activity.data.adapter]
@@ -240,7 +241,7 @@ class Experiment:
             return result
 
         def validate_scenario(
-                _scenario: ExperimentScenarioData, _scenario_alias: str
+            _scenario: ExperimentScenarioData, _scenario_alias: str
         ) -> Scenario:
             """
             Validate one scenario
@@ -255,7 +256,9 @@ class Experiment:
             for activity in self._activities.values():
                 activity_alias = activity.name
                 if activity_alias not in defined_aliases:
-                    scenario_activities_outputs[activity.name] = self.get_activity_default_output(activity.name)
+                    scenario_activities_outputs[
+                        activity.name
+                    ] = self.get_activity_default_output(activity.name)
 
             # todo shall we bring back. scenario specific methods??
             # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
@@ -310,9 +313,9 @@ class Experiment:
 
     @staticmethod
     def validate_hierarchy(
-            hierarchy: ExperimentHierarchyNodeData
+        hierarchy: ExperimentHierarchyNodeData,
     ) -> BasicTreeNode[TechTreeNodeData]:
-
+        # todo allow no output only when there are scenarios...
         tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
             asdict(hierarchy), dataclass=TechTreeNodeData
         )
@@ -320,17 +323,17 @@ class Experiment:
         def validate_node_data(node: BasicTreeNode[TechTreeNodeData]):
             good_leaf = node.is_leaf and node.data.adapter
             good_internal = not node.is_leaf and node.data.aggregator
-            assert good_leaf or good_internal, (f"Node should have the leaf properties (id, adapter) "
-                                                f"or non-leaf properties (children, aggregator): "
-                                                f"{node.location_names()})")
+            assert good_leaf or good_internal, (
+                f"Node should have the leaf properties (id, adapter) "
+                f"or non-leaf properties (children, aggregator): "
+                f"{node.location_names()})"
+            )
 
         tech_tree.recursive_apply(validate_node_data, depth_first=True)
         return tech_tree
 
     def _validate_node_calculations(self, tech_tree: BasicTreeNode[TechTreeNodeData]):
-
         def validate_node(node: BasicTreeNode[TechTreeNodeData]):
-
             if node.is_leaf:
                 # todo we validate that before right?
                 # self.get_activity(node.name).adapter
@@ -354,10 +357,7 @@ class Experiment:
                     f"Node '{node.name}' is not a leaf and does not have an aggregator"
                 )
 
-        tech_tree.recursive_apply(
-            validate_node,
-            depth_first=True
-        )
+        tech_tree.recursive_apply(validate_node, depth_first=True)
 
     def get_scenario(self, scenario_alias: str) -> Scenario:
         """
@@ -386,7 +386,7 @@ class Experiment:
         :return: dictionary scenario-alias : result_tree
         """
         # methods = [m.id for m in self.methods.values()]
-        inventories: list[list[dict[Activity, float]]] = []
+        # inventories: list[list[dict[Activity, float]]] = []
 
         if self.config.run_scenarios:
             run_scenarios = [self.get_scenario(s) for s in self.config.run_scenarios]
@@ -410,7 +410,7 @@ class Experiment:
         #     inventories.append(inventory)
 
         # run experiment
-        start_time = time.time()
+        # start_time = time.time()
         # calculation_setup = BWCalculationSetup(
         #     "experiment", list(itertools.chain(*inventories)), methods
         # )
@@ -454,11 +454,11 @@ class Experiment:
                 return "not run"
 
     def results_to_csv(
-            self,
-            file_path: PathLike,
-            scenario_alias: Optional[str] = None,
-            level_names: Optional[list[str]] = None,
-            include_method_units: bool = True,
+        self,
+        file_path: PathLike,
+        scenario_alias: Optional[str] = None,
+        level_names: Optional[list[str]] = None,
+        include_method_units: bool = True,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,

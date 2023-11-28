@@ -61,7 +61,9 @@ class Scenario:
         )
 
     @staticmethod
-    def _propagate_results_upwards(node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"):
+    def _propagate_results_upwards(
+        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"
+    ):
         if node.is_leaf:
             return
         else:
@@ -91,7 +93,7 @@ class Scenario:
         self.result_tree.recursive_apply(
             Scenario._propagate_results_upwards,
             experiment=self.experiment,
-            depth_first=True
+            depth_first=True,
         )
 
         self._has_run = True
@@ -114,6 +116,7 @@ class Scenario:
             activity_node.data.results = activity_result
 
     def wrapper_data_serializer(self, include_method_units: bool = True):
+        # todo: use this for json as well...
         method_alias2units: dict[str, str] = {
             method_name: self.experiment.get_method_unit(method_name)
             for method_name in self.experiment.methods
@@ -137,12 +140,12 @@ class Scenario:
         return data_serializer
 
     def results_to_csv(
-            self,
-            file_path: PathLike,
-            level_names: Optional[list[str]] = None,
-            include_method_units: bool = True,
-            warn_no_results: bool = True,
-            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+        self,
+        file_path: PathLike,
+        level_names: Optional[list[str]] = None,
+        include_method_units: bool = True,
+        warn_no_results: bool = True,
+        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ):
         """
         Save the results (as tree) to a csv file
@@ -172,10 +175,10 @@ class Scenario:
         )
 
     def result_to_dict(
-            self,
-            include_output: bool = True,
-            warn_no_results: bool = True,
-            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+        self,
+        include_output: bool = True,
+        warn_no_results: bool = True,
+        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
@@ -188,7 +191,11 @@ class Scenario:
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
             result: dict[str, Any] = {
-                "results": {method_name: asdict(result_value) for method_name, result_value in data.results.items()}}
+                "results": {
+                    method_name: asdict(result_value)
+                    for method_name, result_value in data.results.items()
+                }
+            }
             if include_output:
                 result["output"] = {"unit": data.output[0], "amount": data.output[1]}
             # todo: adapter specific additional data
@@ -212,32 +219,32 @@ class Scenario:
         else:
             return recursive_transform(self.result_tree.copy())
 
-    def rearrange_results(
-            self, hierarchy: Union[list, dict]
-    ) -> BasicTreeNode[ScenarioResultNodeData]:
-        alt_result_tree = self.experiment.validate_hierarchy(hierarchy)
-
-        activity_nodes = self.result_tree.iter_leaves()
-        alt_activity_nodes = list(alt_result_tree.iter_leaves())
-        for node in activity_nodes:
-            try:
-                alt_node = next(filter(lambda n: n.name == node.name, alt_activity_nodes))
-                alt_node._data = node.data
-            except StopIteration:
-                raise ValueError(
-                    f"Activity '{node.name}' not found in alternative hierarchy"
-                )
-        alt_result_tree.recursive_apply(
-            Scenario._recursive_resolve_outputs,
-            depth_first=True,
-            scenario=self,
-            cancel_parents_of=set(),
-        )
-
-        alt_result_tree.recursive_apply(
-            Scenario._propagate_results_upwards, depth_first=True
-        )
-        return alt_result_tree
+    # def rearrange_results(
+    #     self, hierarchy: Union[list, dict]
+    # ) -> BasicTreeNode[ScenarioResultNodeData]:
+    #     alt_result_tree = self.experiment.validate_hierarchy(hierarchy)
+    #
+    #     activity_nodes = self.result_tree.iter_leaves()
+    #     alt_activity_nodes = list(alt_result_tree.iter_leaves())
+    #     for node in activity_nodes:
+    #         try:
+    #             alt_node = next(filter(lambda n: n.name == node.name, alt_activity_nodes))
+    #             alt_node._data = node.data
+    #         except StopIteration:
+    #             raise ValueError(
+    #                 f"Activity '{node.name}' not found in alternative hierarchy"
+    #             )
+    #     alt_result_tree.recursive_apply(
+    #         Scenario._recursive_resolve_outputs,
+    #         depth_first=True,
+    #         scenario=self,
+    #         cancel_parents_of=set(),
+    #     )
+    #
+    #     alt_result_tree.recursive_apply(
+    #         Scenario._propagate_results_upwards, depth_first=True
+    #     )
+    #     return alt_result_tree
 
     def get_execution_time(self) -> float:
         return self._execution_time

@@ -13,7 +13,10 @@ from enbios.base.scenario import Scenario
 from enbios.base.stacked_MultiLCA import StackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.models.experiment_models import (
-    ActivityOutput, BWCalculationSetup, ExperimentActivityId, ResultValue,
+    ActivityOutput,
+    BWCalculationSetup,
+    ExperimentActivityId,
+    ResultValue,
 )
 
 logger = getLogger(__file__)
@@ -95,13 +98,14 @@ class BWActivityData:
 
 
 class BrightwayAdapter(EnbiosAdapter):
-
     def __init__(self):
         super(BrightwayAdapter, self).__init__()
         self.config = None
         self.activityMap: dict[str, BWActivityData] = {}
         self.methods: dict[str, ExperimentMethodPrepData] = {}
-        self.scenario_calc_setups: dict[str, BWCalculationSetup] = {}  # scenario_alias to BWCalculationSetup
+        self.scenario_calc_setups: dict[
+            str, BWCalculationSetup
+        ] = {}  # scenario_alias to BWCalculationSetup
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
 
     @property
@@ -121,7 +125,7 @@ class BrightwayAdapter(EnbiosAdapter):
             )
 
         def validate_bw_project_bw_database(
-                bw_project: str, bw_default_database: Optional[str] = None
+            bw_project: str, bw_default_database: Optional[str] = None
         ):
             if bw_project not in bd.projects:
                 raise ValueError(f"Project {bw_project} not found")
@@ -141,9 +145,7 @@ class BrightwayAdapter(EnbiosAdapter):
         )
 
     def validate_methods(self, methods: dict[str, Any]) -> list[str]:
-        def validate_method(
-                method: dict
-        ) -> ExperimentMethodPrepData:
+        def validate_method(method: dict) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
             bw_method = bd.methods.get(method["id"])
             if not bw_method:
@@ -153,15 +155,14 @@ class BrightwayAdapter(EnbiosAdapter):
             )
 
         self.methods: dict[str, ExperimentMethodPrepData] = {
-            name: validate_method(method)
-            for name, method in methods.items()
+            name: validate_method(method) for name, method in methods.items()
         }
         return list(self.methods.keys())
 
     def validate_activity_output(
-            self,
-            node_name: str,
-            target_output: ActivityOutput,
+        self,
+        node_name: str,
+        target_output: ActivityOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -172,8 +173,10 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_activity_unit = "not yet set"
         try:
             target_quantity: Quantity = (
-                    ureg.parse_expression(bw_unit_fix(target_output.unit), case_sensitive=False)
-                    * target_output.magnitude
+                ureg.parse_expression(
+                    bw_unit_fix(target_output.unit), case_sensitive=False
+                )
+                * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -193,19 +196,25 @@ class BrightwayAdapter(EnbiosAdapter):
             )
             # raise Exception(f"Unit error for activity: {node_name}")
 
-    def validate_activity(self,
-                          node_name: str,
-                          activity_id: ExperimentActivityId,
-                          output: ActivityOutput,
-                          required_output: bool = False):
+    def validate_activity(
+        self,
+        node_name: str,
+        activity_id: Any,
+        output: ActivityOutput,
+        required_output: bool = False,
+    ):
+        activity_id = ExperimentActivityId(**activity_id)
         # get the brightway activity
         bw_activity = _bw_activity_search(activity_id)
 
-        self.activityMap[node_name] = BWActivityData(bw_activity=bw_activity,
-                                                     default_output=ActivityOutput(
-                                                         bw_unit_fix(bw_activity["unit"]), 1))
+        self.activityMap[node_name] = BWActivityData(
+            bw_activity=bw_activity,
+            default_output=ActivityOutput(bw_unit_fix(bw_activity["unit"]), 1),
+        )
         if output:
-            self.activityMap[node_name].default_output.magnitude = self.validate_activity_output(node_name, output)
+            self.activityMap[
+                node_name
+            ].default_output.magnitude = self.validate_activity_output(node_name, output)
 
     def get_default_output_value(self, activity_name: str) -> float:
         return self.activityMap[activity_name].default_output.magnitude
@@ -227,7 +236,7 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup.register()
         self.scenario_calc_setups[scenario.name] = calculation_setup
 
-    def run_scenario(self, scenario: Scenario) -> dict[str, Any]:
+    def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         use_distributions = self.config.use_k_bw_distributions > 1
         raw_results: Union[list[ndarray], ndarray] = []
         for i in range(self.config.use_k_bw_distributions):
@@ -245,7 +254,7 @@ class BrightwayAdapter(EnbiosAdapter):
             for m_idx, method in enumerate(self.methods.items()):
                 method_name, method_data = method
                 # todo this could be a type
-                method_result = ResultValue(unit= method_data.bw_method_unit)
+                method_result = ResultValue(unit=method_data.bw_method_unit)
                 if use_distributions:
                     method_result.amount = [res[act_idx, m_idx] for res in raw_results]
                 else:

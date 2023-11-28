@@ -13,4 +13,3 @@ def validate_experiment_data(data: dict) -> ExperimentData:
         errors_sorted = sorted(err.errors(), key=lambda x: len(x["loc"]), reverse=True)[0]
         print(f"!!!\n!!!\nCheck: '{errors_sorted['type']}': {errors_sorted['loc']}\n\n")
         sys.exit()
-

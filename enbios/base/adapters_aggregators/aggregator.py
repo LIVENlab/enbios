@@ -11,14 +11,16 @@ from enbios.models.experiment_models import ScenarioResultNodeData, ResultValue
 
 
 class EnbiosAggregator(ABC):
-
     @abstractmethod
     def validate_config(self):
         pass
 
     @abstractmethod
-    def validate_node_output(self, node: BasicTreeNode[ScenarioResultNodeData],
-                             scenario_name: Optional[str] = "") -> bool:
+    def validate_node_output(
+        self,
+        node: BasicTreeNode[ScenarioResultNodeData],
+        scenario_name: Optional[str] = "",
+    ) -> bool:
         pass
 
     @abstractmethod
@@ -32,14 +34,17 @@ class EnbiosAggregator(ABC):
 
 
 class SumAggregator(EnbiosAggregator):
-
     def __init__(self):
         self.logger = get_logger(__name__)
 
     def validate_config(self):
         pass
 
-    def validate_node_output(self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: Optional[str] = "") -> bool:
+    def validate_node_output(
+        self,
+        node: BasicTreeNode[ScenarioResultNodeData],
+        scenario_name: Optional[str] = "",
+    ) -> bool:
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
         for child in node.children:
             # if not child._data:
@@ -51,7 +56,10 @@ class SumAggregator(EnbiosAggregator):
                 break
             output = None
             try:
-                output = enbios.get_enbios_ureg().parse_expression(activity_output) * child.data.output[1]
+                output = (
+                    enbios.get_enbios_ureg().parse_expression(activity_output)
+                    * child.data.output[1]
+                )
                 if not node_output:
                     node_output = output
                 else:
@@ -93,7 +101,6 @@ class SumAggregator(EnbiosAggregator):
                 if node.data.results.get(key) is None:
                     node.data.results[key] = ResultValue(amount=0, unit=value.unit)
                 node.data.results[key].amount += value.amount
-
 
     @property
     def node_indicator(self) -> str:
