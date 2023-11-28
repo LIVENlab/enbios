@@ -1,5 +1,8 @@
 from pint import Quantity
 
+from enbios import ureg
+from enbios.models.experiment_models import ActivityOutput
+
 
 def compact_all_to(quantities: list[Quantity], use_min: bool = True) -> list[Quantity]:
     """
@@ -11,3 +14,15 @@ def compact_all_to(quantities: list[Quantity], use_min: bool = True) -> list[Qua
     base_func = min if use_min else max
     base_value = base_func([q.to_compact() for q in quantities])
     return [q.to(base_value.units) for q in quantities]
+
+
+def get_output_in_unit(
+        output: ActivityOutput, target_unit: str
+) -> float:
+    """
+    Convert the output to a magnitude the given unit
+    :param output:
+    :param target_unit:
+    :return:
+    """
+    return (ureg.parse_expression(output.unit) * output.magnitude).to(target_unit).magnitude
