@@ -208,7 +208,9 @@ class BrightwayAdapter(EnbiosAdapter):
 
         self.activityMap[node_name] = BWActivityData(
             bw_activity=bw_activity,
-            default_output=ActivityOutput(bw_unit_fix(bw_activity["unit"]), 1),
+            default_output=ActivityOutput(
+                unit=bw_unit_fix(bw_activity["unit"]), magnitude=1
+            ),
         )
         if output:
             self.activityMap[

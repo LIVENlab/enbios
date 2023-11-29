@@ -1,6 +1,5 @@
 import csv
 import math
-from dataclasses import asdict
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
@@ -13,12 +12,10 @@ from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA
-from enbios.bw2.util import bw_unit_fix
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
-    ActivityOutput,
     Activity_Outputs,
     ExperimentConfig,
     ExperimentData,
@@ -54,13 +51,14 @@ class Experiment:
         # todo. look at how reading a hierarchy from a csv file or a json
         # creates an additional root node
         resolve_input_files(input_data)
-        self.raw_data = validate_experiment_data(asdict(input_data))
+        self.raw_data = validate_experiment_data(input_data.model_dump())
 
         self._adapters: dict[str, EnbiosAdapter] = self._validate_adapters()
         self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
 
+        # todo: weird problem with Pydantic; Using self.raw_data.hierarchy fails...
         self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = self.validate_hierarchy(
-            self.raw_data.hierarchy
+            ExperimentHierarchyNodeData(**raw_data["hierarchy"])
         )
 
         self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {
@@ -218,20 +216,11 @@ class Experiment:
             activities = scenario_.activities or {}
             result: dict[str, float] = {}
 
-            def convert_output(output) -> ActivityOutput:
-                if isinstance(output, tuple):
-                    return ActivityOutput(
-                        unit=bw_unit_fix(output[0]), magnitude=output[1]
-                    )
-                else:
-                    return output  # type: ignore
-
             for activity_name, activity_output in activities.items():
                 activity = self.get_activity(activity_name)
-                output_ = convert_output(activity_output)
 
                 adapter = self._adapters[activity.data.adapter]
-                adapter.validate_activity_output(activity_name, output_)
+                result[activity_name] = adapter.validate_activity_output(activity_name, activity_output)
                 # TODO VALIDATE ADAPTER OUTPUT
                 # if activity.id.source == BRIGHTWAY_ACTIVITY:
                 #     scenario_output = validate_brightway_output(
@@ -296,7 +285,7 @@ class Experiment:
     ) -> BasicTreeNode[TechTreeNodeData]:
         # todo allow no output only when there are scenarios...
         tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
-            asdict(hierarchy), dataclass=TechTreeNodeData
+            hierarchy.model_dump(), dataclass=TechTreeNodeData
         )
 
         def validate_node_data(node: BasicTreeNode[TechTreeNodeData]):

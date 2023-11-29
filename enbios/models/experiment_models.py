@@ -22,14 +22,14 @@ class OperationConfig:
     arbitrary_types_allowed = True
 
 
-@pydantic_dataclass(config=StrictInputConfig)
-class ActivityOutput:
+# @pydantic_dataclass(config=StrictInputConfig)
+class ActivityOutput(BaseModel):
     unit: str
     magnitude: float = 1.0
 
 
-@pydantic_dataclass(config=StrictInputConfig)
-class ExperimentActivityId:
+# @pydantic_dataclass(config=StrictInputConfig)
+class ExperimentActivityId(BaseModel):
     # todo this is too bw specific
     name: Optional[str] = None  # brightway name
     database: Optional[str] = None  # brightway database
@@ -101,8 +101,7 @@ ExperimentActivityOutputArray = tuple[str, float]
 ExperimentActivityOutput = Union[ActivityOutput, ExperimentActivityOutputArray]
 
 
-@pydantic_dataclass(config=StrictInputConfig)
-class ExperimentHierarchyNodeData:
+class ExperimentHierarchyNodeData(BaseModel):
     name: str
     aggregator: str
     children: Optional[
@@ -110,8 +109,7 @@ class ExperimentHierarchyNodeData:
     ] = None
 
 
-@pydantic_dataclass(config=StrictInputConfig)
-class ExperimentActivityData:
+class ExperimentActivityData(BaseModel):
     """
     This is the dataclass for the activities in the experiment.
     the id, is
@@ -127,13 +125,29 @@ class ExperimentActivityData:
         None, description="Temporary copy of the id"
     )
 
+    @field_validator("output", mode="before")
+    @classmethod
+    def validate_output(cls, v: Any) -> Any:
+        try:
+            out = ActivityOutput(**v)
+            return out
+        except (ValidationError, Exception):
+            pass
+        try:
+            out_tuple = ExperimentActivityOutputArray(v)
+            # print(out_tuple)
+            return {"unit": out_tuple[0], "magnitude": out_tuple[1]}
+        except ValidationError:
+            raise ValidationError(
+                "Output must be either {unit, magnitude} or tuple[str, float]"
+            )
 
-@pydantic_dataclass(config=StrictInputConfig, repr=False)
-class ExperimentScenarioData:
+
+class ExperimentScenarioData(BaseModel):
     # map from activity id to output. id is either as original (tuple) or name-dict
     activities: Optional[
         dict[str, ExperimentActivityOutput]
-    ] = None  # name to output, null means default-output (check exists)
+    ] = Field({})  # name to output, null means default-output (check exists)
 
     # either the name, or the id of any method. not method means running them all
     methods: Optional[list[Union[str]]] = None
@@ -142,6 +156,20 @@ class ExperimentScenarioData:
     def name_factory(self, index: int):
         if not self.name:
             self.name = f"Scenario {index}"
+
+    @field_validator("activities", mode="before")
+    @classmethod
+    def validate_activities(
+        cls, v: dict[str, ExperimentActivityOutput]
+    ) -> dict[str, ActivityOutput]:
+        for activity_name, activity_output in v.items():
+            if isinstance(activity_output, dict):
+                v[activity_name] = ActivityOutput(**activity_output)
+            elif isinstance(activity_output, tuple):
+                v[activity_name] = ActivityOutput(
+                    unit=activity_output[0], magnitude=activity_output[1]
+                )
+        return v
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -182,8 +210,8 @@ ScenariosDataTypes = list[ExperimentScenarioData]
 ScenariosDataTypesExt = Union[list[ExperimentScenarioData], PathLike]
 
 
-@pydantic_dataclass(config=StrictInputConfig)
-class ExperimentData:
+# @pydantic_dataclass(config=StrictInputConfig)
+class ExperimentData(BaseModel):
     """
     This class is used to store the data of an experiment.
     """

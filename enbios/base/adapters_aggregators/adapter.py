@@ -15,6 +15,11 @@ class EnbiosAdapter(ABC):
 
     @abstractmethod
     def validate_config(self, config: dict[str, Any]):
+        """
+        This is the first validator to be called. Validate the config. The creator may store anything in the adapter object here.
+        :param config:
+        :return:
+        """
         pass
 
     @abstractmethod
@@ -23,17 +28,17 @@ class EnbiosAdapter(ABC):
 
     @abstractmethod
     def validate_activity_output(
-        self, node_name: str, target_output: ActivityOutput
+            self, node_name: str, target_output: ActivityOutput
     ) -> float:
         pass
 
     @abstractmethod
     def validate_activity(
-        self,
-        node_name: str,
-        activity_id: ExperimentActivityId,
-        output: ActivityOutput,
-        required_output: bool = False,
+            self,
+            node_name: str,
+            activity_id: ExperimentActivityId,
+            output: ActivityOutput,
+            required_output: bool = False,
     ):
         pass
 
@@ -59,6 +64,16 @@ class EnbiosAdapter(ABC):
 
     @abstractmethod
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
+        """
+        Run a specific scenario. The adapter should return a dictionary of the form:
+            {
+                activity_name: {
+                    method_name: ResultValue (unit, amount)
+                }
+            }
+        :param scenario:
+        :return:
+        """
         pass
 
     @property

@@ -1,3 +1,4 @@
+import json
 import math
 import time
 from dataclasses import dataclass, field, asdict
@@ -253,7 +254,7 @@ class Scenario:
     def describe(self):
         output = f"Scenario '{self.name}'\n"
 
-        # output += json.dumps(self.activities_outputs, indent=2)
+        output += json.dumps(self.activities_outputs, indent=2)
         # todo: the tree instead...
 
         return output
