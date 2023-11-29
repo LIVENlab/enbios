@@ -238,6 +238,7 @@ class BrightwayAdapter(EnbiosAdapter):
         self.scenario_calc_setups[scenario.name] = calculation_setup
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
+        self.prepare_scenario(scenario)
         use_distributions = self.config.use_k_bw_distributions > 1
         raw_results: Union[list[ndarray], ndarray] = []
         for i in range(self.config.use_k_bw_distributions):

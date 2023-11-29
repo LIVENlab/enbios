@@ -54,9 +54,6 @@ class EnbiosAdapter(ABC):
     def get_default_output_value(self, activity_name: str) -> float:
         pass
 
-    @abstractmethod
-    def prepare_scenario(self, scenario: Scenario):
-        pass
 
     @abstractmethod
     def run(self):

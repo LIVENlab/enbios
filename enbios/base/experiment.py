@@ -534,3 +534,5 @@ class Experiment:
             f"Hierarchy (depth): {self.hierarchy_root.depth}\n"
             f"Scenarios: {len(self.scenarios)}\n"
         )
+
+

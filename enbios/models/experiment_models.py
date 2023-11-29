@@ -150,7 +150,7 @@ class ExperimentScenarioData(BaseModel):
     ] = Field({})  # name to output, null means default-output (check exists)
 
     # either the name, or the id of any method. not method means running them all
-    methods: Optional[list[Union[str]]] = None
+    methods: Optional[list[Union[str]]] = None # todo currently not used
     name: Optional[str] = None
 
     def name_factory(self, index: int):

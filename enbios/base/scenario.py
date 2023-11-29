@@ -85,9 +85,6 @@ class Scenario:
         start_time = time.time()
 
         for adapter in self.experiment.adapters:
-            adapter.prepare_scenario(self)
-
-        for adapter in self.experiment.adapters:
             result_data = adapter.run_scenario(self)
             self.set_results(result_data)
 
