@@ -72,7 +72,7 @@ class Experiment:
                 )
 
         def recursive_convert(
-            node_: BasicTreeNode[TechTreeNodeData],
+                node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: tuple[Optional[str], Optional[float]] = (None, None)
             if node_.is_leaf:
@@ -119,7 +119,7 @@ class Experiment:
 
     @staticmethod
     def recursive_resolve_outputs(
-        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
+            node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
     ):
         # todo, does this takes default values when an activity is not defined
         #  in the scenario?
@@ -165,8 +165,8 @@ class Experiment:
 
     def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
         aggregators = [
-            load_aggregator(adapter) for adapter in self.raw_data.aggregators
-        ] + [SumAggregator()]
+                          load_aggregator(adapter) for adapter in self.raw_data.aggregators
+                      ] + [SumAggregator()]
 
         for aggregator in aggregators:
             aggregator.validate_config()
@@ -186,7 +186,7 @@ class Experiment:
         return activity
 
     def get_activity_adapter(
-        self, activity_node: BasicTreeNode[TechTreeNodeData]
+            self, activity_node: BasicTreeNode[TechTreeNodeData]
     ) -> EnbiosAdapter:
         try:
             return self._adapters[activity_node.data.adapter]
@@ -207,8 +207,10 @@ class Experiment:
     def get_node_aggregator(self, aggregator_indicator: str) -> EnbiosAggregator:
         return self._aggregators[aggregator_indicator]
 
-    def _validate_scenarios(self) -> list[Scenario]:
+    def validate_scenario(self, scenario_data: ExperimentScenarioData) -> Scenario:
         """
+        Validate one scenario
+        :param scenario_data:
         :return:
         """
 
@@ -229,40 +231,39 @@ class Experiment:
                 #     result[simple_id] = scenario_output
             return result
 
-        def validate_scenario(_scenario_data: ExperimentScenarioData) -> Scenario:
-            """
-            Validate one scenario
-            :param _scenario_data:
-            :return:
-            """
-            scenario_activities_outputs: Activity_Outputs = validate_activities(
-                _scenario_data
-            )
-            defined_activities = list(scenario_activities_outputs.keys())
+        scenario_activities_outputs: Activity_Outputs = validate_activities(
+            scenario_data
+        )
+        defined_activities = list(scenario_activities_outputs.keys())
 
-            # fill up the missing activities with default values
-            for activity_name in self._activities.keys():
-                if activity_name not in defined_activities:
-                    scenario_activities_outputs[
-                        activity_name
-                    ] = self.get_activity_default_output(activity_name)
+        # fill up the missing activities with default values
+        for activity_name in self._activities.keys():
+            if activity_name not in defined_activities:
+                scenario_activities_outputs[
+                    activity_name
+                ] = self.get_activity_default_output(activity_name)
 
-            # todo shall we bring back. scenario specific methods??
-            # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
-            # if _scenario.methods:
-            #     for index_, method_ in enumerate(_scenario.methods):
-            #         if isinstance(method_, str):
-            #             global_method = self.methods.get(method_)
-            #             assert global_method
-            #             resolved_methods[global_method.name] = global_method
+        # todo shall we bring back. scenario specific methods??
+        # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
+        # if _scenario.methods:
+        #     for index_, method_ in enumerate(_scenario.methods):
+        #         if isinstance(method_, str):
+        #             global_method = self.methods.get(method_)
+        #             assert global_method
+        #             resolved_methods[global_method.name] = global_method
 
-            return Scenario(
-                experiment=self,  # type: ignore
-                name=scenario_data.name,
-                activities_outputs=scenario_activities_outputs,
-                # methods={},
-                result_tree=self.base_result_tree.copy(),
-            )
+        return Scenario(
+            experiment=self,  # type: ignore
+            name=scenario_data.name,
+            activities_outputs=scenario_activities_outputs,
+            # methods={},
+            result_tree=self.base_result_tree.copy(),
+        )
+
+    def _validate_scenarios(self) -> list[Scenario]:
+        """
+        :return:
+        """
 
         scenarios: list[Scenario] = []
 
@@ -274,14 +275,14 @@ class Experiment:
 
         for index, scenario_data in enumerate(self.raw_data.scenarios):
             scenario_data.name_factory(index)
-            scenario = validate_scenario(scenario_data)
+            scenario = self.validate_scenario(scenario_data)
             scenarios.append(scenario)
             scenario.prepare_tree()
         return scenarios
 
     @staticmethod
     def validate_hierarchy(
-        hierarchy: ExperimentHierarchyNodeData,
+            hierarchy: ExperimentHierarchyNodeData,
     ) -> BasicTreeNode[TechTreeNodeData]:
         # todo allow no output only when there are scenarios...
         tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
@@ -338,14 +339,15 @@ class Experiment:
                 return scenario
         raise ValueError(f"Scenario '{scenario_name}' not found")
 
-    def run_scenario(self, scenario_name: str) -> BasicTreeNode[ScenarioResultNodeData]:
+    def run_scenario(self, scenario_name: str, results_as_dict: bool = True) -> Union[
+        BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a specific scenario
         :param scenario_name:
         :return: The result_tree converted into a dict
         """
         # todo return results
-        return self.get_scenario(scenario_name).run()
+        return self.get_scenario(scenario_name).run(results_as_dict)
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
         """
@@ -422,11 +424,11 @@ class Experiment:
                 return "not run"
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        scenario_name: Optional[str] = None,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = True,
+            self,
+            file_path: PathLike,
+            scenario_name: Optional[str] = None,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = True,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -515,6 +517,18 @@ class Experiment:
     def adapter(self, activity_indicator: str) -> EnbiosAdapter:
         return self._adapters[activity_indicator]
 
+    def run_scenario_config(self, scenario_config: dict, result_as_dict: bool = True) -> Union[
+        BasicTreeNode[ScenarioResultNodeData], dict]:
+        """
+        Run a scenario from a config dictionary. Scenario will be validated and run. An
+        :param scenario_config:
+        :param result_as_dict:
+        :return:
+        """
+        scenario = self.validate_scenario(ExperimentScenarioData(**scenario_config))
+        scenario.prepare_tree()
+        return scenario.run(result_as_dict)
+
     def info(self) -> str:
         """
         Information about the experiment
@@ -534,5 +548,3 @@ class Experiment:
             f"Hierarchy (depth): {self.hierarchy_root.depth}\n"
             f"Scenarios: {len(self.scenarios)}\n"
         )
-
-

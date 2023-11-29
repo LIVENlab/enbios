@@ -76,7 +76,7 @@ class Scenario:
     #     else:
     #         return self.experiment.methods
 
-    def run(self, results_as_dict: bool = True) -> BasicTreeNode[ScenarioResultNodeData]:
+    def run(self, results_as_dict: bool = True) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         # if not self._get_methods():
         #     raise ValueError(f"Scenario '{self.name}' has no methods")
         logger.info(f"Running scenario '{self.name}'")

@@ -165,9 +165,13 @@ class ExperimentScenarioData(BaseModel):
         for activity_name, activity_output in v.items():
             if isinstance(activity_output, dict):
                 v[activity_name] = ActivityOutput(**activity_output)
-            elif isinstance(activity_output, tuple):
+            elif isinstance(activity_output, tuple) or isinstance(activity_output, list):
                 v[activity_name] = ActivityOutput(
                     unit=activity_output[0], magnitude=activity_output[1]
+                )
+            else:
+                raise ValueError(
+                    f"activity_output must be either {ActivityOutput} or tuple or list: [str, float]"
                 )
         return v
 
