@@ -222,6 +222,7 @@ class Experiment:
                 activity = self.get_activity(activity_name)
 
                 adapter = self._adapters[activity.data.adapter]
+
                 result[activity_name] = adapter.validate_activity_output(activity_name, activity_output)
                 # TODO VALIDATE ADAPTER OUTPUT
                 # if activity.id.source == BRIGHTWAY_ACTIVITY:
@@ -237,11 +238,12 @@ class Experiment:
         defined_activities = list(scenario_activities_outputs.keys())
 
         # fill up the missing activities with default values
-        for activity_name in self._activities.keys():
-            if activity_name not in defined_activities:
-                scenario_activities_outputs[
-                    activity_name
-                ] = self.get_activity_default_output(activity_name)
+        if not scenario_data.config.exclude_defaults:
+            for activity_name in self._activities.keys():
+                if activity_name not in defined_activities:
+                    scenario_activities_outputs[
+                        activity_name
+                    ] = self.get_activity_default_output(activity_name)
 
         # todo shall we bring back. scenario specific methods??
         # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
@@ -257,6 +259,7 @@ class Experiment:
             name=scenario_data.name,
             activities_outputs=scenario_activities_outputs,
             # methods={},
+            config=scenario_data.config,
             result_tree=self.base_result_tree.copy(),
         )
 

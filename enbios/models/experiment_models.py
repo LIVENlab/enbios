@@ -42,7 +42,7 @@ class ExperimentActivityId(BaseModel):
     alias: Optional[str] = None  # experiment name
 
     def get_bw_activity(
-        self, allow_multiple: bool = False
+            self, allow_multiple: bool = False
     ) -> Union[Activity, list[Activity]]:
         if self.code:
             if not self.database:
@@ -54,7 +54,7 @@ class ExperimentActivityId(BaseModel):
             if self.location:
                 filters["location"] = self.location
                 assert (
-                    self.database in bw2data.databases
+                        self.database in bw2data.databases
                 ), f"database {self.database} not found"
                 search_results = bw2data.Database(self.database).search(
                     self.name, filter=filters
@@ -82,7 +82,7 @@ class ExperimentActivityId(BaseModel):
             raise ValueError("No code or name specified")
 
     def fill_empty_fields(
-        self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
+            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
     ):
         if not fields:
             fields = []
@@ -143,6 +143,10 @@ class ExperimentActivityData(BaseModel):
             )
 
 
+class ScenarioConfig(BaseModel):
+    exclude_defaults: Optional[bool] = False  # will only use on activities that are specified in the scenario
+
+
 class ExperimentScenarioData(BaseModel):
     # map from activity id to output. id is either as original (tuple) or name-dict
     activities: Optional[
@@ -150,8 +154,9 @@ class ExperimentScenarioData(BaseModel):
     ] = Field({})  # name to output, null means default-output (check exists)
 
     # either the name, or the id of any method. not method means running them all
-    methods: Optional[list[Union[str]]] = None # todo currently not used
+    methods: Optional[list[Union[str]]] = None  # todo currently not used
     name: Optional[str] = None
+    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
 
     def name_factory(self, index: int):
         if not self.name:
@@ -160,7 +165,7 @@ class ExperimentScenarioData(BaseModel):
     @field_validator("activities", mode="before")
     @classmethod
     def validate_activities(
-        cls, v: dict[str, ExperimentActivityOutput]
+            cls, v: dict[str, ExperimentActivityOutput]
     ) -> dict[str, ActivityOutput]:
         for activity_name, activity_output in v.items():
             if isinstance(activity_output, dict):

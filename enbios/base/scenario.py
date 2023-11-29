@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     ScenarioResultNodeData,
-    Activity_Outputs,
+    Activity_Outputs, ScenarioConfig,
 )
 
 logger = get_logger(__name__)
@@ -31,6 +31,7 @@ class Scenario:
     activities_outputs: Activity_Outputs = field(default_factory=dict)
     # methods: Optional[dict[str, ExperimentMethodPrepData]] = None
     _execution_time: float = float("NaN")
+    config: ScenarioConfig = field(default_factory=ScenarioConfig)
 
     def prepare_tree(self):
         """Prepare the result tree for calculating scenario outputs.
@@ -63,7 +64,7 @@ class Scenario:
 
     @staticmethod
     def _propagate_results_upwards(
-        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"
+            node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"
     ):
         if node.is_leaf:
             return
@@ -136,12 +137,12 @@ class Scenario:
         return data_serializer
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            self,
+            file_path: PathLike,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ):
         """
         Save the results (as tree) to a csv file
@@ -171,10 +172,10 @@ class Scenario:
         )
 
     def result_to_dict(
-        self,
-        include_output: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            self,
+            include_output: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary

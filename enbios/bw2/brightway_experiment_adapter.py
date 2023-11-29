@@ -229,8 +229,13 @@ class BrightwayAdapter(EnbiosAdapter):
     def prepare_scenario(self, scenario: Scenario):
         inventory: list[dict[Activity, float]] = []
         for act_alias, activity in self.activityMap.items():
-            act_output = scenario.activities_outputs[act_alias]
-            inventory.append({activity.bw_activity: act_output})
+            try:
+                act_output = scenario.activities_outputs[act_alias]
+                inventory.append({activity.bw_activity: act_output})
+            except KeyError:
+                if not scenario.config.exclude_defaults:
+                    raise Exception(
+                        f"Activity {act_alias} not found in scenario {scenario.name}")
 
         methods = [m.id for m in self.methods.values()]
         calculation_setup = BWCalculationSetup(scenario.name, inventory, methods)
