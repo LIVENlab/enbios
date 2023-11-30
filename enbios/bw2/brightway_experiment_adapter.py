@@ -257,6 +257,10 @@ class BrightwayAdapter(EnbiosAdapter):
 
         result_data: dict[str, Any] = {}
         for act_idx, act_alias in enumerate(self.activityMap.keys()):
+            if act_alias not in scenario.activities_outputs:
+                if not scenario.config.exclude_defaults:
+                    raise Exception(f"Activity {act_alias} not found in scenario {scenario.name}")
+                continue
             result_data[act_alias] = {}
             for m_idx, method in enumerate(self.methods.items()):
                 method_name, method_data = method

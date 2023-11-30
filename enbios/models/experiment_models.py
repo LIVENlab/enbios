@@ -3,7 +3,7 @@ from typing import Optional, Union, Any, Type
 
 import bw2data
 from bw2data.backends import Activity
-from pydantic import BaseModel, Field, model_validator, field_validator, ValidationError
+from pydantic import BaseModel, Field, model_validator, field_validator, ValidationError, ConfigDict
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
 
@@ -148,6 +148,7 @@ class ScenarioConfig(BaseModel):
 
 
 class ExperimentScenarioData(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     # map from activity id to output. id is either as original (tuple) or name-dict
     activities: Optional[
         dict[str, ExperimentActivityOutput]
