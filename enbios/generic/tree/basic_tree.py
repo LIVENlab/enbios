@@ -171,6 +171,11 @@ class BasicTreeNode(Generic[T]):
         node.parent = None
         return node
 
+    def remove_self(self):
+        if not self.parent:
+            raise ValueError("Cannot remove root node")
+        self.parent.remove_child(self)
+
     def as_dict(
         self,
         include_data: bool = False,

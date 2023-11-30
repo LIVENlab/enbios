@@ -256,7 +256,8 @@ class BrightwayAdapter(EnbiosAdapter):
             self.raw_results[scenario.name] = raw_results
 
         result_data: dict[str, Any] = {}
-        for act_idx, act_alias in enumerate(self.activityMap.keys()):
+        act_idx = 0
+        for act_alias in self.activityMap.keys():
             if act_alias not in scenario.activities_outputs:
                 if not scenario.config.exclude_defaults:
                     raise Exception(f"Activity {act_alias} not found in scenario {scenario.name}")
@@ -271,6 +272,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 else:
                     method_result.amount = raw_results[0][act_idx, m_idx]
                 result_data[act_alias][method_name] = method_result
+            act_idx += 1
         return result_data
 
     def run(self):

@@ -22,13 +22,11 @@ class OperationConfig:
     arbitrary_types_allowed = True
 
 
-# @pydantic_dataclass(config=StrictInputConfig)
 class ActivityOutput(BaseModel):
     unit: str
     magnitude: float = 1.0
 
 
-# @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentActivityId(BaseModel):
     # todo this is too bw specific
     name: Optional[str] = None  # brightway name
@@ -180,12 +178,6 @@ class ExperimentScenarioData(BaseModel):
                     f"activity_output must be either {ActivityOutput} or tuple or list: [str, float]"
                 )
         return v
-
-
-@pydantic_dataclass(config=StrictInputConfig)
-class ExperimentScenarioPrepData:
-    activities: dict[str, ExperimentActivityOutput] = Field(default_factory=dict)
-    # methods: list[ExperimentMethodData] = Field(default_factory=list)
 
 
 @pydantic_dataclass(config=StrictInputConfig)
