@@ -304,33 +304,6 @@ class Experiment:
         tech_tree.recursive_apply(validate_node_data, depth_first=True)
         return tech_tree
 
-    # def _validate_node_calculations(self, tech_tree: BasicTreeNode[TechTreeNodeData]):
-    #     def validate_node(node: BasicTreeNode[TechTreeNodeData]):
-    #         if node.is_leaf:
-    #             # todo we validate that before right?
-    #             # self.get_activity(node.name).adapter
-    #             # if not node.data.adapter:
-    #             #     raise ValueError(
-    #             #         f"Node '{node.name}' is a leaf and does not have an adapter"
-    #             #     )
-    #             # return
-    #             pass
-    #         if not node.data.aggregator:
-    #             if self.config.auto_aggregate:
-    #                 all_aggregators = [child.data.aggregator for child in node.children]
-    #                 if len(set(all_aggregators)) == 1:
-    #                     node.data.aggregator = all_aggregators[0]
-    #                 raise ValueError(
-    #                     f"Node '{node.name}' is not a leaf and does not have an aggregator. "
-    #                     f"Auto-aggregate is on, but the children have different aggregators: {all_aggregators}"
-    #                 )
-    #
-    #             raise ValueError(
-    #                 f"Node '{node.name}' is not a leaf and does not have an aggregator"
-    #             )
-    #
-    #     tech_tree.recursive_apply(validate_node, depth_first=True)
-
     def get_scenario(self, scenario_name: str) -> Scenario:
         """
         Get a scenario by its name

@@ -6,6 +6,7 @@ from bw2data.backends import Activity
 from pydantic import BaseModel, Field, model_validator, field_validator, ValidationError, ConfigDict
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
+from pydantic_core.core_schema import ValidationInfo
 
 from enbios.bw2.util import get_activity
 from enbios.const import DEFAULT_SUM_AGGREGATOR
@@ -173,6 +174,8 @@ class ExperimentScenarioData(BaseModel):
                 v[activity_name] = ActivityOutput(
                     unit=activity_output[0], magnitude=activity_output[1]
                 )
+            elif isinstance(activity_output, ActivityOutput):
+                pass
             else:
                 raise ValueError(
                     f"activity_output must be either {ActivityOutput} or tuple or list: [str, float]"
@@ -222,7 +225,7 @@ class ExperimentData(BaseModel):
     aggregators: list["AggregationModel"] = Field(
         [], description="The aggregators to be used"
     )
-    hierarchy: Optional[HierarchyDataTypesExt] = Field(
+    hierarchy: HierarchyDataTypesExt = Field(
         None, description="The activity hierarchy to be used in the experiment"
     )
     scenarios: Optional[ScenariosDataTypesExt] = Field(
@@ -236,7 +239,7 @@ class ExperimentData(BaseModel):
 
 class TechTreeNodeData(BaseModel):
     adapter: Optional[str] = None
-    aggregator: Optional[str] = DEFAULT_SUM_AGGREGATOR
+    aggregator: Optional[str] = None
     # for
     id: Optional[Any] = Field(
         None, description="The identifies (method to find) an activity"
@@ -272,6 +275,13 @@ class TechTreeNodeData(BaseModel):
                 "Node must be either leaf ('id', 'adapter`) " "or non-leaf ('aggregator')"
             )
         return data
+
+    @field_validator("aggregator", mode="before")
+    @classmethod
+    def add_default_aggregator(cls, v: str, values: ValidationInfo) -> str:
+        if not values.data["adapter"]:
+            return DEFAULT_SUM_AGGREGATOR
+        return v
 
 
 @dataclass

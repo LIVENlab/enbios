@@ -46,19 +46,25 @@ class Scenario:
                 activity_node = self.result_tree.find_subnode_by_name(activity_name)
             except StopIteration:
                 raise ValueError(f"Activity {activity_name} not found in result tree")
-            activity_node._data = ScenarioResultNodeData(
-                output=(
-                    self.experiment.get_activity_output_unit(activity_name),
-                    self.activities_outputs[activity_name],
-                )
+            activity_node.data.output = (
+                self.experiment.get_activity_output_unit(activity_name),
+                self.activities_outputs[activity_name],
             )
             # todo adapter/aggregator specific additional data
             # if self.experiment.config.include_bw_activity_in_nodes:
             #     activity_node.data.bw_activity = bw_activity
+
         if self.config.exclude_defaults:
+            def remove_empty_nodes(node: BasicTreeNode[ScenarioResultNodeData], cancel_parents_of: set[str]):
+                # aggregators without children are not needed
+                if node.is_leaf and node.data.aggregator:
+                    node.remove_self()
+
             for leave in self.result_tree.iter_leaves():
                 if leave.name not in activities_names:
                     leave.remove_self()
+            self.result_tree.recursive_apply(remove_empty_nodes, depth_first=True, cancel_parents_of=set())
+
         self.result_tree.recursive_apply(
             self.experiment.recursive_resolve_outputs,
             experiment=self.experiment,
@@ -116,6 +122,15 @@ class Scenario:
     def set_results(self, result_data: dict[str, Any]):
         for activity, activity_result in result_data.items():
             activity_node = self.result_tree.find_subnode_by_name(activity)
+            if not activity_node:
+                if self.config.exclude_defaults:
+                    logger.warning(
+                        f"Activity '{activity}' not found in result tree. "
+                        f"Make sure that the adapter for does not generate results for default"
+                        f"activities that are not in the scenario.")
+                else:
+                    logger.error(f"Activity '{activity}' not found in result tree")
+                continue
             activity_node.data.results = activity_result
 
     def wrapper_data_serializer(self, include_method_units: bool = True):
