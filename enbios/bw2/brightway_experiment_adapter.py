@@ -2,10 +2,12 @@ from dataclasses import dataclass
 from logging import getLogger
 from typing import Optional, Any, Union
 
+import bw2data
 import bw2data as bd
 from bw2data.backends import Activity
 from numpy import ndarray
 from pint import DimensionalityError, Quantity, UndefinedUnitError
+from pydantic import BaseModel
 
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
@@ -14,7 +16,6 @@ from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
 from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.models.experiment_models import (
     ActivityOutput,
-    ExperimentActivityId,
     ResultValue,
 )
 
@@ -47,13 +48,79 @@ class BWAggregatorConfig:
     use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
 
 
-def _bw_activity_search(activity_id: ExperimentActivityId) -> Activity:
+class BrightwayActivityId(BaseModel):
+    # todo this is too bw specific
+    name: Optional[str] = None  # brightway name
+    database: Optional[str] = None  # brightway database
+    code: Optional[str] = None  # brightway code
+    # search and filter
+    location: Optional[str] = None  # location
+    # additional filter
+    unit: Optional[str] = None  # unit
+    # internal-name
+    alias: Optional[str] = None  # experiment name
+
+    def get_bw_activity(
+            self, allow_multiple: bool = False
+    ) -> Union[Activity, list[Activity]]:
+        if self.code:
+            if not self.database:
+                return get_activity(self.code)
+            else:
+                return bw2data.Database(self.database).get(self.code)
+        elif self.name:
+            filters = {}
+            if self.location:
+                filters["location"] = self.location
+                assert (
+                        self.database in bw2data.databases
+                ), f"database {self.database} not found"
+                search_results = bw2data.Database(self.database).search(
+                    self.name, filter=filters
+                )
+            else:
+                search_results = bw2data.Database(self.database).search(self.name)
+            if self.unit:
+                search_results = list(
+                    filter(lambda a: a["unit"] == self.unit, search_results)
+                )
+            assert len(search_results) == 0, (
+                f"No results for brightway activity-search:"
+                f" {(self.name, self.location, self.unit)}"
+            )
+            if len(search_results) > 1:
+                if allow_multiple:
+                    return search_results
+                assert False, (
+                    f"results : {len(search_results)} for brightway activity-search:"
+                    f" {(self.name, self.location, self.unit)}. Results are: "
+                    f"{search_results}"
+                )
+            return search_results[0]
+        else:
+            raise ValueError("No code or name specified")
+
+    def fill_empty_fields(
+            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
+    ):
+        if not fields:
+            fields = []
+        for _field in fields:
+            if isinstance(_field, tuple):
+                if not getattr(self, _field[0]):
+                    setattr(self, _field[0], kwargs[_field[1]])
+            else:
+                if not getattr(self, _field):
+                    setattr(self, _field, kwargs[_field])
+
+
+def _bw_activity_search(activity_id: dict) -> Activity:
     """
     Search for the activity in the brightway project
     :param activity_id:
     :return: brightway activity
     """
-    id_ = activity_id
+    id_ = BrightwayActivityId(**activity_id)
     bw_activity: Optional[Activity] = None
     if id_.code:
         if id_.database:
@@ -124,7 +191,7 @@ class BrightwayAdapter(EnbiosAdapter):
             )
 
         def validate_bw_project_bw_database(
-            bw_project: str, bw_default_database: Optional[str] = None
+                bw_project: str, bw_default_database: Optional[str] = None
         ):
             if bw_project not in bd.projects:
                 raise ValueError(f"Project {bw_project} not found")
@@ -145,6 +212,7 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def validate_methods(self, methods: dict[str, Any]) -> list[str]:
         assert methods, "Methods must be defined for brightway adapter"
+
         def validate_method(method: dict) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
             bw_method = bd.methods.get(method["id"])
@@ -160,9 +228,9 @@ class BrightwayAdapter(EnbiosAdapter):
         return list(self.methods.keys())
 
     def validate_activity_output(
-        self,
-        node_name: str,
-        target_output: ActivityOutput,
+            self,
+            node_name: str,
+            target_output: ActivityOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -173,10 +241,10 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_activity_unit = "not yet set"
         try:
             target_quantity: Quantity = (
-                ureg.parse_expression(
-                    bw_unit_fix(target_output.unit), case_sensitive=False
-                )
-                * target_output.magnitude
+                    ureg.parse_expression(
+                        bw_unit_fix(target_output.unit), case_sensitive=False
+                    )
+                    * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -197,13 +265,13 @@ class BrightwayAdapter(EnbiosAdapter):
             raise Exception(f"Unit error for activity: {node_name}")
 
     def validate_activity(
-        self,
-        node_name: str,
-        activity_id: Any,
-        output: ActivityOutput,
-        required_output: bool = False,
+            self,
+            node_name: str,
+            activity_id: Any,
+            output: ActivityOutput,
+            required_output: bool = False,
     ):
-        activity_id = ExperimentActivityId(**activity_id)
+        assert isinstance(activity_id, dict), f"Activity id (type: dict) must be defined for activity {node_name}"
         # get the brightway activity
         bw_activity = _bw_activity_search(activity_id)
 

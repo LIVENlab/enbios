@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union, Any, Type
+from typing import Optional, Union, Any
 
 import bw2data
 from bw2data.backends import Activity
@@ -28,72 +28,6 @@ class ActivityOutput(BaseModel):
     magnitude: float = 1.0
 
 
-class ExperimentActivityId(BaseModel):
-    # todo this is too bw specific
-    name: Optional[str] = None  # brightway name
-    database: Optional[str] = None  # brightway database
-    code: Optional[str] = None  # brightway code
-    # search and filter
-    location: Optional[str] = None  # location
-    # additional filter
-    unit: Optional[str] = None  # unit
-    # internal-name
-    alias: Optional[str] = None  # experiment name
-
-    def get_bw_activity(
-            self, allow_multiple: bool = False
-    ) -> Union[Activity, list[Activity]]:
-        if self.code:
-            if not self.database:
-                return get_activity(self.code)
-            else:
-                return bw2data.Database(self.database).get(self.code)
-        elif self.name:
-            filters = {}
-            if self.location:
-                filters["location"] = self.location
-                assert (
-                        self.database in bw2data.databases
-                ), f"database {self.database} not found"
-                search_results = bw2data.Database(self.database).search(
-                    self.name, filter=filters
-                )
-            else:
-                search_results = bw2data.Database(self.database).search(self.name)
-            if self.unit:
-                search_results = list(
-                    filter(lambda a: a["unit"] == self.unit, search_results)
-                )
-            assert len(search_results) == 0, (
-                f"No results for brightway activity-search:"
-                f" {(self.name, self.location, self.unit)}"
-            )
-            if len(search_results) > 1:
-                if allow_multiple:
-                    return search_results
-                assert False, (
-                    f"results : {len(search_results)} for brightway activity-search:"
-                    f" {(self.name, self.location, self.unit)}. Results are: "
-                    f"{search_results}"
-                )
-            return search_results[0]
-        else:
-            raise ValueError("No code or name specified")
-
-    def fill_empty_fields(
-            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
-    ):
-        if not fields:
-            fields = []
-        for _field in fields:
-            if isinstance(_field, tuple):
-                if not getattr(self, _field[0]):
-                    setattr(self, _field[0], kwargs[_field[1]])
-            else:
-                if not getattr(self, _field):
-                    setattr(self, _field, kwargs[_field])
-
-
 # this is just for the schema to accept an array.
 ExperimentActivityOutputArray = tuple[str, float]
 
@@ -119,9 +53,6 @@ class ExperimentActivityData(BaseModel):
     adapter: str = Field(..., description="The adapter to be used")
     output: Optional[ExperimentActivityOutput] = Field(
         None, description="The default output of the activity"
-    )
-    orig_id: Optional[ExperimentActivityId] = Field(
-        None, description="Temporary copy of the id"
     )
 
     @field_validator("output", mode="before")

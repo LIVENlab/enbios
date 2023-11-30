@@ -4,7 +4,6 @@ from typing import Any, Optional
 from enbios.base.scenario import Scenario
 from enbios.models.experiment_models import (
     ActivityOutput,
-    ExperimentActivityId,
     ResultValue,
 )
 
@@ -36,7 +35,7 @@ class EnbiosAdapter(ABC):
     def validate_activity(
             self,
             node_name: str,
-            activity_id: ExperimentActivityId,
+            activity_id: Any,
             output: ActivityOutput,
             required_output: bool = False,
     ):
