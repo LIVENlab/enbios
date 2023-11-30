@@ -205,6 +205,7 @@ class ExperimentConfig:
     ] = True  # standard replacement, or bw-project, bw-database
     debug_test_expected_error_code: Optional[int] = None
     debug_test_run: Optional[bool] = False
+    note: Optional[str] = None
 
 
 # with path
@@ -215,14 +216,37 @@ ScenariosDataTypes = list[ExperimentScenarioData]
 ScenariosDataTypesExt = Union[list[ExperimentScenarioData], PathLike]
 
 
+class AdapterModel(BaseModel):
+    module_path: Optional[PathLike] = None
+    # module_class: Optional[Type] = Field(None, description="The class of the adapter", exclude=True)
+    config: Optional[dict] = Field(default_factory=dict)
+    methods: Optional[dict[str, Any]] = None
+    note: Optional[str] = None
+    # aggregates: Optional[bool] = False # todo: later allow one class to also aggregate
+
+    # @model_validator(mode="before")
+    # @classmethod
+    # def module_specified(cls, data: Any) -> Any:
+    #     # either module_path or module_class must be specified
+    #     if not ("module_path" in data or "module_class" in data):
+    #         raise ValueError("Either module_path or module_class must be specified")
+    #     return data
+
+
+class AggregationModel(BaseModel):
+    module_path: PathLike
+    config: Optional[dict] = Field(default_factory=dict)
+
+
 # @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentData(BaseModel):
     """
     This class is used to store the data of an experiment.
     """
+    model_config = ConfigDict(extra='forbid')
 
-    adapters: list["AdapterModel"] = Field(..., description="The adapters to be used")
-    aggregators: list["AggregationModel"] = Field(
+    adapters: list[AdapterModel] = Field(..., description="The adapters to be used")
+    aggregators: list[AggregationModel] = Field(
         [], description="The aggregators to be used"
     )
     hierarchy: HierarchyDataTypesExt = Field(
@@ -297,28 +321,6 @@ class ScenarioResultNodeData:
     # distribution_results: dict[str, list[float]] = field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
-
-
-class AdapterModel(BaseModel):
-    module_path: Optional[PathLike] = None
-    module_class: Optional[Type] = None
-    config: Optional[dict] = Field(default_factory=dict)
-    methods: Optional[dict[str, Any]] = None
-
-    # aggregates: Optional[bool] = False # todo: later allow one class to also aggregate
-
-    @model_validator(mode="before")
-    @classmethod
-    def module_specified(cls, data: Any) -> Any:
-        # either module_path or module_class must be specified
-        if not ("module_path" in data or "module_class" in data):
-            raise ValueError("Either module_path or module_class must be specified")
-        return data
-
-
-class AggregationModel(BaseModel):
-    module_path: PathLike
-    config: Optional[dict] = Field(default_factory=dict)
 
 
 class Settings(BaseSettings):

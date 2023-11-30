@@ -21,24 +21,24 @@ def load_module(module_path: str):
 def create_module_object(
     adapter_model: Union[AdapterModel, AggregationModel], base_class: Type
 ) -> Union[EnbiosAdapter, EnbiosAggregator]:
-    if adapter_model.module_path:
-        try:
-            adapter_module = load_module(adapter_model.module_path)
-        except Exception as err:
-            raise ValueError(
-                f"Could not load module '{adapter_model.module_path}' ({err})"
-            )
-        for inspect_clazz in inspect.getmembers(adapter_module, inspect.isclass):
-            # check if cl is subclass of EnbiosAdapter/EnbiosAggregation
-            clazz = inspect_clazz[1]
-            if any(base.__name__ == base_class.__name__ for base in clazz.__bases__):
-                return clazz()
-    else:
-        if any(
-            base.__name__ == base_class.__name__
-            for base in adapter_model.module_class.__bases__
-        ):
-            return adapter_model.module_class()
+    # if adapter_model.module_path:
+    try:
+        adapter_module = load_module(adapter_model.module_path)
+    except Exception as err:
+        raise ValueError(
+            f"Could not load module '{adapter_model.module_path}' ({err})"
+        )
+    for inspect_clazz in inspect.getmembers(adapter_module, inspect.isclass):
+        # check if cl is subclass of EnbiosAdapter/EnbiosAggregation
+        clazz = inspect_clazz[1]
+        if any(base.__name__ == base_class.__name__ for base in clazz.__bases__):
+            return clazz()
+    # else:
+    #     if any(
+    #         base.__name__ == base_class.__name__
+    #         for base in adapter_model.module_class.__bases__
+    #     ):
+    #         return adapter_model.module_class()
 
     raise ValueError(
         f"'{Path(adapter_model.module_path).name}' has no class that inherits from '{base_class.__name__}'"

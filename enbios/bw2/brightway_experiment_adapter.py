@@ -144,6 +144,7 @@ class BrightwayAdapter(EnbiosAdapter):
         )
 
     def validate_methods(self, methods: dict[str, Any]) -> list[str]:
+        assert methods, "Methods must be defined for brightway adapter"
         def validate_method(method: dict) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
             bw_method = bd.methods.get(method["id"])
@@ -185,7 +186,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 f"of activity {node_name}. {err}. "
                 f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
             )
-            # raise Exception(f"Unit error, {err}; For activity: {node_name}")
+            raise Exception(f"Unit error, {err}; For activity: {node_name}")
         except DimensionalityError as err:
             logger.error(
                 f"Cannot convert output of activity {node_name}. -"
@@ -193,7 +194,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 f"\n{bw_activity_unit} (brightway unit)"
                 f"\n{err}"
             )
-            # raise Exception(f"Unit error for activity: {node_name}")
+            raise Exception(f"Unit error for activity: {node_name}")
 
     def validate_activity(
         self,

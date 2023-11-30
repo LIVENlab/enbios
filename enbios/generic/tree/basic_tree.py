@@ -38,6 +38,7 @@ class BasicTreeNode(Generic[T]):
 
     parent : HierarchyNode, optional
         The parent node of this node. None if this node is the root.
+    data: T The data of this node.
     """
 
     def __init__(
@@ -72,7 +73,10 @@ class BasicTreeNode(Generic[T]):
         self._id: bytes = self.generate_id()
         if data:
             if isinstance(data, dict):
-                self._data = dataclass(**data)
+                if dataclass:
+                    self._data = dataclass(**data)
+                else:
+                    self._data:dict = data
             else:
                 self._data: T = data
         elif data_factory:
@@ -139,6 +143,8 @@ class BasicTreeNode(Generic[T]):
         :param node: The node to be added as a child.
         :return: The node that was added.
         """
+        if not isinstance(node, BasicTreeNode):
+            raise ValueError(f"Node {node} is of wrong type {type(node)}")
         if node is self or node in self:
             raise ValueError(f"Node {node} is already a child of {self}")
         if node.parent:
@@ -165,8 +171,8 @@ class BasicTreeNode(Generic[T]):
         """
         if isinstance(node, int) or isinstance(node, str):
             node = self[node]
-        if not isinstance(node, BasicTreeNode):
-            raise ValueError(f"Node {node} is of wrong type {type(node)}")
+        # if not isinstance(node, BasicTreeNode):
+        #     raise ValueError(f"Node {node} is of wrong type {type(node)}")
         self.children.remove(node)
         node.parent = None
         return node

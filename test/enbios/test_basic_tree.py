@@ -1,28 +1,13 @@
-import json
 import os
 from copy import copy
 from csv import DictReader
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Generator
 
 import pytest
-import sys
 
-from enbios.const import BASE_TEST_DATA_PATH
-from enbios.generic.files import ReadDataPath
-
-try:
-    import enbios
-    import enbios.generic
-    import enbios.generic.tree
-    import enbios.generic.tree.basic_tree
-    from enbios.generic.tree.basic_tree import BasicTreeNode
-except ImportError as e:
-    print("Could not import enbios", e)
-
-print(sys.path)
-sys.path = sys.path[1:]
-print(sys.path)
+from enbios.generic.tree.basic_tree import BasicTreeNode
 
 
 # from enbios.generic.tree.basic_tree import BasicTreeNode
@@ -63,12 +48,68 @@ def test_node_init():
     assert node.temp_data == {}
 
 
+def test_empty_name():
+    with pytest.raises(ValueError):
+        BasicTreeNode("")
+
+
+def test_data():
+    node = BasicTreeNode[int]("node1", data=10)
+    assert node.data == 10
+
+
+def test_dataclass():
+    @dataclass
+    class NodeData:
+        a: int
+        b: int
+
+    node = BasicTreeNode[NodeData]("node1", data=NodeData(1, 2))
+
+    assert node.data.a == 1
+    node = BasicTreeNode[NodeData]("node1", data={"a": 1, "b": 2}, dataclass=NodeData)
+    assert node.data.a == 1
+
+
+def test_simple_data():
+    node = BasicTreeNode[int]("node1", data=10)
+    assert node.data == 10
+
+
+def test_data_factory():
+    node = BasicTreeNode[int]("node1", data_factory=lambda _: 10)
+    assert node.data == 10
+
+    def data_factory(temp_data: dict):
+        return temp_data["x"]
+
+    node = BasicTreeNode[int]("node1",
+                              temp_data={"x": 2},
+                              data_factory=data_factory)
+    assert node.data == 2
+
+
+def test_set_data():
+    parent_node = BasicTreeNode[dict]("parent", data={"a": 1, "b": 2})
+    parent_node.set_data({"a": 3, "c": 4})
+    assert parent_node.data == {"a": 3,  "c": 4}
+
+
 def test_node_add_child():
     parent_node = BasicTreeNode("parent")
     child_node = BasicTreeNode("child")
     parent_node.add_child(child_node)
     assert child_node in parent_node.children
     assert child_node.parent == parent_node
+
+    with pytest.raises(ValueError):
+        parent_node.add_child(3) # type: ignore
+
+    parent_node2 = BasicTreeNode("parent")
+    child_node2 = BasicTreeNode("child")
+    parent_node2.add_child(child_node2)
+    with pytest.raises(ValueError):
+        parent_node.add_child(child_node2)
 
 
 def test_node_add_children():
@@ -236,6 +277,7 @@ def test_make_names_unique(tree_fixture):
     assert child1.get_child_names() == ["child1_child1"]
     assert child2.get_child_names() == ["child2_child1", "child2_child2"]
 
+
 def test_join_tree():
     node1 = BasicTreeNode("node1")
     node2 = BasicTreeNode("node2")
@@ -278,7 +320,6 @@ def test_depth():
     assert node1.depth == 3
 
 
-
 def test_to_csv(csv_file_path):
     node1 = BasicTreeNode("node1", data={"a": 1, "b": 2})
     node2 = BasicTreeNode("node2", data={"a": 5, "b": 8})
@@ -295,7 +336,8 @@ def test_to_csv(csv_file_path):
     assert [{'lvl_0': 'node1', 'lvl_1': 'node2'}] == list(DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path, repeat_parent_name=True)
-    assert [{'lvl_0': 'node1', 'lvl_1': ''}, {'lvl_0': 'node1', 'lvl_1': 'node2'}] == list(DictReader(csv_file_path.open()))
+    assert [{'lvl_0': 'node1', 'lvl_1': ''}, {'lvl_0': 'node1', 'lvl_1': 'node2'}] == list(
+        DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path, include_data=True)
     assert [{'lvl_0': 'node1', 'lvl_1': '', "a": "1", "b": "2"},
@@ -458,6 +500,8 @@ def test_set_name():
     assert root.name == "new_name"
     with pytest.raises(ValueError):
         root[1].name = "child1"
+    # for coverage...
+    root.name = "new_name"
 
 
 def test_getitem():
@@ -478,6 +522,37 @@ def test_getitem():
         _ = root["non_existent"]
 
     assert root[[1, 0]].name == "grandchild1"
+
+
+def test_remove_self():
+    root = BasicTreeNode("root", children=[
+        BasicTreeNode("child1"),
+        BasicTreeNode("child2")
+    ])
+    with pytest.raises(ValueError):
+        root.remove_self()
+    root[0].remove_self()
+    assert len(root) == 1
+
+
+def test_recursive_apply_eager():
+    root = BasicTreeNode("root", children=[
+        BasicTreeNode("child1"),
+        BasicTreeNode("child2")
+    ])
+
+    def rename1(node: BasicTreeNode):
+        node.name = node.name + "_new"
+
+    root.recursive_apply_eager(rename1)
+    assert root.name == "root_new"
+    assert root[0].name == "child1_new"
+
+    def rename2(node: BasicTreeNode):
+        node.name = node.name + "_super"
+
+    root.recursive_apply_eager(rename2, depth_first=True)
+    assert root.name == "root_new_super"
 
 
 def test_repr():
@@ -532,24 +607,24 @@ def test_from_dict():
     assert len(root.children[1].children) == 0
 
 
-def test_from_compact_dict():
-    data1 = {
-        "name": "root",
-        "children": {"child1": {"children": "gc1"}, "child2": []},
-    }
-    # tree = BasicTreeNode.from_dict(data1, compact=True)
+# def test_from_compact_dict():
+#     data1 = {
+#         "name": "root",
+#         "children": {"child1": {"children": "gc1"}, "child2": []},
+#     }
+#     # tree = BasicTreeNode.from_dict(data1, compact=True)
+#
+#     a = {"x": ["x1"], "y": ["y1"]}
+#     b = {"x": [{"name": "x1", "data": 34}]}
+#     c = {"x": {"x1": [], "x2": []}}
+#
+#     for x in [a, b, c]:
+#         tree = BasicTreeNode.from_dict(x)
+# print(json.dumps(tree.as_dict(), indent=2))
 
-    a = {"x": ["x1"], "y": ["y1"]}
-    b = {"x": [{"name": "x1", "data": 34}]}
-    c = {"x": {"x1": [], "x2": []}}
-
-    for x in [a, b, c]:
-        tree = BasicTreeNode.from_dict(x, compact=True)
-        # print(json.dumps(tree.as_dict(), indent=2))
-
-    # assert tree.name == "root"
-    # assert len(tree.children) == 2
-    # assert tree[[0, 0]].name == "gc1"
+# assert tree.name == "root"
+# assert len(tree.children) == 2
+# assert tree[[0, 0]].name == "gc1"
 
 
 def test_copy():
@@ -567,6 +642,7 @@ def test_copy():
     assert child is not other.children[0]
     assert root_.children[0].parent == root_
     assert other.children[0].parent == other
+
 
 """
 def test_set_name():

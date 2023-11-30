@@ -18,7 +18,6 @@ from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     Activity_Outputs,
     ExperimentConfig,
-    ExperimentData,
     ExperimentScenarioData,
     ScenarioResultNodeData,
     Settings,
@@ -32,7 +31,7 @@ logger = get_logger(__name__)
 class Experiment:
     DEFAULT_SCENARIO_NAME = "default scenario"
 
-    def __init__(self, raw_data: Optional[Union[ExperimentData, dict, str]] = None):
+    def __init__(self, raw_data: Optional[Union[dict, str]] = None):
         self.env_settings = Settings()
         if not raw_data:
             raw_data = self.env_settings.CONFIG_FILE
