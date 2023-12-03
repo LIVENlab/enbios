@@ -131,7 +131,7 @@ For each energy function and technology:
 ENBIOS is developed by the [LIVENlab](https://livenlab.org/), a research lab of the
 the [SosteniPra](https://www.sostenipra.cat/) Research group, at [ICTA-UAB](https://www.uab.cat/icta/).
 
-The first verion was built in collaboration with the Technical Institute of the Canary
+A first prototype was built by Rafa Nebot in collaboration with the Technical Institute of the Canary
 Islands ([ITC](https://www.itccanarias.org/web/es/)) and based on the Nexus Information System developed within the
 Horizon 2020 project [MAGIC-nexus](https://magic-nexus.eu/) and the LCA-MuSIASEM integration protocol developed in the
 Marie Curie project [IANEX](https://cordis.europa.eu/project/id/623593). This early development was funded by wthe
@@ -140,9 +140,10 @@ Horizon 2020 project Sustainable Energy Transitions Laboratory ([SENTINEL](https
 The second version of `enbios` is in development with funds from the Spanish Research Agency  (AEI) and the European
 Comission (CINEA):
 
-* [SEEDS](https://seeds-project.org/) project with AEI grant PCI2020-120710-2 funds the ENBIOS 2 build based on
-  Brightway framework, adding inventory manipulation to match the mixes of the energy scenarios
-* LIVEN project with AEI grant PID2020-119565RJ-I00 funds the regionalization and conection with the TIMES energy model
+* [SEEDS](https://seeds-project.org/) project with AEI grant PCI2020-120710-2 funds the ENBIOS 2 build based on the
+  Brightway2 LCA framework, adding inventory manipulation to match the mixes of the energy scenarios and the connection with MuSIASEM
+* LIVEN project with AEI grant PID2020-119565RJ-I00 funds the regionalization of the analysis and conection with the TIMES energy model
+* ETOS project with AEI grant TED2021-132032A-I00 funds the adition of externalization
 * [JUSTWIND4ALL](https://justwind4all.eu/) project with Horizon Europe grant 101083936 funds the development of a higher
   resolution module for wind energy assessment, including new wind-specific holistic assessment methods.
 
