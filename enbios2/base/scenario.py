@@ -86,7 +86,7 @@ class Scenario:
 
     @staticmethod
     def _propagate_results_upwards(
-        node: BasicTreeNode[ScenarioResultNodeData], add_to_distribution: bool = False
+            node: BasicTreeNode[ScenarioResultNodeData], add_to_distribution: bool = False
     ):
         for child in node.children:
             if child.data:
@@ -101,9 +101,9 @@ class Scenario:
                             [
                                 a + b
                                 for a, b in zip(
-                                    node.data.distribution_results[key],
-                                    child.data.distribution_results[key],
-                                )
+                                node.data.distribution_results[key],
+                                child.data.distribution_results[key],
+                            )
                             ]
                         )
                 else:
@@ -113,10 +113,10 @@ class Scenario:
                         node.data.results[key] += value
 
     def _add_lca_results_to_tree(
-        self,
-        lca_results: ndarray,
-        add_to_distribution: bool = False,
-        propagate: bool = True,
+            self,
+            lca_results: ndarray,
+            add_to_distribution: bool = False,
+            propagate: bool = True,
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         """Add LCA results to each node in the technology tree.
 
@@ -171,7 +171,7 @@ class Scenario:
 
     @staticmethod
     def _recursive_resolve_outputs(
-        node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None, **kwargs
+            node: BasicTreeNode[ScenarioResultNodeData], _: Optional[Any] = None, **kwargs
     ):
         # todo, does this takes default values when an activity is not defined
         #  in the scenario?
@@ -263,7 +263,7 @@ class Scenario:
         self._execution_time = float("NaN")
 
     def set_results(
-        self, results: ndarray, add_to_distribution: bool = False, propagate: bool = True
+            self, results: ndarray, add_to_distribution: bool = False, propagate: bool = True
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         if self.experiment.config.store_raw_results:
             self.results = results
@@ -297,12 +297,12 @@ class Scenario:
         return data_serializer
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = False,
-        warn_no_results: bool = True,
-        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            self,
+            file_path: PathLike,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = False,
+            warn_no_results: bool = True,
+            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ):
         """
         Save the results (as tree) to a csv file
@@ -331,10 +331,10 @@ class Scenario:
         )
 
     def result_to_dict(
-        self,
-        include_output: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            self,
+            include_output: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
@@ -346,7 +346,7 @@ class Scenario:
         """
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
-            result: dict[str, Any] = {"results": data.results}
+            result: dict[str, Any] =  {"results": data.results, "distribution_results": data.distribution_results}
             if include_output:
                 result["output"] = {"unit": data.output[0], "amount": data.output[1]}
             if data.bw_activity:
@@ -370,7 +370,7 @@ class Scenario:
             return recursive_transform(self.result_tree.copy())
 
     def rearrange_results(
-        self, hierarchy: Union[list, dict]
+            self, hierarchy: Union[list, dict]
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         alt_result_tree = self.experiment.validate_hierarchy(hierarchy)
 
