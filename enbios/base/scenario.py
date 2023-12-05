@@ -69,6 +69,7 @@ class Scenario:
             self.experiment.recursive_resolve_outputs,
             experiment=self.experiment,
             depth_first=True,
+            scenario_name=self.name,
             cancel_parents_of=set(),
         )
 

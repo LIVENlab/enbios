@@ -1,23 +1,20 @@
 {
-  "alias": "root",
+  "name": "root",
   "results": {
-    "EDIP 2003 no LT_non-renewable resources no LT_zinc no LT": 6.16915484407017e-06
+    "zinc_no_LT": {
+      "amount": 6.16915484407017e-06,
+      "unit": "kilogram"
+    }
   },
   "children": [
     {
-      "alias": "energy",
+      "name": "single_activity",
       "results": {
-        "EDIP 2003 no LT_non-renewable resources no LT_zinc no LT": 6.16915484407017e-06
-      },
-      "children": [
-        {
-          "alias": "single_activity",
-          "results": {
-            "EDIP 2003 no LT_non-renewable resources no LT_zinc no LT": 6.16915484407017e-06
-          },
-          "bw_activity": "b9d74efa4fd670b1977a3471ec010737"
+        "zinc_no_LT": {
+          "amount": 6.16915484407017e-06,
+          "unit": "kilogram"
         }
-      ]
+      }
     }
   ]
 }

@@ -137,7 +137,7 @@ class Experiment:
             cancel_parts_of.add(node.id)
 
         aggregator = experiment.get_node_aggregator(node.data.aggregator)
-        valid = aggregator.validate_node_output(node)
+        valid = aggregator.validate_node_output(node, kwargs.get("scenario_name"))
         if not valid:
             cancel_parts_of.add(node.id)
 
