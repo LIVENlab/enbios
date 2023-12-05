@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 import math
 import time
@@ -96,9 +97,20 @@ class Scenario:
         # distribution_results = distributions_config > 1
         start_time = time.time()
 
-        for adapter in self.experiment.adapters:
-            result_data = adapter.run_scenario(self)
-            self.set_results(result_data)
+        if self.experiment.config.run_adapters_concurrently:
+            # Create a ThreadPoolExecutor
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                # Use a list comprehension to start a thread for each adapter
+                futures = [executor.submit(adapter.run_scenario, self) for adapter in self.experiment.adapters]
+                # As each future completes, set the results
+                for future in concurrent.futures.as_completed(futures):
+                    result_data = future.result()
+                    self.set_results(result_data)
+        else:
+            for adapter in self.experiment.adapters:
+                # run in parallel:
+                result_data = adapter.run_scenario(self)
+                self.set_results(result_data)
 
         self.result_tree.recursive_apply(
             Scenario._propagate_results_upwards,

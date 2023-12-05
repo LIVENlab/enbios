@@ -1,6 +1,7 @@
 import csv
 import math
 import time
+from collections import Counter
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
@@ -282,8 +283,18 @@ class Experiment:
                 ExperimentScenarioData(name=Experiment.DEFAULT_SCENARIO_NAME)
             ]
 
+        # set names if not given
         for index, scenario_data in enumerate(self.raw_data.scenarios):
             scenario_data.name_factory(index)
+
+        # check for name duplicates
+        name_count = Counter([s.name for s in self.raw_data.scenarios])
+        # get the scenarios that have the same name
+        duplicate_names = [name for name, count in name_count.items() if count > 1]
+        if duplicate_names:
+            raise ValueError(f"Scenarios with the same name: {duplicate_names}")
+
+        for index, scenario_data in enumerate(self.raw_data.scenarios):
             scenario = self.validate_scenario(scenario_data)
             scenarios.append(scenario)
             scenario.prepare_tree()
@@ -348,7 +359,7 @@ class Experiment:
 
         results = {}
         start_time = time.time()
-        # TODO JUST PREPARE SCENARIOS...
+        # TODO RUN AT ONCE...
         for scenario in run_scenarios:
             scenario.reset_execution_time()
             results[scenario.name] = scenario.run()

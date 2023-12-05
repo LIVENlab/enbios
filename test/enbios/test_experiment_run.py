@@ -1,6 +1,7 @@
 import csv
 import json
 import pickle
+from dataclasses import asdict
 from pathlib import Path
 from typing import Generator
 
@@ -11,7 +12,7 @@ from enbios.base.experiment import Experiment, ScenarioResultNodeData
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.generic.files import ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import ExperimentData, ResultValue
+from enbios.models.experiment_models import ResultValue
 from test.enbios.conftest import tempfolder
 from test.enbios.test_project_fixture import TEST_BW_PROJECT, TEST_BW_DATABASE, BRIGHTWAY_ADAPTER_MODULE_PATH
 
@@ -49,6 +50,23 @@ def second_activity_id() -> dict:
 
 
 @pytest.fixture
+def bw_adapter_config(default_bw_config, default_method_tuple) -> dict:
+    return {
+        "module_path": default_bw_config["bw_module_path"],
+        "config": {
+            "bw_project": default_bw_config["bw_project"],
+            "bw_default_database": default_bw_config["bw_default_database"]
+        },
+        "methods": {
+            "zinc_no_LT": {
+                "id": list(default_method_tuple)
+            }
+        },
+        "note": "brightway-adapter"
+    }
+
+
+@pytest.fixture
 def default_bw_activity(default_bw_config, first_activity_id) -> Activity:
     import bw2data
     bw2data.projects.set_current(default_bw_config["bw_project"])
@@ -60,30 +78,12 @@ def default_bw_activity(default_bw_config, first_activity_id) -> Activity:
 
 
 @pytest.fixture
-def experiment_setup(default_bw_config, default_bw_activity, default_method_tuple,
-                     default_method_str: str,
-                     default_result_score: float) -> dict:
+def experiment_setup(bw_adapter_config, default_result_score: float, first_activity_id: dict) -> dict:
     _impact = default_result_score
     return {
         "scenario": {
             "adapters": [
-                {
-                    "module_path": default_bw_config["bw_module_path"],
-                    "config": {
-                        "bw_project": default_bw_config["bw_project"],
-                        "bw_default_database": default_bw_config["bw_default_database"]
-                    },
-                    "methods": {
-                        "zinc_no_LT": {
-                            "id": [
-                                "EDIP 2003 no LT",
-                                "non-renewable resources no LT",
-                                "zinc no LT"
-                            ]
-                        }
-                    },
-                    "note": "brightway-adapter"
-                }
+                bw_adapter_config
             ],
             "hierarchy": {
                 "name": "root",
@@ -92,11 +92,7 @@ def experiment_setup(default_bw_config, default_bw_activity, default_method_tupl
                     {
                         "name": "single_activity",
                         "adapter": "bw",
-                        "id": {
-                            "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                            "location": "DK",
-                            "unit": "kilowatt hour"
-                        },
+                        "id": first_activity_id,
                         "output": [
                             "kWh",
                             1
@@ -127,28 +123,25 @@ def experiment_setup(default_bw_config, default_bw_activity, default_method_tupl
 
 
 @pytest.fixture
-def experiment_scenario_setup(default_bw_config, default_bw_activity, first_activity_id,
-                              default_method_tuple, default_method_str: str):
+def experiment_scenario_setup(bw_adapter_config, first_activity_id):
     return {
-        "bw_project": default_bw_config["bw_project"],
-        "bw_default_database": default_bw_config["bw_default_database"],
-        "activities": {
-            "single_activity": {
-                "id": first_activity_id
-            }
-        },
-        "methods": [
-            {
-                "id": default_method_tuple
-            }
+        "adapters": [
+            bw_adapter_config
         ],
         "hierarchy": {
-            "energy": [
-                "single_activity"
+            "name": "root",
+            "aggregator": "sum",
+            "children": [
+                {
+                    "name": "single_activity",
+                    "adapter": "bw",
+                    "id": first_activity_id,
+                }
             ]
         },
-        "scenarios": {
-            "scenario1": {
+        "scenarios": [
+            {
+                "name": "scenario1",
                 "activities": {
                     "single_activity": [
                         "kWh",
@@ -156,15 +149,15 @@ def experiment_scenario_setup(default_bw_config, default_bw_activity, first_acti
                     ]
                 }
             },
-            "scenario2": {
+            {
+                "name": "scenario2",
                 "activities": {
                     "single_activity": [
                         "MWh",
                         2
                     ]
                 }
-            }
-        }
+            }]
     }
 
 
@@ -287,28 +280,11 @@ def test_scaled_demand_unit(experiment_setup, default_method_str: str):
         expected_value, abs=1e-7)
 
 
-def test_stacked_lca(default_bw_config, default_method_tuple, first_activity_id,
-                     second_activity_id):
+def test_stacked_lca(bw_adapter_config, first_activity_id, second_activity_id):
     # todo this test should be vigorous
     experiment = {
         "adapters": [
-            {
-                "module_path": default_bw_config["bw_module_path"],
-                "config": {
-                    "bw_project": default_bw_config["bw_project"],
-                    "bw_default_database": default_bw_config["bw_default_database"]
-                },
-                "methods": {
-                    "zinc_no_LT": {
-                        "id": [
-                            "EDIP 2003 no LT",
-                            "non-renewable resources no LT",
-                            "zinc no LT"
-                        ]
-                    }
-                },
-                "note": "brightway-adapter"
-            }
+            bw_adapter_config
         ],
         "hierarchy": {
             "name": "root",
@@ -350,51 +326,43 @@ def test_stacked_lca(default_bw_config, default_method_tuple, first_activity_id,
 
 def test_scenario(experiment_scenario_setup: dict,
                   experiment_setup,
-                  default_bw_config: dict,
-                  default_method_tuple,
-                  default_method_str: str,
                   temp_csv_file: Path):
-    experiment = Experiment(ExperimentData(**experiment_scenario_setup))
+    experiment = Experiment(experiment_scenario_setup)
     result = experiment.run()
     assert "scenario1" in result and "scenario2" in result
-    expected_value1 = experiment_setup["expected_result_tree"]["data"].results[
-        default_method_str]
-    assert result["scenario1"].data.results[default_method_str] == expected_value1
-    expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
-    assert result["scenario2"].data.results[default_method_str] == pytest.approx(
+    expected_value1 = experiment_setup["expected_result_tree"]["data"].results["zinc_no_LT"]
+    assert result["scenario1"]["results"]["zinc_no_LT"] == asdict(expected_value1)
+    expected_value2 = expected_value1.amount * 2000  # from 1KWh to 2MWh
+    assert result["scenario2"]["results"]["zinc_no_LT"]["amount"] == pytest.approx(
         expected_value2, abs=1e-9)
     #   todo test, complete experiment csv
     experiment.results_to_csv(temp_csv_file)
 
 
-def test_multi_activity_usage(experiment_setup, default_bw_config: dict,
+def test_multi_activity_usage(bw_adapter_config: dict, first_activity_id: dict, experiment_setup,
+                              default_bw_config: dict,
                               default_method_tuple: tuple[str, ...]):
     scenario = {
-        "bw_project": default_bw_config["bw_project"],
-        "bw_default_database": default_bw_config["bw_default_database"],
-        "activities": {
-            "single_activity": {
-                "id": {
-                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit": "kilowatt hour",
-                    "location": "DK"
+        "adapters": [bw_adapter_config],
+        "hierarchy": {
+            "name": "root",
+            "aggregator": "sum",
+            "children": [
+                {
+                    "name": "single_activity",
+                    "id": first_activity_id,
+                    "adapter": "bw"
+                },
+                {
+                    "name": "single_activity_2",
+                    "id": first_activity_id,
+                    "adapter": "bw"
                 }
-            },
-            "single_activity_2": {
-                "id": {
-                    "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-                    "unit": "kilowatt hour",
-                    "location": "DK"
-                }
-            }
+            ]
         },
-        "methods": [
+        "scenarios": [
             {
-                "id": default_method_tuple
-            }
-        ],
-        "scenarios": {
-            "scenario1": {
+                "name": "scenario1",
                 "activities": {
                     "single_activity": [
                         "kWh",
@@ -402,7 +370,8 @@ def test_multi_activity_usage(experiment_setup, default_bw_config: dict,
                     ]
                 }
             },
-            "scenario2": {
+            {
+                "name": "scenario2",
                 "activities": {
                     "single_activity": [
                         "MWh",
@@ -414,24 +383,24 @@ def test_multi_activity_usage(experiment_setup, default_bw_config: dict,
                     ]
                 }
             }
-        }
+        ]
     }
     exp = Experiment(scenario)
     exp.run()
     method_str = "_".join(default_method_tuple)
-    expected_value1 = experiment_setup["expected_result_tree"]["data"].results[method_str]
-    assert expected_value1 == exp.scenarios[0].result_tree[0]._data.results[method_str]
+    expected_value1 = experiment_setup["expected_result_tree"]["data"].results['zinc_no_LT']
+    assert expected_value1 == exp.scenarios[0].result_tree[0].data.results["zinc_no_LT"]
     # scenario 2, single_activity
-    expected_value2 = expected_value1 * 2000  # from 1KWh to 2MWh
-    assert exp.scenarios[1].result_tree[0]._data.results[method_str] == pytest.approx(
+    expected_value2 = expected_value1.amount * 2000  # from 1KWh to 2MWh
+    assert exp.scenarios[1].result_tree[0].data.results["zinc_no_LT"].amount == pytest.approx(
         expected_value2, abs=1e-10)
     # scenario 2, single_activity_2
-    expected_value3 = expected_value1 * 20
-    assert exp.scenarios[1].result_tree[1]._data.results[method_str] == pytest.approx(
+    expected_value3 = expected_value1.amount * 20
+    assert exp.scenarios[1].result_tree[1].data.results["zinc_no_LT"].amount == pytest.approx(
         expected_value3, abs=1e-10)
     # scenario 2, total
     expected_value4 = expected_value2 + expected_value3
-    assert exp.scenarios[1].result_tree._data.results[method_str] == pytest.approx(
+    assert exp.scenarios[1].result_tree.data.results["zinc_no_LT"].amount == pytest.approx(
         expected_value4, abs=1e-9)
 
 
@@ -443,7 +412,7 @@ def test_lca_distribution(experiment_setup,
     scenario_data["config"] = {
         "use_k_bw_distributions": 3,
     }
-    experiment = Experiment(ExperimentData(**scenario_data))
+    experiment = Experiment(scenario_data)
     # experiment.run()
     # result["default scenario"].children
     pass
@@ -452,7 +421,7 @@ def test_lca_distribution(experiment_setup,
     }
     scenario_data["hierarchy"]["energy"].append("2nd")
 
-    experiment = Experiment(ExperimentData(**scenario_data))
+    experiment = Experiment(scenario_data)
     # result = experiment.run()
     pass
     # todo passes, but the activities have such high differences, that it is hard
@@ -463,6 +432,6 @@ def test_lca_distribution(experiment_setup,
 
          }
     ]
-    experiment = Experiment(ExperimentData(**scenario_data))
+    experiment = Experiment(scenario_data)
     result = experiment.scenarios[0].run()
     pass

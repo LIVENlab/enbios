@@ -119,6 +119,7 @@ class ExperimentConfig:
     auto_aggregate: Optional[
         bool
     ] = True  # aggregate, with same indicator, as all children, if given.
+    run_adapters_concurrently: bool = True
     # include_bw_activity_in_nodes: bool = True # todo: bring this to aggregator
     store_raw_results: bool = False  # store numpy arrays of lca results
     # use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
