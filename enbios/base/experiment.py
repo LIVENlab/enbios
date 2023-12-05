@@ -1,5 +1,6 @@
 import csv
 import math
+import time
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
@@ -26,6 +27,12 @@ from enbios.models.experiment_models import (
 )
 
 logger = get_logger(__name__)
+
+from typing import TypeVar
+
+# Define a TypeVar that is bound to EnbiosAdapter
+EnbiosAdapterType = TypeVar('EnbiosAdapterType', bound=EnbiosAdapter)
+EnbiosAggregatorType = TypeVar('EnbiosAggregatorType', bound=EnbiosAggregator)
 
 
 class Experiment:
@@ -108,7 +115,7 @@ class Experiment:
             #         f"Some Method(s) {adapter_methods.keys()} already defined in "
             #         f"another adapter"
             #     )
-            self.methods.extend([f"{adapter.name}.{m}" for m in adapter_methods])
+            self.methods.extend([f"{adapter.activity_indicator}.{m}" for m in adapter_methods])
 
         self.scenarios: list[Scenario] = self._validate_scenarios()
         self._validate_run_scenario_setting()
@@ -186,7 +193,7 @@ class Experiment:
 
     def get_activity_adapter(
             self, activity_node: BasicTreeNode[TechTreeNodeData]
-    ) -> EnbiosAdapter:
+    ) -> EnbiosAdapterType:
         try:
             return self._adapters[activity_node.data.adapter]
         except KeyError:
@@ -203,7 +210,7 @@ class Experiment:
         activity = self.get_activity(activity_name)
         return self.get_activity_adapter(activity).get_activity_output_unit(activity_name)
 
-    def get_node_aggregator(self, aggregator_indicator: str) -> EnbiosAggregator:
+    def get_node_aggregator(self, aggregator_indicator: str) -> EnbiosAggregatorType:
         return self._aggregators[aggregator_indicator]
 
     def validate_scenario(self, scenario_data: ExperimentScenarioData) -> Scenario:
@@ -339,9 +346,12 @@ class Experiment:
         else:
             run_scenarios = self.scenarios
 
+        results = {}
+        start_time = time.time()
         # TODO JUST PREPARE SCENARIOS...
-        # for scenario in run_scenarios:
-        #     scenario.reset_execution_time()
+        for scenario in run_scenarios:
+            scenario.reset_execution_time()
+            results[scenario.name] = scenario.run()
         #     if scenario.methods:
         #         raise ValueError(
         #             f"Scenario cannot have individual methods. '{scenario.name}'"
@@ -373,9 +383,8 @@ class Experiment:
         #             distribution_results,
         #             i == self.config.use_k_bw_distributions - 1,
         #         )
-        #     self._execution_time = time.time() - start_time
-        # return results
-        return {}
+        self._execution_time = time.time() - start_time
+        return results
 
     @property
     def execution_time(self) -> str:

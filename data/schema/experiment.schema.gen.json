@@ -58,6 +58,18 @@
           ],
           "default": null,
           "title": "Methods"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
         }
       },
       "title": "AdapterModel",
@@ -136,18 +148,6 @@
           "default": null,
           "description": "The default output of the activity",
           "title": "Output"
-        },
-        "orig_id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ExperimentActivityId"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Temporary copy of the id"
         }
       },
       "required": [
@@ -156,84 +156,6 @@
         "adapter"
       ],
       "title": "ExperimentActivityData",
-      "type": "object"
-    },
-    "ExperimentActivityId": {
-      "properties": {
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Name"
-        },
-        "database": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Database"
-        },
-        "code": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Code"
-        },
-        "location": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Location"
-        },
-        "unit": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Unit"
-        },
-        "alias": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Alias"
-        }
-      },
-      "title": "ExperimentActivityId",
       "type": "object"
     },
     "ExperimentConfig": {
@@ -335,6 +257,18 @@
           ],
           "default": false,
           "title": "Debug Test Run"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
         }
       },
       "title": "ExperimentConfig",

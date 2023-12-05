@@ -146,12 +146,9 @@ class Scenario:
                 result["unit"] = data.output[0] or ""
                 result["amount"] = data.output[1] or ""
             if not include_method_units:
-                return result | data.results
+                return result | {m: res.amount for m, res in data.results.items()}
             else:
-                for method_name, value in data.results.items():
-                    final_name = f"{method_name} ({method_name2units[str(method_name)]})"
-                    result[final_name] = value
-                return result
+                return result | {f"{m} ({res.unit})": res.amount for m, res in data.results.items()}
 
         return data_serializer
 

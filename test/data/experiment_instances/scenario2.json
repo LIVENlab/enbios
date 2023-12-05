@@ -1,38 +1,58 @@
 {
-  "bw_project": "ecoi_dbs",
-  "activities": {
-    "single_activity": {
-      "id": {
-        "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-        "location": "DK",
-        "unit": "kilowatt hour"
-      },
-      "output": [
-        "MWh",
-        30
-      ]
-    }
-  },
-  "methods": [
+  "adapters": [
     {
-      "id":["EDIP 2003 no LT", "non-renewable resources no LT", "zinc no LT"]
+      "module_path": "",
+      "config": {
+        "bw_project": "{BW_PROJECT}",
+        "bw_default_database": "{BW_DATABASE}"
+      },
+      "methods": {
+        "zinc_no_LT": {
+          "id": [
+            "EDIP 2003 no LT",
+            "non-renewable resources no LT",
+            "zinc no LT"
+          ]
+        }
+      },
+      "note": "brightway-adapter"
     }
   ],
+  "hierarchy": {
+    "name": "root",
+    "aggregator": "sum",
+    "children": [
+      {
+        "name": "A",
+        "adapter": "bw",
+        "id": {
+          "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+          "location": "DK",
+          "unit": "kilowatt hour"
+        },
+        "output": [
+          "MWh",
+          30
+        ]
+      }
+    ]
+  },
   "scenarios": [
     {
-      "activities": [
-        [
-          {
-            "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
-            "location": "DK",
-            "unit": "kilowatt hour"
-          },
-          [
-            "MWh",
-            30
-          ]
+      "activities": {
+        "A": [
+          "MWh",
+          30
         ]
-      ]
+      }
+    },
+    {
+      "activities": {
+        "A": [
+          "MWh",
+          20
+        ]
+      }
     }
   ]
 }

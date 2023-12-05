@@ -1,14 +1,11 @@
 from dataclasses import dataclass, field
 from typing import Optional, Union, Any
 
-import bw2data
-from bw2data.backends import Activity
 from pydantic import BaseModel, Field, model_validator, field_validator, ValidationError, ConfigDict
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
 from pydantic_core.core_schema import ValidationInfo
 
-from enbios.bw2.util import get_activity
 from enbios.const import DEFAULT_SUM_AGGREGATOR
 from enbios.generic.files import PathLike
 
@@ -58,6 +55,8 @@ class ExperimentActivityData(BaseModel):
     @field_validator("output", mode="before")
     @classmethod
     def validate_output(cls, v: Any) -> Any:
+        if v is None:
+            return None
         try:
             out = ActivityOutput(**v)
             return out
@@ -79,6 +78,7 @@ class ScenarioConfig(BaseModel):
 
 class ExperimentScenarioData(BaseModel):
     model_config = ConfigDict(extra='forbid')
+    name: Optional[str] = None
     # map from activity id to output. id is either as original (tuple) or name-dict
     activities: Optional[
         dict[str, ExperimentActivityOutput]
@@ -86,7 +86,6 @@ class ExperimentScenarioData(BaseModel):
 
     # either the name, or the id of any method. not method means running them all
     methods: Optional[list[Union[str]]] = None  # todo currently not used
-    name: Optional[str] = None
     config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
 
     def name_factory(self, index: int):
@@ -202,23 +201,6 @@ class TechTreeNodeData(BaseModel):
     output: Optional[ActivityOutput] = Field(
         None, description="The default output of the activity"
     )
-
-    @field_validator("output", mode="before")
-    @classmethod
-    def validate_output(cls, v: Any) -> Any:
-        try:
-            out = ActivityOutput(**v)
-            return out
-        except (ValidationError, Exception):
-            pass
-        try:
-            out_tuple = ExperimentActivityOutputArray(v)
-            # print(out_tuple)
-            return {"unit": out_tuple[0], "magnitude": out_tuple[1]}
-        except ValidationError:
-            raise ValidationError(
-                "Output must be either {unit, magnitude} or tuple[str, float]"
-            )
 
     @model_validator(mode="before")
     @classmethod

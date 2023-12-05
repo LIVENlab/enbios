@@ -6,14 +6,14 @@ from typing import Generator
 
 import pytest
 from bw2data.backends import Activity
-from deprecated.classic import deprecated
 
 from enbios.base.experiment import Experiment, ScenarioResultNodeData
+from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.generic.files import ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import ExperimentData
+from enbios.models.experiment_models import ExperimentData, ResultValue
 from test.enbios.conftest import tempfolder
-from test.enbios.test_project_fixture import TEST_BW_PROJECT, TEST_BW_DATABASE
+from test.enbios.test_project_fixture import TEST_BW_PROJECT, TEST_BW_DATABASE, BRIGHTWAY_ADAPTER_MODULE_PATH
 
 
 @pytest.fixture
@@ -62,56 +62,67 @@ def default_bw_activity(default_bw_config, first_activity_id) -> Activity:
 @pytest.fixture
 def experiment_setup(default_bw_config, default_bw_activity, default_method_tuple,
                      default_method_str: str,
-                     default_result_score: float):
+                     default_result_score: float) -> dict:
     _impact = default_result_score
     return {
         "scenario": {
-            "bw_project": default_bw_config["bw_project"],
-            "bw_default_database": default_bw_config["bw_default_database"],
-            "activities": {
-                "single_activity": {
-                    "id": {
-                        "name": default_bw_activity["name"],
-                        "unit": default_bw_activity["unit"],
-                        "location": default_bw_activity["location"]
-                    },
-                    "output": [
-                        "kWh",
-                        1
-                    ]
-                }
-            },
-            "methods": [
+            "adapters": [
                 {
-                    "id": default_method_tuple
+                    "module_path": default_bw_config["bw_module_path"],
+                    "config": {
+                        "bw_project": default_bw_config["bw_project"],
+                        "bw_default_database": default_bw_config["bw_default_database"]
+                    },
+                    "methods": {
+                        "zinc_no_LT": {
+                            "id": [
+                                "EDIP 2003 no LT",
+                                "non-renewable resources no LT",
+                                "zinc no LT"
+                            ]
+                        }
+                    },
+                    "note": "brightway-adapter"
                 }
             ],
             "hierarchy": {
-                "energy": [
-                    "single_activity"
+                "name": "root",
+                "aggregator": "sum",
+                "children": [
+                    {
+                        "name": "single_activity",
+                        "adapter": "bw",
+                        "id": {
+                            "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+                            "location": "DK",
+                            "unit": "kilowatt hour"
+                        },
+                        "output": [
+                            "kWh",
+                            1
+                        ]
+                    }
                 ]
             }
         },
         "expected_result_tree": {'name': 'root',
-                                 'children': [{'name': 'energy',
-                                               'children': [
-                                                   {'name': 'single_activity',
-                                                    'children': [],
-                                                    'data':
-                                                        ScenarioResultNodeData(
-                                                            output=(
-                                                                "kilowatt_hour", 1.0),
-                                                            bw_activity=default_bw_activity,
-                                                            results={
-                                                                default_method_str: _impact})}],
-                                               'data': ScenarioResultNodeData(
-                                                   output=("kilowatt_hour", 1.0),
-                                                   results={
-                                                       default_method_str: _impact})}],
+                                 'children': [
+                                     {'name': 'single_activity',
+                                      'children': [],
+                                      'data':
+                                          ScenarioResultNodeData(
+                                              output=(
+                                                  "kilowatt_hour", 1.0),
+                                              adapter="bw",
+                                              aggregator=None,
+                                              results={
+                                                  "zinc_no_LT": ResultValue(unit="kilogram", amount=_impact)})}],
                                  'data': ScenarioResultNodeData(
                                      output=("kilowatt_hour", 1.0),
+                                     adapter=None,
+                                     aggregator="sum",
                                      results={
-                                         default_method_str: _impact})}
+                                         "zinc_no_LT": ResultValue(unit="kilogram", amount=_impact)})}
     }
 
 
@@ -157,12 +168,12 @@ def experiment_scenario_setup(default_bw_config, default_bw_activity, first_acti
     }
 
 
-@deprecated(reason="Use test_project_fixture")
 @pytest.fixture
 def default_bw_config() -> dict:
     return {
         "bw_project": TEST_BW_PROJECT,
-        "bw_default_database": TEST_BW_DATABASE
+        "bw_default_database": TEST_BW_DATABASE,
+        "bw_module_path": BRIGHTWAY_ADAPTER_MODULE_PATH
     }
 
 
@@ -172,7 +183,7 @@ def temp_csv_file(tempfolder: Path) -> Generator[Path, None, None]:
     if path.exists():
         path.unlink()
     yield path
-    path.unlink()
+    # path.unlink()
 
 
 @pytest.fixture
@@ -187,7 +198,7 @@ def temp_json_file(tempfolder: Path) -> Generator[Path, None, None]:
 @pytest.fixture
 def run_basic_experiment(experiment_setup) -> Experiment:
     scenario_data = experiment_setup["scenario"]
-    experiment = Experiment(ExperimentData(**scenario_data))
+    experiment = Experiment(scenario_data)
     experiment.run()
     return experiment
 
@@ -201,8 +212,7 @@ def test_write_dict(run_basic_experiment: Experiment, tempfolder: Path):
 
 
 @pytest.fixture
-def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[
-    ScenarioResultNodeData]:
+def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[ScenarioResultNodeData]:
     return run_basic_experiment.get_scenario(
         Experiment.DEFAULT_SCENARIO_NAME).result_tree
 
@@ -210,15 +220,14 @@ def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[
 def test_single_lca_compare(run_basic_experiment: Experiment,
                             basic_exp_run_result_tree,
                             experiment_setup,
-                            default_method_tuple,
-                            default_method_str):
-    expected_value = experiment_setup["expected_result_tree"]["data"].results[
-        default_method_str]
-    bw_activity = run_basic_experiment._activities["single_activity"].bw_activity
+                            default_method_tuple):
+    expected_value = experiment_setup["expected_result_tree"]["data"].results["zinc_no_LT"]
+    activity = run_basic_experiment.get_activity("single_activity")
+    bw_adapter: BrightwayAdapter = run_basic_experiment.get_activity_adapter(activity)
+    bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
-    assert regular_score == pytest.approx(expected_value, abs=1e-6)
-    assert regular_score == basic_exp_run_result_tree.data.results[default_method_str]
-    # assert regular_score == result["default scenario"]["data"][default_method_str]
+    assert regular_score == pytest.approx(expected_value.amount, abs=0)  # abs=1e-6
+    assert regular_score == basic_exp_run_result_tree.data.results["zinc_no_LT"].amount
 
 
 def test_simple(basic_exp_run_result_tree, experiment_setup):
