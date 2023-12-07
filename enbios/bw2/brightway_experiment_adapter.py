@@ -337,7 +337,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 # todo this could be a type
                 method_result = ResultValue(unit=method_data.bw_method_unit)
                 if use_distributions:
-                    method_result.amount = [res[act_idx, m_idx] for res in raw_results]
+                    method_result.multi_amount = [res[act_idx, m_idx] for res in raw_results]
                 else:
                     method_result.amount = raw_results[0][act_idx, m_idx]
                 result_data[act_alias][method_name] = method_result

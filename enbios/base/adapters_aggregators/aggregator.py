@@ -17,9 +17,9 @@ class EnbiosAggregator(ABC):
 
     @abstractmethod
     def validate_node_output(
-        self,
-        node: BasicTreeNode[ScenarioResultNodeData],
-        scenario_name: Optional[str] = "",
+            self,
+            node: BasicTreeNode[ScenarioResultNodeData],
+            scenario_name: Optional[str] = "",
     ) -> bool:
         pass
 
@@ -32,6 +32,14 @@ class EnbiosAggregator(ABC):
     def node_indicator(self) -> str:
         pass
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
+
+    def get_logger(self):
+        return get_logger(f"__name__ ({self.name})")
+
 
 class SumAggregator(EnbiosAggregator):
     def __init__(self):
@@ -41,9 +49,9 @@ class SumAggregator(EnbiosAggregator):
         pass
 
     def validate_node_output(
-        self,
-        node: BasicTreeNode[ScenarioResultNodeData],
-        scenario_name: Optional[str] = "",
+            self,
+            node: BasicTreeNode[ScenarioResultNodeData],
+            scenario_name: Optional[str] = "",
     ) -> bool:
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
         for child in node.children:
@@ -57,8 +65,8 @@ class SumAggregator(EnbiosAggregator):
             output = None
             try:
                 output = (
-                    enbios.get_enbios_ureg().parse_expression(activity_output)
-                    * child.data.output[1]
+                        enbios.get_enbios_ureg().parse_expression(activity_output)
+                        * child.data.output[1]
                 )
                 if not node_output:
                     node_output = output
@@ -98,10 +106,29 @@ class SumAggregator(EnbiosAggregator):
     def aggregate_results(self, node: BasicTreeNode[ScenarioResultNodeData]):
         for child in node.children:
             for key, value in child.data.results.items():
+                ignore_short_multi_amount = False
                 if node.data.results.get(key) is None:
-                    node.data.results[key] = ResultValue(amount=0, unit=value.unit)
-                node.data.results[key].amount += value.amount
+                    node.data.results[key] = ResultValue(amount=0, unit=value.unit, multi_amount=[])
+                    ignore_short_multi_amount = True
+                node_agg_result = node.data.results[key]
+                node_agg_result.amount += value.amount
+                max_len = max(len(node_agg_result.multi_amount), len(value.multi_amount))
+                if len(node_agg_result.multi_amount) < max_len:
+                    node_agg_result.multi_amount.extend([0] * (max_len - len(node_agg_result.multi_amount)))
+                    if not ignore_short_multi_amount:
+                        self.get_logger().warning(
+                            f"Multi amount of node {node.name} is shorter than child {child.name}.")
+                if len(value.multi_amount) < max_len:
+                    value.multi_amount.extend([0] * (max_len - len(value.multi_amount)))
+                    self.get_logger().warning(f"Multi amount of child {child.name} is shorter than node {node.name}.")
+
+                node.data.results[key].multi_amount = [a + b for a, b in
+                                                       zip(node_agg_result.multi_amount, value.multi_amount)]
 
     @property
     def node_indicator(self) -> str:
         return "sum"
+
+    @property
+    def name(self) -> str:
+        return "sum-aggregator"

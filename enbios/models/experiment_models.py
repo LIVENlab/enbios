@@ -121,8 +121,6 @@ class ExperimentConfig:
     ] = True  # aggregate, with same indicator, as all children, if given.
     run_adapters_concurrently: bool = True
     # include_bw_activity_in_nodes: bool = True # todo: bring this to aggregator
-    store_raw_results: bool = False  # store numpy arrays of lca results
-    # use_k_bw_distributions: int = 1  # number of samples to use for monteCarlo
     run_scenarios: Optional[
         list[str]
     ] = None  # list of scenario-name to run, ALSO AS ENV-VAR
@@ -225,14 +223,14 @@ class TechTreeNodeData(BaseModel):
 @dataclass
 class ResultValue:
     unit: str
-    amount: Optional[Union[float, list[float]]] = 0
+    amount: Optional[float] = 0
+    multi_amount: Optional[list[float]] = field(default_factory=list)
 
 
 @dataclass
 class ScenarioResultNodeData:
     output: tuple[Optional[str], Optional[float]] = (None, None)
     results: dict[str, ResultValue] = field(default_factory=dict)
-    # distribution_results: dict[str, list[float]] = field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
 

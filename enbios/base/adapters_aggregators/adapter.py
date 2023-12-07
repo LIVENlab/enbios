@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from enbios.base.scenario import Scenario
+from enbios.generic.enbios2_logging import get_logger
 from enbios.models.experiment_models import (
     ActivityOutput,
     ResultValue,
@@ -53,7 +54,6 @@ class EnbiosAdapter(ABC):
     def get_default_output_value(self, activity_name: str) -> float:
         pass
 
-
     @abstractmethod
     def run(self):
         pass
@@ -81,3 +81,6 @@ class EnbiosAdapter(ABC):
     @abstractmethod
     def name(self) -> str:
         pass
+
+    def get_logger(self):
+        return get_logger(f"__name__ ({self.name})")
