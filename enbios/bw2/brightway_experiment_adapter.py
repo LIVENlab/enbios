@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from logging import getLogger
-from typing import Optional, Any, Union
+from typing import Optional, Any, Union, Sequence
 
 import bw2data
 import bw2data as bd
@@ -23,11 +23,9 @@ logger = getLogger(__file__)
 
 ureg = get_enbios_ureg()
 
-
 @dataclass
 class ExperimentMethodPrepData:
     id: tuple[str, ...]
-    # alias: str
     # todo should go...
     bw_method_unit: str
 
@@ -43,8 +41,6 @@ class BWAdapterConfig:
 
 @dataclass
 class BWAggregatorConfig:
-    # bw_project: str
-    # methods: MethodsDataTypesExt
     use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
 
 
@@ -114,6 +110,11 @@ class BrightwayActivityId(BaseModel):
                     setattr(self, _field, kwargs[_field])
 
 
+class BW_Adapter_Definition(BaseModel):
+    config: BWAdapterConfig
+    methods: dict[str, Any]
+
+
 def _bw_activity_search(activity_id: dict) -> Activity:
     """
     Search for the activity in the brightway project
@@ -164,6 +165,10 @@ class BWActivityData:
 
 
 class BrightwayAdapter(EnbiosAdapter):
+
+    def validate_definition(self, definition: dict[str, Any]):
+        pass
+
     def __init__(self):
         super(BrightwayAdapter, self).__init__()
         self.config = None
@@ -213,13 +218,13 @@ class BrightwayAdapter(EnbiosAdapter):
     def validate_methods(self, methods: dict[str, Any]) -> list[str]:
         assert methods, "Methods must be defined for brightway adapter"
 
-        def validate_method(method: dict) -> ExperimentMethodPrepData:
+        def validate_method(method_id: Sequence[str]) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
-            bw_method = bd.methods.get(method["id"])
+            bw_method = bd.methods.get(method_id)
             if not bw_method:
-                raise Exception(f"Method with id: {method['id']} does not exist")
+                raise Exception(f"Method with id: {method_id} does not exist")
             return ExperimentMethodPrepData(
-                id=tuple(method["id"]), bw_method_unit=bw_method["unit"]
+                id=tuple(method_id), bw_method_unit=bw_method["unit"]
             )
 
         self.methods: dict[str, ExperimentMethodPrepData] = {

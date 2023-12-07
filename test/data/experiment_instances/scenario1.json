@@ -7,13 +7,12 @@
         "bw_default_database": "{BW_DATABASE}"
       },
       "methods": {
-        "zinc_no_LT": {
-          "id": [
+        "zinc_no_LT":  [
             "EDIP 2003 no LT",
             "non-renewable resources no LT",
             "zinc no LT"
           ]
-        }
+
       },
       "note": "brightway-adapter"
     }

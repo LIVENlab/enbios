@@ -50,7 +50,12 @@ def second_activity_id() -> dict:
 
 
 @pytest.fixture
-def bw_adapter_config(default_bw_config, default_method_tuple) -> dict:
+def default_bw_method_name() -> str:
+    return "zinc_no_LT"
+
+
+@pytest.fixture
+def bw_adapter_config(default_bw_config: dict, default_method_tuple: tuple, default_bw_method_name: str) -> dict:
     return {
         "module_path": default_bw_config["bw_module_path"],
         "config": {
@@ -58,9 +63,7 @@ def bw_adapter_config(default_bw_config, default_method_tuple) -> dict:
             "bw_default_database": default_bw_config["bw_default_database"]
         },
         "methods": {
-            "zinc_no_LT": {
-                "id": list(default_method_tuple)
-            }
+            default_bw_method_name: default_method_tuple
         },
         "note": "brightway-adapter"
     }
@@ -78,7 +81,8 @@ def default_bw_activity(default_bw_config, first_activity_id) -> Activity:
 
 
 @pytest.fixture
-def experiment_setup(bw_adapter_config, default_result_score: float, first_activity_id: dict) -> dict:
+def experiment_setup(bw_adapter_config, default_result_score: float, first_activity_id: dict,
+                     default_bw_method_name: str) -> dict:
     _impact = default_result_score
     return {
         "scenario": {
@@ -112,13 +116,14 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                               adapter="bw",
                                               aggregator=None,
                                               results={
-                                                  "zinc_no_LT": ResultValue(unit="kilogram", amount=_impact)})}],
+                                                  default_bw_method_name: ResultValue(unit="kilogram",
+                                                                                      amount=_impact)})}],
                                  'data': ScenarioResultNodeData(
                                      output=("kilowatt_hour", 1.0),
                                      adapter=None,
                                      aggregator="sum",
                                      results={
-                                         "zinc_no_LT": ResultValue(unit="kilogram", amount=_impact)})}
+                                         default_bw_method_name: ResultValue(unit="kilogram", amount=_impact)})}
     }
 
 
@@ -211,16 +216,17 @@ def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[ScenarioRes
 
 
 def test_single_lca_compare(run_basic_experiment: Experiment,
-                            basic_exp_run_result_tree,
-                            experiment_setup,
+                            basic_exp_run_result_tree: BasicTreeNode[ScenarioResultNodeData],
+                            experiment_setup: dict,
+                            default_bw_method_name: str,
                             default_method_tuple):
-    expected_value = experiment_setup["expected_result_tree"]["data"].results["zinc_no_LT"]
+    expected_value = experiment_setup["expected_result_tree"]["data"].results[default_bw_method_name]
     activity = run_basic_experiment.get_activity("single_activity")
     bw_adapter: BrightwayAdapter = run_basic_experiment.get_activity_adapter(activity)
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
     assert regular_score == pytest.approx(expected_value.amount, abs=0)  # abs=1e-6
-    assert regular_score == basic_exp_run_result_tree.data.results["zinc_no_LT"].amount
+    assert regular_score == basic_exp_run_result_tree.data.results[default_bw_method_name].amount
 
 
 def test_simple(basic_exp_run_result_tree, experiment_setup):
@@ -259,24 +265,25 @@ def test_dict_output(run_basic_experiment, tempfolder: Path):
     assert json_data == expected_json_data
 
 
-def test_scaled_demand(experiment_setup, default_method_str: str):
+def test_scaled_demand(experiment_setup: dict, default_bw_method_name: str):
     scale = 3
     scenario_data = experiment_setup["scenario"]
     scenario_data["hierarchy"]["children"][0]["output"] = ["kWh", scale]
     expected_tree = experiment_setup["expected_result_tree"]
-    expected_value = expected_tree["data"].results["zinc_no_LT"].amount * scale
+    expected_value = expected_tree["data"].results[default_bw_method_name].amount * scale
     result = Experiment(scenario_data).run()
-    assert result[Experiment.DEFAULT_SCENARIO_NAME]["results"]["zinc_no_LT"]["amount"] == pytest.approx(expected_value,
-                                                                                                        abs=1e-1)  # 1e-10
+    assert result[Experiment.DEFAULT_SCENARIO_NAME]["results"][default_bw_method_name]["amount"] == pytest.approx(
+        expected_value,
+        abs=1e-1)  # 1e-10
 
 
-def test_scaled_demand_unit(experiment_setup, default_method_str: str):
+def test_scaled_demand_unit(experiment_setup, default_bw_method_name: str):
     scenario_data = experiment_setup["scenario"]
     scenario_data["hierarchy"]["children"][0]["output"] = ["MWh", 3]
     expected_tree = experiment_setup["expected_result_tree"]
-    expected_value = expected_tree["data"].results["zinc_no_LT"].amount * 3000
+    expected_value = expected_tree["data"].results[default_bw_method_name].amount * 3000
     result = Experiment(scenario_data).run()
-    assert result[Experiment.DEFAULT_SCENARIO_NAME]["results"]["zinc_no_LT"]["amount"] == pytest.approx(
+    assert result[Experiment.DEFAULT_SCENARIO_NAME]["results"][default_bw_method_name]["amount"] == pytest.approx(
         expected_value, abs=1e-7)
 
 
@@ -325,15 +332,16 @@ def test_stacked_lca(bw_adapter_config, first_activity_id, second_activity_id):
 
 
 def test_scenario(experiment_scenario_setup: dict,
-                  experiment_setup,
+                  experiment_setup: dict,
+                  default_bw_method_name: str,
                   temp_csv_file: Path):
     experiment = Experiment(experiment_scenario_setup)
     result = experiment.run()
     assert "scenario1" in result and "scenario2" in result
-    expected_value1 = experiment_setup["expected_result_tree"]["data"].results["zinc_no_LT"]
-    assert result["scenario1"]["results"]["zinc_no_LT"] == asdict(expected_value1)
+    expected_value1 = experiment_setup["expected_result_tree"]["data"].results[default_bw_method_name]
+    assert result["scenario1"]["results"][default_bw_method_name] == asdict(expected_value1)
     expected_value2 = expected_value1.amount * 2000  # from 1KWh to 2MWh
-    assert result["scenario2"]["results"]["zinc_no_LT"]["amount"] == pytest.approx(
+    assert result["scenario2"]["results"][default_bw_method_name]["amount"] == pytest.approx(
         expected_value2, abs=1e-9)
     #   todo test, complete experiment csv
     experiment.results_to_csv(temp_csv_file)
@@ -341,6 +349,7 @@ def test_scenario(experiment_scenario_setup: dict,
 
 def test_multi_activity_usage(bw_adapter_config: dict, first_activity_id: dict, experiment_setup,
                               default_bw_config: dict,
+                              default_bw_method_name: str,
                               default_method_tuple: tuple[str, ...]):
     scenario = {
         "adapters": [bw_adapter_config],
@@ -382,56 +391,61 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_id: dict, 
                         20
                     ]
                 }
-            }
+            },
+            {
+                "name": "scenario3",
+                "config": {
+                    "exclude_defaults": True
+                },
+                "activities": {
+                    "single_activity": [
+                        "kWh",
+                        1
+                    ]
+                }
+            },
         ]
     }
     exp = Experiment(scenario)
     exp.run()
-    method_str = "_".join(default_method_tuple)
+    # scenario 1, single_activity
     expected_value1 = experiment_setup["expected_result_tree"]["data"].results['zinc_no_LT']
-    assert expected_value1 == exp.scenarios[0].result_tree[0].data.results["zinc_no_LT"]
+    assert expected_value1 == exp.scenarios[0].result_tree[0].data.results[default_bw_method_name]
+    # scenario 1, total (around double of single_activity)
+    assert exp.scenarios[0].result_tree.data.results[default_bw_method_name].amount == expected_value1.amount * 2
     # scenario 2, single_activity
     expected_value2 = expected_value1.amount * 2000  # from 1KWh to 2MWh
-    assert exp.scenarios[1].result_tree[0].data.results["zinc_no_LT"].amount == pytest.approx(
+    assert exp.scenarios[1].result_tree[0].data.results[default_bw_method_name].amount == pytest.approx(
         expected_value2, abs=1e-10)
     # scenario 2, single_activity_2
     expected_value3 = expected_value1.amount * 20
-    assert exp.scenarios[1].result_tree[1].data.results["zinc_no_LT"].amount == pytest.approx(
+    assert exp.scenarios[1].result_tree[1].data.results[default_bw_method_name].amount == pytest.approx(
         expected_value3, abs=1e-10)
     # scenario 2, total
     expected_value4 = expected_value2 + expected_value3
-    assert exp.scenarios[1].result_tree.data.results["zinc_no_LT"].amount == pytest.approx(
+    assert exp.scenarios[1].result_tree.data.results[default_bw_method_name].amount == pytest.approx(
         expected_value4, abs=1e-9)
+    # scenario 3, exclude_defaults
+    sce2_res = exp.scenarios[2].result_tree
+    assert len(sce2_res.children) == 1
+    assert sce2_res.data.results[default_bw_method_name].amount == expected_value1.amount
 
 
 def test_lca_distribution(experiment_setup,
-                          default_method_tuple,
-                          second_activity_id,
-                          default_method_str):
+                    first_activity_id: dict,
+                          second_activity_id):
     scenario_data = experiment_setup["scenario"]
-    scenario_data["config"] = {
-        "use_k_bw_distributions": 3,
-    }
+    scenario_data["adapters"][0]["config"]["use_k_bw_distributions"] = 3
     experiment = Experiment(scenario_data)
     # experiment.run()
-    # result["default scenario"].children
-    pass
-    scenario_data["activities"]["2nd"] = {
-        "id": second_activity_id
-    }
-    scenario_data["hierarchy"]["energy"].append("2nd")
+    scenario_data["hierarchy"]["children"].append(
+        {
+            "name": "single_activity_2",
+            "id": first_activity_id,
+            "adapter": "bw"
+        }
+    )
 
     experiment = Experiment(scenario_data)
-    # result = experiment.run()
-    pass
-    # todo passes, but the activities have such high differences, that it is hard
-    # to see that they are summed up.
-    scenario_data["scenarios"] = [
-        {"activities": {"single_activity": ["kWh", 3],
-                        "2nd": ["unit", 2]}
-
-         }
-    ]
-    experiment = Experiment(scenario_data)
-    result = experiment.scenarios[0].run()
+    result = experiment.run()
     pass
