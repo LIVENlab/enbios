@@ -40,7 +40,7 @@ class EnbiosAdapter(ABC):
     def validate_activity(
             self,
             node_name: str,
-            activity_id: Any,
+            activity_config: Any,
             output: ActivityOutput,
             required_output: bool = False,
     ):

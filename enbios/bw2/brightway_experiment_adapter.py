@@ -272,13 +272,13 @@ class BrightwayAdapter(EnbiosAdapter):
     def validate_activity(
             self,
             node_name: str,
-            activity_id: Any,
+            activity_config: Any,
             output: ActivityOutput,
             required_output: bool = False,
     ):
-        assert isinstance(activity_id, dict), f"Activity id (type: dict) must be defined for activity {node_name}"
+        assert isinstance(activity_config, dict), f"Activity id (type: dict) must be defined for activity {node_name}"
         # get the brightway activity
-        bw_activity = _bw_activity_search(activity_id)
+        bw_activity = _bw_activity_search(activity_config)
 
         self.activityMap[node_name] = BWActivityData(
             bw_activity=bw_activity,

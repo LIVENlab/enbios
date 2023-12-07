@@ -1,19 +1,28 @@
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
+from enbios.generic.unit_util import get_output_in_unit
 from enbios.models.experiment_models import ResultValue, ActivityOutput
 
 
 class SimpleAssignment(BaseModel):
     activity: str
     output_unit: str
-    default_output: Optional[ActivityOutput]
-    default_impact: Optional[ResultValue]
-    scenario_outputs: Optional[dict[str, ActivityOutput]]
-    scenario_impacts: dict[str, dict[str, ResultValue]]
+    default_output: ActivityOutput
+    default_impact: Optional[ResultValue] = None
+    scenario_outputs: Optional[dict[str, ActivityOutput]] = None
+    scenario_impacts: Optional[dict[str, dict[str, ResultValue]]] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def validator(cls, data: Any) -> Any:
+        if "default_output" not in data:
+            data["default_output"] = {"unit": data["output_unit"], "magnitude": 1}
+        return data
+
 
 
 class SimpleAssignmentDefinition(BaseModel):
@@ -39,11 +48,11 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         return list(methods.keys())
 
     def validate_activity_output(self, node_name: str, target_output: ActivityOutput) -> float:
-        pass
+        return get_output_in_unit(target_output, self.activities[node_name].output_unit)
 
-    def validate_activity(self, node_name: str, activity_id: Any, output: ActivityOutput,
+    def validate_activity(self, node_name: str, activity_config: Any, output: ActivityOutput,
                           required_output: bool = False):
-        self.activities[node_name] = SimpleAssignment(activity=node_name)
+        self.activities[node_name] = SimpleAssignment(**{**{"activity": node_name} | activity_config})
 
     def get_activity_output_unit(self, activity_name: str) -> str:
         return self.activities[activity_name].output_unit
@@ -52,7 +61,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         return self.methods[method_name]
 
     def get_default_output_value(self, activity_name: str) -> float:
-        pass
+        return self.activities[activity_name].default_output.magnitude
 
     def run(self):
         pass
