@@ -7,11 +7,11 @@
         "bw_default_database": "{BW_DATABASE}"
       },
       "methods": {
-        "zinc_no_LT":  [
-            "EDIP 2003 no LT",
-            "non-renewable resources no LT",
-            "zinc no LT"
-          ]
+        "zinc_no_LT": [
+          "EDIP 2003 no LT",
+          "non-renewable resources no LT",
+          "zinc no LT"
+        ]
       },
       "note": "brightway-adapter"
     }
@@ -23,7 +23,7 @@
       {
         "name": "A",
         "adapter": "bw",
-        "id": {
+        "config": {
           "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
           "location": "DK",
           "unit": "kilowatt hour"
@@ -36,7 +36,7 @@
       {
         "name": "B",
         "adapter": "bw",
-        "id": {
+        "config": {
           "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
           "location": "DK",
           "unit": "kilowatt hour"
@@ -53,7 +53,7 @@
           {
             "name": "C1",
             "adapter": "bw",
-            "id": {
+            "config": {
               "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
               "location": "DK",
               "unit": "kilowatt hour"
@@ -66,7 +66,7 @@
           {
             "name": "C2",
             "adapter": "bw",
-            "id": {
+            "config": {
               "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
               "location": "DK",
               "unit": "kilowatt hour"

@@ -33,7 +33,7 @@ def default_result_score() -> float:
 
 
 @pytest.fixture
-def first_activity_id() -> dict:
+def first_activity_config() -> dict:
     return {
         "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
         "unit": "kilowatt hour",
@@ -42,7 +42,7 @@ def first_activity_id() -> dict:
 
 
 @pytest.fixture
-def second_activity_id() -> dict:
+def second_activity_config() -> dict:
     return {
         "name": "concentrated solar power plant construction, solar tower power plant, 20 MW",
         "code": "19978cf531d88e55aed33574e1087d78"
@@ -70,18 +70,18 @@ def bw_adapter_config(default_bw_config: dict, default_method_tuple: tuple, defa
 
 
 @pytest.fixture
-def default_bw_activity(default_bw_config, first_activity_id) -> Activity:
+def default_bw_activity(default_bw_config, first_activity_config) -> Activity:
     import bw2data
     bw2data.projects.set_current(default_bw_config["bw_project"])
     db = bw2data.Database(default_bw_config["bw_default_database"])
     return next(filter(lambda act: act["unit"] == "kilowatt hour",
                        db.search(
-                           first_activity_id["name"],
-                           filter={"location": first_activity_id["location"]})))
+                           first_activity_config["name"],
+                           filter={"location": first_activity_config["location"]})))
 
 
 @pytest.fixture
-def experiment_setup(bw_adapter_config, default_result_score: float, first_activity_id: dict,
+def experiment_setup(bw_adapter_config, default_result_score: float, first_activity_config: dict,
                      default_bw_method_name: str) -> dict:
     _impact = default_result_score
     return {
@@ -96,13 +96,16 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                     {
                         "name": "single_activity",
                         "adapter": "bw",
-                        "id": first_activity_id,
+                        "config": first_activity_config,
                         "output": [
                             "kWh",
                             1
                         ]
                     }
                 ]
+            },
+            "config": {
+                "run_adapters_concurrently": False
             }
         },
         "expected_result_tree": {'name': 'root',
@@ -128,7 +131,7 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
 
 
 @pytest.fixture
-def experiment_scenario_setup(bw_adapter_config, first_activity_id):
+def experiment_scenario_setup(bw_adapter_config, first_activity_config):
     return {
         "adapters": [
             bw_adapter_config
@@ -140,7 +143,7 @@ def experiment_scenario_setup(bw_adapter_config, first_activity_id):
                 {
                     "name": "single_activity",
                     "adapter": "bw",
-                    "id": first_activity_id,
+                    "config": first_activity_config,
                 }
             ]
         },
@@ -287,7 +290,7 @@ def test_scaled_demand_unit(experiment_setup, default_bw_method_name: str):
         expected_value, abs=1e-7)
 
 
-def test_stacked_lca(bw_adapter_config, first_activity_id, second_activity_id):
+def test_stacked_lca(bw_adapter_config, first_activity_config, second_activity_config):
     # todo this test should be vigorous
     experiment = {
         "adapters": [
@@ -298,7 +301,7 @@ def test_stacked_lca(bw_adapter_config, first_activity_id, second_activity_id):
             "aggregator": "sum",
             "children": [{
                 "name": "single_activity",
-                "id": first_activity_id,
+                "config": first_activity_config,
                 "adapter": "bw",
                 "output": [
                     "kWh",
@@ -306,7 +309,7 @@ def test_stacked_lca(bw_adapter_config, first_activity_id, second_activity_id):
                 ]
             }, {
                 "name": "2nd",
-                "id": second_activity_id,
+                "config": second_activity_config,
                 "adapter": "bw",
                 "output": [
                     "unit",
@@ -347,7 +350,7 @@ def test_scenario(experiment_scenario_setup: dict,
     experiment.results_to_csv(temp_csv_file)
 
 
-def test_multi_activity_usage(bw_adapter_config: dict, first_activity_id: dict, experiment_setup,
+def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: dict, experiment_setup,
                               default_bw_config: dict,
                               default_bw_method_name: str,
                               default_method_tuple: tuple[str, ...]):
@@ -359,12 +362,12 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_id: dict, 
             "children": [
                 {
                     "name": "single_activity",
-                    "id": first_activity_id,
+                    "config": first_activity_config,
                     "adapter": "bw"
                 },
                 {
                     "name": "single_activity_2",
-                    "id": first_activity_id,
+                    "config": first_activity_config,
                     "adapter": "bw"
                 }
             ]
@@ -432,8 +435,8 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_id: dict, 
 
 
 def test_lca_distribution(experiment_setup,
-                    first_activity_id: dict,
-                          second_activity_id):
+                          first_activity_config: dict,
+                          second_activity_config):
     scenario_data = experiment_setup["scenario"]
     scenario_data["adapters"][0]["config"]["use_k_bw_distributions"] = 3
     experiment = Experiment(scenario_data)
@@ -441,7 +444,7 @@ def test_lca_distribution(experiment_setup,
     scenario_data["hierarchy"]["children"].append(
         {
             "name": "single_activity_2",
-            "id": first_activity_id,
+            "config": first_activity_config,
             "adapter": "bw"
         }
     )

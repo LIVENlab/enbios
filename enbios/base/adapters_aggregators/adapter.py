@@ -5,7 +5,7 @@ from enbios.base.scenario import Scenario
 from enbios.generic.enbios2_logging import get_logger
 from enbios.models.experiment_models import (
     ActivityOutput,
-    ResultValue,
+    ResultValue, AdapterModel,
 )
 
 
@@ -14,7 +14,11 @@ class EnbiosAdapter(ABC):
         self._config = None
 
     @abstractmethod
-    def validate_config(self, config: dict[str, Any]):
+    def validate_definition(self, definition: AdapterModel):
+        pass
+
+    @abstractmethod
+    def validate_config(self, config: Optional[dict[str, Any]]):
         """
         This is the first validator to be called. Validate the config. The creator may store anything in the adapter object here.
         :param config:

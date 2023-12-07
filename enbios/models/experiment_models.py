@@ -46,7 +46,7 @@ class ExperimentActivityData(BaseModel):
     """
 
     name: str
-    id: Any = Field(..., description="The identifies (method to find) an activity")
+    config: Any = Field(..., description="setup data (id, outputs, ... arbitrary data")
     adapter: str = Field(..., description="The adapter to be used")
     output: Optional[ExperimentActivityOutput] = Field(
         None, description="The default output of the activity"
@@ -194,7 +194,7 @@ class TechTreeNodeData(BaseModel):
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
     # for
-    id: Optional[Any] = Field(
+    config: Optional[Any] = Field(
         None, description="The identifies (method to find) an activity"
     )
     output: Optional[ActivityOutput] = Field(
@@ -205,7 +205,7 @@ class TechTreeNodeData(BaseModel):
     @classmethod
     def check_card_number_omitted(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            leaf_node = "adapter" in data and "id" in data
+            leaf_node = "adapter" in data and "config" in data
             non_leaf_node = "aggregator" in data
             assert leaf_node or non_leaf_node, (
                 "Node must be either leaf ('id', 'adapter`) " "or non-leaf ('aggregator')"

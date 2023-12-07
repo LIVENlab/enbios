@@ -3,7 +3,8 @@
   "results": {
     "zinc_no_LT": {
       "unit": "kilogram",
-      "amount": 6.16915484407017e-06
+      "amount": 6.16915484407017e-06,
+      "multi_amount": []
     }
   },
   "output": {
@@ -16,7 +17,8 @@
       "results": {
         "zinc_no_LT": {
           "unit": "kilogram",
-          "amount": 6.16915484407017e-06
+          "amount": 6.16915484407017e-06,
+          "multi_amount": []
         }
       },
       "output": {

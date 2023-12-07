@@ -16,6 +16,7 @@ from enbios.base.scenario import Scenario
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
+from enbios.generic.simple_assignment_adapter import SimpleAssignmentAdapter
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     Activity_Outputs,
@@ -60,7 +61,9 @@ class Experiment:
         resolve_input_files(input_data)
         self.raw_data = validate_experiment_data(input_data.model_dump())
 
-        self._adapters: dict[str, EnbiosAdapter] = self._validate_adapters()
+        self._adapters: dict[str, EnbiosAdapter]
+        self.methods: list[str]
+        self._adapters, self.methods = self._validate_adapters()
         self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
 
         # todo: weird problem with Pydantic; Using self.raw_data.hierarchy fails...
@@ -75,7 +78,7 @@ class Experiment:
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
                 self.get_activity_adapter(node).validate_activity(
-                    node.name, node.data.id, node.data.output, False
+                    node.name, node.data.config, node.data.output, False
                 )
 
         def recursive_convert(
@@ -106,17 +109,6 @@ class Experiment:
             depth_first=True,
             cancel_parents_of=set(),
         )
-
-        self.methods: list[str] = []
-        for idx, adapter in enumerate(self.adapters):
-            adapter_methods_config = self.raw_data.adapters[idx].methods
-            adapter_methods = adapter.validate_methods(adapter_methods_config)
-            # if any([m in self.methods for m in adapter_methods.keys()]):
-            #     raise ValueError(
-            #         f"Some Method(s) {adapter_methods.keys()} already defined in "
-            #         f"another adapter"
-            #     )
-            self.methods.extend([f"{adapter.activity_indicator}.{m}" for m in adapter_methods])
 
         self.scenarios: list[Scenario] = self._validate_scenarios()
         self._validate_run_scenario_setting()
@@ -162,13 +154,28 @@ class Experiment:
                         f"Scenarios are: {self.scenario_names}"
                     )
 
-    def _validate_adapters(self) -> dict[str:EnbiosAdapter]:
-        adapters = [load_adapter(adapter) for adapter in self.raw_data.adapters]
+    def _validate_adapters(self) -> tuple[dict[str:EnbiosAdapter], list[str]]:
+        """
 
-        for idx, adapter in enumerate(adapters):
-            adapter.validate_config(self.raw_data.adapters[idx].config)
+        :return: adapter-dict and method names
+        """
+        adapters = []
+        methods = []
+        for adapter_def in self.raw_data.adapters:
+            adapter = load_adapter(adapter_def)
+            adapter.validate_definition(adapter_def)
+            adapter.validate_config(adapter_def.config)
+            adapters.append(adapter)
+            adapter_methods = adapter.validate_methods(adapter_def.methods)
+            # if any([m in self.methods for m in adapter_methods.keys()]):
+            #     raise ValueError(
+            #         f"Some Method(s) {adapter_methods.keys()} already defined in "
+            #         f"another adapter"
+            #     )
+            methods.extend([f"{adapter.activity_indicator}.{m}" for m in adapter_methods])
 
-        return {adapter.activity_indicator: adapter for adapter in adapters}
+        adapters.append(SimpleAssignmentAdapter())
+        return {adapter.activity_indicator: adapter for adapter in adapters}, methods
 
     def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
         aggregators = [
@@ -531,7 +538,7 @@ class Experiment:
         """
         activity_rows: list[str] = []
         for activity_name, activity in self._activities.items():
-            activity_rows.append(f"  {activity.name} - {activity.data.id.name}")
+            activity_rows.append(f"  {activity.name} - {activity.data.config.name}")
         activity_rows_str = "\n".join(activity_rows)
         methods_str = "\n".join([f" {m}" for m in self.methods])
         return (

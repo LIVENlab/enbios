@@ -33,12 +33,6 @@ def create_module_object(
         clazz = inspect_clazz[1]
         if any(base.__name__ == base_class.__name__ for base in clazz.__bases__):
             return clazz()
-    # else:
-    #     if any(
-    #         base.__name__ == base_class.__name__
-    #         for base in adapter_model.module_class.__bases__
-    #     ):
-    #         return adapter_model.module_class()
 
     raise ValueError(
         f"'{Path(adapter_model.module_path).name}' has no class that inherits from '{base_class.__name__}'"
