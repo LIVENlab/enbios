@@ -5,14 +5,14 @@ from pydantic import BaseModel, model_validator
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.generic.unit_util import get_output_in_unit
-from enbios.models.experiment_models import ResultValue, ActivityOutput
+from enbios.models.experiment_models import ResultValue, ActivityOutput, AdapterModel
 
 
 class SimpleAssignment(BaseModel):
     activity: str
     output_unit: str
     default_output: ActivityOutput
-    default_impact: Optional[ResultValue] = None
+    default_impacts: Optional[dict[str, ResultValue]] = None
     scenario_outputs: Optional[dict[str, ActivityOutput]] = None
     scenario_impacts: Optional[dict[str, dict[str, ResultValue]]] = None
 
@@ -21,24 +21,26 @@ class SimpleAssignment(BaseModel):
     def validator(cls, data: Any) -> Any:
         if "default_output" not in data:
             data["default_output"] = {"unit": data["output_unit"], "magnitude": 1}
+        if "default_impacts" not in data and "scenario_impacts" not in data:
+            raise ValueError("Either default_impacts or scenario_impacts must be defined")
         return data
 
 
-
 class SimpleAssignmentDefinition(BaseModel):
-    methods: dict[str, str] # name: unit
-    activities: dict[str, SimpleAssignment]
+    methods: dict[str, str]  # name: unit
+    # activities: dict[str, SimpleAssignment]
 
 
 class SimpleAssignmentAdapter(EnbiosAdapter):
+    name = "simple-assignment-adapter"
 
     def __init__(self):
         super().__init__()
-        self.activities: dict[str, SimpleAssignment] = {} # name: activity
-        self.methods: Optional[dict[str, str]] = None # name: unit
+        self.activities: dict[str, SimpleAssignment] = {}  # name: activity
+        self.methods: Optional[dict[str, str]] = None  # name: unit
 
-    def validate_definition(self, definition: dict[str, Any]):
-        SimpleAssignmentDefinition(**definition)
+    def validate_definition(self, definition: AdapterModel):
+        SimpleAssignmentDefinition(**definition.model_dump())
 
     def validate_config(self, config: Optional[dict[str, Any]]):
         pass
@@ -67,12 +69,18 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         pass
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
-        return {}
+        result = {}
+        for activity, config in self.activities.items():
+            activity_results = result.setdefault(activity, {})
+            for method in self.methods:
+                if config.scenario_impacts:
+                    if scenario.name in config.scenario_impacts:
+                        activity_results[method] = config.scenario_impacts[scenario.name][method]
+                elif config.default_impacts:
+                    if method in config.default_impacts:
+                        activity_results[method] = config.default_impacts[method]
+        return result
 
     @property
     def activity_indicator(self) -> str:
         return "assign"
-
-    @property
-    def name(self) -> str:
-        return "simple-assignment-adapter"

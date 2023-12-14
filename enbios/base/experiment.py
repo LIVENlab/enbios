@@ -16,7 +16,6 @@ from enbios.base.scenario import Scenario
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
-from enbios.generic.simple_assignment_adapter import SimpleAssignmentAdapter
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     Activity_Outputs,
@@ -174,7 +173,6 @@ class Experiment:
             #     )
             methods.extend([f"{adapter.activity_indicator}.{m}" for m in adapter_methods])
 
-        adapters.append(SimpleAssignmentAdapter())
         return {adapter.activity_indicator: adapter for adapter in adapters}, methods
 
     def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:

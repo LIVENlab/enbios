@@ -146,20 +146,22 @@ ScenariosDataTypesExt = Union[list[ExperimentScenarioData], PathLike]
 
 
 class AdapterModel(BaseModel):
+    model_config = ConfigDict(extra='allow')
     module_path: Optional[PathLike] = None
-    # module_class: Optional[Type] = Field(None, description="The class of the adapter", exclude=True)
+    adapter_name: Optional[str] = None  # this is to use inbuilt adapter (e.g. "simple-assignment-adapter")
     config: Optional[dict] = Field(default_factory=dict)
     methods: Optional[dict[str, Any]] = None
     note: Optional[str] = None
+
     # aggregates: Optional[bool] = False # todo: later allow one class to also aggregate
 
-    # @model_validator(mode="before")
-    # @classmethod
-    # def module_specified(cls, data: Any) -> Any:
-    #     # either module_path or module_class must be specified
-    #     if not ("module_path" in data or "module_class" in data):
-    #         raise ValueError("Either module_path or module_class must be specified")
-    #     return data
+    @model_validator(mode="before")
+    @classmethod
+    def module_specified(cls, data: Any) -> Any:
+        # either module_path or module_class must be specified
+        if not ("module_path" in data or "adapter_name" in data):
+            raise ValueError("Either module_path or adapter_name must be specified")
+        return data
 
 
 class AggregationModel(BaseModel):
@@ -197,6 +199,7 @@ class TechTreeNodeData(BaseModel):
     config: Optional[Any] = Field(
         None, description="The identifies (method to find) an activity"
     )
+    # todo should be in config?
     output: Optional[ActivityOutput] = Field(
         None, description="The default output of the activity"
     )
@@ -222,6 +225,8 @@ class TechTreeNodeData(BaseModel):
 
 @dataclass
 class ResultValue:
+    model_config = ConfigDict(extra='forbid')
+
     unit: str
     amount: Optional[float] = 0
     multi_amount: Optional[list[float]] = field(default_factory=list)

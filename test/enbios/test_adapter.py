@@ -3,7 +3,17 @@ from enbios.base.experiment import Experiment
 
 def test_simple_assignment_adapter():
     data = {
-        "adapters":[],
+        "adapters": [
+            {
+                "adapter_name": "simple-assignment-adapter",
+                "config": {
+
+                },
+                "methods": {
+                    "test": "co2"
+                }
+            }
+        ],
         "hierarchy": {
             "name": "root",
             "aggregator": "sum",
@@ -11,11 +21,24 @@ def test_simple_assignment_adapter():
                 {
                     "name": "test",
                     "adapter": "assign",
-                    "id": "test",
-                    "output": ["kg", 1]
+                    "config": {
+                        "output_unit": "kg",
+                        "default_output": {
+                            "unit": "kg",
+                            "magnitude": 1
+                        },
+                        "default_impacts": {
+                            "test": {
+                                "unit": "co2",
+                                "amount": 1
+                            }
+                        }
+                    }
                 }
             ]
         }
     }
 
-    Experiment(data)
+    exp = Experiment(data)
+    res = exp.run()
+    pass
