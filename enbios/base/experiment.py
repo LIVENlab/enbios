@@ -24,7 +24,7 @@ from enbios.models.experiment_models import (
     ScenarioResultNodeData,
     Settings,
     TechTreeNodeData,
-    ExperimentHierarchyNodeData,
+    ExperimentHierarchyNodeData, ActivityOutput,
 )
 
 logger = get_logger(__name__)
@@ -77,7 +77,7 @@ class Experiment:
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
                 self.get_activity_adapter(node).validate_activity(
-                    node.name, node.data.config, node.data.output, False
+                    node.name, node.data.config
                 )
 
         def recursive_convert(
@@ -235,6 +235,8 @@ class Experiment:
 
                 adapter = self._adapters[activity.data.adapter]
 
+                if isinstance(activity_output, dict):
+                    activity_output = ActivityOutput(**activity_output)
                 result[activity_name] = adapter.validate_activity_output(activity_name, activity_output)
                 # TODO VALIDATE ADAPTER OUTPUT
                 # if activity.id.source == BRIGHTWAY_ACTIVITY:

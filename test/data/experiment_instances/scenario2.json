@@ -26,30 +26,30 @@
         "config": {
           "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
           "location": "DK",
-          "unit": "kilowatt hour"
-        },
-        "output": [
-          "MWh",
-          30
-        ]
+          "unit": "kilowatt hour",
+          "default_output": {
+            "unit": "Mwh",
+            "magnitude": 30
+          }
+        }
       }
     ]
   },
   "scenarios": [
     {
       "activities": {
-        "A": [
-          "MWh",
-          30
-        ]
+        "A": {
+          "unit": "MWh",
+          "magnitude": 30
+        }
       }
     },
     {
       "activities": {
-        "A": [
-          "MWh",
-          20
-        ]
+        "A": {
+          "unit": "Mwh",
+          "magnitude": 20
+        }
       }
     }
   ]

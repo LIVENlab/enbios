@@ -37,7 +37,11 @@ def first_activity_config() -> dict:
     return {
         "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
         "unit": "kilowatt hour",
-        "location": "DK"
+        "location": "DK",
+        "output": {
+            "unit": "kWh",
+            "magnitude": 1
+        }
     }
 
 
@@ -97,10 +101,6 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                         "name": "single_activity",
                         "adapter": "bw",
                         "config": first_activity_config,
-                        "output": [
-                            "kWh",
-                            1
-                        ]
                     }
                 ]
             },
@@ -151,19 +151,19 @@ def experiment_scenario_setup(bw_adapter_config, first_activity_config):
             {
                 "name": "scenario1",
                 "activities": {
-                    "single_activity": [
-                        "kWh",
-                        1
-                    ]
+                    "single_activity": {
+                        "unit": "kWh",
+                        "magnitude": 1
+                    }
                 }
             },
             {
                 "name": "scenario2",
                 "activities": {
-                    "single_activity": [
-                        "MWh",
-                        2
-                    ]
+                    "single_activity": {
+                        "unit": "MWh",
+                        "magnitude": 2
+                    }
                 }
             }]
     }
@@ -271,7 +271,8 @@ def test_dict_output(run_basic_experiment, tempfolder: Path):
 def test_scaled_demand(experiment_setup: dict, default_bw_method_name: str):
     scale = 3
     scenario_data = experiment_setup["scenario"]
-    scenario_data["hierarchy"]["children"][0]["output"] = ["kWh", scale]
+    # todo: test again, commenting this out... it should fail...
+    scenario_data["hierarchy"]["children"][0]["config"]["default_output"] = {"unit": "kWh", "magnitude": scale}
     expected_tree = experiment_setup["expected_result_tree"]
     expected_value = expected_tree["data"].results[default_bw_method_name].amount * scale
     result = Experiment(scenario_data).run()
@@ -282,7 +283,7 @@ def test_scaled_demand(experiment_setup: dict, default_bw_method_name: str):
 
 def test_scaled_demand_unit(experiment_setup, default_bw_method_name: str):
     scenario_data = experiment_setup["scenario"]
-    scenario_data["hierarchy"]["children"][0]["output"] = ["MWh", 3]
+    scenario_data["hierarchy"]["children"][0]["config"]["default_output"] = {"unit": "MWh", "magnitude": 3}
     expected_tree = experiment_setup["expected_result_tree"]
     expected_value = expected_tree["data"].results[default_bw_method_name].amount * 3000
     result = Experiment(scenario_data).run()
@@ -303,29 +304,29 @@ def test_stacked_lca(bw_adapter_config, first_activity_config, second_activity_c
                 "name": "single_activity",
                 "config": first_activity_config,
                 "adapter": "bw",
-                "output": [
-                    "kWh",
-                    1
-                ]
+                "output": {
+                    "unit": "kWh",
+                    "magnitude": 1
+                }
             }, {
                 "name": "2nd",
                 "config": second_activity_config,
                 "adapter": "bw",
-                "output": [
-                    "unit",
-                    1
-                ]
+                "output": {
+                    "unit": "unit",
+                    "magnitude": 1
+                }
             }]
         },
         "scenarios": [
             {
-                "activities": {"single_activity": ["kWh", 3]}
+                "activities": {"single_activity": {"unit": "kWh", "magnitude": 3}}
             },
             {
-                "activities": {"single_activity": ["kWh", 4]}
+                "activities": {"single_activity": {"unit": "kWh", "magnitude": 4}}
             },
             {
-                "activities": {"single_activity": ["kWh", 5]}
+                "activities": {"single_activity": {"unit": "kWh", "magnitude": 5}}
             }
         ]
     }
@@ -376,23 +377,23 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: di
             {
                 "name": "scenario1",
                 "activities": {
-                    "single_activity": [
-                        "kWh",
-                        1
-                    ]
+                    "single_activity": {
+                        "unit": "kWh",
+                        "magnitude": 1
+                    }
                 }
             },
             {
                 "name": "scenario2",
                 "activities": {
-                    "single_activity": [
-                        "MWh",
-                        2
-                    ],
-                    "single_activity_2": [
-                        "kWh",
-                        20
-                    ]
+                    "single_activity": {
+                        "unit": "MWh",
+                        "magnitude": 2
+                    },
+                    "single_activity_2": {
+                        "unit": "kWh",
+                        "magnitude": 20
+                    }
                 }
             },
             {
@@ -401,10 +402,10 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: di
                     "exclude_defaults": True
                 },
                 "activities": {
-                    "single_activity": [
-                        "kWh",
-                        1
-                    ]
+                    "single_activity": {
+                        "unit": "kWh",
+                        "magnitude": 1
+                    }
                 }
             },
         ]

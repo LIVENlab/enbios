@@ -1,10 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Optional, Union, Any
 
-from pydantic import BaseModel, Field, model_validator, field_validator, ValidationError, ConfigDict
+from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict, ValidationInfo
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.v1 import BaseSettings
-from pydantic_core.core_schema import ValidationInfo
 
 from enbios.const import DEFAULT_SUM_AGGREGATOR
 from enbios.generic.files import PathLike
@@ -25,12 +24,6 @@ class ActivityOutput(BaseModel):
     magnitude: float = 1.0
 
 
-# this is just for the schema to accept an array.
-ExperimentActivityOutputArray = tuple[str, float]
-
-ExperimentActivityOutput = Union[ActivityOutput, ExperimentActivityOutputArray]
-
-
 class ExperimentHierarchyNodeData(BaseModel):
     name: str
     aggregator: str
@@ -48,28 +41,6 @@ class ExperimentActivityData(BaseModel):
     name: str
     config: Any = Field(..., description="setup data (id, outputs, ... arbitrary data")
     adapter: str = Field(..., description="The adapter to be used")
-    output: Optional[ExperimentActivityOutput] = Field(
-        None, description="The default output of the activity"
-    )
-
-    @field_validator("output", mode="before")
-    @classmethod
-    def validate_output(cls, v: Any) -> Any:
-        if v is None:
-            return None
-        try:
-            out = ActivityOutput(**v)
-            return out
-        except (ValidationError, Exception):
-            pass
-        try:
-            out_tuple = ExperimentActivityOutputArray(v)
-            # print(out_tuple)
-            return {"unit": out_tuple[0], "magnitude": out_tuple[1]}
-        except ValidationError:
-            raise ValidationError(
-                "Output must be either {unit, magnitude} or tuple[str, float]"
-            )
 
 
 class ScenarioConfig(BaseModel):
@@ -81,7 +52,7 @@ class ExperimentScenarioData(BaseModel):
     name: Optional[str] = None
     # map from activity id to output. id is either as original (tuple) or name-dict
     activities: Optional[
-        dict[str, ExperimentActivityOutput]
+        dict[str, ActivityOutput]
     ] = Field({})  # name to output, null means default-output (check exists)
 
     # either the name, or the id of any method. not method means running them all
@@ -92,25 +63,6 @@ class ExperimentScenarioData(BaseModel):
         if not self.name:
             self.name = f"Scenario {index}"
 
-    @field_validator("activities", mode="before")
-    @classmethod
-    def validate_activities(
-            cls, v: dict[str, ExperimentActivityOutput]
-    ) -> dict[str, ActivityOutput]:
-        for activity_name, activity_output in v.items():
-            if isinstance(activity_output, dict):
-                v[activity_name] = ActivityOutput(**activity_output)
-            elif isinstance(activity_output, tuple) or isinstance(activity_output, list):
-                v[activity_name] = ActivityOutput(
-                    unit=activity_output[0], magnitude=activity_output[1]
-                )
-            elif isinstance(activity_output, ActivityOutput):
-                pass
-            else:
-                raise ValueError(
-                    f"activity_output must be either {ActivityOutput} or tuple or list: [str, float]"
-                )
-        return v
 
 
 @pydantic_dataclass(config=StrictInputConfig)
@@ -200,9 +152,9 @@ class TechTreeNodeData(BaseModel):
         None, description="The identifies (method to find) an activity"
     )
     # todo should be in config?
-    output: Optional[ActivityOutput] = Field(
-        None, description="The default output of the activity"
-    )
+    # output: Optional[ActivityOutput] = Field(
+    #     None, description="The default output of the activity"
+    # )
 
     @model_validator(mode="before")
     @classmethod
@@ -226,7 +178,6 @@ class TechTreeNodeData(BaseModel):
 @dataclass
 class ResultValue:
     model_config = ConfigDict(extra='forbid')
-
     unit: str
     amount: Optional[float] = 0
     multi_amount: Optional[list[float]] = field(default_factory=list)

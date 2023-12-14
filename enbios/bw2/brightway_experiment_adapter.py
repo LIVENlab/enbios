@@ -55,6 +55,7 @@ class BrightwayActivityId(BaseModel):
     unit: Optional[str] = None  # unit
     # internal-name
     alias: Optional[str] = None  # experiment name
+    default_output: Optional[ActivityOutput] = None
 
     def get_bw_activity(
             self, allow_multiple: bool = False
@@ -272,9 +273,7 @@ class BrightwayAdapter(EnbiosAdapter):
     def validate_activity(
             self,
             node_name: str,
-            activity_config: Any,
-            output: ActivityOutput,
-            required_output: bool = False,
+            activity_config: Any
     ):
         assert isinstance(activity_config, dict), f"Activity id (type: dict) must be defined for activity {node_name}"
         # get the brightway activity
@@ -286,10 +285,10 @@ class BrightwayAdapter(EnbiosAdapter):
                 unit=bw_unit_fix(bw_activity["unit"]), magnitude=1
             ),
         )
-        if output:
+        if "default_output" in activity_config:
             self.activityMap[
                 node_name
-            ].default_output.magnitude = self.validate_activity_output(node_name, output)
+            ].default_output.magnitude = self.validate_activity_output(node_name, ActivityOutput(**activity_config["default_output"]))
 
     def get_default_output_value(self, activity_name: str) -> float:
         return self.activityMap[activity_name].default_output.magnitude
