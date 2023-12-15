@@ -252,9 +252,11 @@ def test_csv_output(run_basic_experiment, temp_csv_file: Path):
                                         include_method_units=False)
     assert temp_csv_file.exists()
     csv_data = ReadPath(temp_csv_file).read_data()
+    # todo this does not really check the content...
     expected_data = list(
         csv.DictReader(temp_csv_file.open()))
     assert csv_data == expected_data
+    pass
     # todo we could try other hierarchies here and include the methods units again
 
 
