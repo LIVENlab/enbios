@@ -770,7 +770,7 @@ class BasicTreeNode(Generic[T]):
 
     def recursive_apply(
         self,
-        func: Callable[["BasicTreeNode", Optional[Any]], Any],
+        func: Callable[["BasicTreeNode", Optional[Any]], Optional[Any]],
         depth_first: bool = False,
         lazy: bool = False,
         *args,

@@ -4,7 +4,7 @@ import math
 import time
 from dataclasses import dataclass, field, asdict
 from datetime import timedelta
-from typing import Optional, Union, TYPE_CHECKING, Any
+from typing import Optional, Union, TYPE_CHECKING, Any, Callable
 
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
     ScenarioResultNodeData,
-    Activity_Outputs, ScenarioConfig,
+    Activity_Outputs, ScenarioConfig, ResultValue,
 )
 
 logger = get_logger(__name__)
@@ -146,22 +146,56 @@ class Scenario:
                 continue
             activity_node.data.results = activity_result
 
-    def wrapper_data_serializer(self, include_method_units: bool = True):
-        # todo: use this for json as well...
-        method_name2units: dict[str, str] = {
-            method_name: self.experiment.get_method_unit(method_name)
-            for method_name in self.experiment.methods
-        }
+    # def wrapper_data_serializer(self, include_method_units: bool = True):
+    #     # todo: use this for json as well...
+    #     method_name2units: dict[str, str] = {
+    #         method_name: self.experiment.get_method_unit(method_name)
+    #         for method_name in self.experiment.methods
+    #     }
+    #
+    #     def data_serializer(data: ScenarioResultNodeData) -> dict:
+    #         result: dict[str, Union[str, float]] = {}
+    #         if data.output:
+    #             result["unit"] = data.output[0] or ""
+    #             result["amount"] = data.output[1] or ""
+    #         if not include_method_units:
+    #             return result | {m: res.amount for m, res in data.results.items()}
+    #         else:
+    #             return result | {f"{m} ({res.unit})": res.amount for m, res in data.results.items()}
+    #
+    #     return data_serializer
+
+    @staticmethod
+    def wrapper_data_serializer(include_output: bool = True, expand_results: bool = True) -> Callable[
+        [ScenarioResultNodeData], dict]:
+
+        def _expand_results(results: dict[str, ResultValue]) -> dict:
+            expanded_results = {}
+            for method_name, result_value in results.items():
+                expanded_results[f"{method_name}_unit"] = result_value.unit
+                expanded_results[f"{method_name}_amount"] = result_value.amount
+                if result_value.multi_amount:
+                    for idx, amount in enumerate(result_value.multi_amount):
+                        expanded_results[f"{method_name}_{result_value.unit}_{idx}"] = amount
+            return expanded_results
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
-            result: dict[str, Union[str, float]] = {}
-            if data.output:
-                result["unit"] = data.output[0] or ""
-                result["amount"] = data.output[1] or ""
-            if not include_method_units:
-                return result | {m: res.amount for m, res in data.results.items()}
+            if expand_results:
+                result: dict[str, Any] = _expand_results(data.results)
             else:
-                return result | {f"{m} ({res.unit})": res.amount for m, res in data.results.items()}
+                result: dict[str, Any] = {
+                    "results": {
+                        method_name: asdict(result_value)
+                        for method_name, result_value in data.results.items()
+                    }
+                }
+            if include_output:
+                result["output"] = {"unit": data.output[0], "amount": data.output[1]}
+            # todo: adapter specific additional data
+            # if data.bw_activity:
+            #     result["bw_activity"] = data.bw_activity["code"]
+
+            return result
 
         return data_serializer
 
@@ -197,7 +231,7 @@ class Scenario:
             file_path,
             include_data=True,
             level_names=level_names,
-            data_serializer=self.wrapper_data_serializer(include_method_units),
+            data_serializer=self.wrapper_data_serializer(include_method_units, True),
         )
 
     def result_to_dict(
@@ -215,23 +249,8 @@ class Scenario:
         :return:
         """
 
-        def data_serializer(data: ScenarioResultNodeData) -> dict:
-            result: dict[str, Any] = {
-                "results": {
-                    method_name: asdict(result_value)
-                    for method_name, result_value in data.results.items()
-                }
-            }
-            if include_output:
-                result["output"] = {"unit": data.output[0], "amount": data.output[1]}
-            # todo: adapter specific additional data
-            # if data.bw_activity:
-            #     result["bw_activity"] = data.bw_activity["code"]
-
-            return result
-
         def recursive_transform(node: BasicTreeNode[ScenarioResultNodeData]) -> dict:
-            result: dict[str, Any] = {"name": node.name, **data_serializer(node.data)}
+            result: dict[str, Any] = {"name": node.name, **Scenario.wrapper_data_serializer(include_output)(node.data)}
             if node.children:
                 result["children"] = [
                     recursive_transform(child) for child in node.children

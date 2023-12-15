@@ -51,34 +51,24 @@ class Experiment:
         if isinstance(raw_data, str):
             config_file_path = ReadPath(raw_data)
             raw_data = config_file_path.read_data()
-        if isinstance(raw_data, dict):
-            input_data = validate_experiment_data(raw_data)
-        else:
-            input_data = raw_data
-        # todo. look at how reading a hierarchy from a csv file or a json
-        # creates an additional root node
-        resolve_input_files(input_data)
-        self.raw_data = validate_experiment_data(input_data.model_dump())
+
+        self.raw_data = validate_experiment_data(raw_data)
+        resolve_input_files(self.raw_data)
 
         self._adapters: dict[str, EnbiosAdapter]
         self.methods: list[str]
         self._adapters, self.methods = self._validate_adapters()
         self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
 
-        # todo: weird problem with Pydantic; Using self.raw_data.hierarchy fails...
-        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = self.validate_hierarchy(
-            ExperimentHierarchyNodeData(**raw_data["hierarchy"])
-        )
-
-        self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {
-            n.name: n for n in self.hierarchy_root.iter_leaves()
-        }
+        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = self.validate_hierarchy(self.raw_data.hierarchy)
+        self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
 
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
                 self.get_activity_adapter(node).validate_activity(
                     node.name, node.data.config
                 )
+                self._activities[node.name] = node
 
         def recursive_convert(
                 node_: BasicTreeNode[TechTreeNodeData],
@@ -102,6 +92,7 @@ class Experiment:
         self.base_result_tree: BasicTreeNode[ScenarioResultNodeData] = recursive_convert(
             self.hierarchy_root
         )
+        # todo: this is for the default scenario?
         self.base_result_tree.recursive_apply(
             Experiment.recursive_resolve_outputs,
             experiment=self,
@@ -316,7 +307,7 @@ class Experiment:
             hierarchy.model_dump(), dataclass=TechTreeNodeData
         )
 
-        def validate_node_data(node: BasicTreeNode[TechTreeNodeData]):
+        def validate_node_data(node: BasicTreeNode[TechTreeNodeData]) -> Any:
             good_leaf = node.is_leaf and node.data.adapter
             good_internal = not node.is_leaf and node.data.aggregator
             assert good_leaf or good_internal, (
@@ -324,6 +315,7 @@ class Experiment:
                 f"or non-leaf properties (children, aggregator): "
                 f"{node.location_names()})"
             )
+            return True
 
         tech_tree.recursive_apply(validate_node_data, depth_first=True)
         return tech_tree

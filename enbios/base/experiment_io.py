@@ -8,7 +8,7 @@ from frictionless.fields import NumberField, StringField
 from enbios.generic.files import ReadPath
 from enbios.generic.tree.csv2dict import csv_tree2dict
 from enbios.models.experiment_models import (
-    ExperimentData,
+    ExperimentData, ExperimentHierarchyNodeData, ExperimentScenarioData,
     # ExperimentMethodData,
 )
 
@@ -59,17 +59,6 @@ def unflatten_data(data: dict, structure_map: dict):
     return unflatten(res, splitter="dot")
 
 
-# def parse_method_row(row: dict) -> ExperimentMethodData:
-#     id_: list[str] = []
-#     if row_id := row.get("id"):
-#         id_ = row_id.split(",")
-#     else:
-#         for i in range(4):
-#             if row_id := row.get(f"id{i}"):
-#                 id_.append(row_id)
-#             else:
-#                 break
-#     return ExperimentMethodData(alias=row.get("alias"), id=tuple(id_))
 
 
 def get_abs_path(path: Union[str, PathLike], base_dir: Optional[str] = None) -> ReadPath:
@@ -80,73 +69,19 @@ def get_abs_path(path: Union[str, PathLike], base_dir: Optional[str] = None) -> 
 
 
 def resolve_input_files(raw_input: ExperimentData):
-    # activities
-    # if isinstance(raw_input.activities, str) or isinstance(
-    #     raw_input.activities, PathLike
-    # ):
-    #     activities_file: ReadPath = get_abs_path(
-    #         raw_input.activities, raw_input.config.base_directory
-    #     )
-    #     if activities_file.suffix == ".json":
-    #         data = activities_file.read_data()
-    #         raw_input.activities = data
-    #     elif activities_file.suffix == ".csv":
-    #         with system.use_context(trusted=True):
-    #             resource: Resource = Resource(
-    #                 path=activities_file.as_posix(), schema=activities_schema
-    #             )
-    #             report = validate(resource)
-    #             if not report.valid:
-    #                 raise Exception(
-    #                     f"Invalid activities file: {raw_input.activities}; "
-    #                     f"errors: {report.task.errors}"
-    #                 )
-    #             raw_input.activities = ActivitiesDataRows(
-    #                 list(
-    #                     (
-    #                         unflatten_data(r, activities_unflatten_map)
-    #                         for r in resource.read_rows()
-    #                     )
-    #                 )
-    #             )
-
-    # methods
-    # allow this for adapters
-    # if isinstance(raw_input.methods, str) or isinstance(raw_input.methods, PathLike):
-    #     methods_file: ReadPath = get_abs_path(
-    #         raw_input.methods, raw_input.config.base_directory
-    #     )
-    #     if methods_file.suffix == ".json":
-    #         data = methods_file.read_data()
-    #         raw_input.methods = data
-    #     if methods_file.suffix == ".csv":
-    #         with system.use_context(trusted=True):
-    #             resource: Resource = Resource(
-    #                 path=methods_file.as_posix(), schema=methods_schema
-    #             )
-    #             report = validate(resource)
-    #             if not report.valid:
-    #                 raise Exception(
-    #                     f"Invalid methods file: {raw_input.methods}; "
-    #                     f"errors: {report.task.errors}"
-    #                 )
-    #             raw_input.methods = list(
-    #                 (parse_method_row(r) for r in resource.read_rows())
-    #             )
-
     # hierarchy
     if isinstance(raw_input.hierarchy, str) or isinstance(raw_input.hierarchy, PathLike):
         hierarchy_file: ReadPath = get_abs_path(
             raw_input.hierarchy, raw_input.config.base_directory
         )
         if hierarchy_file.suffix == ".json":
-            data = hierarchy_file.read_data()
-            raw_input.hierarchy = data
+            hierarchy_data = hierarchy_file.read_data()
         elif hierarchy_file.suffix == ".csv":
-            data = csv_tree2dict(hierarchy_file, False)
-            raw_input.hierarchy = data
+            hierarchy_data = csv_tree2dict(hierarchy_file, False)
         else:
             raise Exception(f"Invalid hierarchy file: {raw_input.hierarchy}")
+
+        raw_input.hierarchy = ExperimentHierarchyNodeData(**hierarchy_data)
 
     # scenarios
     if isinstance(raw_input.scenarios, str) or isinstance(raw_input.scenarios, PathLike):
@@ -154,7 +89,7 @@ def resolve_input_files(raw_input: ExperimentData):
             raw_input.scenarios, raw_input.config.base_directory
         )
         if scenario_file.suffix == ".json":
-            data = scenario_file.read_data()
-            raw_input.scenario = data
+            scenario_data = scenario_file.read_data()
+            raw_input.scenarios = [ExperimentScenarioData(**scenario) for scenario in scenario_data]
         else:
             raise Exception(f"Invalid scenario file: {raw_input.scenarios}")
