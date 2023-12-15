@@ -38,7 +38,7 @@ def first_activity_config() -> dict:
         "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
         "unit": "kilowatt hour",
         "location": "DK",
-        "output": {
+        "default_output": {
             "unit": "kWh",
             "magnitude": 1
         }
@@ -271,14 +271,13 @@ def test_dict_output(run_basic_experiment, tempfolder: Path):
 def test_scaled_demand(experiment_setup: dict, default_bw_method_name: str):
     scale = 3
     scenario_data = experiment_setup["scenario"]
-    # todo: test again, commenting this out... it should fail...
     scenario_data["hierarchy"]["children"][0]["config"]["default_output"] = {"unit": "kWh", "magnitude": scale}
     expected_tree = experiment_setup["expected_result_tree"]
     expected_value = expected_tree["data"].results[default_bw_method_name].amount * scale
     result = Experiment(scenario_data).run()
     assert result[Experiment.DEFAULT_SCENARIO_NAME]["results"][default_bw_method_name]["amount"] == pytest.approx(
         expected_value,
-        abs=1e-1)  # 1e-10
+        abs=1e-8)  # 1e-10
 
 
 def test_scaled_demand_unit(experiment_setup, default_bw_method_name: str):
