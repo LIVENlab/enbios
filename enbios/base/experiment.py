@@ -307,7 +307,7 @@ class Experiment:
             hierarchy.model_dump(), dataclass=TechTreeNodeData
         )
 
-        def validate_node_data(node: BasicTreeNode[TechTreeNodeData]) -> Any:
+        def validate_node_data(node: BasicTreeNode[TechTreeNodeData], _) -> Any:
             good_leaf = node.is_leaf and node.data.adapter
             good_internal = not node.is_leaf and node.data.aggregator
             assert good_leaf or good_internal, (
