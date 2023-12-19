@@ -25,12 +25,12 @@ def test_simple_assignment_adapter():
                         "output_unit": "kg",
                         "default_output": {
                             "unit": "kg",
-                            "magnitude": 1
+                            "magnitude": 1.2
                         },
                         "default_impacts": {
                             "test": {
                                 "unit": "co2",
-                                "amount": 1
+                                "amount": 31.254
                             }
                         }
                     }
@@ -41,4 +41,16 @@ def test_simple_assignment_adapter():
 
     exp = Experiment(data)
     res = exp.run()
+    rearrange = exp.scenarios[0].rearrange_results({
+        "name": "root",
+        "children": [
+            {
+                "name": "middle",
+                "children": [
+                    {
+                        "name": "test",
+                    }]
+            }
+        ]
+    })
     pass

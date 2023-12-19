@@ -19,52 +19,6 @@ class OperationConfig:
     arbitrary_types_allowed = True
 
 
-class ActivityOutput(BaseModel):
-    unit: str
-    magnitude: float = 1.0
-
-
-class ExperimentHierarchyNodeData(BaseModel):
-    name: str
-    aggregator: str
-    children: Optional[
-        list[Union["ExperimentHierarchyNodeData", "ExperimentActivityData"]]
-    ] = None
-
-
-class ExperimentActivityData(BaseModel):
-    """
-    This is the dataclass for the activities in the experiment.
-    the id, is
-    """
-
-    name: str
-    config: Any = Field(..., description="setup data (id, outputs, ... arbitrary data")
-    adapter: str = Field(..., description="The adapter to be used")
-
-
-class ScenarioConfig(BaseModel):
-    exclude_defaults: Optional[bool] = False  # will only use on activities that are specified in the scenario
-
-
-class ExperimentScenarioData(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-    name: Optional[str] = None
-    # map from activity id to output. id is either as original (tuple) or name-dict
-    activities: Optional[
-        dict[str, ActivityOutput]
-    ] = Field({})  # name to output, null means default-output (check exists)
-
-    # either the name, or the id of any method. not method means running them all
-    methods: Optional[list[Union[str]]] = None  # todo currently not used
-    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
-
-    def name_factory(self, index: int):
-        if not self.name:
-            self.name = f"Scenario {index}"
-
-
-
 @pydantic_dataclass(config=StrictInputConfig)
 class ExperimentConfig:
     warn_default_demand: bool = True  # todo: bring this back
@@ -89,14 +43,6 @@ class ExperimentConfig:
     note: Optional[str] = None
 
 
-# with path
-HierarchyDataTypesExt = Union[ExperimentHierarchyNodeData, PathLike]
-
-ScenariosDataTypes = list[ExperimentScenarioData]
-# with path
-ScenariosDataTypesExt = Union[list[ExperimentScenarioData], PathLike]
-
-
 class AdapterModel(BaseModel):
     model_config = ConfigDict(extra='allow')
     module_path: Optional[PathLike] = None
@@ -119,9 +65,78 @@ class AdapterModel(BaseModel):
 class AggregationModel(BaseModel):
     module_path: PathLike
     config: Optional[dict] = Field(default_factory=dict)
+    note: Optional[str] = None
 
 
-# @pydantic_dataclass(config=StrictInputConfig)
+class ExperimentHierarchyNodeData(BaseModel):
+    name: str
+    aggregator: str
+    # todo not used yet
+    config: Optional[Any] = Field(None, description="setup data (id, outputs, ... arbitrary data")
+    children: Optional[
+        list[Union["ExperimentHierarchyNodeData", "ExperimentActivityData"]]
+    ] = None
+
+
+class ExperimentActivityData(BaseModel):
+    """
+    This is the dataclass for the activities in the experiment.
+    """
+    name: str
+    config: Any = Field(..., description="setup data (id, outputs, ... arbitrary data")
+    adapter: str = Field(..., description="The adapter to be used")
+
+
+HierarchyDataTypesExt = Union[ExperimentHierarchyNodeData, PathLike]
+
+
+class HierarchyNodeReference(BaseModel):
+    """
+    This is a reference to a node in the hierarchy.
+    """
+    name: str
+    config: Optional[Any] = Field(None, description="setup data (id, outputs, ... arbitrary data")
+    aggregator: Optional[str] = None
+    children: Optional[list["HierarchyNodeReference"]] = None
+
+    @field_validator("children", mode="before")
+    @classmethod
+    def transform_simple_string_children(cls, v: list[str]) -> list[Union["HierarchyNodeReference", str]]:
+        return [HierarchyNodeReference(name=child)
+                if isinstance(child, str) else child for child in v]
+
+
+class ScenarioConfig(BaseModel):
+    exclude_defaults: Optional[bool] = False  # will only use on activities that are specified in the scenario
+
+
+class ActivityOutput(BaseModel):
+    unit: str
+    magnitude: float = 1.0
+
+
+class ExperimentScenarioData(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    name: Optional[str] = None
+    # map from activity id to output. id is either as original (tuple) or name-dict
+    activities: Optional[
+        dict[str, ActivityOutput]
+    ] = Field({})  # name to output, null means default-output (check exists)
+
+    # either the name, or the id of any method. not method means running them all
+    methods: Optional[list[Union[str]]] = None  # todo currently not used
+    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
+
+    def name_factory(self, index: int):
+        if not self.name:
+            self.name = f"Scenario {index}"
+
+
+ScenariosDataTypes = list[ExperimentScenarioData]
+# with path
+ScenariosDataTypesExt = Union[list[ExperimentScenarioData], PathLike]
+
+
 class ExperimentData(BaseModel):
     """
     This class is used to store the data of an experiment.
@@ -151,10 +166,6 @@ class TechTreeNodeData(BaseModel):
     config: Optional[Any] = Field(
         None, description="The identifies (method to find) an activity"
     )
-    # todo should be in config?
-    # output: Optional[ActivityOutput] = Field(
-    #     None, description="The default output of the activity"
-    # )
 
     @model_validator(mode="before")
     @classmethod

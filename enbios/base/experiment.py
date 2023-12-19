@@ -13,6 +13,7 @@ from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregato
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
+from enbios.base.tree_operations import validate_experiment_hierarchy
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
@@ -24,12 +25,13 @@ from enbios.models.experiment_models import (
     ScenarioResultNodeData,
     Settings,
     TechTreeNodeData,
-    ExperimentHierarchyNodeData, ActivityOutput,
+    ActivityOutput,
 )
+from typing import TypeVar
 
 logger = get_logger(__name__)
 
-from typing import TypeVar
+
 
 # Define a TypeVar that is bound to EnbiosAdapter
 EnbiosAdapterType = TypeVar('EnbiosAdapterType', bound=EnbiosAdapter)
@@ -60,7 +62,7 @@ class Experiment:
         self._adapters, self.methods = self._validate_adapters()
         self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
 
-        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = self.validate_hierarchy(self.raw_data.hierarchy)
+        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = validate_experiment_hierarchy(self.raw_data.hierarchy)
         self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
 
         for node in self.hierarchy_root.iter_all_nodes():
@@ -92,9 +94,10 @@ class Experiment:
         self.base_result_tree: BasicTreeNode[ScenarioResultNodeData] = recursive_convert(
             self.hierarchy_root
         )
+        from enbios.base.tree_operations import recursive_resolve_outputs
         # todo: this is for the default scenario?
         self.base_result_tree.recursive_apply(
-            Experiment.recursive_resolve_outputs,
+            recursive_resolve_outputs,
             experiment=self,
             depth_first=True,
             cancel_parents_of=set(),
@@ -105,24 +108,6 @@ class Experiment:
 
         self._lca: Optional[StackedMultiLCA] = None
         self._execution_time: float = float("NaN")
-
-    @staticmethod
-    def recursive_resolve_outputs(
-            node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
-    ):
-        # todo, does this takes default values when an activity is not defined
-        #  in the scenario?
-        if node.is_leaf:
-            return
-        cancel_parts_of: set = kwargs["cancel_parents_of"]
-        if any(child.id in cancel_parts_of for child in node.children):
-            node.set_data(ScenarioResultNodeData())
-            cancel_parts_of.add(node.id)
-
-        aggregator = experiment.get_node_aggregator(node.data.aggregator)
-        valid = aggregator.validate_node_output(node, kwargs.get("scenario_name"))
-        if not valid:
-            cancel_parts_of.add(node.id)
 
     def get_method_unit(self, method_name: str) -> str:
         adapter_name, method_name = method_name.split(".")
@@ -297,28 +282,6 @@ class Experiment:
             scenarios.append(scenario)
             scenario.prepare_tree()
         return scenarios
-
-    @staticmethod
-    def validate_hierarchy(
-            hierarchy: ExperimentHierarchyNodeData,
-    ) -> BasicTreeNode[TechTreeNodeData]:
-        # todo allow no output only when there are scenarios...
-        tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
-            hierarchy.model_dump(), dataclass=TechTreeNodeData
-        )
-
-        def validate_node_data(node: BasicTreeNode[TechTreeNodeData], _) -> Any:
-            good_leaf = node.is_leaf and node.data.adapter
-            good_internal = not node.is_leaf and node.data.aggregator
-            assert good_leaf or good_internal, (
-                f"Node should have the leaf properties (id, adapter) "
-                f"or non-leaf properties (children, aggregator): "
-                f"{node.location_names()})"
-            )
-            return True
-
-        tech_tree.recursive_apply(validate_node_data, depth_first=True)
-        return tech_tree
 
     def get_scenario(self, scenario_name: str) -> Scenario:
         """

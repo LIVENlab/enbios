@@ -402,7 +402,7 @@ class BasicTreeNode(Generic[T]):
 
     def find_subnode_by_name(
         self, name: str, recursive: bool = True
-    ) -> Optional["BasicTreeNode"]:
+    ) -> Optional["BasicTreeNode[T]"]:
         """
         Find a child node by its name.
 
@@ -737,7 +737,7 @@ class BasicTreeNode(Generic[T]):
 
     def recursive_apply_eager(
         self,
-        func: Callable[["BasicTreeNode", Any], Any],
+        func: Callable[["BasicTreeNode", Optional[Any]], Any],
         depth_first: bool = False,
         *args,
         **kwargs,

@@ -37,6 +37,7 @@ class BWAdapterConfig:
     use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
     bw_default_database: Optional[str] = None
     store_raw_results: Optional[bool] = False  # store numpy arrays of lca results
+    store_lca_object: Optional[bool] = False  # store the lca object
 
 
 @dataclass
@@ -179,6 +180,7 @@ class BrightwayAdapter(EnbiosAdapter):
             str, BWCalculationSetup
         ] = {}  # scenario_alias to BWCalculationSetup
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
+        self.lca_objects: dict[str, StackedMultiLCA] = {}  # scenario_alias to lca objects
 
     @property
     def name(self) -> str:
@@ -320,10 +322,12 @@ class BrightwayAdapter(EnbiosAdapter):
         use_distributions = self.config.use_k_bw_distributions > 1
         raw_results: Union[list[ndarray], ndarray] = []
         for i in range(self.config.use_k_bw_distributions):
-            _raw_results: ndarray = StackedMultiLCA(
+            _lca = StackedMultiLCA(
                 self.scenario_calc_setups[scenario.name], use_distributions
-            ).results
-            raw_results.append(_raw_results)
+            )
+            if self.config.store_lca_object:
+                self.lca_objects[scenario.name] = _lca
+            raw_results.append(_lca.results)
 
         if self.config.store_raw_results:
             self.raw_results[scenario.name] = raw_results
