@@ -454,3 +454,10 @@ def test_lca_distribution(experiment_setup,
     experiment = Experiment(scenario_data)
     result = experiment.run()
     pass
+
+def test_run_scenario_config():
+    pass
+
+
+def test_execution_time(run_basic_experiment):
+    assert run_basic_experiment.execution_time
