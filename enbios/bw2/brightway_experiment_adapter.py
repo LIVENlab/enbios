@@ -7,15 +7,15 @@ import bw2data as bd
 from bw2data.backends import Activity
 from numpy import ndarray
 from pint import DimensionalityError, Quantity, UndefinedUnitError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
 from enbios.bw2.util import bw_unit_fix, get_activity
+from enbios.models.experiment_base_models import ActivityOutput
 from enbios.models.experiment_models import (
-    ActivityOutput,
     ResultValue,
 )
 
@@ -23,40 +23,33 @@ logger = getLogger(__file__)
 
 ureg = get_enbios_ureg()
 
-@dataclass
-class ExperimentMethodPrepData:
+
+class ExperimentMethodPrepData(BaseModel):
     id: tuple[str, ...]
     # todo should go...
     bw_method_unit: str
 
 
-@dataclass
-class BWAdapterConfig:
+class BWAdapterConfig(BaseModel):
     bw_project: str
     # methods: MethodsDataTypesExt
-    use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
-    bw_default_database: Optional[str] = None
+    use_k_bw_distributions: int = Field(1,
+                                        description="Number of samples to use for MonteCarlo")  # number of samples to use for monteCarlo
     store_raw_results: Optional[bool] = False  # store numpy arrays of lca results
     store_lca_object: Optional[bool] = False  # store the lca object
 
 
-@dataclass
-class BWAggregatorConfig:
-    use_k_bw_distributions: Optional[int] = 1  # number of samples to use for monteCarlo
-
-
-class BrightwayActivityId(BaseModel):
+class BrightwayActivityConfig(BaseModel):
     # todo this is too bw specific
-    name: Optional[str] = None  # brightway name
-    database: Optional[str] = None  # brightway database
-    code: Optional[str] = None  # brightway code
+    name: str = Field(None, description="Search:Name of the brightway activity")  # brightway name
+    database: str = Field(None, description="Search:Name of the database to search first")  # brightway database
+    code: str = Field(None, description="Search:Brightway activity code")  # brightway code
     # search and filter
-    location: Optional[str] = None  # location
+    location: str = Field(None, description="Search:Location filter")  # location
     # additional filter
-    unit: Optional[str] = None  # unit
+    unit: str = Field(None, description="Search: unit filter of results")  # unit
     # internal-name
-    alias: Optional[str] = None  # experiment name
-    default_output: Optional[ActivityOutput] = None
+    default_output: ActivityOutput = Field(None, description="Default output of the activity for all scenarios")
 
     def get_bw_activity(
             self, allow_multiple: bool = False
@@ -112,9 +105,27 @@ class BrightwayActivityId(BaseModel):
                     setattr(self, _field, kwargs[_field])
 
 
-class BW_Adapter_Definition(BaseModel):
+class BWMethodModel(BaseModel):
+    name: str = Field(None, description="Name for identification")
+    id: tuple[str, ...] = Field(None, description="Brightway method id")
+
+
+class BWAdapterDefinition(BaseModel):
     config: BWAdapterConfig
-    methods: dict[str, Any]
+    methods: list[BWMethodModel]
+
+    @field_validator("methods", mode="before")
+    @classmethod
+    def validate_methods(cls, v: list[Union[BWMethodModel, tuple[str], dict]]) -> list[BWMethodModel]:
+        methods = []
+        for m in v:
+            if isinstance(m, tuple):
+                methods.append(BWMethodModel(id=m))
+            elif isinstance(m, dict):
+                methods.append(BWMethodModel(**m))
+            else:
+                methods.append(m)
+        return methods
 
 
 def _bw_activity_search(activity_id: dict) -> Activity:
@@ -123,7 +134,7 @@ def _bw_activity_search(activity_id: dict) -> Activity:
     :param activity_id:
     :return: brightway activity
     """
-    id_ = BrightwayActivityId(**activity_id)
+    id_ = BrightwayActivityConfig(**activity_id)
     bw_activity: Optional[Activity] = None
     if id_.code:
         if id_.database:
@@ -168,6 +179,10 @@ class BWActivityData:
 
 class BrightwayAdapter(EnbiosAdapter):
 
+    @staticmethod
+    def name() -> str:
+        return "brightway-adapter"
+
     def validate_definition(self, definition: dict[str, Any]):
         pass
 
@@ -182,12 +197,8 @@ class BrightwayAdapter(EnbiosAdapter):
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
         self.lca_objects: dict[str, StackedMultiLCA] = {}  # scenario_alias to lca objects
 
-    @property
-    def name(self) -> str:
-        return "brightway-adapter"
-
-    @property
-    def activity_indicator(self) -> str:
+    @staticmethod
+    def activity_indicator() -> str:
         return "bw"
 
     def validate_config(self, config: dict[str, Any]):
@@ -198,25 +209,10 @@ class BrightwayAdapter(EnbiosAdapter):
                 f"but is {self.config.use_k_bw_distributions}"
             )
 
-        def validate_bw_project_bw_database(
-                bw_project: str, bw_default_database: Optional[str] = None
-        ):
-            if bw_project not in bd.projects:
-                raise ValueError(f"Project {bw_project} not found")
-
-            if bw_project in bd.projects:
-                bd.projects.set_current(bw_project)
-
-            if bw_default_database:
-                if bw_default_database not in bd.databases:
-                    raise ValueError(
-                        f"Database {bw_default_database} "
-                        f"not found. Options are: {list(bd.databases)}"
-                    )
-
-        validate_bw_project_bw_database(
-            self.config.bw_project, self.config.bw_default_database
-        )
+        if self.config.bw_project not in bd.projects:
+            raise ValueError(f"Project {self.config.bw_project} not found")
+        else:
+            bd.projects.set_current(self.config.bw_project)
 
     def validate_methods(self, methods: dict[str, Any]) -> list[str]:
         assert methods, "Methods must be defined for brightway adapter"
@@ -290,7 +286,8 @@ class BrightwayAdapter(EnbiosAdapter):
         if "default_output" in activity_config:
             self.activityMap[
                 node_name
-            ].default_output.magnitude = self.validate_activity_output(node_name, ActivityOutput(**activity_config["default_output"]))
+            ].default_output.magnitude = self.validate_activity_output(node_name, ActivityOutput(
+                **activity_config["default_output"]))
 
     def get_default_output_value(self, activity_name: str) -> float:
         return self.activityMap[activity_name].default_output.magnitude
@@ -351,6 +348,13 @@ class BrightwayAdapter(EnbiosAdapter):
                 result_data[act_alias][method_name] = method_result
             act_idx += 1
         return result_data
+
+    @staticmethod
+    def get_config_schemas() -> dict:
+        return {
+            "adapter": BWAdapterConfig.model_json_schema(),
+            "activity": BrightwayActivityConfig.model_json_schema(),
+        }
 
     def run(self):
         pass

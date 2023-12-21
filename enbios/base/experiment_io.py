@@ -7,7 +7,7 @@ from frictionless.fields import NumberField, StringField
 
 from enbios.generic.files import ReadPath
 from enbios.generic.tree.csv2dict import csv_tree2dict
-from enbios.models.experiment_models import (
+from enbios.models.experiment_base_models import (
     ExperimentData, ExperimentHierarchyNodeData, ExperimentScenarioData,
     # ExperimentMethodData,
 )

@@ -1,7 +1,7 @@
 from pint import Quantity
 
 from enbios import ureg
-from enbios.models.experiment_models import ActivityOutput
+from enbios.models.experiment_base_models import ActivityOutput
 
 
 def compact_all_to(quantities: list[Quantity], use_min: bool = True) -> list[Quantity]:

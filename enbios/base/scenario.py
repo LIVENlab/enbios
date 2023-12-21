@@ -9,15 +9,16 @@ from typing import Optional, Union, TYPE_CHECKING, Any, Callable
 from enbios.base.tree_operations import validate_experiment_reference_hierarchy
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike
+from enbios.models.experiment_base_models import HierarchyNodeReference, ScenarioConfig
 
 # for type hinting
 if TYPE_CHECKING:
     from enbios.base.experiment import Experiment
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
-    ScenarioResultNodeData,
-    Activity_Outputs, ScenarioConfig, ResultValue, TechTreeNodeData, HierarchyNodeReference,
+    ScenarioResultNodeData, ResultValue, TechTreeNodeData, Activity_Outputs
 )
+
 
 logger = get_logger(__name__)
 
@@ -257,8 +258,9 @@ class Scenario:
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         hierarchy_obj = HierarchyNodeReference(**hierarchy)
 
-        hierarchy_root: BasicTreeNode[TechTreeNodeData] = validate_experiment_reference_hierarchy(hierarchy_obj,
-                                                                                                  self.experiment.hierarchy_root)
+        hierarchy_root: BasicTreeNode[TechTreeNodeData] = (
+            validate_experiment_reference_hierarchy(hierarchy_obj,
+                                                    self.experiment.hierarchy_root))
 
         def recursive_convert(
                 node_: BasicTreeNode[TechTreeNodeData],

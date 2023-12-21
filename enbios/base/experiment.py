@@ -6,9 +6,11 @@ from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Any, Optional, Union
+from typing import TypeVar
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator, SumAggregator
+from enbios.base.adapters_aggregators.builtin import BUILT_IN_ADAPTERS
 from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
@@ -18,20 +20,19 @@ from enbios.bw2.stacked_MultiLCA import StackedMultiLCA
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import (
-    Activity_Outputs,
+from enbios.models.environment_model import Settings
+from enbios.models.experiment_base_models import (
     ExperimentConfig,
     ExperimentScenarioData,
-    ScenarioResultNodeData,
-    Settings,
-    TechTreeNodeData,
     ActivityOutput,
 )
-from typing import TypeVar
+from enbios.models.experiment_models import (
+    Activity_Outputs,
+    ScenarioResultNodeData,
+    TechTreeNodeData,
+)
 
 logger = get_logger(__name__)
-
-
 
 # Define a TypeVar that is bound to EnbiosAdapter
 EnbiosAdapterType = TypeVar('EnbiosAdapterType', bound=EnbiosAdapter)
@@ -94,14 +95,6 @@ class Experiment:
         self.base_result_tree: BasicTreeNode[ScenarioResultNodeData] = recursive_convert(
             self.hierarchy_root
         )
-        from enbios.base.tree_operations import recursive_resolve_outputs
-        # todo: this is for the default scenario?
-        self.base_result_tree.recursive_apply(
-            recursive_resolve_outputs,
-            experiment=self,
-            depth_first=True,
-            cancel_parents_of=set(),
-        )
 
         self.scenarios: list[Scenario] = self._validate_scenarios()
         self._validate_run_scenario_setting()
@@ -109,9 +102,9 @@ class Experiment:
         self._lca: Optional[StackedMultiLCA] = None
         self._execution_time: float = float("NaN")
 
-    def get_method_unit(self, method_name: str) -> str:
-        adapter_name, method_name = method_name.split(".")
-        return self._adapters[adapter_name].get_method_unit(method_name)
+    # def get_method_unit(self, method_name: str) -> str:
+    #     adapter_name, method_name = method_name.split(".")
+    #     return self._adapters[adapter_name].get_method_unit(method_name)
 
     def _validate_run_scenario_setting(self):
         if self.env_settings.RUN_SCENARIOS:
@@ -131,7 +124,6 @@ class Experiment:
 
     def _validate_adapters(self) -> tuple[dict[str:EnbiosAdapter], list[str]]:
         """
-
         :return: adapter-dict and method names
         """
         adapters = []
@@ -147,9 +139,9 @@ class Experiment:
             #         f"Some Method(s) {adapter_methods.keys()} already defined in "
             #         f"another adapter"
             #     )
-            methods.extend([f"{adapter.activity_indicator}.{m}" for m in adapter_methods])
+            methods.extend([f"{adapter.activity_indicator()}.{m}" for m in adapter_methods])
 
-        return {adapter.activity_indicator: adapter for adapter in adapters}, methods
+        return {adapter.activity_indicator(): adapter for adapter in adapters}, methods
 
     def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
         aggregators = [
@@ -181,7 +173,7 @@ class Experiment:
         except KeyError:
             raise ValueError(
                 f"Activity '{activity_node.name}' specifies an unknown adapter: {activity_node.data.adapter}."
-                + f"Available adapters are: {[a.activity_indicator for a in self.adapters]}"
+                + f"Available adapters are: {[a.activity_indicator() for a in self.adapters]}"
             )
 
     def get_activity_default_output(self, activity_name: str) -> float:
@@ -214,12 +206,6 @@ class Experiment:
                 if isinstance(activity_output, dict):
                     activity_output = ActivityOutput(**activity_output)
                 result[activity_name] = adapter.validate_activity_output(activity_name, activity_output)
-                # TODO VALIDATE ADAPTER OUTPUT
-                # if activity.id.source == BRIGHTWAY_ACTIVITY:
-                #     scenario_output = validate_brightway_output(
-                #         output_, activity.bw_activity, activity.id
-                #     )
-                #     result[simple_id] = scenario_output
             return result
 
         scenario_activities_outputs: Activity_Outputs = validate_activities(
@@ -299,9 +285,9 @@ class Experiment:
         """
         Run a specific scenario
         :param scenario_name:
+        :param results_as_dict:
         :return: The result_tree converted into a dict
         """
-        # todo return results
         return self.get_scenario(scenario_name).run(results_as_dict)
 
     def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
@@ -343,8 +329,6 @@ class Experiment:
         #     "experiment", list(itertools.chain(*inventories)), methods
         # )
 
-        # todo not in this config
-        # TODO RUN
         # distribution_results = self.config.use_k_bw_distributions > 1
         # results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
         # for i in range(self.config.use_k_bw_distributions):
@@ -505,3 +489,13 @@ class Experiment:
             f"Hierarchy (depth): {self.hierarchy_root.depth}\n"
             f"Scenarios: {len(self.scenarios)}\n"
         )
+
+    @staticmethod
+    def get_builtin_adapters() -> dict[str, dict[str, Any]]:
+        """
+        Get the built-in adapters
+        :return:
+        """
+        return {name: {"activity_indicator": clazz.activity_indicator(),
+                       "configs": clazz.get_config_schemas()
+                       } for name, clazz in BUILT_IN_ADAPTERS.items()}

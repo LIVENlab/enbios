@@ -1,12 +1,13 @@
 from typing import Any, TYPE_CHECKING
 
+from enbios.models.experiment_base_models import ExperimentHierarchyNodeData, HierarchyNodeReference
+
 if TYPE_CHECKING:
     from enbios.base.experiment import Experiment
 
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import ExperimentHierarchyNodeData, TechTreeNodeData, HierarchyNodeReference, \
-    ScenarioResultNodeData
+from enbios.models.experiment_models import TechTreeNodeData, ScenarioResultNodeData
 
 logger = get_logger(__name__)
 

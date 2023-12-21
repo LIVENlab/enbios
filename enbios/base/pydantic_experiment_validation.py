@@ -2,7 +2,7 @@ import sys
 
 from pydantic import ValidationError
 
-from enbios.models.experiment_models import ExperimentData, ExperimentHierarchyNodeData, ExperimentScenarioData
+from enbios.models.experiment_base_models import ExperimentData, ExperimentHierarchyNodeData, ExperimentScenarioData
 
 
 def validate_experiment_data(data: dict) -> ExperimentData:
