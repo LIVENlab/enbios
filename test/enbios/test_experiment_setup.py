@@ -2,17 +2,16 @@ import json
 import sys
 from logging import getLogger
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
 from enbios.base.experiment import Experiment
 from enbios.const import BASE_TEST_DATA_PATH
 from enbios.generic.files import ReadPath
-from enbios.models.experiment_models import ExperimentData
+from enbios.models.experiment_base_models import ExperimentData
 
 try:
-    from test.enbios.test_project_fixture import TEST_BW_DATABASE, TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH
+    from test.enbios.test_project_fixture import TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH
 except ImportError as err:
     getLogger("test-logger").error("Please copy test/enbios/test_project_fixture.py.example to "
                                    "test/enbios/test_project_fixture.py and fill in the values.")
@@ -38,7 +37,7 @@ def experiments_data_configures():
             if isinstance(replace_conf, list):
                 fix_experiment_data(experiment_data, *replace_conf)
             else:
-                fix_experiment_data(experiment_data, TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH, TEST_BW_DATABASE)
+                fix_experiment_data(experiment_data, TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH)
         yield experiment_data
 
 
@@ -47,13 +46,11 @@ def experiment_data_file_names():
         yield file.name
 
 
-def fix_experiment_data(data: dict, bw_project: str, module_path: str, bw_default_database: Optional[str] = None):
+def fix_experiment_data(data: dict, bw_project: str, module_path: str):
     for adapter in data["adapters"]:
         if adapter.get("note") == "brightway-adapter":
             adapter["config"]["bw_project"] = bw_project
             adapter["module_path"] = module_path
-            if "bw_default_database" in adapter["config"] and bw_default_database is not None:
-                adapter["config"]["bw_default_database"] = bw_default_database
 
 
 @pytest.mark.parametrize('experiment_data', argvalues=experiments_data_configures(), ids=experiment_data_file_names())
@@ -78,7 +75,7 @@ def test_one_experiment_data():
         if isinstance(replace_conf, list):
             fix_experiment_data(experiment_data, *replace_conf)
         else:
-            fix_experiment_data(experiment_data, TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH, TEST_BW_DATABASE)
+            fix_experiment_data(experiment_data, TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH)
     if not experiment_data.get("config", {}).get("debug_test_is_valid", True):
         with pytest.raises(Exception):
             exp_model = ExperimentData(**experiment_data)
@@ -98,7 +95,7 @@ def test_env_config(tempfolder: Path):
 
     import os
     experiment_data = ReadPath(BASE_TEST_DATA_PATH / "experiment_instances/hierarchy2.json").read_data()
-    fix_experiment_data(experiment_data, TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH, TEST_BW_DATABASE)
+    fix_experiment_data(experiment_data, TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH)
     temp_env_file = Path(tempfolder / "env_config.json")
     json.dump(experiment_data, temp_env_file.open("w", encoding="utf-8"))
     os.environ["CONFIG_FILE"] = temp_env_file.as_posix()

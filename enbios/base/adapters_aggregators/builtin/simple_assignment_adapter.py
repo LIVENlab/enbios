@@ -5,7 +5,8 @@ from pydantic import BaseModel, model_validator
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.generic.unit_util import get_output_in_unit
-from enbios.models.experiment_models import ResultValue, ActivityOutput, AdapterModel
+from enbios.models.experiment_base_models import AdapterModel, ActivityOutput
+from enbios.models.experiment_models import ResultValue
 
 
 class SimpleAssignment(BaseModel):
@@ -32,7 +33,10 @@ class SimpleAssignmentDefinition(BaseModel):
 
 
 class SimpleAssignmentAdapter(EnbiosAdapter):
-    name = "simple-assignment-adapter"
+
+    @staticmethod
+    def name():
+        return "simple-assignment-adapter"
 
     def __init__(self):
         super().__init__()
@@ -80,6 +84,12 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                         activity_results[method] = config.default_impacts[method]
         return result
 
-    @property
-    def activity_indicator(self) -> str:
+    @staticmethod
+    def activity_indicator() -> str:
         return "assign"
+
+    @staticmethod
+    def get_config_schemas() -> dict:
+        return {
+            "activity": SimpleAssignment.model_json_schema()
+        }

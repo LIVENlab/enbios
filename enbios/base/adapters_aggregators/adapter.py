@@ -3,10 +3,11 @@ from typing import Any, Optional
 
 from enbios.base.scenario import Scenario
 from enbios.generic.enbios2_logging import get_logger
-from enbios.models.experiment_models import (
+from enbios.models.experiment_base_models import (
     ActivityOutput,
-    ResultValue, AdapterModel,
+    AdapterModel,
 )
+from enbios.models.experiment_models import ResultValue
 
 
 class EnbiosAdapter(ABC):
@@ -20,9 +21,9 @@ class EnbiosAdapter(ABC):
     @abstractmethod
     def validate_config(self, config: Optional[dict[str, Any]]):
         """
-        This is the first validator to be called. Validate the config. The creator may store anything in the adapter object here.
+        This is the first validator to be called. Validate the config. The creator may store anything in the
+        adapter object here.
         :param config:
-        :return:
         """
         pass
 
@@ -74,16 +75,21 @@ class EnbiosAdapter(ABC):
         """
         pass
 
-    @property
-    @abstractmethod
-    def activity_indicator(self) -> str:
-        pass
-
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        pass
-
     def get_logger(self):
         return get_logger(f"__name__ ({self.name})")
 
+
+    @staticmethod
+    @abstractmethod
+    def activity_indicator() -> str:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def get_config_schemas() -> dict[str, dict[str, Any]]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def name() -> str:
+        pass
