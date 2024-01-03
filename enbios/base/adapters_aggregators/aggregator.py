@@ -32,9 +32,9 @@ class EnbiosAggregator(ABC):
     def node_indicator(self) -> str:
         pass
 
-    @property
+    @staticmethod
     @abstractmethod
-    def name(self) -> str:
+    def name() -> str:
         pass
 
     def get_logger(self):
@@ -129,6 +129,6 @@ class SumAggregator(EnbiosAggregator):
     def node_indicator(self) -> str:
         return "sum"
 
-    @property
-    def name(self) -> str:
+    @staticmethod
+    def name() -> str:
         return "sum-aggregator"

@@ -17,7 +17,7 @@ class TechTreeNodeData(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def check_card_number_omitted(cls, data: Any) -> Any:
+    def check_model(cls, data: Any) -> Any:
         if isinstance(data, dict):
             leaf_node = "adapter" in data and "config" in data
             non_leaf_node = "aggregator" in data

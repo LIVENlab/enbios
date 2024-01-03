@@ -84,7 +84,7 @@ class Scenario:
         if node.is_leaf:
             return
         else:
-            experiment.get_node_aggregator(node.data.aggregator).aggregate_results(node)
+            experiment.get_node_aggregator(node).aggregate_results(node)
 
     # def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
     #     if self.methods:

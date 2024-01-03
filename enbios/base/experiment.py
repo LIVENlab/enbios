@@ -68,7 +68,7 @@ class Experiment:
 
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
-                self.get_activity_adapter(node).validate_activity(
+                self.get_node_adapter(node).validate_activity(
                     node.name, node.data.config
                 )
                 self._activities[node.name] = node
@@ -79,7 +79,7 @@ class Experiment:
             output: tuple[Optional[str], Optional[float]] = (None, None)
             if node_.is_leaf:
                 output = (
-                    self.get_activity_adapter(node_).get_activity_output_unit(node_.name),
+                    self.get_node_adapter(node_).get_activity_output_unit(node_.name),
                     0,
                 )
             return BasicTreeNode(
@@ -141,7 +141,8 @@ class Experiment:
             #     )
             methods.extend([f"{adapter.activity_indicator()}.{m}" for m in adapter_methods])
 
-        return {adapter.activity_indicator(): adapter for adapter in adapters}, methods
+        adapter_map = {adapter.activity_indicator(): adapter for adapter in adapters}
+        return adapter_map, methods
 
     def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
         aggregators = [
@@ -165,7 +166,7 @@ class Experiment:
             raise ValueError(f"Activity with name '{name}' not found")
         return activity
 
-    def get_activity_adapter(
+    def get_node_adapter(
             self, activity_node: BasicTreeNode[TechTreeNodeData]
     ) -> EnbiosAdapterType:
         try:
@@ -178,14 +179,15 @@ class Experiment:
 
     def get_activity_default_output(self, activity_name: str) -> float:
         activity = self.get_activity(activity_name)
-        return self.get_activity_adapter(activity).get_default_output_value(activity.name)
+        return self.get_node_adapter(activity).get_default_output_value(activity.name)
 
     def get_activity_output_unit(self, activity_name: str) -> str:
         activity = self.get_activity(activity_name)
-        return self.get_activity_adapter(activity).get_activity_output_unit(activity_name)
+        return self.get_node_adapter(activity).get_activity_output_unit(activity_name)
 
-    def get_node_aggregator(self, aggregator_indicator: str) -> EnbiosAggregatorType:
-        return self._aggregators[aggregator_indicator]
+    def get_node_aggregator(self, node: Union[
+        BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]]) -> EnbiosAggregatorType:
+        return self._aggregators[node.data.aggregator]
 
     def validate_scenario(self, scenario_data: ExperimentScenarioData) -> Scenario:
         """
@@ -476,8 +478,17 @@ class Experiment:
         :return:
         """
         activity_rows: list[str] = []
-        for activity_name, activity in self._activities.items():
-            activity_rows.append(f"  {activity.name} - {activity.data.config.name}")
+
+        def print_node(node: BasicTreeNode[TechTreeNodeData], _):
+            module_name: str
+            if node.data.adapter:
+                module_name = self.get_node_adapter(node).name()
+            else:
+                module_name = self.get_node_aggregator(node).name()
+            activity_rows.append(f"{' ' * node.level}{node.name} - {module_name}")
+
+        self.hierarchy_root.recursive_apply(print_node, False, False, None)
+
         activity_rows_str = "\n".join(activity_rows)
         methods_str = "\n".join([f" {m}" for m in self.methods])
         return (
@@ -491,11 +502,16 @@ class Experiment:
         )
 
     @staticmethod
-    def get_builtin_adapters() -> dict[str, dict[str, Any]]:
+    def get_builtin_adapters(details: bool = True) -> dict[str, dict[str, Any]]:
         """
         Get the built-in adapters
         :return:
         """
-        return {name: {"activity_indicator": clazz.activity_indicator(),
-                       "configs": clazz.get_config_schemas()
-                       } for name, clazz in BUILT_IN_ADAPTERS.items()}
+        result = {}
+        for name, clazz in BUILT_IN_ADAPTERS.items():
+            result[name] = {
+                "activity_indicator": clazz.activity_indicator(),
+            }
+            if details:
+                result[name]["config"] = clazz.get_config_schemas()
+        return result

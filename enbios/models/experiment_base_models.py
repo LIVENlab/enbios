@@ -129,7 +129,7 @@ class ExperimentData(BaseModel):
         [], description="The aggregators to be used"
     )
     hierarchy: HierarchyDataTypesExt = Field(
-        None, description="The activity hierarchy to be used in the experiment"
+        ..., description="The activity hierarchy to be used in the experiment"
     )
     scenarios: Union[list[ExperimentScenarioData], PathLike] = Field(
         None, description="The scenarios for this experiment"

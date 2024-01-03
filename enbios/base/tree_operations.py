@@ -74,7 +74,7 @@ def recursive_resolve_outputs(
         node.set_data(ScenarioResultNodeData())
         cancel_parts_of.add(node.id)
 
-    aggregator = experiment.get_node_aggregator(node.data.aggregator)
+    aggregator = experiment.get_node_aggregator(node)
     valid = aggregator.validate_node_output(node, kwargs.get("scenario_name"))
     if not valid:
         cancel_parts_of.add(node.id)
