@@ -2,7 +2,7 @@ import concurrent.futures
 import json
 import math
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Optional, Union, TYPE_CHECKING, Any, Callable
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from enbios.base.experiment import Experiment
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
-    ScenarioResultNodeData, ResultValue, TechTreeNodeData, Activity_Outputs
+    ScenarioResultNodeData, ResultValue, TechTreeNodeData, Activity_Outputs, EnbiosQuantity
 )
 
 
@@ -49,9 +49,9 @@ class Scenario:
                 activity_node = self.result_tree.find_subnode_by_name(activity_name)
             except StopIteration:
                 raise ValueError(f"Activity {activity_name} not found in result tree")
-            activity_node.data.output = (
-                self.experiment.get_activity_output_unit(activity_name),
-                self.activities_outputs[activity_name],
+            activity_node.data.output = EnbiosQuantity(
+                unit=self.experiment.get_activity_output_unit(activity_name),
+                amount=self.activities_outputs[activity_name],
             )
             # todo adapter/aggregator specific additional data
             # if self.experiment.config.include_bw_activity_in_nodes:
@@ -161,8 +161,7 @@ class Scenario:
             """
             expanded_results = {}
             for method_name, result_value in results.items():
-                expanded_results[f"{method_name}_unit"] = result_value.unit
-                expanded_results[f"{method_name}_amount"] = result_value.amount
+                expanded_results[f"{method_name}_amount ({result_value.unit})"] = result_value.amount
                 if result_value.multi_amount:
                     for idx, amount in enumerate(result_value.multi_amount):
                         expanded_results[f"{method_name}_{result_value.unit}_{idx}"] = amount
@@ -174,12 +173,16 @@ class Scenario:
             else:
                 result: dict[str, Any] = {
                     "results": {
-                        method_name: asdict(result_value)
+                        method_name: result_value.model_dump(exclude_defaults=True)
                         for method_name, result_value in data.results.items()
                     }
                 }
             if include_output:
-                result["output"] = {"unit": data.output[0], "amount": data.output[1]}
+                if expand_results:
+                    result["output_unit"] = data.output.unit
+                    result["output_amount"] = data.output.amount
+                else:
+                    result["output"] =  data.output.model_dump()
             # todo: adapter specific additional data
             # if data.bw_activity:
             #     result["bw_activity"] = data.bw_activity["code"]
@@ -265,7 +268,7 @@ class Scenario:
         def recursive_convert(
                 node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
-            output: tuple[Optional[str], Optional[float]] = (None, None)
+            output: Optional[EnbiosQuantity] = None
             results = {}
             if node_.is_leaf:
                 calc_data = self.result_tree.find_subnode_by_name(node_.name).data

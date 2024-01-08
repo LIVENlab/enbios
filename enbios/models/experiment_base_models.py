@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field, model_validator, field_validator, ConfigD
 
 from enbios.generic.files import PathLike
 
-
 StrictInputConfig = ConfigDict(extra='forbid', validate_assignment=True)
 
 
@@ -102,10 +101,18 @@ class ActivityOutput(BaseModel):
     unit: str
     magnitude: float = 1.0
 
+    @model_validator(mode="before")
+    @classmethod
+    def transform_value(cls, v: Any) -> "dict":
+        if isinstance(v, dict):
+            return v
+        elif isinstance(v, tuple):
+            return {"unit": v[0], "magnitude": v[1]}
+
 
 class ExperimentScenarioData(BaseModel):
     model_config = StrictInputConfig
-    name: str = Field(None)
+    name: Optional[str] = Field(None)
     activities: dict[str, ActivityOutput] = Field(None,
                                                   description="name to output, null means default-output (check exists)")
 

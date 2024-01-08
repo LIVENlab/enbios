@@ -29,7 +29,7 @@ from enbios.models.experiment_base_models import (
 from enbios.models.experiment_models import (
     Activity_Outputs,
     ScenarioResultNodeData,
-    TechTreeNodeData,
+    TechTreeNodeData, EnbiosQuantity,
 )
 
 logger = get_logger(__name__)
@@ -76,11 +76,11 @@ class Experiment:
         def recursive_convert(
                 node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
-            output: tuple[Optional[str], Optional[float]] = (None, None)
+            output: Optional[EnbiosQuantity] = None
             if node_.is_leaf:
-                output = (
-                    self.get_node_adapter(node_).get_activity_output_unit(node_.name),
-                    0,
+                output = EnbiosQuantity(
+                    unit=self.get_node_adapter(node_).get_activity_output_unit(node_.name),
+                    amount=0,
                 )
             return BasicTreeNode(
                 name=node_.name,
@@ -292,7 +292,7 @@ class Experiment:
         """
         return self.get_scenario(scenario_name).run(results_as_dict)
 
-    def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
+    def run(self, results_as_dict: bool = True) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData],dict]]:
         """
         Run all scenarios. Returns a dict with the scenario name as key
         and the result_tree as value
@@ -312,7 +312,7 @@ class Experiment:
         # TODO RUN AT ONCE...
         for scenario in run_scenarios:
             scenario.reset_execution_time()
-            results[scenario.name] = scenario.run()
+            results[scenario.name] = scenario.run(results_as_dict)
         #     if scenario.methods:
         #         raise ValueError(
         #             f"Scenario cannot have individual methods. '{scenario.name}'"
@@ -468,7 +468,9 @@ class Experiment:
         :param result_as_dict:
         :return:
         """
-        scenario = self.validate_scenario(ExperimentScenarioData(**scenario_config))
+        scenario_data = ExperimentScenarioData(**scenario_config)
+        scenario_data.name_factory(len(self.scenarios))
+        scenario = self.validate_scenario(scenario_data)
         scenario.prepare_tree()
         return scenario.run(result_as_dict)
 

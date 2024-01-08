@@ -7,7 +7,7 @@ from pint.facets.plain import PlainQuantity
 import enbios
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import ScenarioResultNodeData, ResultValue
+from enbios.models.experiment_models import ScenarioResultNodeData, ResultValue, EnbiosQuantity
 
 
 class EnbiosAggregator(ABC):
@@ -57,21 +57,21 @@ class SumAggregator(EnbiosAggregator):
         for child in node.children:
             # if not child._data:
             #     raise ValueError(f"Node {child.name} has no data")
-            activity_output = child.data.output[0]
+            activity_output = child.data.output.unit
             if activity_output is None:
                 node_output = None
                 self.logger.warning(f"No output unit of activity '{child.name}'.")
                 break
-            output = None
+            output_amount: Optional[float] = None
             try:
-                output = (
+                output_amount = (
                         enbios.get_enbios_ureg().parse_expression(activity_output)
-                        * child.data.output[1]
+                        * child.data.output.amount
                 )
                 if not node_output:
-                    node_output = output
+                    node_output = output_amount
                 else:
-                    node_output += output
+                    node_output += output_amount
             except UndefinedUnitError as err:
                 self.logger.error(
                     f"Cannot parse output unit '{activity_output}' of activity "
@@ -85,14 +85,14 @@ class SumAggregator(EnbiosAggregator):
                 self.logger.warning(
                     f"Cannot aggregate output to parent: {node.name}. "
                     f"From earlier children the base unit is {set_base_unit} "
-                    f"and from {child.name} it is {output}."
+                    f"and from {child.name} it is {output_amount}."
                     f" {err}"
                 )
                 node_output = None
                 break
         if node_output is not None:
             node_output = node_output.to_compact()
-            node.data.output = (str(node_output.units), node_output.magnitude)
+            node.data.output = EnbiosQuantity(unit=str(node_output.units), amount=node_output.magnitude)
             return True
         else:
             # node.set_data(TechTreeNodeData())
