@@ -7,7 +7,7 @@ import bw2data as bd
 from bw2data.backends import Activity
 from numpy import ndarray
 from pint import DimensionalityError, Quantity, UndefinedUnitError
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, RootModel, ConfigDict
 
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
@@ -34,11 +34,13 @@ class BWAdapterConfig(BaseModel):
     bw_project: str
     # methods: MethodsDataTypesExt
     use_k_bw_distributions: int = Field(1,
-                                        description="Number of samples to use for MonteCarlo")  # number of samples to use for monteCarlo
+                                        description="Number of samples to use for MonteCarlo")
     store_raw_results: bool = Field(False,
-                                    description="If the numpy matrix of brightway should be stored in the adapter. Will be stored in `raw_results[scenario.name]`")  # store numpy arrays of lca results
+                                    description="If the numpy matrix of brightway should be stored in the adapter. "
+                                                "Will be stored in `raw_results[scenario.name]`")
     store_lca_object: bool = Field(False,
-                                   description="If the LCA object should be stored. Will be stored in `lca_objects[scenario.name]`")
+                                   description="If the LCA object should be stored. "
+                                               "Will be stored in `lca_objects[scenario.name]`")
 
 
 class BrightwayActivityConfig(BaseModel):
@@ -112,22 +114,13 @@ class BWMethodModel(BaseModel):
     id: tuple[str, ...] = Field(None, description="Brightway method id")
 
 
-class BWAdapterDefinition(BaseModel):
-    config: BWAdapterConfig
-    methods: list[BWMethodModel]
+BWMethodDefinition = RootModel[dict[str, Sequence[str]]]
 
-    @field_validator("methods", mode="before")
-    @classmethod
-    def validate_methods(cls, v: list[Union[BWMethodModel, tuple[str], dict]]) -> list[BWMethodModel]:
-        methods = []
-        for m in v:
-            if isinstance(m, tuple):
-                methods.append(BWMethodModel(id=m))
-            elif isinstance(m, dict):
-                methods.append(BWMethodModel(**m))
-            else:
-                methods.append(m)
-        return methods
+
+class BWMethodDefinition(RootModel):
+    model_config = ConfigDict(title='Method defintion',
+                              json_schema_extra={"description": "Simply a dict: name : BW method tuple"})
+    root: dict[str, Sequence[str]]
 
 
 def _bw_activity_search(activity_id: dict) -> Activity:
@@ -218,6 +211,8 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def validate_methods(self, methods: dict[str, Any]) -> list[str]:
         assert methods, "Methods must be defined for brightway adapter"
+        # validation
+        BWMethodDefinition(methods)
 
         def validate_method(method_id: Sequence[str]) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
@@ -356,6 +351,7 @@ class BrightwayAdapter(EnbiosAdapter):
         return {
             "adapter": BWAdapterConfig.model_json_schema(),
             "activity": BrightwayActivityConfig.model_json_schema(),
+            "method": BWMethodDefinition.model_json_schema()
         }
 
     def run(self):
