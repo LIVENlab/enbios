@@ -35,8 +35,10 @@ class BWAdapterConfig(BaseModel):
     # methods: MethodsDataTypesExt
     use_k_bw_distributions: int = Field(1,
                                         description="Number of samples to use for MonteCarlo")  # number of samples to use for monteCarlo
-    store_raw_results: Optional[bool] = False  # store numpy arrays of lca results
-    store_lca_object: Optional[bool] = False  # store the lca object
+    store_raw_results: bool = Field(False,
+                                    description="If the numpy matrix of brightway should be stored in the adapter. Will be stored in `raw_results[scenario.name]`")  # store numpy arrays of lca results
+    store_lca_object: bool = Field(False,
+                                   description="If the LCA object should be stored. Will be stored in `lca_objects[scenario.name]`")
 
 
 class BrightwayActivityConfig(BaseModel):

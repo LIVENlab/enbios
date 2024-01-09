@@ -50,7 +50,7 @@ class Scenario:
             except StopIteration:
                 raise ValueError(f"Activity {activity_name} not found in result tree")
             activity_node.data.output = EnbiosQuantity(
-                unit=self.experiment.get_activity_output_unit(activity_name),
+                unit=self.experiment._get_activity_output_unit(activity_name),
                 amount=self.activities_outputs[activity_name],
             )
             # todo adapter/aggregator specific additional data

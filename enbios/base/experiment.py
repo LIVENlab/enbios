@@ -42,20 +42,24 @@ EnbiosAggregatorType = TypeVar('EnbiosAggregatorType', bound=EnbiosAggregator)
 class Experiment:
     DEFAULT_SCENARIO_NAME = "default scenario"
 
-    def __init__(self, raw_data: Optional[Union[dict, str]] = None):
+    def __init__(self, data: Optional[Union[dict, str]] = None):
+        """
+        Initialize the experiment
+        :param data: dictionary or filename to load the data from
+        """
         self.env_settings = Settings()
-        if not raw_data:
-            raw_data = self.env_settings.CONFIG_FILE
-            if not isinstance(raw_data, str):
+        if not data:
+            data = self.env_settings.CONFIG_FILE
+            if not isinstance(data, str):
                 raise ValueError(
                     "Experiment config-file-path must be specified as environment "
                     "variable: 'CONFIG_FILE'"
                 )
-        if isinstance(raw_data, str):
-            config_file_path = ReadPath(raw_data)
-            raw_data = config_file_path.read_data()
+        if isinstance(data, str):
+            config_file_path = ReadPath(data)
+            data = config_file_path.read_data()
 
-        self.raw_data = validate_experiment_data(raw_data)
+        self.raw_data = validate_experiment_data(data)
         resolve_input_files(self.raw_data)
 
         self._adapters: dict[str, EnbiosAdapter]
@@ -68,7 +72,7 @@ class Experiment:
 
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
-                self.get_node_adapter(node).validate_activity(
+                self._get_node_adapter(node).validate_activity(
                     node.name, node.data.config
                 )
                 self._activities[node.name] = node
@@ -79,7 +83,7 @@ class Experiment:
             output: Optional[EnbiosQuantity] = None
             if node_.is_leaf:
                 output = EnbiosQuantity(
-                    unit=self.get_node_adapter(node_).get_activity_output_unit(node_.name),
+                    unit=self._get_node_adapter(node_).get_activity_output_unit(node_.name),
                     amount=0,
                 )
             return BasicTreeNode(
@@ -107,6 +111,9 @@ class Experiment:
     #     return self._adapters[adapter_name].get_method_unit(method_name)
 
     def _validate_run_scenario_setting(self):
+        """
+        Validate a run environmental variable that is setting the scenario
+        """
         if self.env_settings.RUN_SCENARIOS:
             if self.config.run_scenarios:
                 logger.info(
@@ -124,6 +131,8 @@ class Experiment:
 
     def _validate_adapters(self) -> tuple[dict[str:EnbiosAdapter], list[str]]:
         """
+        Validate the adapters in this experiment data
+
         :return: adapter-dict and method names
         """
         adapters = []
@@ -145,6 +154,11 @@ class Experiment:
         return adapter_map, methods
 
     def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
+        """
+        Validate the aggregators in this experiment data
+
+        :return: a aggregator-name-Aggregator dict
+        """
         aggregators = [
                           load_aggregator(adapter) for adapter in self.raw_data.aggregators
                       ] + [SumAggregator()]
@@ -154,7 +168,7 @@ class Experiment:
 
         return {aggregator.node_indicator: aggregator for aggregator in aggregators}
 
-    def get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
+    def _get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
         Get an activity by either its name
         as it is defined in the experiment data
@@ -166,9 +180,15 @@ class Experiment:
             raise ValueError(f"Activity with name '{name}' not found")
         return activity
 
-    def get_node_adapter(
+    def _get_node_adapter(
             self, activity_node: BasicTreeNode[TechTreeNodeData]
     ) -> EnbiosAdapterType:
+        """
+        Get the adapter of a node in the experiment hierarchy
+
+        :param activity_node:
+        :return:
+        """
         try:
             return self._adapters[activity_node.data.adapter]
         except KeyError:
@@ -177,19 +197,37 @@ class Experiment:
                 + f"Available adapters are: {[a.activity_indicator() for a in self.adapters]}"
             )
 
-    def get_activity_default_output(self, activity_name: str) -> float:
-        activity = self.get_activity(activity_name)
-        return self.get_node_adapter(activity).get_default_output_value(activity.name)
+    def _get_activity_default_output(self, activity_name: str) -> float:
+        """
+        Get the default output of an activity (bottom node) by its name
 
-    def get_activity_output_unit(self, activity_name: str) -> str:
-        activity = self.get_activity(activity_name)
-        return self.get_node_adapter(activity).get_activity_output_unit(activity_name)
+        :param activity_name: name of the activity
+        :return: magnitude value of the default output
+        """
+        # todo remove, since seems to be just called once
+        activity = self._get_activity(activity_name)
+        return self._get_node_adapter(activity).get_default_output_value(activity.name)
+
+    def _get_activity_output_unit(self, activity_name: str) -> str:
+        """
+        Get the unit of the activity (bottom node) by its name
+        :param activity_name:
+        :return:
+        """
+        # todo : just used once
+        activity = self._get_activity(activity_name)
+        return self._get_node_adapter(activity).get_activity_output_unit(activity_name)
 
     def get_node_aggregator(self, node: Union[
         BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]]) -> EnbiosAggregatorType:
+        """
+        Get the aggregator of a node
+        :param node: node, either in some hierarchy
+        :return:
+        """
         return self._aggregators[node.data.aggregator]
 
-    def validate_scenario(self, scenario_data: ExperimentScenarioData) -> Scenario:
+    def _validate_scenario(self, scenario_data: ExperimentScenarioData) -> Scenario:
         """
         Validate one scenario
         :param scenario_data:
@@ -201,7 +239,7 @@ class Experiment:
             result: dict[str, float] = {}
 
             for activity_name, activity_output in activities.items():
-                activity = self.get_activity(activity_name)
+                activity = self._get_activity(activity_name)
 
                 adapter = self._adapters[activity.data.adapter]
 
@@ -221,7 +259,7 @@ class Experiment:
                 if activity_name not in defined_activities:
                     scenario_activities_outputs[
                         activity_name
-                    ] = self.get_activity_default_output(activity_name)
+                    ] = self._get_activity_default_output(activity_name)
 
         # todo shall we bring back. scenario specific methods??
         # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
@@ -266,7 +304,7 @@ class Experiment:
             raise ValueError(f"Scenarios with the same name: {duplicate_names}")
 
         for index, scenario_data in enumerate(self.raw_data.scenarios):
-            scenario = self.validate_scenario(scenario_data)
+            scenario = self._validate_scenario(scenario_data)
             scenarios.append(scenario)
             scenario.prepare_tree()
         return scenarios
@@ -292,7 +330,7 @@ class Experiment:
         """
         return self.get_scenario(scenario_name).run(results_as_dict)
 
-    def run(self, results_as_dict: bool = True) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData],dict]]:
+    def run(self, results_as_dict: bool = True) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
         """
         Run all scenarios. Returns a dict with the scenario name as key
         and the result_tree as value
@@ -451,14 +489,20 @@ class Experiment:
 
     @property
     def scenario_names(self) -> list[str]:
+        """
+        Get all scenario names
+        :return: list of strings of the scenario names
+        """
         return list([s.name for s in self.scenarios])
 
     @property
     def adapters(self) -> list[EnbiosAdapter]:
+        """
+        Get all adapters in a list
+        :return:
+        """
         return list(self._adapters.values())
 
-    def adapter(self, activity_indicator: str) -> EnbiosAdapter:
-        return self._adapters[activity_indicator]
 
     def run_scenario_config(self, scenario_config: dict, result_as_dict: bool = True) -> Union[
         BasicTreeNode[ScenarioResultNodeData], dict]:
@@ -470,7 +514,7 @@ class Experiment:
         """
         scenario_data = ExperimentScenarioData(**scenario_config)
         scenario_data.name_factory(len(self.scenarios))
-        scenario = self.validate_scenario(scenario_data)
+        scenario = self._validate_scenario(scenario_data)
         scenario.prepare_tree()
         return scenario.run(result_as_dict)
 
@@ -484,7 +528,7 @@ class Experiment:
         def print_node(node: BasicTreeNode[TechTreeNodeData], _):
             module_name: str
             if node.data.adapter:
-                module_name = self.get_node_adapter(node).name()
+                module_name = self._get_node_adapter(node).name()
             else:
                 module_name = self.get_node_aggregator(node).name()
             activity_rows.append(f"{' ' * node.level}{node.name} - {module_name}")
