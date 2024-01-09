@@ -27,14 +27,19 @@ class EnbiosAggregator(ABC):
     def aggregate_results(self, node: BasicTreeNode[ScenarioResultNodeData]):
         pass
 
-    @property
+    @staticmethod
     @abstractmethod
-    def node_indicator(self) -> str:
+    def node_indicator() -> str:
         pass
 
     @staticmethod
     @abstractmethod
     def name() -> str:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def get_config_schemas() -> dict:
         pass
 
     def get_logger(self):
@@ -125,10 +130,14 @@ class SumAggregator(EnbiosAggregator):
                 node.data.results[key].multi_amount = [a + b for a, b in
                                                        zip(node_agg_result.multi_amount, value.multi_amount)]
 
-    @property
-    def node_indicator(self) -> str:
+    @staticmethod
+    def node_indicator() -> str:
         return "sum"
 
     @staticmethod
     def name() -> str:
         return "sum-aggregator"
+
+    @staticmethod
+    def get_config_schemas() -> dict:
+        return {}

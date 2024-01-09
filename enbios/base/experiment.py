@@ -10,7 +10,7 @@ from typing import TypeVar
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator, SumAggregator
-from enbios.base.adapters_aggregators.builtin import BUILT_IN_ADAPTERS
+from enbios.base.adapters_aggregators.builtin import BUILT_IN_ADAPTERS, BUILT_IN_AGGREGATORS
 from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
@@ -166,7 +166,7 @@ class Experiment:
         for aggregator in aggregators:
             aggregator.validate_config()
 
-        return {aggregator.node_indicator: aggregator for aggregator in aggregators}
+        return {aggregator.node_indicator(): aggregator for aggregator in aggregators}
 
     def _get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
@@ -557,6 +557,17 @@ class Experiment:
         for name, clazz in BUILT_IN_ADAPTERS.items():
             result[name] = {
                 "activity_indicator": clazz.activity_indicator(),
+            }
+            if details:
+                result[name]["config"] = clazz.get_config_schemas()
+        return result
+
+    @staticmethod
+    def get_builtin_aggregators(details: bool = True) -> dict[str, dict[str, Any]]:
+        result = {}
+        for name, clazz in BUILT_IN_AGGREGATORS.items():
+            result[name] = {
+                "activity_indicator": clazz.node_indicator(),
             }
             if details:
                 result[name]["config"] = clazz.get_config_schemas()
