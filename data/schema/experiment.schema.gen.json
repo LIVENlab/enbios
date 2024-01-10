@@ -19,6 +19,7 @@
       "type": "object"
     },
     "AdapterModel": {
+      "additionalProperties": true,
       "properties": {
         "module_path": {
           "anyOf": [
@@ -36,40 +37,25 @@
           "default": null,
           "title": "Module Path"
         },
+        "adapter_name": {
+          "default": null,
+          "description": "this this is to use inbuilt adapter (e.g. 'simple-assignment-adapter'",
+          "title": "Adapter Name",
+          "type": "string"
+        },
         "config": {
-          "anyOf": [
-            {
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Config"
+          "title": "Config",
+          "type": "object"
         },
         "methods": {
-          "anyOf": [
-            {
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Methods"
+          "title": "Methods",
+          "type": "object"
         },
         "note": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
           "default": null,
-          "title": "Note"
+          "description": "A note for this adapter",
+          "title": "Note",
+          "type": "string"
         }
       },
       "title": "AdapterModel",
@@ -99,6 +85,18 @@
             }
           ],
           "title": "Config"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
         }
       },
       "required": [
@@ -108,51 +106,25 @@
       "type": "object"
     },
     "ExperimentActivityData": {
-      "description": "\n    This is the dataclass for the activities in the experiment.\n    the id, is\n    ",
+      "description": "This is the dataclass for the activities in the experiment.",
       "properties": {
         "name": {
           "title": "Name",
           "type": "string"
         },
-        "id": {
-          "description": "The identifies (method to find) an activity",
-          "title": "Id"
+        "config": {
+          "description": "setup data (id, outputs, ... arbitrary data",
+          "title": "Config"
         },
         "adapter": {
           "description": "The adapter to be used",
           "title": "Adapter",
           "type": "string"
-        },
-        "output": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ActivityOutput"
-            },
-            {
-              "maxItems": 2,
-              "minItems": 2,
-              "prefixItems": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                }
-              ],
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The default output of the activity",
-          "title": "Output"
         }
       },
       "required": [
         "name",
-        "id",
+        "config",
         "adapter"
       ],
       "title": "ExperimentActivityData",
@@ -178,9 +150,9 @@
           "default": true,
           "title": "Auto Aggregate"
         },
-        "store_raw_results": {
-          "default": false,
-          "title": "Store Raw Results",
+        "run_adapters_concurrently": {
+          "default": true,
+          "title": "Run Adapters Concurrently",
           "type": "boolean"
         },
         "run_scenarios": {
@@ -284,6 +256,17 @@
           "title": "Aggregator",
           "type": "string"
         },
+        "config": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "setup data (id, outputs, ... arbitrary data",
+          "title": "Config"
+        },
         "children": {
           "anyOf": [
             {
@@ -317,37 +300,26 @@
     "ExperimentScenarioData": {
       "additionalProperties": false,
       "properties": {
-        "activities": {
+        "name": {
           "anyOf": [
             {
-              "additionalProperties": {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/ActivityOutput"
-                  },
-                  {
-                    "maxItems": 2,
-                    "minItems": 2,
-                    "prefixItems": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      }
-                    ],
-                    "type": "array"
-                  }
-                ]
-              },
-              "type": "object"
+              "type": "string"
             },
             {
               "type": "null"
             }
           ],
-          "default": {},
-          "title": "Activities"
+          "default": null,
+          "title": "Name"
+        },
+        "activities": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ActivityOutput"
+          },
+          "default": null,
+          "description": "name to output, null means default-output (check exists)",
+          "title": "Activities",
+          "type": "object"
         },
         "methods": {
           "anyOf": [
@@ -363,18 +335,6 @@
           ],
           "default": null,
           "title": "Methods"
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Name"
         },
         "config": {
           "anyOf": [
@@ -410,7 +370,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "\n    This class is used to store the data of an experiment.\n    ",
+  "description": "This class is used to store the data of an experiment.",
   "properties": {
     "adapters": {
       "description": "The adapters to be used",
@@ -442,7 +402,6 @@
           "type": "string"
         }
       ],
-      "default": null,
       "description": "The activity hierarchy to be used in the experiment",
       "title": "Hierarchy"
     },
@@ -460,9 +419,6 @@
         {
           "format": "path",
           "type": "string"
-        },
-        {
-          "type": "null"
         }
       ],
       "default": null,
@@ -479,7 +435,8 @@
     }
   },
   "required": [
-    "adapters"
+    "adapters",
+    "hierarchy"
   ],
   "title": "ExperimentData",
   "type": "object"
