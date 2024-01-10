@@ -2,7 +2,7 @@ import json
 
 from enbios.const import BASE_SCHEMA_PATH
 from enbios.generic.enbios2_logging import get_logger, get_module_name
-from enbios.models.experiment_models import ExperimentData
+from enbios.models.experiment_base_models import ExperimentData
 
 logger = get_logger(get_module_name(__file__))
 

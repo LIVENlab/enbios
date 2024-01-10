@@ -9,8 +9,8 @@ from typing import Any, Optional, Union
 from typing import TypeVar
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
-from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator, SumAggregator
-from enbios.base.adapters_aggregators.builtin import BUILT_IN_ADAPTERS, BUILT_IN_AGGREGATORS
+from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
+from enbios.base.adapters_aggregators.builtin import BUILTIN_ADAPTERS, BUILTIN_AGGREGATORS
 from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
@@ -148,9 +148,9 @@ class Experiment:
             #         f"Some Method(s) {adapter_methods.keys()} already defined in "
             #         f"another adapter"
             #     )
-            methods.extend([f"{adapter.activity_indicator()}.{m}" for m in adapter_methods])
+            methods.extend([f"{adapter.node_indicator()}.{m}" for m in adapter_methods])
 
-        adapter_map = {adapter.activity_indicator(): adapter for adapter in adapters}
+        adapter_map = {adapter.node_indicator(): adapter for adapter in adapters}
         return adapter_map, methods
 
     def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
@@ -160,8 +160,13 @@ class Experiment:
         :return: a aggregator-name-Aggregator dict
         """
         aggregators = [
-                          load_aggregator(adapter) for adapter in self.raw_data.aggregators
-                      ] + [SumAggregator()]
+            load_aggregator(adapter) for adapter in self.raw_data.aggregators
+        ]
+
+        aggregator_names = [a.name() for a in aggregators]
+        for builtin_name, aggregator in BUILTIN_AGGREGATORS.items():
+            if builtin_name not in aggregator_names:
+                aggregators.append(aggregator())
 
         for aggregator in aggregators:
             aggregator.validate_config()
@@ -194,7 +199,7 @@ class Experiment:
         except KeyError:
             raise ValueError(
                 f"Activity '{activity_node.name}' specifies an unknown adapter: {activity_node.data.adapter}."
-                + f"Available adapters are: {[a.activity_indicator() for a in self.adapters]}"
+                + f"Available adapters are: {[a.node_indicator() for a in self.adapters]}"
             )
 
     def _get_activity_default_output(self, activity_name: str) -> float:
@@ -503,7 +508,6 @@ class Experiment:
         """
         return list(self._adapters.values())
 
-
     def run_scenario_config(self, scenario_config: dict, result_as_dict: bool = True) -> Union[
         BasicTreeNode[ScenarioResultNodeData], dict]:
         """
@@ -554,9 +558,9 @@ class Experiment:
         :return:
         """
         result = {}
-        for name, clazz in BUILT_IN_ADAPTERS.items():
+        for name, clazz in BUILTIN_ADAPTERS.items():
             result[name] = {
-                "activity_indicator": clazz.activity_indicator(),
+                "activity_indicator": clazz.node_indicator(),
             }
             if details:
                 result[name]["config"] = clazz.get_config_schemas()
@@ -565,7 +569,7 @@ class Experiment:
     @staticmethod
     def get_builtin_aggregators(details: bool = True) -> dict[str, dict[str, Any]]:
         result = {}
-        for name, clazz in BUILT_IN_AGGREGATORS.items():
+        for name, clazz in BUILTIN_AGGREGATORS.items():
             result[name] = {
                 "activity_indicator": clazz.node_indicator(),
             }

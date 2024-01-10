@@ -85,7 +85,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         return result
 
     @staticmethod
-    def activity_indicator() -> str:
+    def node_indicator() -> str:
         return "assign"
 
     @staticmethod

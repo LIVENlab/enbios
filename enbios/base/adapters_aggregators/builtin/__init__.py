@@ -2,11 +2,11 @@ from enbios.base.adapters_aggregators.aggregator import SumAggregator
 from enbios.base.adapters_aggregators.builtin.simple_assignment_adapter import SimpleAssignmentAdapter
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 
-BUILT_IN_ADAPTERS = {
+BUILTIN_ADAPTERS = {
     SimpleAssignmentAdapter.name(): SimpleAssignmentAdapter,
     BrightwayAdapter.name(): BrightwayAdapter,
 }
 
-BUILT_IN_AGGREGATORS = {
+BUILTIN_AGGREGATORS = {
     SumAggregator.name(): SumAggregator
 }

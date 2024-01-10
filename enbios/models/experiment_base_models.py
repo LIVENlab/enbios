@@ -50,10 +50,19 @@ class AdapterModel(BaseModel):
 
 
 class AggregationModel(BaseModel):
-    module_path: PathLike
+    module_path: Optional[PathLike] = None
+    aggregator_name: str = Field(None, description="this this is to use inbuilt aggregator "
+                                                "(e.g. 'simple-assignment-adapter'")
     config: Optional[dict] = Field(default_factory=dict)
     note: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def module_specified(cls, data: Any) -> Any:
+        # either module_path or module_class must be specified
+        if not ("module_path" in data or "aggregator_name" in data):
+            raise ValueError("Either module_path or aggregator_name must be specified")
+        return data
 
 class ExperimentHierarchyNodeData(BaseModel):
     name: str

@@ -193,7 +193,7 @@ class BrightwayAdapter(EnbiosAdapter):
         self.lca_objects: dict[str, StackedMultiLCA] = {}  # scenario_alias to lca objects
 
     @staticmethod
-    def activity_indicator() -> str:
+    def node_indicator() -> str:
         return "bw"
 
     def validate_config(self, config: dict[str, Any]):

@@ -6,7 +6,7 @@ from typing import Union, Type
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
-from enbios.base.adapters_aggregators.builtin import BUILT_IN_ADAPTERS
+from enbios.base.adapters_aggregators.builtin import BUILTIN_ADAPTERS, BUILTIN_AGGREGATORS
 from enbios.generic.enbios2_logging import get_logger
 from enbios.models.experiment_base_models import AdapterModel, AggregationModel
 
@@ -23,14 +23,14 @@ def load_module(module_path: str):
 
 
 def create_module_object(
-        adapter_model: Union[AdapterModel, AggregationModel], base_class: Type
+        model_data: Union[AdapterModel, AggregationModel], base_class: Type
 ) -> Union[EnbiosAdapter, EnbiosAggregator]:
-    if adapter_model.module_path:
+    if model_data.module_path:
         try:
-            adapter_module = load_module(adapter_model.module_path)
+            adapter_module = load_module(model_data.module_path)
         except Exception as err:
             raise ValueError(
-                f"Could not load module '{adapter_model.module_path}' ({err})"
+                f"Could not load module '{model_data.module_path}' ({err})"
             )
         # validator makes sure there is no other case
         for inspect_clazz in inspect.getmembers(adapter_module, inspect.isclass):
@@ -38,17 +38,26 @@ def create_module_object(
             clazz = inspect_clazz[1]
             if any(base.__name__ == base_class.__name__ for base in clazz.__bases__):
                 return clazz()
-    elif adapter_model.adapter_name:
-        clazz = BUILT_IN_ADAPTERS.get(adapter_model.adapter_name)
-        if not clazz:
-            logger.error(
-                f"Could not find built-in adapter with name '{adapter_model.adapter_name}'. Candidates are: {BUILT_IN_ADAPTERS.keys()}"
-            )
+    else:
+        if base_class.__name__ == EnbiosAdapter.__name__:
+            clazz = BUILTIN_ADAPTERS.get(model_data.adapter_name)
+            if not clazz:
+                logger.error(
+                    f"Could not find built-in adapter with name '{model_data.adapter_name}'. Candidates are: {BUILTIN_ADAPTERS.keys()}"
+                )
+            else:
+                return clazz()
         else:
-            return clazz()
-
+            assert base_class.__name__ == EnbiosAggregator.__name__
+            clazz = BUILTIN_AGGREGATORS.get(model_data.aggregator_name)
+            if not clazz:
+                logger.error(
+                    f"Could not find built-in aggregator with name '{model_data.aggregator_name}'. Candidates are: {BUILTIN_AGGREGATORS.keys()}"
+                )
+            else:
+                return clazz()
     raise ValueError(
-        f"'{Path(adapter_model.module_path).name}' has no class that inherits from '{base_class.__name__}'"
+        f"'{Path(model_data.module_path).name}' has no class that inherits from '{base_class.__name__}'"
     )
 
 
@@ -58,6 +67,3 @@ def load_adapter(adapter_model: AdapterModel) -> EnbiosAdapter:
 
 def load_aggregator(aggregator_model: AggregationModel) -> EnbiosAggregator:
     return create_module_object(aggregator_model, EnbiosAggregator)
-
-
-ENBIOS_ADAPTER_SIMPLE_ASSIGNMENT = "simple-assignment-adapter"

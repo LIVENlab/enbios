@@ -81,7 +81,7 @@ class EnbiosAdapter(ABC):
 
     @staticmethod
     @abstractmethod
-    def activity_indicator() -> str:
+    def node_indicator() -> str:
         pass
 
     @staticmethod
