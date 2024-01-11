@@ -87,6 +87,7 @@ def stacked_bar_plot(
 
         # Create the bar plot using the specific Axes object
         nodes: list[BasicTreeNode[ScenarioResultNodeData]] = []
+        # todo, what is going on here..?
         if nodes:
             for alias in nodes:
                 node = experiment.hierarchy_root.find_subnode_by_name(alias)

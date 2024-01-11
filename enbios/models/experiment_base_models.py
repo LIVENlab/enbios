@@ -52,7 +52,7 @@ class AdapterModel(BaseModel):
 class AggregationModel(BaseModel):
     module_path: Optional[PathLike] = None
     aggregator_name: str = Field(None, description="this this is to use inbuilt aggregator "
-                                                "(e.g. 'simple-assignment-adapter'")
+                                                   "(e.g. 'simple-assignment-adapter'")
     config: Optional[dict] = Field(default_factory=dict)
     note: Optional[str] = None
 
@@ -63,6 +63,7 @@ class AggregationModel(BaseModel):
         if not ("module_path" in data or "aggregator_name" in data):
             raise ValueError("Either module_path or aggregator_name must be specified")
         return data
+
 
 class ExperimentHierarchyNodeData(BaseModel):
     name: str
@@ -81,9 +82,6 @@ class ExperimentActivityData(BaseModel):
     name: str
     config: Any = Field(..., description="setup data (id, outputs, ... arbitrary data")
     adapter: str = Field(..., description="The adapter to be used")
-
-
-HierarchyDataTypesExt = Union[ExperimentHierarchyNodeData, PathLike]
 
 
 class HierarchyNodeReference(BaseModel):
@@ -116,7 +114,7 @@ class ActivityOutput(BaseModel):
     def transform_value(cls, v: Any) -> "dict":
         if isinstance(v, dict):
             return v
-        elif isinstance(v, tuple):
+        elif isinstance(v, tuple) or isinstance(v, list):
             return {"unit": v[0], "magnitude": v[1]}
 
 
@@ -145,7 +143,7 @@ class ExperimentData(BaseModel):
     aggregators: list[AggregationModel] = Field(
         [], description="The aggregators to be used"
     )
-    hierarchy: HierarchyDataTypesExt = Field(
+    hierarchy: Union[ExperimentHierarchyNodeData, PathLike] = Field(
         ..., description="The activity hierarchy to be used in the experiment"
     )
     scenarios: Union[list[ExperimentScenarioData], PathLike] = Field(

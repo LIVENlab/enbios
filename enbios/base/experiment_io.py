@@ -76,8 +76,8 @@ def resolve_input_files(raw_input: ExperimentData):
         )
         if hierarchy_file.suffix == ".json":
             hierarchy_data = hierarchy_file.read_data()
-        elif hierarchy_file.suffix == ".csv":
-            hierarchy_data = csv_tree2dict(hierarchy_file, False)
+        # elif hierarchy_file.suffix == ".csv":
+        #     hierarchy_data = csv_tree2dict(hierarchy_file, False)
         else:
             raise Exception(f"Invalid hierarchy file: {raw_input.hierarchy}")
 

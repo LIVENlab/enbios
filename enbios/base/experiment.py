@@ -194,7 +194,7 @@ class Experiment:
         :param node:
         :return:
         """
-        return self._get_module_by_name_or_node_indicator(node.data.aggregator, EnbiosAggregator, node.name)
+        return self._get_module_by_name_or_node_indicator(node.data.adapter, EnbiosAdapter, node.name)
 
     def get_node_aggregator(self, node: Union[
         BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]]) -> EnbiosAggregatorType:
@@ -221,8 +221,8 @@ class Experiment:
 
         node_err = f"Node '{node_name}' specifies an " if node_name else ""
         raise ValueError(
-            f"{node_err} unknown {module_type}: '{name_or_indicator}'. "
-            + f"Available {module_type}s are: {[m.node_indicator() for m in modules.values()]}"
+            f"{node_err} unknown {module_type.__name__}: '{name_or_indicator}'. "
+            + f"Available {module_type.__name__}s are: {[m.node_indicator() for m in modules.values()]}"
         )
 
     def _get_activity_default_output(self, activity_name: str) -> float:
