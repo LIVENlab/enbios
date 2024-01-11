@@ -623,3 +623,7 @@ class Experiment:
         assert method in self.methods
         adapter_indicator, method_name = method.split(".")
         return self._get_module_by_name_or_node_indicator(adapter_indicator, EnbiosAdapter).get_method_unit(method_name)
+
+    @property
+    def method_names(self) -> list[str]:
+        return [m.split(".")[-1] for m in self.methods]

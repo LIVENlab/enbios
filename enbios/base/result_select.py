@@ -34,7 +34,7 @@ class ResultsSelector:
 
         all_methods: list[str] = self.experiment.methods  # [m.split(".")[1] for m in ]  # type: ignore
 
-        all_method_names: list[str] = [m.split(".")[1] for m in all_methods]
+        all_method_names: list[str] = self.experiment.method_names
         self.methods: list[str] = []
         self.method_names: list[str] = []
         if methods is not None:
