@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, model_validator, field_validator, ConfigD
 
 from enbios.generic.files import PathLike
 
-StrictInputConfig = ConfigDict(extra='forbid', validate_assignment=True)
+StrictInputConfig = ConfigDict(extra='forbid', validate_assignment=True, strict=True)
 
 
 class ExperimentConfig(BaseModel):
@@ -107,6 +107,7 @@ class ScenarioConfig(BaseModel):
 
 
 class ActivityOutput(BaseModel):
+    model_config = StrictInputConfig
     unit: str
     magnitude: float = 1.0
 

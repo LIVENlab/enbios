@@ -118,7 +118,7 @@ BWMethodDefinition = RootModel[dict[str, Sequence[str]]]
 
 
 class BWMethodDefinition(RootModel):
-    model_config = ConfigDict(title='Method defintion',
+    model_config = ConfigDict(title='Method definition',
                               json_schema_extra={"description": "Simply a dict: name : BW method tuple"})
     root: dict[str, Sequence[str]]
 
@@ -339,9 +339,9 @@ class BrightwayAdapter(EnbiosAdapter):
                 # todo this could be a type
                 method_result = ResultValue(unit=method_data.bw_method_unit)
                 if use_distributions:
-                    method_result.multi_amount = [res[act_idx, m_idx] for res in raw_results]
+                    method_result.multi_magnitude = [res[act_idx, m_idx] for res in raw_results]
                 else:
-                    method_result.amount = raw_results[0][act_idx, m_idx]
+                    method_result.magnitude = raw_results[0][act_idx, m_idx]
                 result_data[act_alias][method_name] = method_result
             act_idx += 1
         return result_data
@@ -355,4 +355,5 @@ class BrightwayAdapter(EnbiosAdapter):
         }
 
     def run(self):
+        logger.error("Brightway adapter does not implment the generic run method")
         pass

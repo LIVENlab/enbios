@@ -5,7 +5,7 @@ from collections import Counter
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Type
 from typing import TypeVar
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
@@ -29,7 +29,7 @@ from enbios.models.experiment_base_models import (
 from enbios.models.experiment_models import (
     Activity_Outputs,
     ScenarioResultNodeData,
-    TechTreeNodeData, EnbiosQuantity,
+    TechTreeNodeData
 )
 
 logger = get_logger(__name__)
@@ -80,11 +80,11 @@ class Experiment:
         def recursive_convert(
                 node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
-            output: Optional[EnbiosQuantity] = None
+            output: Optional[ActivityOutput] = None
             if node_.is_leaf:
-                output = EnbiosQuantity(
+                output = ActivityOutput(
                     unit=self._get_node_adapter(node_).get_activity_output_unit(node_.name),
-                    amount=0,
+                    magnitude=0,
                 )
             return BasicTreeNode(
                 name=node_.name,
@@ -150,7 +150,7 @@ class Experiment:
             #     )
             methods.extend([f"{adapter.node_indicator()}.{m}" for m in adapter_methods])
 
-        adapter_map = {adapter.node_indicator(): adapter for adapter in adapters}
+        adapter_map = {adapter.name(): adapter for adapter in adapters}
         return adapter_map, methods
 
     def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
@@ -171,7 +171,7 @@ class Experiment:
         for aggregator in aggregators:
             aggregator.validate_config()
 
-        return {aggregator.node_indicator(): aggregator for aggregator in aggregators}
+        return {aggregator.name(): aggregator for aggregator in aggregators}
 
     def _get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
@@ -186,21 +186,44 @@ class Experiment:
         return activity
 
     def _get_node_adapter(
-            self, activity_node: BasicTreeNode[TechTreeNodeData]
+            self, node: BasicTreeNode[TechTreeNodeData]
     ) -> EnbiosAdapterType:
         """
         Get the adapter of a node in the experiment hierarchy
 
-        :param activity_node:
+        :param node:
         :return:
         """
-        try:
-            return self._adapters[activity_node.data.adapter]
-        except KeyError:
-            raise ValueError(
-                f"Activity '{activity_node.name}' specifies an unknown adapter: {activity_node.data.adapter}."
-                + f"Available adapters are: {[a.node_indicator() for a in self.adapters]}"
-            )
+        return self._get_module_by_name_or_node_indicator(node.data.aggregator, EnbiosAggregator, node.name)
+
+    def get_node_aggregator(self, node: Union[
+        BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]]) -> EnbiosAggregatorType:
+        """
+        Get the aggregator of a node
+        :param node: node, either in some hierarchy
+        :return:
+        """
+        return self._get_module_by_name_or_node_indicator(node.data.aggregator, EnbiosAggregator, node.name)
+
+    def _get_module_by_name_or_node_indicator(self, name_or_indicator: str,
+                                              module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
+                                              node_name: Optional[str] = None) -> Union[
+        EnbiosAdapter, EnbiosAggregator]:
+        modules: dict[str, Union[
+            EnbiosAdapter, EnbiosAggregator]] = self._adapters if module_type == EnbiosAdapter else self._aggregators
+        module = modules.get(name_or_indicator)
+        if module:
+            return module
+        # also check, if the name instead of the indicator was used
+        for module in modules.values():
+            if module.node_indicator() == name_or_indicator:
+                return module
+
+        node_err = f"Node '{node_name}' specifies an " if node_name else ""
+        raise ValueError(
+            f"{node_err} unknown {module_type}: '{name_or_indicator}'. "
+            + f"Available {module_type}s are: {[m.node_indicator() for m in modules.values()]}"
+        )
 
     def _get_activity_default_output(self, activity_name: str) -> float:
         """
@@ -223,15 +246,6 @@ class Experiment:
         activity = self._get_activity(activity_name)
         return self._get_node_adapter(activity).get_activity_output_unit(activity_name)
 
-    def get_node_aggregator(self, node: Union[
-        BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]]) -> EnbiosAggregatorType:
-        """
-        Get the aggregator of a node
-        :param node: node, either in some hierarchy
-        :return:
-        """
-        return self._aggregators[node.data.aggregator]
-
     def _validate_scenario(self, scenario_data: ExperimentScenarioData) -> Scenario:
         """
         Validate one scenario
@@ -246,7 +260,7 @@ class Experiment:
             for activity_name, activity_output in activities.items():
                 activity = self._get_activity(activity_name)
 
-                adapter = self._adapters[activity.data.adapter]
+                adapter = self._get_node_adapter(activity)
 
                 if isinstance(activity_output, dict):
                     activity_output = ActivityOutput(**activity_output)
@@ -552,6 +566,15 @@ class Experiment:
         )
 
     @staticmethod
+    def get_module_definition(clazz: Union[EnbiosAdapter, EnbiosAggregator], details: bool = True) -> dict[str, Any]:
+        result: dict = {
+            "node_indicator": clazz.node_indicator(),
+        }
+        if details:
+            result["config"] = clazz.get_config_schemas()
+        return result
+
+    @staticmethod
     def get_builtin_adapters(details: bool = True) -> dict[str, dict[str, Any]]:
         """
         Get the built-in adapters
@@ -559,20 +582,44 @@ class Experiment:
         """
         result = {}
         for name, clazz in BUILTIN_ADAPTERS.items():
-            result[name] = {
-                "activity_indicator": clazz.node_indicator(),
-            }
-            if details:
-                result[name]["config"] = clazz.get_config_schemas()
+            result[name] = Experiment.get_module_definition(clazz, details)
         return result
 
     @staticmethod
     def get_builtin_aggregators(details: bool = True) -> dict[str, dict[str, Any]]:
         result = {}
         for name, clazz in BUILTIN_AGGREGATORS.items():
-            result[name] = {
-                "activity_indicator": clazz.node_indicator(),
-            }
-            if details:
-                result[name]["config"] = clazz.get_config_schemas()
+            result[name] = Experiment.get_module_definition(clazz, details)
         return result
+
+    def get_all_configs(self, include_all_builtin_configs: bool = True) -> dict[str, dict[str, dict[str, Any]]]:
+        """
+        Result structure:
+            ```json
+            {
+                "adapters": { <adapter_name>: <adapter_config>},
+                "aggregators": { ... }
+            }
+            ```
+        :param include_all_builtin_configs:
+        :return: all configs
+        """
+        result = {
+            "adapters": {
+                name: Experiment.get_module_definition(adapter, True)
+                for name, adapter in
+                (self._adapters | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})).items()
+            },
+            "aggregators": {
+                name: Experiment.get_module_definition(aggregator, True)
+                for name, aggregator in
+                (self._aggregators | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})).items()
+            }
+        }
+
+        return result
+
+    def get_method_unit(self, method: str) -> str:
+        assert method in self.methods
+        adapter_indicator, method_name = method.split(".")
+        return self._get_module_by_name_or_node_indicator(adapter_indicator, EnbiosAdapter).get_method_unit(method_name)

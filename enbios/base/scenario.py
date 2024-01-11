@@ -9,14 +9,14 @@ from typing import Optional, Union, TYPE_CHECKING, Any, Callable
 from enbios.base.tree_operations import validate_experiment_reference_hierarchy
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike
-from enbios.models.experiment_base_models import HierarchyNodeReference, ScenarioConfig
+from enbios.models.experiment_base_models import HierarchyNodeReference, ScenarioConfig, ActivityOutput
 
 # for type hinting
 if TYPE_CHECKING:
     from enbios.base.experiment import Experiment
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_models import (
-    ScenarioResultNodeData, ResultValue, TechTreeNodeData, Activity_Outputs, EnbiosQuantity
+    ScenarioResultNodeData, ResultValue, TechTreeNodeData, Activity_Outputs
 )
 
 
@@ -39,7 +39,7 @@ class Scenario:
     def prepare_tree(self):
         """Prepare the result tree for calculating scenario outputs.
         This populates the result tree with ScenarioResultNodeData objects
-        for each activity node, which store the output amount and units.
+        for each activity node, which store the output magnitude and units.
         If config is set, it also stores the BW activity dict with the node.
         """
 
@@ -49,9 +49,9 @@ class Scenario:
                 activity_node = self.result_tree.find_subnode_by_name(activity_name)
             except StopIteration:
                 raise ValueError(f"Activity {activity_name} not found in result tree")
-            activity_node.data.output = EnbiosQuantity(
+            activity_node.data.output = ActivityOutput(
                 unit=self.experiment._get_activity_output_unit(activity_name),
-                amount=self.activities_outputs[activity_name],
+                magnitude=self.activities_outputs[activity_name],
             )
             # todo adapter/aggregator specific additional data
             # if self.experiment.config.include_bw_activity_in_nodes:
@@ -161,10 +161,10 @@ class Scenario:
             """
             expanded_results = {}
             for method_name, result_value in results.items():
-                expanded_results[f"{method_name}_amount ({result_value.unit})"] = result_value.amount
-                if result_value.multi_amount:
-                    for idx, amount in enumerate(result_value.multi_amount):
-                        expanded_results[f"{method_name}_{result_value.unit}_{idx}"] = amount
+                expanded_results[f"{method_name}_magnitude ({result_value.unit})"] = result_value.magnitude
+                if result_value.multi_magnitude:
+                    for idx, magnitude in enumerate(result_value.multi_magnitude):
+                        expanded_results[f"{method_name}_{result_value.unit}_{idx}"] = magnitude
             return expanded_results
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
@@ -180,7 +180,7 @@ class Scenario:
             if include_output:
                 if expand_results:
                     result["output_unit"] = data.output.unit
-                    result["output_amount"] = data.output.amount
+                    result["output_magnitude"] = data.output.magnitude
                 else:
                     result["output"] =  data.output.model_dump()
             # todo: adapter specific additional data
@@ -268,7 +268,7 @@ class Scenario:
         def recursive_convert(
                 node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
-            output: Optional[EnbiosQuantity] = None
+            output: Optional[ActivityOutput] = None
             results = {}
             if node_.is_leaf:
                 calc_data = self.result_tree.find_subnode_by_name(node_.name).data

@@ -67,7 +67,7 @@ class EnbiosAdapter(ABC):
         Run a specific scenario. The adapter should return a dictionary of the form:
             {
                 activity_name: {
-                    method_name: ResultValue (unit, amount)
+                    method_name: ResultValue (unit, magnitude)
                 }
             }
         :param scenario:
