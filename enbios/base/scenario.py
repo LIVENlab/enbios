@@ -197,7 +197,7 @@ class Scenario:
             level_names: Optional[list[str]] = None,
             include_method_units: bool = True,
             warn_no_results: bool = True,
-            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            alternative_hierarchy: Optional[dict] = None,
     ):
         """
         Save the results (as tree) to a csv file
@@ -217,7 +217,7 @@ class Scenario:
 
         use_tree = self.result_tree
         if alternative_hierarchy:
-            use_tree = alternative_hierarchy
+            use_tree = self.rearrange_results(alternative_hierarchy)
 
         use_tree.to_csv(
             file_path,
@@ -230,7 +230,7 @@ class Scenario:
             self,
             include_output: bool = True,
             warn_no_results: bool = True,
-            alternative_hierarchy: BasicTreeNode[ScenarioResultNodeData] = None,
+            alternative_hierarchy: dict = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
@@ -252,7 +252,8 @@ class Scenario:
         if warn_no_results and not self._has_run:
             logger.warning(f"Scenario '{self.name}' has not been run yet")
         if alternative_hierarchy:
-            return recursive_transform(alternative_hierarchy.copy())
+            h = self.rearrange_results(alternative_hierarchy.copy())
+            return recursive_transform(h)
         else:
             return recursive_transform(self.result_tree.copy())
 
