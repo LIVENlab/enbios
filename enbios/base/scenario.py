@@ -177,12 +177,13 @@ class Scenario:
                         for method_name, result_value in data.results.items()
                     }
                 }
-            if include_output:
+            # there might be no output, when the units dont match
+            if include_output and data.output:
                 if expand_results:
                     result["output_unit"] = data.output.unit
                     result["output_magnitude"] = data.output.magnitude
                 else:
-                    result["output"] =  data.output.model_dump()
+                    result["output"] = data.output.model_dump()
             # todo: adapter specific additional data
             # if data.bw_activity:
             #     result["bw_activity"] = data.bw_activity["code"]

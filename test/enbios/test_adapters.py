@@ -30,7 +30,7 @@ def test_simple_assignment_adapter():
                         "default_impacts": {
                             "test": {
                                 "unit": "co2",
-                                "amount": 31.254
+                                "magnitude": 31.254
                             }
                         }
                     }

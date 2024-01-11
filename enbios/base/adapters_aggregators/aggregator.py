@@ -117,7 +117,8 @@ class SumAggregator(EnbiosAggregator):
                     node.data.results[key] = ResultValue(magnitude=0, unit=value.unit, multi_magnitude=[])
                     ignore_short_multi_mag = True
                 node_agg_result = node.data.results[key]
-                node_agg_result.magnitude += value.magnitude
+                if value.magnitude:
+                    node_agg_result.magnitude += value.magnitude
                 max_len = max(len(node_agg_result.multi_magnitude), len(value.multi_magnitude))
                 if len(node_agg_result.multi_magnitude) < max_len:
                     node_agg_result.multi_magnitude.extend([0] * (max_len - len(node_agg_result.multi_magnitude)))
