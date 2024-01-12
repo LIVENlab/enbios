@@ -3,7 +3,6 @@ import sys
 
 output: list[str] = []
 
-
 # check first parameter
 revert = len(sys.argv) > 1 and sys.argv[1] == "revert"
 
@@ -17,7 +16,7 @@ with open("../pyproject.toml", "r") as f:
             version_s = re.findall(version_pattern, line)[0]
             parts = version_s.split(".")
             minor_num = int(parts[-1])
-            new_minor_num = minor_num + (-1 if revert else 1)
+            new_minor_num = max(minor_num + (-1 if revert else 1), 0)
             new_version = ".".join(parts[:-1] + [str(new_minor_num)])
             print(new_version)
             new_line = re.sub(version_pattern, new_version, line)
