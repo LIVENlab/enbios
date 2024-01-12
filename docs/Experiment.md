@@ -22,7 +22,7 @@ The example are given in YAML, tho the ExperimentData objects are created from o
 The activities should be defined in a object, where the keys are the "aliases" (arbitrary names for the activities).
 The values are objects as well with one mandatory key `id` and an optional `output' key, which should be a list of 2
 items:
-The output unit and the output amount. Whenever a scenario does not define an output, the default output will be used.
+The output unit and the output magnitude. Whenever a scenario does not define an output, the default output will be used.
 
 The `id` is an object that takes any combination of the following keys:
 code, database, name, location, unit, (alias). Think of them as identifier, that must always allow to uniquely identify

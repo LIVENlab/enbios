@@ -79,7 +79,7 @@ ENBIOS (Environmental and Bioeconomic System Analysis) is an assessment framewor
 *environmental impacts and resource use of energy pathways resulting from energy system optimization models (ESOMs)**.
 
 It integrates Life Cycle Assessment (LCA) and Social Metabolism Assessment using the Multi-Scale Integrated Assessment
-of Socio-Ecosystem Metabolism (MuSIASEM). It has been been co-designed with decision makers and energy modellers.
+of Socio-Ecosystem Metabolism (MuSIASEM). It has been co-designed with decision makers and energy modellers.
 
 The related python package [`enbios`](https://pypi.org/project/enbios/) takes data on energy system design and impact
 assessment methods to return a characterization matrix filled with bioeconomic and environmental indicators.

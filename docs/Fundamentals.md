@@ -4,11 +4,12 @@ This version is based on a very simple assumption. Calculating arbitrary (struct
 values (functional nodes) in
 a MuSIASEM hierarchy for any type of scenarios (functional outputs).
 
-An enbios experiment is setup with one configuration dictionary(json object), which is on initiation strictly validated.
-Afterwards any scenario or all scenarios, defined in the config object can be executed.
+An enbios experiment is set up with one configuration dictionary(json object), which is on initiation strictly
+validated.
+Afterward any scenario or all scenarios, defined in the config object can be executed.
 
-This vesion of enbios, is built with flexibility in mind. That means, the value calculation for structural nodes and
-aggregation calculations for functional nodes is done in external python modules. Through this approeach,
+This version of enbios, is built with flexibility in mind. That means, the value calculation for structural nodes and
+aggregation calculations for functional nodes is done in external python modules. Through this approach,
 users can develop new arbitrary calculation (**Adapter**) and aggregation (**Aggregator**) modules and use them in
 Enbios.
 There are a some builtin adapters and aggregators:
@@ -21,7 +22,7 @@ There are a some builtin adapters and aggregators:
 
 **Aggregators**
 
-- SumAggregator: This Aggregator simply sums up the impact results of it's children in the hierarchy.
+- SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
 
 ## Structure of an Enbios configuration
 
@@ -37,16 +38,33 @@ The configuration data for an Enbios experiment has the following structure:
 - adapters: a list of adapter configurations, that should be used in this experiment
 - aggregators: a list of aggregator configurations, that should be used in this experiment
 - hierarchy: a tree-like structure, where each node in the tree needs a name, depending on its position (structural or
-  functional) an association with an adapter or aggregator, and some specific configuration for that (e.g how to
+  functional) an association with an adapter or aggregator, and some specific configuration for that (e.g. how to
   identify the node in the adapter/aggregator, default outputs)
-- scenarios: a list of scenario configuration, containing in particular the outputs of the stuctural units
+- scenarios: a list of scenario configuration, containing in particular the outputs of the structural units
 - config: Some generic configurations
 
 ## A first simple example
 
-This example uses the brightway adapter and 4 activities of ecoinvent 3.9.1. The hierarchy contains 2 windfarms and 2
+This example uses the brightway adapter and 4 activities of ecoinvent 3.9.1. The hierarchy contains 2 wind farms and 2
 solar plants, which are in 2 functional nodes ('wind' and 'solar').
 Additionally, the configuration contains 2 scenarios.
+
+```mermaid
+---
+title: Example hierarchy 
+---
+graph LR
+    root("root\n(sum)")
+    root --> wind("wind\n(sum)")
+    root --> solar("solar\n(sum)")
+    wind --> w1[electricity production, wind, >3MW turbine, onshore]
+    wind --> w2[electricity production, wind, 1-3MW turbine, onshore]
+    solar --> s1[electricity production, solar tower power plant, 20 MW]
+    solar --> s2[electricity production, solar thermal parabolic trough, 50 MW]
+```
+
+_(structural nodes are rectangles and functional nodes are rounded rectangles)_
+
 Full details are below the configuration
 
 ```json
@@ -181,15 +199,15 @@ must be given:
 Respectively for an aggregator (`module_path`, `aggregator_name`)
 
 Besides the identification the adapter should have the fields `config` and `methods`.
-For the `config` of the brightway-adapter it is crucial to include the field `bw_project`, so that enbios know, which
-brighway project to use.
+For the `config` of the brightway-adapter it is crucial to include the field `bw_project`, so that enbios know which
+brightway project to use.
 
 For `methods` we need to pass a dictionary, where the keys are arbitrary names that we give to the method and the tuple
 of strings, which are the names/identifiers of methods in brightway.
 
 **aggregators**:
 
-Since we only make use of the builtin _sum-aggregator_ which does not require any configuration, we can ommit, this
+Since we only make use of the builtin _sum-aggregator_ which does not require any configuration, we can omit, this
 field in the experiment configuration.
 
 **hierarchy**:
@@ -197,10 +215,97 @@ field in the experiment configuration.
 Each node in the hierarchy has the following fields
 
 _name_: An arbitrary name for that node (all names must be unique in the hierarchy)
-_
+
+_adapter_ | _aggregator_ : All structural nodes require an _adapter_ field and all functional nodes require an
+_aggregator_ field. The values correspond to the name of the module, or it's specific node_indicator, which are 'sum'
+for sum-aggregators and 'bw' for the brightway-adapter. (More details on that later)
+
+_children_: A list of all the nodes children. This field is only required for functional nodes and must be omitted for
+structural nodes.
+
+_config_: A node specific config, that will be passed on to the Adapter ore Aggregator. The required fields depend on
+the module at hand. In the case of brightway, we need some fields that help brightway to identify the activity.
+
+**scenarios**:
+
+A list of scenario configurations. Generally, we want to run multiple scenarios with different outputs for the
+structural nodes.
+Each configuration can have the following fields:
+
+_name_: An arbitrary name for the scenario
+
+_activities_: A dictionary where the keys are (structural) node names, as defined in the hierarchy and the values their
+outputs. The outputs can have the form of a dictionary with the keys: `unit`, `magnitude` or list of 2 elements, where
+the
+first one defines the unit and the 2nd the amount. E.g. these two definitions are
+equivalent: `{'unit':'kilowatt_hour','magnitude':5}` and `['kilowatt_hour', 5]`.
+
+_config_: A dictionary with scenario specific configuration.
 
 ## How to config Adapters and Aggregators
 
+Before we look at how adapter and aggregator are created and work, we look at how users can look up how to specify them,
+when making use of them.
+
+There are 2 parts in the experiment file, where adapter/aggregator specific data has to be used. In the configuration of
+the module (`adapters`/`aggregators`) in the experiment configuration and for each node, in the `config` field.
+
+As seen in the example the adapter data for the _brightway-adapter_ looks like this:
+
+```json
+{
+  "adapter_name": "brightway-adapter",
+  "config": {
+    "bw_project": "ecoinvent_391"
+  },
+  "methods": {
+    "GWP1000": [
+      "ReCiPe 2016 v1.03, midpoint (H)",
+      "climate change",
+      "global warming potential (GWP1000)"
+    ],
+    "FETP": [
+      "ReCiPe 2016 v1.03, midpoint (H)",
+      "ecotoxicity: freshwater",
+      "freshwater ecotoxicity potential (FETP)"
+    ]
+  }
+}
+```
+
+And the structural nodes in the example, have a config specific for the _brightway_adapter_
+
+```json
+{
+  "name": "electricity production, wind, >3MW turbine, onshore",
+  "adapter": "bw",
+  "config": {
+    "code": "0d48975a3766c13e68cedeb6c24f6f74",
+    "default_output": {
+      "unit": "kilowatt_hour",
+      "magnitude": 3
+    }
+  }
+}
+```
+
+All adapters/aggregators have the static function `get_config_schemas`, which gives us the corresponding jsonschemas for
+configuration. Adapters return 3 schemas which are (by convention) called: `adapter`, `activity` and `method`, while
+aggregators contain the schemas `aggregator`, `activity`.
+
+Since the method `get_config_schemas` is static, we can call it directly on the class and do not need to initiate any
+object before. So we can call
+`BrightwayAdapter.get_config_schemas()` to get its config schemas.
+
+However, there are some functions in Experiment for convenience of getting all configurations.
+`get_builtin_adapters(details: bool = True)`
+`get_builtin_aggregators(details: bool = True)`
+
+will return dictionaries, which include `node_indicator` (the indicator to use for nodes) and (if the
+parameter `details` is True (default:True)),
+`config`, which will have the 2 (or the 3 in the case of aggregators) fields.
+
+E.g. get_builtin_adapters
 ```json
 {
   "simple-assignment-adapter": {
@@ -445,11 +550,30 @@ _
           "type": "array"
         },
         "description": "Simply a dict: name : BW method tuple",
-        "title": "Method defintion",
+        "title": "Method definition",
         "type": "object"
       }
     }
   }
 }
-
 ```
+
+On an experiment instance the following function can be
+called: `get_all_configs(include_all_builtin_configs: bool = True)`, which
+will return all configs for all adapters and aggregators specified in the experiment config data and all builtin
+modules, when `include_all_builtin_configs` is set True (default).
+
+The configs are in a dictionary in the fields `adapters`, `aggregators`
+```json
+  {
+  "adapters": {
+    "<adapter_name>": "<adapter_config>"
+  },
+  "aggregators": {
+    "...": "..."
+  }
+}
+```
+
+## Creating Adapters and Aggregators
+
