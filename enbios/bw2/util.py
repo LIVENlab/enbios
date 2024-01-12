@@ -129,6 +129,26 @@ def bw_unit_fix(unit_str: str):
     return unit_str
 
 
+def delete_db(project_name: str, db_name: str):
+    if project_name not in bw2data.projects:
+        raise ValueError(f"Project '{project_name}'does not exist")
+    bw2data.projects.set_current(project_name)
+    if db_name not in bw2data.databases:
+        raise ValueError(f"Database '{db_name}'does not exist")
+    print("proceeding to delete database ...")
+    bw2data.Database(db_name).delete_instance()
+
+
+def delete_project(project_name: str):
+    if project_name == "default":
+        print("Not gonna delete project 'default'")
+        return
+    if project_name not in bw2data.projects:
+        print(f"Project '{project_name}'does not exist")
+        return
+    bw2data.projects.delete_project(project_name, True)
+
+
 def delete_all_projects():
     resp = input("Are you sure you want to delete all projects? [y]")
     if resp != "y":

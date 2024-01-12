@@ -1,6 +1,0 @@
-nis_file_location: "https://docs.google.com/spreadsheets/d/1qWWF40CqK_WzvZiJLmidMBupOWRhUupH4WtUBR7u9Z8/edit?usp=sharing"
-development_nis_file_location: "https://docs.google.com/spreadsheets/d/1pkQ4SnYtQzfMP5XL6MZvp9RZABEjESWBLDQZUDSfafI/edit?usp=sharing"
-correspondence_files_path: ""
-simulation_type: single_csv
-simulation_files_path: /mnt/SSD/projects/LIVENLab/enbios2/data/enbios/_3_/data_.csv
-output_directory: /mnt/SSD/projects/LIVENLab/enbios2/data/enbios/_3_/output

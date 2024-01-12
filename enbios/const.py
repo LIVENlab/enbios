@@ -9,7 +9,6 @@ import sys
 entry_point_script = Path(os.path.abspath(sys.argv[0]))
 
 PROJECT_PATH = entry_point_script.parent
-print("PROJECT_PATH", PROJECT_PATH)
 
 BASE_DATA_PATH = PROJECT_PATH / "data"
 BASE_ECOINVENT_DATASETS_PATH = BASE_DATA_PATH / "ecoinvent"

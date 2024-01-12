@@ -1,5 +1,0 @@
-digraph G {
-    x [database=biosphere3, name_="Carbon dioxide, fossil", categories="[air]", type=emission];
-    a -> x [amount=10, type=biosphere unit="kilogram"];
-    //a -> b [amount=2, type=technosphere unit="kilogram"];
-}
