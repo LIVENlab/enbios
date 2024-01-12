@@ -68,60 +68,6 @@ class BrightwayActivityConfig(BaseModel):
         None, description="Default output of the activity for all scenarios"
     )
 
-    def get_bw_activity(
-        self, allow_multiple: bool = False
-    ) -> Union[Activity, list[Activity]]:
-        if self.code:
-            if not self.database:
-                return get_activity(self.code)
-            else:
-                return bw2data.Database(self.database).get(self.code)
-        elif self.name:
-            filters = {}
-            if self.location:
-                filters["location"] = self.location
-                assert (
-                    self.database in bw2data.databases
-                ), f"database {self.database} not found"
-                search_results = bw2data.Database(self.database).search(
-                    self.name, filter=filters
-                )
-            else:
-                search_results = bw2data.Database(self.database).search(self.name)
-            if self.unit:
-                search_results = list(
-                    filter(lambda a: a["unit"] == self.unit, search_results)
-                )
-            assert len(search_results) == 0, (
-                f"No results for brightway activity-search:"
-                f" {(self.name, self.location, self.unit)}"
-            )
-            if len(search_results) > 1:
-                if allow_multiple:
-                    return search_results
-                assert False, (
-                    f"results : {len(search_results)} for brightway activity-search:"
-                    f" {(self.name, self.location, self.unit)}. Results are: "
-                    f"{search_results}"
-                )
-            return search_results[0]
-        else:
-            raise ValueError("No code or name specified")
-
-    def fill_empty_fields(
-        self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
-    ):
-        if not fields:
-            fields = []
-        for _field in fields:
-            if isinstance(_field, tuple):
-                if not getattr(self, _field[0]):
-                    setattr(self, _field[0], kwargs[_field[1]])
-            else:
-                if not getattr(self, _field):
-                    setattr(self, _field, kwargs[_field])
-
-
 class BWMethodModel(BaseModel):
     name: str = Field(None, description="Name for identification")
     id: tuple[str, ...] = Field(None, description="Brightway method id")
