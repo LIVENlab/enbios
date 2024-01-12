@@ -9,10 +9,10 @@ from enbios.base.experiment import Experiment
 
 class ResultsSelector:
     def __init__(
-            self,
-            experiment: Experiment,
-            scenarios: Optional[list[str]] = None,
-            methods: Optional[list[str]] = None,
+        self,
+        experiment: Experiment,
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
     ):
         """
         Initialize the object with experiment, scenarios, and methods.
@@ -32,7 +32,9 @@ class ResultsSelector:
         else:
             self.scenarios = all_scenarios
 
-        all_methods: list[str] = self.experiment.methods  # [m.split(".")[1] for m in ]  # type: ignore
+        all_methods: list[
+            str
+        ] = self.experiment.methods  # [m.split(".")[1] for m in ]  # type: ignore
 
         all_method_names: list[str] = self.experiment.method_names
         self.methods: list[str] = []
@@ -53,9 +55,9 @@ class ResultsSelector:
 
     @staticmethod
     def get_result_selector(
-            result_selector: Union[Experiment, "ResultsSelector"],
-            scenarios: Optional[list[str]] = None,
-            methods: Optional[list[str]] = None,
+        result_selector: Union[Experiment, "ResultsSelector"],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
     ) -> "ResultsSelector":
         if isinstance(result_selector, Experiment):
             return ResultsSelector(result_selector, scenarios=scenarios, methods=methods)
@@ -123,13 +125,11 @@ class ResultsSelector:
             normalized_df = normalized_df[normalized_df["scenario"].isin(self.scenarios)]
         return normalized_df
 
-    def method_label_names(
-            self, include_unit: bool = True
-    ) -> list[str]:
+    def method_label_names(self, include_unit: bool = True) -> list[str]:
         return [
             (
-                    method
-                    + ("\n" + self.experiment.get_method_unit(method) if include_unit else "")
+                method
+                + ("\n" + self.experiment.get_method_unit(method) if include_unit else "")
             )
             for method in self.methods
         ]
@@ -143,7 +143,9 @@ class ResultsSelector:
         baseline_df = self.base_df.copy()
         # Use loc to select the columns related to methods
         # and divide them by baseline_data
-        baseline_df[self.method_names] = self.base_df[self.method_names].div(baseline_data, axis=1)
+        baseline_df[self.method_names] = self.base_df[self.method_names].div(
+            baseline_data, axis=1
+        )
         # Set the dtypes back to their original types
         original_dtypes = self.base_df[self.method_names].dtypes
         for col, dtype in original_dtypes.items():

@@ -2,7 +2,11 @@ import sys
 
 from pydantic import ValidationError
 
-from enbios.models.experiment_base_models import ExperimentData, ExperimentHierarchyNodeData, ExperimentScenarioData
+from enbios.models.experiment_base_models import (
+    ExperimentData,
+    ExperimentHierarchyNodeData,
+    ExperimentScenarioData,
+)
 
 
 def validate_experiment_data(data: dict) -> ExperimentData:
@@ -30,5 +34,3 @@ def validate_experiment_data(data: dict) -> ExperimentData:
         # errors_sorted = sorted(err.errors(), key=lambda x: len(x["loc"]), reverse=True)[0]
         # print(f"!!!\n!!!\nCheck: '{errors_sorted['type']}': {errors_sorted['loc']}\n\n")
         sys.exit(1)
-
-

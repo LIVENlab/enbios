@@ -33,30 +33,43 @@ class ExperimentMethodPrepData(BaseModel):
 class BWAdapterConfig(BaseModel):
     bw_project: str
     # methods: MethodsDataTypesExt
-    use_k_bw_distributions: int = Field(1,
-                                        description="Number of samples to use for MonteCarlo")
-    store_raw_results: bool = Field(False,
-                                    description="If the numpy matrix of brightway should be stored in the adapter. "
-                                                "Will be stored in `raw_results[scenario.name]`")
-    store_lca_object: bool = Field(False,
-                                   description="If the LCA object should be stored. "
-                                               "Will be stored in `lca_objects[scenario.name]`")
+    use_k_bw_distributions: int = Field(
+        1, description="Number of samples to use for MonteCarlo"
+    )
+    store_raw_results: bool = Field(
+        False,
+        description="If the numpy matrix of brightway should be stored in the adapter. "
+        "Will be stored in `raw_results[scenario.name]`",
+    )
+    store_lca_object: bool = Field(
+        False,
+        description="If the LCA object should be stored. "
+        "Will be stored in `lca_objects[scenario.name]`",
+    )
 
 
 class BrightwayActivityConfig(BaseModel):
     # todo this is too bw specific
-    name: str = Field(None, description="Search:Name of the brightway activity")  # brightway name
-    database: str = Field(None, description="Search:Name of the database to search first")  # brightway database
-    code: str = Field(None, description="Search:Brightway activity code")  # brightway code
+    name: str = Field(
+        None, description="Search:Name of the brightway activity"
+    )  # brightway name
+    database: str = Field(
+        None, description="Search:Name of the database to search first"
+    )  # brightway database
+    code: str = Field(
+        None, description="Search:Brightway activity code"
+    )  # brightway code
     # search and filter
     location: str = Field(None, description="Search:Location filter")  # location
     # additional filter
     unit: str = Field(None, description="Search: unit filter of results")  # unit
     # internal-name
-    default_output: ActivityOutput = Field(None, description="Default output of the activity for all scenarios")
+    default_output: ActivityOutput = Field(
+        None, description="Default output of the activity for all scenarios"
+    )
 
     def get_bw_activity(
-            self, allow_multiple: bool = False
+        self, allow_multiple: bool = False
     ) -> Union[Activity, list[Activity]]:
         if self.code:
             if not self.database:
@@ -68,7 +81,7 @@ class BrightwayActivityConfig(BaseModel):
             if self.location:
                 filters["location"] = self.location
                 assert (
-                        self.database in bw2data.databases
+                    self.database in bw2data.databases
                 ), f"database {self.database} not found"
                 search_results = bw2data.Database(self.database).search(
                     self.name, filter=filters
@@ -96,7 +109,7 @@ class BrightwayActivityConfig(BaseModel):
             raise ValueError("No code or name specified")
 
     def fill_empty_fields(
-            self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
+        self, fields: Optional[list[Union[str, tuple[str, str]]]] = None, **kwargs
     ):
         if not fields:
             fields = []
@@ -118,8 +131,10 @@ BWMethodDefinition = RootModel[dict[str, Sequence[str]]]
 
 
 class BWMethodDefinition(RootModel):
-    model_config = ConfigDict(title='Method definition',
-                              json_schema_extra={"description": "Simply a dict: name : BW method tuple"})
+    model_config = ConfigDict(
+        title="Method definition",
+        json_schema_extra={"description": "Simply a dict: name : BW method tuple"},
+    )
     root: dict[str, Sequence[str]]
 
 
@@ -173,7 +188,6 @@ class BWActivityData:
 
 
 class BrightwayAdapter(EnbiosAdapter):
-
     @staticmethod
     def name() -> str:
         return "brightway-adapter"
@@ -229,9 +243,9 @@ class BrightwayAdapter(EnbiosAdapter):
         return list(self.methods.keys())
 
     def validate_activity_output(
-            self,
-            node_name: str,
-            target_output: ActivityOutput,
+        self,
+        node_name: str,
+        target_output: ActivityOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -242,10 +256,10 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_activity_unit = "not yet set"
         try:
             target_quantity: Quantity = (
-                    ureg.parse_expression(
-                        bw_unit_fix(target_output.unit), case_sensitive=False
-                    )
-                    * target_output.magnitude
+                ureg.parse_expression(
+                    bw_unit_fix(target_output.unit), case_sensitive=False
+                )
+                * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -265,12 +279,10 @@ class BrightwayAdapter(EnbiosAdapter):
             )
             raise Exception(f"Unit error for activity: {node_name}")
 
-    def validate_activity(
-            self,
-            node_name: str,
-            activity_config: Any
-    ):
-        assert isinstance(activity_config, dict), f"Activity id (type: dict) must be defined for activity {node_name}"
+    def validate_activity(self, node_name: str, activity_config: Any):
+        assert isinstance(
+            activity_config, dict
+        ), f"Activity id (type: dict) must be defined for activity {node_name}"
         # get the brightway activity
         bw_activity = _bw_activity_search(activity_config)
 
@@ -283,8 +295,9 @@ class BrightwayAdapter(EnbiosAdapter):
         if "default_output" in activity_config:
             self.activityMap[
                 node_name
-            ].default_output.magnitude = self.validate_activity_output(node_name, ActivityOutput(
-                **activity_config["default_output"]))
+            ].default_output.magnitude = self.validate_activity_output(
+                node_name, ActivityOutput(**activity_config["default_output"])
+            )
 
     def get_default_output_value(self, activity_name: str) -> float:
         return self.activityMap[activity_name].default_output.magnitude
@@ -304,7 +317,8 @@ class BrightwayAdapter(EnbiosAdapter):
             except KeyError:
                 if not scenario.config.exclude_defaults:
                     raise Exception(
-                        f"Activity {act_alias} not found in scenario {scenario.name}")
+                        f"Activity {act_alias} not found in scenario {scenario.name}"
+                    )
 
         methods = [m.id for m in self.methods.values()]
         calculation_setup = BWCalculationSetup(scenario.name, inventory, methods)
@@ -331,7 +345,9 @@ class BrightwayAdapter(EnbiosAdapter):
         for act_alias in self.activityMap.keys():
             if act_alias not in scenario.activities_outputs:
                 if not scenario.config.exclude_defaults:
-                    raise Exception(f"Activity {act_alias} not found in scenario {scenario.name}")
+                    raise Exception(
+                        f"Activity {act_alias} not found in scenario {scenario.name}"
+                    )
                 continue
             result_data[act_alias] = {}
             for m_idx, method in enumerate(self.methods.items()):
@@ -339,7 +355,9 @@ class BrightwayAdapter(EnbiosAdapter):
                 # todo this could be a type
                 method_result = ResultValue(unit=method_data.bw_method_unit)
                 if use_distributions:
-                    method_result.multi_magnitude = [res[act_idx, m_idx] for res in raw_results]
+                    method_result.multi_magnitude = [
+                        res[act_idx, m_idx] for res in raw_results
+                    ]
                 else:
                     method_result.magnitude = raw_results[0][act_idx, m_idx]
                 result_data[act_alias][method_name] = method_result
@@ -351,7 +369,7 @@ class BrightwayAdapter(EnbiosAdapter):
         return {
             "adapter": BWAdapterConfig.model_json_schema(),
             "activity": BrightwayActivityConfig.model_json_schema(),
-            "method": BWMethodDefinition.model_json_schema()
+            "method": BWMethodDefinition.model_json_schema(),
         }
 
     def run(self):

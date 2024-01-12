@@ -33,16 +33,12 @@ class EnbiosAdapter(ABC):
 
     @abstractmethod
     def validate_activity_output(
-            self, node_name: str, target_output: ActivityOutput
+        self, node_name: str, target_output: ActivityOutput
     ) -> float:
         pass
 
     @abstractmethod
-    def validate_activity(
-            self,
-            node_name: str,
-            activity_config: Any
-    ):
+    def validate_activity(self, node_name: str, activity_config: Any):
         pass
 
     @abstractmethod
@@ -77,7 +73,6 @@ class EnbiosAdapter(ABC):
 
     def get_logger(self):
         return get_logger(f"__name__ ({self.name})")
-
 
     @staticmethod
     @abstractmethod

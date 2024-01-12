@@ -18,9 +18,9 @@ class EnbiosAggregator(ABC):
 
     @abstractmethod
     def validate_node_output(
-            self,
-            node: BasicTreeNode[ScenarioResultNodeData],
-            scenario_name: Optional[str] = "",
+        self,
+        node: BasicTreeNode[ScenarioResultNodeData],
+        scenario_name: Optional[str] = "",
     ) -> bool:
         pass
 
@@ -55,9 +55,9 @@ class SumAggregator(EnbiosAggregator):
         pass
 
     def validate_node_output(
-            self,
-            node: BasicTreeNode[ScenarioResultNodeData],
-            scenario_name: Optional[str] = "",
+        self,
+        node: BasicTreeNode[ScenarioResultNodeData],
+        scenario_name: Optional[str] = "",
     ) -> bool:
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
         for child in node.children:
@@ -71,8 +71,8 @@ class SumAggregator(EnbiosAggregator):
             output_mag: Optional[float] = None
             try:
                 output_mag = (
-                        enbios.get_enbios_ureg().parse_expression(activity_output)
-                        * child.data.output.magnitude
+                    enbios.get_enbios_ureg().parse_expression(activity_output)
+                    * child.data.output.magnitude
                 )
                 if not node_output:
                     node_output = output_mag
@@ -98,7 +98,9 @@ class SumAggregator(EnbiosAggregator):
                 break
         if node_output is not None:
             node_output = node_output.to_compact()
-            node.data.output = ActivityOutput(unit=str(node_output.units), magnitude=node_output.magnitude)
+            node.data.output = ActivityOutput(
+                unit=str(node_output.units), magnitude=node_output.magnitude
+            )
             return True
         else:
             # node.set_data(TechTreeNodeData())
@@ -114,23 +116,38 @@ class SumAggregator(EnbiosAggregator):
             for key, value in child.data.results.items():
                 ignore_short_multi_mag = False
                 if node.data.results.get(key) is None:
-                    node.data.results[key] = ResultValue(magnitude=0, unit=value.unit, multi_magnitude=[])
+                    node.data.results[key] = ResultValue(
+                        magnitude=0, unit=value.unit, multi_magnitude=[]
+                    )
                     ignore_short_multi_mag = True
                 node_agg_result = node.data.results[key]
                 if value.magnitude:
                     node_agg_result.magnitude += value.magnitude
-                max_len = max(len(node_agg_result.multi_magnitude), len(value.multi_magnitude))
+                max_len = max(
+                    len(node_agg_result.multi_magnitude), len(value.multi_magnitude)
+                )
                 if len(node_agg_result.multi_magnitude) < max_len:
-                    node_agg_result.multi_magnitude.extend([0] * (max_len - len(node_agg_result.multi_magnitude)))
+                    node_agg_result.multi_magnitude.extend(
+                        [0] * (max_len - len(node_agg_result.multi_magnitude))
+                    )
                     if not ignore_short_multi_mag:
                         self.get_logger().warning(
-                            f"Multi magnitude of node {node.name} is shorter than child {child.name}.")
+                            f"Multi magnitude of node {node.name} is shorter than child {child.name}."
+                        )
                 if len(value.multi_magnitude) < max_len:
-                    value.multi_magnitude.extend([0] * (max_len - len(value.multi_magnitude)))
-                    self.get_logger().warning(f"Multi magnitude of child {child.name} is shorter than node {node.name}.")
+                    value.multi_magnitude.extend(
+                        [0] * (max_len - len(value.multi_magnitude))
+                    )
+                    self.get_logger().warning(
+                        f"Multi magnitude of child {child.name} is shorter than node {node.name}."
+                    )
 
-                node.data.results[key].multi_magnitude = [a + b for a, b in
-                                                          zip(node_agg_result.multi_magnitude, value.multi_magnitude)]
+                node.data.results[key].multi_magnitude = [
+                    a + b
+                    for a, b in zip(
+                        node_agg_result.multi_magnitude, value.multi_magnitude
+                    )
+                ]
 
     @staticmethod
     def node_indicator() -> str:

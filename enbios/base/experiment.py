@@ -29,14 +29,14 @@ from enbios.models.experiment_base_models import (
 from enbios.models.experiment_models import (
     Activity_Outputs,
     ScenarioResultNodeData,
-    TechTreeNodeData
+    TechTreeNodeData,
 )
 
 logger = get_logger(__name__)
 
 # Define a TypeVar that is bound to EnbiosAdapter
-EnbiosAdapterType = TypeVar('EnbiosAdapterType', bound=EnbiosAdapter)
-EnbiosAggregatorType = TypeVar('EnbiosAggregatorType', bound=EnbiosAggregator)
+EnbiosAdapterType = TypeVar("EnbiosAdapterType", bound=EnbiosAdapter)
+EnbiosAggregatorType = TypeVar("EnbiosAggregatorType", bound=EnbiosAggregator)
 
 
 class Experiment:
@@ -67,7 +67,9 @@ class Experiment:
         self._adapters, self.methods = self._validate_adapters()
         self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
 
-        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = validate_experiment_hierarchy(self.raw_data.hierarchy)
+        self.hierarchy_root: BasicTreeNode[
+            TechTreeNodeData
+        ] = validate_experiment_hierarchy(self.raw_data.hierarchy)
         self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
 
         for node in self.hierarchy_root.iter_all_nodes():
@@ -78,12 +80,14 @@ class Experiment:
                 self._activities[node.name] = node
 
         def recursive_convert(
-                node_: BasicTreeNode[TechTreeNodeData],
+            node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: Optional[ActivityOutput] = None
             if node_.is_leaf:
                 output = ActivityOutput(
-                    unit=self._get_node_adapter(node_).get_activity_output_unit(node_.name),
+                    unit=self._get_node_adapter(node_).get_activity_output_unit(
+                        node_.name
+                    ),
                     magnitude=0,
                 )
             return BasicTreeNode(
@@ -159,9 +163,7 @@ class Experiment:
 
         :return: a aggregator-name-Aggregator dict
         """
-        aggregators = [
-            load_aggregator(adapter) for adapter in self.raw_data.aggregators
-        ]
+        aggregators = [load_aggregator(adapter) for adapter in self.raw_data.aggregators]
 
         aggregator_names = [a.name() for a in aggregators]
         for builtin_name, aggregator in BUILTIN_AGGREGATORS.items():
@@ -186,7 +188,7 @@ class Experiment:
         return activity
 
     def _get_node_adapter(
-            self, node: BasicTreeNode[TechTreeNodeData]
+        self, node: BasicTreeNode[TechTreeNodeData]
     ) -> EnbiosAdapterType:
         """
         Get the adapter of a node in the experiment hierarchy
@@ -194,23 +196,34 @@ class Experiment:
         :param node:
         :return:
         """
-        return self._get_module_by_name_or_node_indicator(node.data.adapter, EnbiosAdapter, node.name)
+        return self._get_module_by_name_or_node_indicator(
+            node.data.adapter, EnbiosAdapter, node.name
+        )
 
-    def get_node_aggregator(self, node: Union[
-        BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]]) -> EnbiosAggregatorType:
+    def get_node_aggregator(
+        self,
+        node: Union[
+            BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
+        ],
+    ) -> EnbiosAggregatorType:
         """
         Get the aggregator of a node
         :param node: node, either in some hierarchy
         :return:
         """
-        return self._get_module_by_name_or_node_indicator(node.data.aggregator, EnbiosAggregator, node.name)
+        return self._get_module_by_name_or_node_indicator(
+            node.data.aggregator, EnbiosAggregator, node.name
+        )
 
-    def _get_module_by_name_or_node_indicator(self, name_or_indicator: str,
-                                              module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
-                                              node_name: Optional[str] = None) -> Union[
-        EnbiosAdapter, EnbiosAggregator]:
-        modules: dict[str, Union[
-            EnbiosAdapter, EnbiosAggregator]] = self._adapters if module_type == EnbiosAdapter else self._aggregators
+    def _get_module_by_name_or_node_indicator(
+        self,
+        name_or_indicator: str,
+        module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
+        node_name: Optional[str] = None,
+    ) -> Union[EnbiosAdapter, EnbiosAggregator]:
+        modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = (
+            self._adapters if module_type == EnbiosAdapter else self._aggregators
+        )
         module = modules.get(name_or_indicator)
         if module:
             return module
@@ -264,12 +277,12 @@ class Experiment:
 
                 if isinstance(activity_output, dict):
                     activity_output = ActivityOutput(**activity_output)
-                result[activity_name] = adapter.validate_activity_output(activity_name, activity_output)
+                result[activity_name] = adapter.validate_activity_output(
+                    activity_name, activity_output
+                )
             return result
 
-        scenario_activities_outputs: Activity_Outputs = validate_activities(
-            scenario_data
-        )
+        scenario_activities_outputs: Activity_Outputs = validate_activities(scenario_data)
         defined_activities = list(scenario_activities_outputs.keys())
 
         # fill up the missing activities with default values
@@ -339,8 +352,9 @@ class Experiment:
                 return scenario
         raise ValueError(f"Scenario '{scenario_name}' not found")
 
-    def run_scenario(self, scenario_name: str, results_as_dict: bool = True) -> Union[
-        BasicTreeNode[ScenarioResultNodeData], dict]:
+    def run_scenario(
+        self, scenario_name: str, results_as_dict: bool = True
+    ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a specific scenario
         :param scenario_name:
@@ -349,7 +363,9 @@ class Experiment:
         """
         return self.get_scenario(scenario_name).run(results_as_dict)
 
-    def run(self, results_as_dict: bool = True) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
+    def run(
+        self, results_as_dict: bool = True
+    ) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
         """
         Run all scenarios. Returns a dict with the scenario name as key
         and the result_tree as value
@@ -424,11 +440,11 @@ class Experiment:
                 return "not run"
 
     def results_to_csv(
-            self,
-            file_path: PathLike,
-            scenario_name: Optional[str] = None,
-            level_names: Optional[list[str]] = None,
-            include_method_units: bool = True,
+        self,
+        file_path: PathLike,
+        scenario_name: Optional[str] = None,
+        level_names: Optional[list[str]] = None,
+        include_method_units: bool = True,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -522,8 +538,9 @@ class Experiment:
         """
         return list(self._adapters.values())
 
-    def run_scenario_config(self, scenario_config: dict, result_as_dict: bool = True) -> Union[
-        BasicTreeNode[ScenarioResultNodeData], dict]:
+    def run_scenario_config(
+        self, scenario_config: dict, result_as_dict: bool = True
+    ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An
         :param scenario_config:
@@ -566,7 +583,9 @@ class Experiment:
         )
 
     @staticmethod
-    def get_module_definition(clazz: Union[EnbiosAdapter, EnbiosAggregator], details: bool = True) -> dict[str, Any]:
+    def get_module_definition(
+        clazz: Union[EnbiosAdapter, EnbiosAggregator], details: bool = True
+    ) -> dict[str, Any]:
         result: dict = {
             "node_indicator": clazz.node_indicator(),
         }
@@ -592,7 +611,9 @@ class Experiment:
             result[name] = Experiment.get_module_definition(clazz, details)
         return result
 
-    def get_all_configs(self, include_all_builtin_configs: bool = True) -> dict[str, dict[str, dict[str, Any]]]:
+    def get_all_configs(
+        self, include_all_builtin_configs: bool = True
+    ) -> dict[str, dict[str, dict[str, Any]]]:
         """
         Result structure:
             ```json
@@ -607,14 +628,18 @@ class Experiment:
         result = {
             "adapters": {
                 name: Experiment.get_module_definition(adapter, True)
-                for name, adapter in
-                (self._adapters | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})).items()
+                for name, adapter in (
+                    self._adapters
+                    | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
+                ).items()
             },
             "aggregators": {
                 name: Experiment.get_module_definition(aggregator, True)
-                for name, aggregator in
-                (self._aggregators | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})).items()
-            }
+                for name, aggregator in (
+                    self._aggregators
+                    | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
+                ).items()
+            },
         }
 
         return result
@@ -622,7 +647,9 @@ class Experiment:
     def get_method_unit(self, method: str) -> str:
         assert method in self.methods
         adapter_indicator, method_name = method.split(".")
-        return self._get_module_by_name_or_node_indicator(adapter_indicator, EnbiosAdapter).get_method_unit(method_name)
+        return self._get_module_by_name_or_node_indicator(
+            adapter_indicator, EnbiosAdapter
+        ).get_method_unit(method_name)
 
     @property
     def method_names(self) -> list[str]:

@@ -1,7 +1,7 @@
 from dataclasses import field
 from typing import Optional, Any
 
-from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
 from enbios.const import DEFAULT_SUM_AGGREGATOR

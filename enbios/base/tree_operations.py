@@ -1,6 +1,9 @@
 from typing import Any, TYPE_CHECKING
 
-from enbios.models.experiment_base_models import ExperimentHierarchyNodeData, HierarchyNodeReference
+from enbios.models.experiment_base_models import (
+    ExperimentHierarchyNodeData,
+    HierarchyNodeReference,
+)
 
 if TYPE_CHECKING:
     from enbios.base.experiment import Experiment
@@ -13,7 +16,7 @@ logger = get_logger(__name__)
 
 
 def validate_experiment_hierarchy(
-        hierarchy: ExperimentHierarchyNodeData
+    hierarchy: ExperimentHierarchyNodeData,
 ) -> BasicTreeNode[TechTreeNodeData]:
     # todo allow no output only when there are scenarios...
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
@@ -35,8 +38,8 @@ def validate_experiment_hierarchy(
 
 
 def validate_experiment_reference_hierarchy(
-        hierarchy: HierarchyNodeReference,
-        original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData]
+    hierarchy: HierarchyNodeReference,
+    original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
 ) -> BasicTreeNode[TechTreeNodeData]:
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
         hierarchy.model_dump(), dataclass=TechTreeNodeData
@@ -45,7 +48,9 @@ def validate_experiment_reference_hierarchy(
     def validate_node_data(node: BasicTreeNode[TechTreeNodeData]) -> Any:
         if node.is_leaf:
             if node.data.adapter:
-                logger.warning("Adapter is not allowed in reference hierarchy and will be ignored")
+                logger.warning(
+                    "Adapter is not allowed in reference hierarchy and will be ignored"
+                )
             orig_node = original_experiment_hierarchy.find_subnode_by_name(node.name)
             if not orig_node:
                 raise ValueError(f"Node {node.name} not found in original hierarchy")
@@ -63,7 +68,7 @@ def validate_experiment_reference_hierarchy(
 
 
 def recursive_resolve_outputs(
-        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
+    node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
 ):
     # todo, does this takes default values when an activity is not defined
     #  in the scenario?

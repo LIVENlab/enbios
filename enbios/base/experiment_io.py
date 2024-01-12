@@ -7,7 +7,9 @@ from frictionless.fields import NumberField, StringField
 
 from enbios.generic.files import ReadPath
 from enbios.models.experiment_base_models import (
-    ExperimentData, ExperimentHierarchyNodeData, ExperimentScenarioData,
+    ExperimentData,
+    ExperimentHierarchyNodeData,
+    ExperimentScenarioData,
     # ExperimentMethodData,
 )
 
@@ -58,8 +60,6 @@ def unflatten_data(data: dict, structure_map: dict):
     return unflatten(res, splitter="dot")
 
 
-
-
 def get_abs_path(path: Union[str, PathLike], base_dir: Optional[str] = None) -> ReadPath:
     if base_dir:
         return ReadPath(base_dir) / path
@@ -89,6 +89,8 @@ def resolve_input_files(raw_input: ExperimentData):
         )
         if scenario_file.suffix == ".json":
             scenario_data = scenario_file.read_data()
-            raw_input.scenarios = [ExperimentScenarioData(**scenario) for scenario in scenario_data]
+            raw_input.scenarios = [
+                ExperimentScenarioData(**scenario) for scenario in scenario_data
+            ]
         else:
             raise Exception(f"Invalid scenario file: {raw_input.scenarios}")

@@ -100,7 +100,7 @@ def stacked_bar_plot(
         node_names = [node.name for node in nodes]
         df: DataFrame = rs.collect_tech_results(node_names)
         df_pivot: DataFrame = df.pivot(index="scenario", columns="tech", values=method)
-        df_pivot = df_pivot.reindex(df['scenario'].drop_duplicates().tolist())
+        df_pivot = df_pivot.reindex(df["scenario"].drop_duplicates().tolist())
         df_pivot.plot(kind="bar", stacked=True, ax=ax)
         ax.set_ylabel(rs.method_label_names(short_method_names)[idx], fontsize=8)
 
@@ -270,6 +270,7 @@ def single_star_plot(
     ax.set_rmax(1)
     return fig
 
+
 def plot_heatmap(
     experiment: Union[Experiment, ResultsSelector],
     scenarios: Optional[list[str]] = None,
@@ -330,7 +331,6 @@ def plot_sankey(
     all_nodes = list(scenario.result_tree.iter_all_nodes())
     node_labels = [node.name for node in all_nodes]
     method_ = method_.split(".")[-1]
-
 
     source = []
     target = []

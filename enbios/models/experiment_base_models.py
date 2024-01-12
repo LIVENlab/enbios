@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, model_validator, field_validator, ConfigD
 
 from enbios.generic.files import PathLike
 
-StrictInputConfig = ConfigDict(extra='forbid', validate_assignment=True, strict=True)
+StrictInputConfig = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
 
 
 class ExperimentConfig(BaseModel):
@@ -32,10 +32,13 @@ class ExperimentConfig(BaseModel):
 
 
 class AdapterModel(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
     module_path: Optional[PathLike] = None
-    adapter_name: str = Field(None, description="this this is to use inbuilt adapter "
-                                                "(e.g. 'simple-assignment-adapter'")
+    adapter_name: str = Field(
+        None,
+        description="this this is to use inbuilt adapter "
+        "(e.g. 'simple-assignment-adapter'",
+    )
     config: dict = Field(default_factory=dict)
     methods: dict[str, Any] = Field(default_factory=dict)
     note: str = Field(None, description="A note for this adapter")
@@ -51,8 +54,11 @@ class AdapterModel(BaseModel):
 
 class AggregationModel(BaseModel):
     module_path: Optional[PathLike] = None
-    aggregator_name: str = Field(None, description="this this is to use inbuilt aggregator "
-                                                   "(e.g. 'simple-assignment-adapter'")
+    aggregator_name: str = Field(
+        None,
+        description="this this is to use inbuilt aggregator "
+        "(e.g. 'simple-assignment-adapter'",
+    )
     config: Optional[dict] = Field(default_factory=dict)
     note: Optional[str] = None
 
@@ -69,7 +75,9 @@ class ExperimentHierarchyNodeData(BaseModel):
     name: str
     aggregator: str
     # todo not used yet
-    config: Optional[Any] = Field(None, description="setup data (id, outputs, ... arbitrary data")
+    config: Optional[Any] = Field(
+        None, description="setup data (id, outputs, ... arbitrary data"
+    )
     children: Optional[
         list[Union["ExperimentHierarchyNodeData", "ExperimentActivityData"]]
     ] = None
@@ -79,6 +87,7 @@ class ExperimentActivityData(BaseModel):
     """
     This is the dataclass for the activities in the experiment.
     """
+
     name: str
     config: Any = Field(..., description="setup data (id, outputs, ... arbitrary data")
     adapter: str = Field(..., description="The adapter to be used")
@@ -88,20 +97,29 @@ class HierarchyNodeReference(BaseModel):
     """
     This is a reference to a node in the hierarchy.
     """
+
     name: str
-    config: Optional[Any] = Field(None, description="setup data (id, outputs, ... arbitrary data")
+    config: Optional[Any] = Field(
+        None, description="setup data (id, outputs, ... arbitrary data"
+    )
     aggregator: Optional[str] = None
     children: Optional[list["HierarchyNodeReference"]] = None
 
     @field_validator("children", mode="before")
     @classmethod
-    def transform_simple_string_children(cls, v: list[str]) -> list[Union["HierarchyNodeReference", str]]:
-        return [HierarchyNodeReference(name=child)
-                if isinstance(child, str) else child for child in v]
+    def transform_simple_string_children(
+        cls, v: list[str]
+    ) -> list[Union["HierarchyNodeReference", str]]:
+        return [
+            HierarchyNodeReference(name=child) if isinstance(child, str) else child
+            for child in v
+        ]
 
 
 class ScenarioConfig(BaseModel):
-    exclude_defaults: Optional[bool] = False  # will only use on activities that are specified in the scenario
+    exclude_defaults: Optional[
+        bool
+    ] = False  # will only use on activities that are specified in the scenario
 
 
 class ActivityOutput(BaseModel):
@@ -121,8 +139,9 @@ class ActivityOutput(BaseModel):
 class ExperimentScenarioData(BaseModel):
     model_config = StrictInputConfig
     name: Optional[str] = Field(None)
-    activities: dict[str, ActivityOutput] = Field(None,
-                                                  description="name to output, null means default-output (check exists)")
+    activities: dict[str, ActivityOutput] = Field(
+        None, description="name to output, null means default-output (check exists)"
+    )
 
     # either the name, or the id of any method. not method means running them all
     methods: Optional[list[Union[str]]] = None  # todo currently not used
@@ -137,6 +156,7 @@ class ExperimentData(BaseModel):
     """
     This class is used to store the data of an experiment.
     """
+
     model_config = StrictInputConfig
 
     adapters: list[AdapterModel] = Field(..., description="The adapters to be used")

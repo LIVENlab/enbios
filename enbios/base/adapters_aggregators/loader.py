@@ -23,15 +23,13 @@ def load_module(module_path: str):
 
 
 def create_module_object(
-        model_data: Union[AdapterModel, AggregationModel], base_class: Type
+    model_data: Union[AdapterModel, AggregationModel], base_class: Type
 ) -> Union[EnbiosAdapter, EnbiosAggregator]:
     if model_data.module_path:
         try:
             adapter_module = load_module(model_data.module_path)
         except Exception as err:
-            raise ValueError(
-                f"Could not load module '{model_data.module_path}' ({err})"
-            )
+            raise ValueError(f"Could not load module '{model_data.module_path}' ({err})")
         # validator makes sure there is no other case
         for inspect_clazz in inspect.getmembers(adapter_module, inspect.isclass):
             # check if cl is subclass of EnbiosAdapter/EnbiosAggregation

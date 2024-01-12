@@ -17,7 +17,7 @@ class SimpleAssignment(BaseModel):
     scenario_outputs: Optional[dict[str, ActivityOutput]] = None
     scenario_impacts: Optional[dict[str, dict[str, ResultValue]]] = None
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     @classmethod
     def validator(cls, data: Any) -> Any:
         if "default_output" not in data:
@@ -33,7 +33,6 @@ class SimpleAssignmentDefinition(BaseModel):
 
 
 class SimpleAssignmentAdapter(EnbiosAdapter):
-
     @staticmethod
     def name():
         return "simple-assignment-adapter"
@@ -53,11 +52,15 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         self.methods = methods
         return list(methods.keys())
 
-    def validate_activity_output(self, node_name: str, target_output: ActivityOutput) -> float:
+    def validate_activity_output(
+        self, node_name: str, target_output: ActivityOutput
+    ) -> float:
         return get_output_in_unit(target_output, self.activities[node_name].output_unit)
 
     def validate_activity(self, node_name: str, activity_config: Any):
-        self.activities[node_name] = SimpleAssignment(**{**{"activity": node_name} | activity_config})
+        self.activities[node_name] = SimpleAssignment(
+            **{**{"activity": node_name} | activity_config}
+        )
 
     def get_activity_output_unit(self, activity_name: str) -> str:
         return self.activities[activity_name].output_unit
@@ -78,7 +81,9 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             for method in self.methods:
                 if config.scenario_impacts:
                     if scenario.name in config.scenario_impacts:
-                        activity_results[method] = config.scenario_impacts[scenario.name][method]
+                        activity_results[method] = config.scenario_impacts[scenario.name][
+                            method
+                        ]
                 elif config.default_impacts:
                     if method in config.default_impacts:
                         activity_results[method] = config.default_impacts[method]
@@ -90,6 +95,4 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     @staticmethod
     def get_config_schemas() -> dict:
-        return {
-            "activity": SimpleAssignment.model_json_schema()
-        }
+        return {"activity": SimpleAssignment.model_json_schema()}
