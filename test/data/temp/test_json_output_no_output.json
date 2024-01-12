@@ -1,0 +1,20 @@
+{
+  "name": "root",
+  "results": {
+    "zinc_no_LT": {
+      "unit": "kilogram",
+      "magnitude": 6.16915484407017e-06
+    }
+  },
+  "children": [
+    {
+      "name": "single_activity",
+      "results": {
+        "zinc_no_LT": {
+          "unit": "kilogram",
+          "magnitude": 6.16915484407017e-06
+        }
+      }
+    }
+  ]
+}

@@ -1,673 +1,421 @@
 import csv
-import itertools
 import math
 import time
-from copy import copy
-from dataclasses import asdict
+from collections import Counter
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, Union, Type
+from typing import TypeVar
 
-import bw2data as bd
-import numpy as np
-from bw2data.backends import Activity
-from pint import DimensionalityError, Quantity, UndefinedUnitError
-from pydantic import ValidationError
-
-from enbios.base.db_models import BWProjectIndex
+from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
+from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
+from enbios.base.adapters_aggregators.builtin import BUILTIN_ADAPTERS, BUILTIN_AGGREGATORS
+from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.experiment_io import resolve_input_files
+from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
-from enbios.base.stacked_MultiLCA import StackedMultiLCA
-from enbios.base.unit_registry import ureg
-from enbios.bw2.util import bw_unit_fix, get_activity
-from enbios.ecoinvent.ecoinvent_index import get_ecoinvent_dataset_index
+from enbios.base.tree_operations import validate_experiment_hierarchy
+from enbios.bw2.stacked_MultiLCA import StackedMultiLCA
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import (ActivitiesDataTypes, ActivityOutput,
-                                             Activity_Outputs, BWCalculationSetup,
-                                             EcoInventSimpleIndex,
-                                             ExperimentActivityData,
-                                             ExperimentActivityId, ExperimentConfig,
-                                             ExperimentData, ExperimentMethodData,
-                                             ExperimentMethodPrepData,
-                                             ExperimentScenarioData,
-                                             ExtendedExperimentActivityData,
-                                             MethodsDataTypes, ScenarioResultNodeData,
-                                             Settings, SimpleScenarioActivityId)
+from enbios.models.environment_model import Settings
+from enbios.models.experiment_base_models import (
+    ExperimentConfig,
+    ExperimentScenarioData,
+    ActivityOutput,
+)
+from enbios.models.experiment_models import (
+    Activity_Outputs,
+    ScenarioResultNodeData,
+    TechTreeNodeData,
+)
 
 logger = get_logger(__name__)
 
+# Define a TypeVar that is bound to EnbiosAdapter
+EnbiosAdapterType = TypeVar("EnbiosAdapterType", bound=EnbiosAdapter)
+EnbiosAggregatorType = TypeVar("EnbiosAggregatorType", bound=EnbiosAggregator)
+
 
 class Experiment:
-    DEFAULT_SCENARIO_ALIAS = "default scenario"
+    DEFAULT_SCENARIO_NAME = "default scenario"
 
-    def __init__(self,
-                 raw_data: Optional[Union[ExperimentData, dict, PathLike]] = None,
-                 run_scenarios: Optional[list[str]] = ()):
+    def __init__(self, data: Optional[Union[dict, str]] = None):
+        """
+        Initialize the experiment
+        :param data: dictionary or filename to load the data from
+        """
         self.env_settings = Settings()
-        if not raw_data:
-            raw_data = self.env_settings.CONFIG_FILE
-            if not isinstance(raw_data, str):
+        if not data:
+            data = self.env_settings.CONFIG_FILE
+            if not isinstance(data, str):
                 raise ValueError(
                     "Experiment config-file-path must be specified as environment "
                     "variable: 'CONFIG_FILE'"
                 )
-        if isinstance(raw_data, str) or isinstance(raw_data, Path):
-            config_file_path = ReadPath(raw_data)
-            raw_data = config_file_path.read_data()
-        if isinstance(raw_data, dict):
-            input_data = ExperimentData(**raw_data)
-        else:
-            input_data = raw_data
-        # todo. look at how reading a hierarchy from a csv file or a json
-        # creates an additional root node
-        resolve_input_files(input_data)
-        self.raw_data = ExperimentData(**asdict(input_data))
+        if isinstance(data, str):
+            config_file_path = ReadPath(data)
+            data = config_file_path.read_data()
 
-        # alias to activity
-        self._validate_bw_config()
-        self._activities: dict[
-            str, ExtendedExperimentActivityData
-        ] = Experiment._validate_activities(
-            self._prepare_activities(self.raw_data.activities),
-            self.raw_data.bw_default_database,
-        )
+        self.raw_data = validate_experiment_data(data)
+        resolve_input_files(self.raw_data)
 
-        self.raw_data.hierarchy = self._prepare_hierarchy()
+        self._adapters: dict[str, EnbiosAdapter]
+        self.methods: list[str]
+        self._adapters, self.methods = self._validate_adapters()
+        self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
+
         self.hierarchy_root: BasicTreeNode[
-            ScenarioResultNodeData
-        ] = self.validate_hierarchy(self.raw_data.hierarchy)
+            TechTreeNodeData
+        ] = validate_experiment_hierarchy(self.raw_data.hierarchy)
+        self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
 
-        self.methods: dict[str, ExperimentMethodPrepData] = Experiment._validate_methods(
-            self._prepare_methods()
+        for node in self.hierarchy_root.iter_all_nodes():
+            if node.is_leaf:
+                self._get_node_adapter(node).validate_activity(
+                    node.name, node.data.config
+                )
+                self._activities[node.name] = node
+
+        def recursive_convert(
+            node_: BasicTreeNode[TechTreeNodeData],
+        ) -> BasicTreeNode[ScenarioResultNodeData]:
+            output: Optional[ActivityOutput] = None
+            if node_.is_leaf:
+                output = ActivityOutput(
+                    unit=self._get_node_adapter(node_).get_activity_output_unit(
+                        node_.name
+                    ),
+                    magnitude=0,
+                )
+            return BasicTreeNode(
+                name=node_.name,
+                data=ScenarioResultNodeData(
+                    output=output,
+                    adapter=node_.data.adapter,
+                    aggregator=node_.data.aggregator,
+                ),
+                children=[recursive_convert(child) for child in node_.children],
+            )
+
+        self.base_result_tree: BasicTreeNode[ScenarioResultNodeData] = recursive_convert(
+            self.hierarchy_root
         )
-        self.scenarios: list[Scenario] = self._validate_scenarios()
 
-        if run_scenarios:
-            self.config.run_scenarios = run_scenarios
-        else:
-            if self.env_settings.RUN_SCENARIOS:
-                if self.config.run_scenarios:
-                    logger.info(
-                        "Environment variable 'RUN_SCENARIOS' is set "
-                        "and overwriting experiment config."
-                    )
-                self.config.run_scenarios = self.env_settings.RUN_SCENARIOS
+        self.scenarios: list[Scenario] = self._validate_scenarios()
         self._validate_run_scenario_setting()
+
         self._lca: Optional[StackedMultiLCA] = None
         self._execution_time: float = float("NaN")
 
-    def _validate_bw_config(self) -> None:
-        if self.config.use_k_bw_distributions < 1:
-            raise ValueError(
-                f"config.use_k_bw_distributions must be greater than 0, "
-                f"but is {self.config.use_k_bw_distributions}"
-            )
-
-        def validate_bw_project_bw_database(
-                bw_project: str, bw_default_database: Optional[str] = None
-        ):
-            """
-            TODO this should go out...
-            :param bw_project:
-            :param bw_default_database:
-            :return:
-            """
-            if bw_project not in bd.projects:
-                raise ValueError(
-                    f"Brightway Project '{bw_project}' not found. Candidates can be found with the report function")
-            if bw_project in bd.projects:
-                bd.projects.set_current(bw_project)
-
-            if bw_default_database:
-                if bw_default_database not in bd.databases:
-                    raise ValueError(
-                        f"Database {bw_default_database} "
-                        f"not found. Options are: {list(bd.databases)}"
-                    )
-
-        # print("validate_bw_config***************", self.raw_data.bw_project)
-        if isinstance(self.raw_data.bw_project, str):
-            validate_bw_project_bw_database(
-                self.raw_data.bw_project, self.raw_data.bw_default_database
-            )
-
-        else:
-            simple_index: EcoInventSimpleIndex = self.raw_data.bw_project
-            ecoinvent_index = get_ecoinvent_dataset_index(
-                version=simple_index.version,
-                system_model=simple_index.system_model,
-                type_="default",
-            )
-            if ecoinvent_index:
-                ecoinvent_index = ecoinvent_index[0]
-            else:
-                raise ValueError(f"Ecoinvent index {self.raw_data.bw_project} not found")
-
-            if not ecoinvent_index.bw_project_index:
-                raise ValueError(
-                    f"Ecoinvent index {ecoinvent_index}, has not BWProject index"
-                )
-            bw_project_index: BWProjectIndex = ecoinvent_index.bw_project_index
-            validate_bw_project_bw_database(
-                bw_project_index.project_name, bw_project_index.database_name
-            )
-
-    def set_run_scenarios(self, scenarios: list[str]) -> None:
-        """
-        Set the scenarios to run. This will overwrite the scenarios defined in the
-        config file
-        :param scenarios:
-        :return:
-        """
-        self.config.run_scenarios = scenarios
+    # def get_method_unit(self, method_name: str) -> str:
+    #     adapter_name, method_name = method_name.split(".")
+    #     return self._adapters[adapter_name].get_method_unit(method_name)
 
     def _validate_run_scenario_setting(self):
+        """
+        Validate a run environmental variable that is setting the scenario
+        """
+        if self.env_settings.RUN_SCENARIOS:
+            if self.config.run_scenarios:
+                logger.info(
+                    "Environment variable 'RUN_SCENARIOS' is set "
+                    "and overwriting experiment config."
+                )
+            self.config.run_scenarios = self.env_settings.RUN_SCENARIOS
         if self.config.run_scenarios:
             for scenario in self.config.run_scenarios:
-                if scenario not in self.scenario_aliases:
+                if scenario not in self.scenario_names:
                     raise ValueError(
                         f"Scenario '{scenario}' not found in experiment scenarios. "
-                        f"Scenarios are: {self.scenario_aliases}"
+                        f"Scenarios are: {self.scenario_names}"
                     )
 
-    @staticmethod
-    def _prepare_activities(
-            activities: ActivitiesDataTypes,
-    ) -> list[ExperimentActivityData]:
-        raw_activities_list: list[ExperimentActivityData] = []
-        if isinstance(activities, list):
-            raw_activities_list = activities
-            for activity in raw_activities_list:
-                activity.orig_id = copy(activity.id)
-
-        elif isinstance(activities, dict):
-            for activity_alias, activity in activities.items():
-                if activity_alias == activity.alias:
-                    raise ValueError(
-                        f"Activity in activities-dict declared with alias: "
-                        f"'{activity_alias}', "
-                        f"different than in the activity.id: '{activity.alias}'"
-                    )
-                activity.orig_id = copy(activity.id)
-                activity.id.alias = activity_alias
-                raw_activities_list.append(activity)
-        return raw_activities_list
-
-    @staticmethod
-    def _validate_activities(
-            activities: list[ExperimentActivityData],
-            bw_default_database: Optional[str] = None,
-            output_required: bool = False,
-    ) -> dict[str, ExtendedExperimentActivityData]:
+    def _validate_adapters(self) -> tuple[dict[str:EnbiosAdapter], list[str]]:
         """
-        Check if all activities exist in the bw database, and check if the
-        given activities are unique
-        In case there is only one scenario, all activities are required to have outputs
+        Validate the adapters in this experiment data
+
+        :return: adapter-dict and method names
         """
-        # if activities is a list, convert validate and convert to dict
-        default_id_data = ExperimentActivityId(database=bw_default_database)
-        activities_map: dict[str, ExtendedExperimentActivityData] = {}
-        # validate
-        for activity in activities:
-            ext_activity: ExtendedExperimentActivityData = Experiment._validate_activity(
-                activity, default_id_data, output_required
-            )
-            # check unique aliases
-            if ext_activity.alias in activities_map:
-                raise Exception(
-                    f"Activity-alias '{ext_activity.alias}' passed more then once. "
-                    f"Consider using a dictionary for activities or include "
-                    f"'alias' in the ids."
-                )
-            activities_map[ext_activity.alias] = ext_activity
+        adapters = []
+        methods = []
+        for adapter_def in self.raw_data.adapters:
+            adapter = load_adapter(adapter_def)
+            adapter.validate_definition(adapter_def)
+            adapter.validate_config(adapter_def.config)
+            adapters.append(adapter)
+            adapter_methods = adapter.validate_methods(adapter_def.methods)
+            # if any([m in self.methods for m in adapter_methods.keys()]):
+            #     raise ValueError(
+            #         f"Some Method(s) {adapter_methods.keys()} already defined in "
+            #         f"another adapter"
+            #     )
+            methods.extend([f"{adapter.node_indicator()}.{m}" for m in adapter_methods])
 
-        # all codes should only appear once
-        # unique_activities = set()
-        # for ext_activity in activities_map.values():
-        #     unique_activities.add((ext_activity.id.database, ext_activity.id.code))
-        assert len(activities_map) > 0, "There are no activities in the experiment"
-        return activities_map
+        adapter_map = {adapter.name(): adapter for adapter in adapters}
+        return adapter_map, methods
 
-    @staticmethod
-    def _bw_activity_search(activity: ExperimentActivityData) -> Activity:
+    def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
         """
-        Search for the activity in the brightway project
-        :param activity:
-        :return: brightway activity
+        Validate the aggregators in this experiment data
+
+        :return: a aggregator-name-Aggregator dict
         """
-        id_ = activity.id
-        bw_activity: Optional[Activity] = None
-        if id_.code:
-            if id_.database:
-                bw_activity = bd.Database(id_.database).get_node(id_.code)
-            else:
-                bw_activity = get_activity(id_.code)
-        elif id_.name:
-            filters = {}
-            search_in_dbs = [id_.database] if id_.database else bd.databases
-            for db in search_in_dbs:
-                if id_.location:
-                    filters["location"] = id_.location
-                    search_results = bd.Database(db).search(id_.name, filter=filters)
-                else:
-                    search_results = bd.Database(db).search(id_.name)
-                if id_.unit:
-                    search_results = list(
-                        filter(lambda a: a["unit"] == id_.unit, search_results)
-                    )
-                if len(search_results) == 1:
-                    bw_activity = search_results[0]
-                    break
-                elif len(search_results) > 1:
-                    activities_str = "\n".join(
-                        [f'{str(a)} - {a["code"]}' for a in search_results]
-                    )
-                    raise ValueError(
-                        f"There are more than one activity with the same name, "
-                        f"try including  "
-                        f"the code of the activity you want to use:\n{activities_str}"
-                    )
-        if not bw_activity:
-            raise ValueError(f"No activity found for {activity.id}")
-        return bw_activity
+        aggregators = [load_aggregator(adapter) for adapter in self.raw_data.aggregators]
 
-    @staticmethod
-    def _validate_activity(
-            activity: ExperimentActivityData,
-            default_id_attr: ExperimentActivityId,
-            required_output: bool = False,
-    ) -> "ExtendedExperimentActivityData":
+        aggregator_names = [a.name() for a in aggregators]
+        for builtin_name, aggregator in BUILTIN_AGGREGATORS.items():
+            if builtin_name not in aggregator_names:
+                aggregators.append(aggregator())
+
+        for aggregator in aggregators:
+            aggregator.validate_config()
+
+        return {aggregator.name(): aggregator for aggregator in aggregators}
+
+    def _get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
-        This method checks if the activity exists in the database by several ways.
-        :param activity:
-        :param default_id_attr:
-        :param required_output:
-        :return:
-        """
-
-        # get the brightway activity
-        bw_activity = Experiment._bw_activity_search(activity)
-
-        # create output: ActivityOutput and default_output_value
-        if activity.output:
-            if isinstance(activity.output, tuple):
-                output = ActivityOutput(
-                    unit=activity.output[0], magnitude=activity.output[1]
-                )
-            else:  # if isinstance(activity.output, ActivityOutput):
-                output = activity.output
-
-        else:
-            output = ActivityOutput(unit=bw_unit_fix(bw_activity["unit"]), magnitude=1.0)
-        default_output_value = Experiment._validate_output(
-            output, bw_activity, activity.id
-        )
-
-        if not activity.output:
-            try:
-                activity.output = ActivityOutput(unit=bw_activity["unit"])
-            except ValidationError as err:
-                raise ValueError(
-                    f"Activity {activity.id} has invalid output format: {err}"
-                )
-
-        activity_dict = asdict(activity)
-        activity_dict["output"] = asdict(output)
-        result: ExtendedExperimentActivityData = ExtendedExperimentActivityData(
-            **activity_dict,
-            bw_activity=bw_activity,
-            default_output_value=default_output_value,
-        )
-        result.id.fill_empty_fields(["alias"], **asdict(default_id_attr))
-
-        result.id.fill_empty_fields(
-            ["name", "code", "location", "unit", ("alias", "name")],
-            **result.bw_activity.as_dict(),
-        )
-        if required_output:
-            assert activity.output is not None, (
-                f"Since there is no scenario, activity output is required: "
-                f"{activity.orig_id}"
-            )
-        return result
-
-    @staticmethod
-    def _validate_output(
-            target_output: ActivityOutput,
-            bw_activity: Activity,
-            activity_id: ExperimentActivityId,
-    ) -> float:
-        """
-        validate and convert to the bw-activity unit
-        :param target_output:
-        :param bw_activity:
-        :param activity_id:
-        :return:
-        """
-        try:
-            target_quantity: Quantity = (
-                    ureg.parse_expression(
-                        bw_unit_fix(target_output.unit), case_sensitive=False
-                    )
-                    * target_output.magnitude
-            )
-            bw_activity_unit = bw_activity["unit"]
-            return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
-        except UndefinedUnitError as err:
-            logger.error(
-                f"Cannot parse output unit '{target_output.unit}'- "
-                f"of activity {activity_id}. {err}. "
-                f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
-            )
-            raise Exception(f"Unit error, {err}; For activity: {activity_id}")
-        except DimensionalityError as err:
-            logger.error(
-                f"Cannot convert output of activity {activity_id}. -"
-                f"From- \n{target_output}\n-To-"
-                f"\n{bw_activity['unit']} (brightway unit)"
-                f"\n{err}"
-            )
-            raise Exception(f"Unit error for activity: {activity_id}")
-
-    def _prepare_methods(
-            self, methods: Optional[MethodsDataTypes] = None
-    ) -> dict[str, ExperimentMethodData]:
-        if not methods:
-            methods = self.raw_data.methods
-        method_dict: dict[str, ExperimentMethodData] = {}
-        if isinstance(methods, dict):
-            for method_alias, method in methods.items():
-                method_dict[method_alias] = ExperimentMethodData(method, method_alias)
-        elif isinstance(self.raw_data.methods, list):
-            method_list: list[ExperimentMethodData] = self.raw_data.methods
-            for method_ in method_list:
-                alias = method_.alias if method_.alias else "_".join(method_.id)
-                method__ = ExperimentMethodData(method_.id, alias)
-                method_dict[method__.alias_] = method__
-        return method_dict
-
-    @staticmethod
-    def _validate_method(
-            method: ExperimentMethodData, alias: str
-    ) -> ExperimentMethodPrepData:
-        method.id = tuple(method.id)
-        bw_method = bd.methods.get(method.id)
-        if not bw_method:
-            raise Exception(f"Method with id: {method.id} does not exist")
-        if method.alias:
-            if method.alias != alias:
-                raise Exception(
-                    f"Method alias: {method.alias} does not match with "
-                    f"the given alias: {alias}"
-                )
-        else:
-            method.alias = alias
-        return ExperimentMethodPrepData(
-            id=method.id, alias=method.alias, bw_method_unit=bw_method["unit"]
-        )
-
-    @staticmethod
-    def _validate_methods(
-            method_dict: dict[str, ExperimentMethodData]
-    ) -> dict[str, ExperimentMethodPrepData]:
-        # all methods must exist
-        return {
-            alias: Experiment._validate_method(method, alias)
-            for alias, method in method_dict.items()
-        }
-
-    def _has_activity(
-            self, alias_or_id: Union[str, ExperimentActivityId]
-    ) -> Optional[ExtendedExperimentActivityData]:
-        if isinstance(alias_or_id, str):
-            activity = self._activities.get(alias_or_id, None)
-            return activity
-        else:  # isinstance(alias_or_id, ExperimentActivityId):
-            for activity in self._activities.values():
-                if activity.orig_id == alias_or_id:
-                    return activity
-            return None
-
-    def get_activity(
-            self, alias_or_id: Union[str, ExperimentActivityId]
-    ) -> ExtendedExperimentActivityData:
-        """
-        Get an activity by either its alias or its original "id"
+        Get an activity by either its name
         as it is defined in the experiment data
-        :param alias_or_id:
+        :param name:
         :return: ExtendedExperimentActivityData
         """
-        activity = self._has_activity(alias_or_id)
+        activity = self._activities.get(name, None)
         if not activity:
-            raise ValueError(f"Activity with id '{alias_or_id}' not found")
+            raise ValueError(f"Activity with name '{name}' not found")
         return activity
+
+    def _get_node_adapter(
+        self, node: BasicTreeNode[TechTreeNodeData]
+    ) -> EnbiosAdapterType:
+        """
+        Get the adapter of a node in the experiment hierarchy
+
+        :param node:
+        :return:
+        """
+        return self._get_module_by_name_or_node_indicator(
+            node.data.adapter, EnbiosAdapter, node.name
+        )
+
+    def get_node_aggregator(
+        self,
+        node: Union[
+            BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
+        ],
+    ) -> EnbiosAggregatorType:
+        """
+        Get the aggregator of a node
+        :param node: node, either in some hierarchy
+        :return:
+        """
+        return self._get_module_by_name_or_node_indicator(
+            node.data.aggregator, EnbiosAggregator, node.name
+        )
+
+    def _get_module_by_name_or_node_indicator(
+        self,
+        name_or_indicator: str,
+        module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
+        node_name: Optional[str] = None,
+    ) -> Union[EnbiosAdapter, EnbiosAggregator]:
+        modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = (
+            self._adapters if module_type == EnbiosAdapter else self._aggregators
+        )
+        module = modules.get(name_or_indicator)
+        if module:
+            return module
+        # also check, if the name instead of the indicator was used
+        for module in modules.values():
+            if module.node_indicator() == name_or_indicator:
+                return module
+
+        node_err = f"Node '{node_name}' specifies an " if node_name else ""
+        raise ValueError(
+            f"{node_err} unknown {module_type.__name__}: '{name_or_indicator}'. "
+            + f"Available {module_type.__name__}s are: {[m.node_indicator() for m in modules.values()]}"
+        )
+
+    def _get_activity_default_output(self, activity_name: str) -> float:
+        """
+        Get the default output of an activity (bottom node) by its name
+
+        :param activity_name: name of the activity
+        :return: magnitude value of the default output
+        """
+        # todo remove, since seems to be just called once
+        activity = self._get_activity(activity_name)
+        return self._get_node_adapter(activity).get_default_output_value(activity.name)
+
+    def _get_activity_output_unit(self, activity_name: str) -> str:
+        """
+        Get the unit of the activity (bottom node) by its name
+        :param activity_name:
+        :return:
+        """
+        # todo : just used once
+        activity = self._get_activity(activity_name)
+        return self._get_node_adapter(activity).get_activity_output_unit(activity_name)
+
+    def _validate_scenario(self, scenario_data: ExperimentScenarioData) -> Scenario:
+        """
+        Validate one scenario
+        :param scenario_data:
+        :return:
+        """
+
+        def validate_activities(scenario_: ExperimentScenarioData) -> Activity_Outputs:
+            activities = scenario_.activities or {}
+            result: dict[str, float] = {}
+
+            for activity_name, activity_output in activities.items():
+                activity = self._get_activity(activity_name)
+
+                adapter = self._get_node_adapter(activity)
+
+                if isinstance(activity_output, dict):
+                    activity_output = ActivityOutput(**activity_output)
+                result[activity_name] = adapter.validate_activity_output(
+                    activity_name, activity_output
+                )
+            return result
+
+        scenario_activities_outputs: Activity_Outputs = validate_activities(scenario_data)
+        defined_activities = list(scenario_activities_outputs.keys())
+
+        # fill up the missing activities with default values
+        if not scenario_data.config.exclude_defaults:
+            for activity_name in self._activities.keys():
+                if activity_name not in defined_activities:
+                    scenario_activities_outputs[
+                        activity_name
+                    ] = self._get_activity_default_output(activity_name)
+
+        # todo shall we bring back. scenario specific methods??
+        # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
+        # if _scenario.methods:
+        #     for index_, method_ in enumerate(_scenario.methods):
+        #         if isinstance(method_, str):
+        #             global_method = self.methods.get(method_)
+        #             assert global_method
+        #             resolved_methods[global_method.name] = global_method
+
+        return Scenario(
+            experiment=self,  # type: ignore
+            name=scenario_data.name,
+            activities_outputs=scenario_activities_outputs,
+            # methods={},
+            config=scenario_data.config,
+            result_tree=self.base_result_tree.copy(),
+        )
 
     def _validate_scenarios(self) -> list[Scenario]:
         """
         :return:
         """
 
-        def validate_activity_id(
-                activity_id: Union[str, ExperimentActivityId]
-        ) -> SimpleScenarioActivityId:
-            activity = self.get_activity(activity_id)
-            id_ = activity.id
-            assert id_.name and id_.code and id_.alias
-            return SimpleScenarioActivityId(name=id_.name, alias=id_.alias, code=id_.code)
-
-        def validate_activities(scenario_: ExperimentScenarioData) -> Activity_Outputs:
-            activities = scenario_.activities
-            result: dict[SimpleScenarioActivityId, float] = {}
-
-            def convert_output(output) -> ActivityOutput:
-                if isinstance(output, tuple):
-                    return ActivityOutput(
-                        unit=bw_unit_fix(output[0]), magnitude=output[1]
-                    )
-                else:
-                    return output  # type: ignore
-
-            if not activities:
-                return result
-
-            scenarios_activities = (
-                activities if isinstance(activities, list) else activities.items()
-            )
-            for activity_id, activity_output in scenarios_activities:
-                activity = self.get_activity(activity_id)
-                simple_id = validate_activity_id(activity_id)
-                output_ = convert_output(activity_output)
-                scenario_output = Experiment._validate_output(
-                    output_, activity.bw_activity, activity.id
-                )
-                result[simple_id] = scenario_output
-            return result
-
-        def validate_scenario(
-                _scenario: ExperimentScenarioData, _scenario_alias: str
-        ) -> Scenario:
-            """
-            Validate one scenario
-            :param _scenario:
-            :param _scenario_alias:
-            :return:
-            """
-            scenario_activities_outputs: Activity_Outputs = validate_activities(_scenario)
-            defined_aliases = [
-                output_id.alias for output_id in scenario_activities_outputs.keys()
-            ]
-            # fill up the missing activities with default values
-            for activity in self._activities.values():
-                activity_alias = activity.alias
-                if activity_alias not in defined_aliases:
-                    # print(activity)
-                    id_ = SimpleScenarioActivityId(
-                        name=str(activity.id.name),
-                        code=str(activity.id.code),
-                        alias=activity.alias,
-                    )
-                    scenario_activities_outputs[
-                        id_
-                    ] = activity.default_output_value  # type: ignore
-
-            resolved_methods: dict[str, ExperimentMethodPrepData] = {}
-            if _scenario.methods:
-                if isinstance(_scenario.methods, list):
-                    for index_, method_ in enumerate(_scenario.methods):
-                        if isinstance(method_, str):
-                            global_method = self.methods.get(method_)
-                            assert global_method
-                            resolved_methods[global_method.alias] = global_method
-                else:
-                    method_dict: dict[str, tuple[str, ...]] = cast(
-                        dict[str, tuple[str, ...]], _scenario.methods
-                    )
-                    for method_alias, method_ in method_dict.items():  # type: ignore
-                        md = ExperimentMethodData(id=cast(tuple[str, ...], method_))
-                        prep_method = self._validate_method(md, method_alias)
-                        resolved_methods[prep_method.alias] = prep_method
-
-            return Scenario(
-                experiment=self,  # type: ignore
-                alias=_scenario_alias,
-                activities_outputs=scenario_activities_outputs,
-                methods=resolved_methods,
-                result_tree=self.hierarchy_root.copy(),
-            )
-
-        raw_scenarios = self.raw_data.scenarios
         scenarios: list[Scenario] = []
 
-        # from Union, list or dict
-        if isinstance(raw_scenarios, list):
-            raw_list_scenarios: list[ExperimentScenarioData] = raw_scenarios
-            for index, _scenario in enumerate(raw_list_scenarios):
-                _scenario_alias = (
-                    _scenario.alias
-                    if _scenario.alias
-                    else ExperimentScenarioData.alias_factory(index)
-                )
-                scenarios.append(validate_scenario(_scenario, _scenario_alias))
-        elif isinstance(raw_scenarios, dict):
-            raw_dict_scenarios: dict[str, ExperimentScenarioData] = raw_scenarios
-            for alias, _scenario in raw_dict_scenarios.items():
-                if _scenario.alias is not None and _scenario.alias != alias:
-                    assert False, (
-                        f"Scenario defines alias as dict-key: {alias} but "
-                        f"also in the scenario object: {_scenario.alias}"
-                    )
-                _scenario.alias = alias
-                scenarios.append(validate_scenario(_scenario, alias))
         # undefined scenarios. just one default scenario
-        elif not raw_scenarios:
-            default_scenario = ExperimentScenarioData()
-            scenarios.append(
-                validate_scenario(default_scenario, Experiment.DEFAULT_SCENARIO_ALIAS)
-            )
+        if not self.raw_data.scenarios:
+            self.raw_data.scenarios = [
+                ExperimentScenarioData(name=Experiment.DEFAULT_SCENARIO_NAME)
+            ]
 
-        for scenario in scenarios:
+        # set names if not given
+        for index, scenario_data in enumerate(self.raw_data.scenarios):
+            scenario_data.name_factory(index)
+
+        # check for name duplicates
+        name_count = Counter([s.name for s in self.raw_data.scenarios])
+        # get the scenarios that have the same name
+        duplicate_names = [name for name, count in name_count.items() if count > 1]
+        if duplicate_names:
+            raise ValueError(f"Scenarios with the same name: {duplicate_names}")
+
+        for index, scenario_data in enumerate(self.raw_data.scenarios):
+            scenario = self._validate_scenario(scenario_data)
+            scenarios.append(scenario)
             scenario.prepare_tree()
         return scenarios
 
-    def _prepare_hierarchy(self) -> Union[dict, list]:
-        return (
-            self.raw_data.hierarchy
-            if self.raw_data.hierarchy
-            else list(self._activities.keys())
-        )
-
-    def validate_hierarchy(
-            self, hierarchy: Union[dict, list]
-    ) -> BasicTreeNode[ScenarioResultNodeData]:
-        tech_tree: BasicTreeNode[ScenarioResultNodeData] = BasicTreeNode.from_dict(
-            hierarchy, compact=True
-        )
-        for leaf in tech_tree.iter_leaves():
-            try:
-                leaf.temp_data = {"activity": self.get_activity(leaf.name)}
-            except ValueError as err:
-                logger.error(
-                    "Validation of the hierarchy failed. One activity that is specified in the hierarchy "
-                    "is not defined in the activities.")
-                logger.error(err)
-                raise err
-        missing = set(self.activities_aliases) - set(
-            n.name for n in tech_tree.iter_leaves()
-        )
-        if missing:
-            raise ValueError(f"Activities '{missing}' not found in hierarchy")
-        return tech_tree
-
-    def get_scenario(self, scenario_alias: str) -> Scenario:
+    def get_scenario(self, scenario_name: str) -> Scenario:
         """
-        Get a scenario by its alias
-        :param scenario_alias:
+        Get a scenario by its name
+        :param scenario_name:
         :return:
         """
         for scenario in self.scenarios:
-            if scenario.alias == scenario_alias:
+            if scenario.name == scenario_name:
                 return scenario
-        raise ValueError(f"Scenario '{scenario_alias}' not found")
+        raise ValueError(f"Scenario '{scenario_name}' not found")
 
-    def run_scenario(self, scenario_alias: str) -> dict[str, Any]:
+    def run_scenario(
+        self, scenario_name: str, results_as_dict: bool = True
+    ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a specific scenario
-        :param scenario_alias:
+        :param scenario_name:
+        :param results_as_dict:
         :return: The result_tree converted into a dict
         """
-        return self.get_scenario(scenario_alias).run().as_dict(include_data=True)
+        return self.get_scenario(scenario_name).run(results_as_dict)
 
-    def run(self) -> dict[str, BasicTreeNode[ScenarioResultNodeData]]:
+    def run(
+        self, results_as_dict: bool = True
+    ) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
         """
-        Run all scenarios. Returns an dict with the scenario alias as key
+        Run all scenarios. Returns a dict with the scenario name as key
         and the result_tree as value
-        :return: dictionary scenario-alias : result_tree
+        :return: dictionary scenario-name : result_tree
         """
-        methods = [m.id for m in self.methods.values()]
-        inventories: list[list[dict[Activity, float]]] = []
+        # methods = [m.id for m in self.methods.values()]
+        # inventories: list[list[dict[Activity, float]]] = []
 
         if self.config.run_scenarios:
             run_scenarios = [self.get_scenario(s) for s in self.config.run_scenarios]
-            logger.info(f"Running selected scenarios: {[s.alias for s in run_scenarios]}")
+            logger.info(f"Running selected scenarios: {[s.name for s in run_scenarios]}")
         else:
             run_scenarios = self.scenarios
 
+        results = {}
+        start_time = time.time()
+        # TODO RUN AT ONCE...
         for scenario in run_scenarios:
             scenario.reset_execution_time()
-            if scenario.methods:
-                raise ValueError(
-                    f"Scenario cannot have individual methods. '{scenario.alias}'"
-                )
-            inventory: list[dict[Activity, float]] = []
-            for activity_alias, act_out in scenario.activities_outputs.items():
-                bw_activity = scenario.experiment.get_activity(
-                    activity_alias.alias
-                ).bw_activity
-                inventory.append({bw_activity: act_out})
-            inventories.append(inventory)
+            results[scenario.name] = scenario.run(results_as_dict)
+        #     if scenario.methods:
+        #         raise ValueError(
+        #             f"Scenario cannot have individual methods. '{scenario.name}'"
+        #         )
+        #     inventory: list[dict[Activity, float]] = []
+        #     for activity_name, act_out in scenario.activities_outputs.items():
+        #         bw_activity = scenario.experiment.get_activity(
+        #             activity_name.alias
+        #         ).bw_activity
+        #         inventory.append({bw_activity: act_out})
+        #     inventories.append(inventory)
 
         # run experiment
-        start_time = time.time()
-        calculation_setup = BWCalculationSetup(
-            "experiment", list(itertools.chain(*inventories)), methods
-        )
+        # start_time = time.time()
+        # calculation_setup = BWCalculationSetup(
+        #     "experiment", list(itertools.chain(*inventories)), methods
+        # )
 
-        distribution_results = self.config.use_k_bw_distributions > 1
-
-        results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
-        for i in range(self.config.use_k_bw_distributions):
-            raw_results = StackedMultiLCA(calculation_setup, distribution_results).results
-            scenario_results = np.split(raw_results, len(run_scenarios))
-            for index, scenario in enumerate(run_scenarios):
-                results[scenario.alias] = scenario.set_results(
-                    scenario_results[index],
-                    distribution_results,
-                    i == self.config.use_k_bw_distributions - 1,
-                )
-            self._execution_time = time.time() - start_time
+        # distribution_results = self.config.use_k_bw_distributions > 1
+        # results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
+        # for i in range(self.config.use_k_bw_distributions):
+        #     raw_results = StackedMultiLCA(calculation_setup, distribution_results).results
+        #     scenario_results = np.split(raw_results, len(run_scenarios))
+        #     for index, scenario in enumerate(run_scenarios):
+        #         results[scenario.alias] = scenario.set_results(
+        #             scenario_results[index],
+        #             distribution_results,
+        #             i == self.config.use_k_bw_distributions - 1,
+        #         )
+        self._execution_time = time.time() - start_time
         return results
 
     @property
@@ -683,26 +431,26 @@ class Experiment:
             any_scenario_run = False
             scenario_results = ""
             for scenario in self.scenarios:
-                if not math.isnan(scenario._execution_time):
+                if not math.isnan(scenario.get_execution_time()):
                     any_scenario_run = True
-                    scenario_results += f"{scenario.alias}: {scenario.execution_time}\n"
+                    scenario_results += f"{scenario.name}: {scenario.execution_time}\n"
             if any_scenario_run:
                 return scenario_results
             else:
                 return "not run"
 
     def results_to_csv(
-            self,
-            file_path: PathLike,
-            scenario_alias: Optional[str] = None,
-            level_names: Optional[list[str]] = None,
-            include_method_units: bool = True,
+        self,
+        file_path: PathLike,
+        scenario_name: Optional[str] = None,
+        level_names: Optional[list[str]] = None,
+        include_method_units: bool = True,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
         it will export all scenarios to the same file,
         :param file_path:
-        :param scenario_alias: If no scenario name is given, it will
+        :param scenario_name: If no scenario name is given, it will
         export all scenarios to the same file,
             with an additional column for the scenario alias
         :param level_names: (list of strings) If given, the results will be
@@ -710,8 +458,8 @@ class Experiment:
         :param include_method_units:  (Include the units of the methods in the header)
         :return:
         """
-        if scenario_alias:
-            scenario = self.get_scenario(scenario_alias)
+        if scenario_name:
+            scenario = self.get_scenario(scenario_name)
             scenario.results_to_csv(
                 file_path,
                 level_names=level_names,
@@ -722,14 +470,14 @@ class Experiment:
             header = []
             all_rows: list = []
             for scenario in self.scenarios:
-                temp_file_name = gettempdir() + f"/temp_scenario_{scenario.alias}.csv"
+                temp_file_name = gettempdir() + f"/temp_scenario_{scenario.name}.csv"
                 scenario.results_to_csv(
                     temp_file_name,
                     level_names=level_names,
                     include_method_units=include_method_units,
                 )
                 rows = ReadPath(temp_file_name).read_data()
-                rows[0]["scenario"] = scenario.alias
+                rows[0]["scenario"] = scenario.name
                 if not all_rows:
                     header = list(rows[0].keys())
                     header.remove("scenario")
@@ -771,16 +519,39 @@ class Experiment:
         )
 
     @property
-    def activities_aliases(self) -> list[str]:
+    def activities_names(self) -> list[str]:
         return list(self._activities.keys())
 
     @property
-    def method_aliases(self) -> list[str]:
-        return list(self.methods.keys())
+    def scenario_names(self) -> list[str]:
+        """
+        Get all scenario names
+        :return: list of strings of the scenario names
+        """
+        return list([s.name for s in self.scenarios])
 
     @property
-    def scenario_aliases(self) -> list[str]:
-        return list([s.alias for s in self.scenarios])
+    def adapters(self) -> list[EnbiosAdapter]:
+        """
+        Get all adapters in a list
+        :return:
+        """
+        return list(self._adapters.values())
+
+    def run_scenario_config(
+        self, scenario_config: dict, result_as_dict: bool = True
+    ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
+        """
+        Run a scenario from a config dictionary. Scenario will be validated and run. An
+        :param scenario_config:
+        :param result_as_dict:
+        :return:
+        """
+        scenario_data = ExperimentScenarioData(**scenario_config)
+        scenario_data.name_factory(len(self.scenarios))
+        scenario = self._validate_scenario(scenario_data)
+        scenario.prepare_tree()
+        return scenario.run(result_as_dict)
 
     def info(self) -> str:
         """
@@ -788,10 +559,19 @@ class Experiment:
         :return:
         """
         activity_rows: list[str] = []
-        for activity_alias, activity in self._activities.items():
-            activity_rows.append(f"  {activity.alias} - {activity.id.name}")
+
+        def print_node(node: BasicTreeNode[TechTreeNodeData], _):
+            module_name: str
+            if node.data.adapter:
+                module_name = self._get_node_adapter(node).name()
+            else:
+                module_name = self.get_node_aggregator(node).name()
+            activity_rows.append(f"{' ' * node.level}{node.name} - {module_name}")
+
+        self.hierarchy_root.recursive_apply(print_node, False, False, None)
+
         activity_rows_str = "\n".join(activity_rows)
-        methods_str = "\n".join([f" {m.id}" for m in self.methods.values()])
+        methods_str = "\n".join([f" {m}" for m in self.methods])
         return (
             f"Experiment: \n"
             f"Activities: {len(self._activities)}\n"
@@ -801,3 +581,76 @@ class Experiment:
             f"Hierarchy (depth): {self.hierarchy_root.depth}\n"
             f"Scenarios: {len(self.scenarios)}\n"
         )
+
+    @staticmethod
+    def get_module_definition(
+        clazz: Union[EnbiosAdapter, EnbiosAggregator], details: bool = True
+    ) -> dict[str, Any]:
+        result: dict = {
+            "node_indicator": clazz.node_indicator(),
+        }
+        if details:
+            result["config"] = clazz.get_config_schemas()
+        return result
+
+    @staticmethod
+    def get_builtin_adapters(details: bool = True) -> dict[str, dict[str, Any]]:
+        """
+        Get the built-in adapters
+        :return:
+        """
+        result = {}
+        for name, clazz in BUILTIN_ADAPTERS.items():
+            result[name] = Experiment.get_module_definition(clazz, details)
+        return result
+
+    @staticmethod
+    def get_builtin_aggregators(details: bool = True) -> dict[str, dict[str, Any]]:
+        result = {}
+        for name, clazz in BUILTIN_AGGREGATORS.items():
+            result[name] = Experiment.get_module_definition(clazz, details)
+        return result
+
+    def get_all_configs(
+        self, include_all_builtin_configs: bool = True
+    ) -> dict[str, dict[str, dict[str, Any]]]:
+        """
+        Result structure:
+            ```json
+            {
+                "adapters": { <adapter_name>: <adapter_config>},
+                "aggregators": { ... }
+            }
+            ```
+        :param include_all_builtin_configs:
+        :return: all configs
+        """
+        result = {
+            "adapters": {
+                name: Experiment.get_module_definition(adapter, True)
+                for name, adapter in (
+                    self._adapters
+                    | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
+                ).items()
+            },
+            "aggregators": {
+                name: Experiment.get_module_definition(aggregator, True)
+                for name, aggregator in (
+                    self._aggregators
+                    | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
+                ).items()
+            },
+        }
+
+        return result
+
+    def get_method_unit(self, method: str) -> str:
+        assert method in self.methods
+        adapter_indicator, method_name = method.split(".")
+        return self._get_module_by_name_or_node_indicator(
+            adapter_indicator, EnbiosAdapter
+        ).get_method_unit(method_name)
+
+    @property
+    def method_names(self) -> list[str]:
+        return [m.split(".")[-1] for m in self.methods]

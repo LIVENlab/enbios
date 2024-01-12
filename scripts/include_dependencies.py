@@ -6,7 +6,7 @@ cuz dependencies = {file = ["requirements.txt"]} does not include anything
 output: list[str] = []
 
 with open("../requirements.txt") as fin:
-    requirements = [f'"{r.strip()}"' for r in list(fin)]
+    requirements = [f'"{r.strip()}"' for r in list(fin) if not r.startswith("#")]
 
 # print(requirements)
 # check first parameter

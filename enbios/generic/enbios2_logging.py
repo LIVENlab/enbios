@@ -71,7 +71,6 @@ class EnbiosLogger:
 
     @classmethod
     def get_or_create_logger(cls, name: str) -> logging.Logger:
-
         if not cls.initialized:
             cls.init_logger()
         if name not in cls.config_data["loggers"]:

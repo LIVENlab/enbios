@@ -1,0 +1,28 @@
+{
+  "name": "root",
+  "results": {
+    "zinc_no_LT": {
+      "unit": "kilogram",
+      "magnitude": 6.16915484407017e-06
+    }
+  },
+  "output": {
+    "unit": "kilowatt_hour",
+    "magnitude": 1.0
+  },
+  "children": [
+    {
+      "name": "single_activity",
+      "results": {
+        "zinc_no_LT": {
+          "unit": "kilogram",
+          "magnitude": 6.16915484407017e-06
+        }
+      },
+      "output": {
+        "unit": "kilowatt_hour",
+        "magnitude": 1.0
+      }
+    }
+  ]
+}

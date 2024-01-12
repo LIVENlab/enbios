@@ -2,7 +2,17 @@ import csv
 from base64 import b64encode
 from copy import deepcopy, copy
 from pathlib import Path
-from typing import Optional, Any, Literal, Union, Generator, TypeVar, Generic, Callable
+from typing import (
+    Optional,
+    Any,
+    Literal,
+    Union,
+    Generator,
+    TypeVar,
+    Generic,
+    Callable,
+    Type,
+)
 from uuid import uuid4
 
 from enbios.generic.enbios2_logging import get_logger
@@ -28,14 +38,16 @@ class BasicTreeNode(Generic[T]):
 
     parent : HierarchyNode, optional
         The parent node of this node. None if this node is the root.
+    data: T The data of this node.
     """
 
     def __init__(
         self,
         name: str,
         children: Optional[list[Union["BasicTreeNode[T]", dict[str, Any]]]] = None,
-        data: Optional[T] = None,
-        data_factory: Optional[Callable[["BasicTreeNode"], T]] = None,
+        data: Optional[Union[T, dict]] = None,
+        dataclass: Optional[Type] = None,
+        data_factory: Optional[Callable[[dict], T]] = None,
         temp_data: Optional[dict[str, Any]] = None,
     ):
         """
@@ -52,15 +64,23 @@ class BasicTreeNode(Generic[T]):
         if children:
             for child in children:
                 if isinstance(child, dict):
-                    child = BasicTreeNode.from_dict(child, data_factory=data_factory)
+                    child = BasicTreeNode.from_dict(
+                        child, dataclass=dataclass, data_factory=data_factory
+                    )
                 self.add_child(child)
         self.parent: Optional[BasicTreeNode[T]] = None
         self.temp_data: dict[str, Any] = temp_data if temp_data else {}
         self._id: bytes = self.generate_id()
         if data:
-            self._data: T = data
+            if isinstance(data, dict):
+                if dataclass:
+                    self._data = dataclass(**data)
+                else:
+                    self._data: dict = data
+            else:
+                self._data: T = data
         elif data_factory:
-            self._data: T = data_factory(self)
+            self._data: T = data_factory(temp_data)
         else:
             self._data = None
 
@@ -73,7 +93,7 @@ class BasicTreeNode(Generic[T]):
 
     @property
     def data(self) -> T:
-        assert self._data is not None, f"data shoould be set before (node: '{self.name}')"
+        assert self._data is not None, f"data should be set before (node: '{self.name}')"
         return self._data
 
     @property
@@ -123,6 +143,8 @@ class BasicTreeNode(Generic[T]):
         :param node: The node to be added as a child.
         :return: The node that was added.
         """
+        if not isinstance(node, BasicTreeNode):
+            raise ValueError(f"Node {node} is of wrong type {type(node)}")
         if node is self or node in self:
             raise ValueError(f"Node {node} is already a child of {self}")
         if node.parent:
@@ -149,11 +171,16 @@ class BasicTreeNode(Generic[T]):
         """
         if isinstance(node, int) or isinstance(node, str):
             node = self[node]
-        if not isinstance(node, BasicTreeNode):
-            raise ValueError(f"Node {node} is of wrong type {type(node)}")
+        # if not isinstance(node, BasicTreeNode):
+        #     raise ValueError(f"Node {node} is of wrong type {type(node)}")
         self.children.remove(node)
         node.parent = None
         return node
+
+    def remove_self(self):
+        if not self.parent:
+            raise ValueError("Cannot remove root node")
+        self.parent.remove_child(self)
 
     def as_dict(
         self,
@@ -187,24 +214,40 @@ class BasicTreeNode(Generic[T]):
 
     @staticmethod
     def from_dict(
-        data: dict, *, compact: bool = False, data_factory: Optional[Callable] = None
+        data: dict,
+        *,
+        dataclass: Optional[Type] = None,
+        data_factory: Optional[Callable[[dict], T]] = None,
     ) -> "BasicTreeNode":
         """
         Parse a dict and create a tree from it.
         :param data:
-        :param compact: if True, the data is assumed to be in compact format
+        :param dataclass:
         :param data_factory:
         :return: a node containing the whole tree
         """
         # TODO type parameter of BasicTreeNode
-        if compact:
-            return BasicTreeNode.from_compact_dict(data, data_factory=data_factory)
-        node = BasicTreeNode(**data, data_factory=data_factory)
-        return node
+        # if compact:
+        #     return BasicTreeNode.from_compact_dict(data, data_factory=data_factory)
+        name = data.get("name")
+        children = data.get("children")
+        if dataclass:
+            return BasicTreeNode(name, children, data=data, dataclass=dataclass)
+        else:
+            return BasicTreeNode(
+                name,
+                children,
+                data_factory=data_factory,
+                temp_data={
+                    k: v for k, v in data.items() if k not in ["name", "children"]
+                },
+            )
 
     @staticmethod
     def from_compact_dict(
-        input_dict, root_name="root", data_factory: Optional[Callable] = None
+        input_dict: dict,
+        root_name: Optional[str] = "root",
+        data_factory: Optional[Callable[[dict], T]] = None,
     ) -> "BasicTreeNode":
         def generate_node(node_info: Union[dict, list]):
             if isinstance(node_info, dict):
@@ -359,7 +402,7 @@ class BasicTreeNode(Generic[T]):
 
     def find_subnode_by_name(
         self, name: str, recursive: bool = True
-    ) -> Optional["BasicTreeNode"]:
+    ) -> Optional["BasicTreeNode[T]"]:
         """
         Find a child node by its name.
 
@@ -369,10 +412,10 @@ class BasicTreeNode(Generic[T]):
         :return: The node if found, None otherwise.
         """
 
-        def rec_find_child(node: BasicTreeNode[T]) -> Optional["BasicTreeNode[T]"]:
-            if node.name == name:
-                return node
-            for child in node.children:
+        def rec_find_child(node_: BasicTreeNode[T]) -> Optional["BasicTreeNode[T]"]:
+            if node_.name == name:
+                return node_
+            for child in node_.children:
                 found_node = rec_find_child(child)
                 if found_node:
                     return found_node
@@ -449,6 +492,7 @@ class BasicTreeNode(Generic[T]):
 
         include_data_keys = []
         if include_data and self._data:
+            # todo, this will probably be enough to get diverse results...
             if data_serializer:
                 include_data_keys = list(data_serializer(self._data).keys())
             else:
@@ -514,9 +558,9 @@ class BasicTreeNode(Generic[T]):
         :param value_key: The key to use for the value of the links.
         """
 
-        def rec_add_link_row(node, writer: csv.DictWriter, level: int = 0):
+        def rec_add_link_row(node, writer_: csv.DictWriter, level: int = 0):
             for child in node.children:
-                writer.writerow(
+                writer_.writerow(
                     {
                         "source": node.name,
                         "target": child.name,
@@ -524,7 +568,7 @@ class BasicTreeNode(Generic[T]):
                         "target_level": level + 1,
                     }
                 )
-                rec_add_link_row(child, writer, level + 1)
+                rec_add_link_row(child, writer_, level + 1)
 
         with file_path.open("w", encoding="utf-8") as fout:
             writer = csv.DictWriter(
@@ -569,16 +613,16 @@ class BasicTreeNode(Generic[T]):
         """
 
         def rec_get_sub_tree(
-            node: BasicTreeNode[T], max_level: int, **kwargs
+            node: BasicTreeNode[T], max_level_: int, **kwargs
         ) -> BasicTreeNode[T]:
-            if max_level == 0:
+            if max_level_ == 0:
                 return BasicTreeNode[T](
                     node.name, **{k: getattr(node, k) for k in kwargs}
                 )
             else:
                 sub_tree = BasicTreeNode[T](node.name)
                 for child in node.children:
-                    sub_tree.add_child(child.get_sub_tree(max_level - 1))
+                    sub_tree.add_child(child.get_sub_tree(max_level_ - 1))
                 return sub_tree
 
         return rec_get_sub_tree(self, max_level)
@@ -628,10 +672,10 @@ class BasicTreeNode(Generic[T]):
         :return:
         """
 
-        def reset_parents(node: BasicTreeNode):
-            node.generate_id()
-            for child in node.children:
-                child.parent = node
+        def reset_parents(node_: BasicTreeNode):
+            node_.generate_id()
+            for child in node_.children:
+                child.parent = node_
                 reset_parents(child)
 
         node = deepcopy(self)
@@ -694,7 +738,7 @@ class BasicTreeNode(Generic[T]):
 
     def recursive_apply_eager(
         self,
-        func: Callable[["BasicTreeNode", Any], Any],
+        func: Callable[["BasicTreeNode", Optional[Any]], Any],
         depth_first: bool = False,
         *args,
         **kwargs,
@@ -727,7 +771,7 @@ class BasicTreeNode(Generic[T]):
 
     def recursive_apply(
         self,
-        func: Callable[["BasicTreeNode", Optional[Any]], Any],
+        func: Callable[["BasicTreeNode", Optional[Any]], Optional[Any]],
         depth_first: bool = False,
         lazy: bool = False,
         *args,
@@ -829,7 +873,10 @@ class BasicTreeNode(Generic[T]):
         :return: String representation of the object.
         """
         children_str = f"{len(self.children)} {'children' if len(self) != 1 else 'child'}"
-        parent_str = f"{' (' + self.parent.name + ')' if self.parent else ''}"
+        # this instead of self.parent, which in some cases (2 children with same 'name') would weirdly not exists
+        parent_str = (
+            f"{' (' + self.parent.name + ')' if getattr(self, 'parent', None) else ''}"
+        )
         return f"[{self.name} - {children_str}{parent_str}]"
 
     def info(self) -> str:

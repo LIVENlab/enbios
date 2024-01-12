@@ -21,7 +21,6 @@ def bar_plot(
     experiment: Union[Experiment, ResultsSelector],
     scenarios: Optional[list[str]] = None,
     methods: Optional[list[str]] = None,
-    short_method_names: bool = True,
     image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
@@ -37,11 +36,11 @@ def bar_plot(
     if n_rows == 1:
         axs = [axs]
 
-    for idx, method in enumerate(rs.methods):
+    for idx, method in enumerate(rs.method_names):
         cmap = plt.colormaps.get_cmap("tab10")
         colors = cmap(np.linspace(0, 1, len(rs.scenarios)))
         rs.base_df.plot(kind="bar", x="scenario", y=method, ax=axs[idx], color=colors)
-        axs[idx].set_ylabel(rs.method_label_names(short_method_names)[idx], fontsize=8)
+        axs[idx].set_ylabel(rs.method_label_names()[idx], fontsize=8)
         axs[idx].legend().set_visible(False)
 
     plt.tight_layout()
@@ -56,7 +55,7 @@ def stacked_bar_plot(
     methods: Optional[list[str]] = None,
     level: int = 1,
     short_method_names: bool = True,
-    aliases: Optional[list[str]] = None,
+    nodes: Optional[list[str]] = None,
     image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
@@ -70,7 +69,7 @@ def stacked_bar_plot(
         )
         level = experiment.hierarchy_root.depth - 1
     # Define the number of rows and columns for the subplots
-    n_rows = len(rs.methods)
+    n_rows = len(rs.method_names)
     n_cols = 1
 
     # Create a new figure with a defined size (adjust as needed)
@@ -83,13 +82,14 @@ def stacked_bar_plot(
     if n_rows == 1:
         axs = [axs]
 
-    for idx, method in enumerate(rs.methods):
+    for idx, method in enumerate(rs.method_names):
         ax = axs[idx]
 
         # Create the bar plot using the specific Axes object
         nodes: list[BasicTreeNode[ScenarioResultNodeData]] = []
-        if aliases:
-            for alias in aliases:
+        # todo, what is going on here..?
+        if nodes:
+            for alias in nodes:
                 node = experiment.hierarchy_root.find_subnode_by_name(alias)
                 if not node:
                     raise ValueError(f"Alias {alias} not found in hierarchy")
@@ -98,8 +98,9 @@ def stacked_bar_plot(
             nodes = experiment.hierarchy_root.collect_all_nodes_at_level(level)
 
         node_names = [node.name for node in nodes]
-        df = rs.collect_tech_results(node_names)
-        df_pivot = df.pivot(index="scenario", columns="tech", values=method)
+        df: DataFrame = rs.collect_tech_results(node_names)
+        df_pivot: DataFrame = df.pivot(index="scenario", columns="tech", values=method)
+        df_pivot = df_pivot.reindex(df["scenario"].drop_duplicates().tolist())
         df_pivot.plot(kind="bar", stacked=True, ax=ax)
         ax.set_ylabel(rs.method_label_names(short_method_names)[idx], fontsize=8)
 
@@ -120,14 +121,16 @@ def star_plot(
     show_grid: bool = True,
     col: int = 4,
     row: Optional[int] = None,
-    short_method_names: bool = True,
     show_labels: bool = True,
     image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df()
 
-    labels = rs.method_label_names(short_method_names, False)
+    if len(rs.methods) < 3:
+        raise ValueError("Starplots require at least 3 methods")
+
+    labels = rs.method_label_names(False)
 
     if row is None:
         row = int(np.ceil(len(rs.scenarios) / col))
@@ -233,7 +236,7 @@ def single_star_plot(
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df()
 
-    labels = rs.method_label_names(short_method_names, False)
+    labels = rs.method_label_names(False)
 
     # Create figure and axes
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
@@ -265,6 +268,7 @@ def single_star_plot(
     else:
         ax.set_xticklabels([""] * len(labels))
     ax.set_rmax(1)
+    return fig
 
 
 def plot_heatmap(
@@ -283,12 +287,12 @@ def plot_heatmap(
 
     df = df.set_index("scenario").transpose()
 
-    fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5, len(rs.methods) * 1.5))
+    fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5, len(rs.method_names) * 1.5))
     im = ax.imshow(df, cmap="summer")
 
     labels = rs.method_label_names(include_unit=False)
     ax.set_xticks(np.arange(len(rs.scenarios)), labels=rs.scenarios)
-    ax.set_yticks(np.arange(len(rs.methods)), labels=labels)
+    ax.set_yticks(np.arange(len(rs.method_names)), labels=labels)
 
     # Rotate the tick labels and set their alignment.
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
@@ -321,11 +325,12 @@ def plot_sankey(
         import plotly.graph_objects as go
     except ImportError:
         logger.error("plotly not installed. Run 'pip install plotly'")
-        return
+        raise
 
     scenario = exp.get_scenario(scenario_name)
     all_nodes = list(scenario.result_tree.iter_all_nodes())
     node_labels = [node.name for node in all_nodes]
+    method_ = method_.split(".")[-1]
 
     source = []
     target = []
@@ -335,7 +340,7 @@ def plot_sankey(
         for child in node.children:
             source.append(index_)
             target.append(all_nodes.index(child))
-            value.append(child.data.results[method_])
+            value.append(child.data.results[method_].magnitude)
 
     fig = go.Figure(
         data=[
@@ -352,7 +357,7 @@ def plot_sankey(
         ]
     )
 
-    fig.update_layout(title_text=f"{scenario.alias} / {method_}", font_size=10)
+    fig.update_layout(title_text=f"{scenario.name} / {method_}", font_size=10)
     if image_file:
         fig.write_image(Path(image_file).as_posix(), width=1800, height=1600)
     return fig
@@ -370,7 +375,7 @@ def one_axes_scatter_plot(
     scenario_index = df[df.columns[0]].tolist().index(selected_scenario)
     n_rows = len(rs.methods)
     fig, axs = plt.subplots(
-        len(rs.methods), 1, figsize=(10, 2 * n_rows)
+        len(rs.method_names), 1, figsize=(10, 2 * n_rows)
     )  # Assuming each subplot has a height of 5, adjust as needed
 
     for method_index in range(n_rows):
@@ -382,7 +387,7 @@ def one_axes_scatter_plot(
         colors[scenario_index] = "blue"
         ax.scatter(x, y, s=100, c=colors, marker="o")
         # plt.title("Scatter Plot with Dense Y Distribution")
-        ax.set_xlabel(rs.methods[method_index])
+        ax.set_xlabel(rs.method_names[method_index])
         ax.set_yticks([])  # Hide y-axis labels
         ax.grid(True, which="both", linestyle="--", linewidth=0.5, axis="x")
         # no border on all edges

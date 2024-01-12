@@ -1,0 +1,42 @@
+{
+  "config": {
+    "debug_test_is_valid": false,
+    "debug_test_replace_bw_config": false
+  },
+  "adapters": [
+    {
+      "module_path": "",
+      "config": {
+        "bw_project": "{BW_PROJECT}",
+        "bw_default_database": "{BW_DATABASE}"
+      },
+      "methods": {
+        "zinc_no_LT": [
+          "EDIP 2003 no LT",
+          "non-renewable resources no LT",
+          "zinc no LT"
+        ]
+      },
+      "note": "brightway-adapter"
+    }
+  ],
+  "hierarchy": {
+    "name": "root",
+    "aggregator": "sum",
+    "children": [
+      {
+        "name": "A",
+        "adapter": "bw",
+        "config": {
+          "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+          "location": "DK",
+          "unit": "kilowatt hour",
+          "default_output": {
+            "unit": "Mwh",
+            "magnitude": 30
+          }
+        }
+      }
+    ]
+  }
+}

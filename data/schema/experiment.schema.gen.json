@@ -1,7 +1,6 @@
 {
   "$defs": {
     "ActivityOutput": {
-      "additionalProperties": false,
       "properties": {
         "unit": {
           "title": "Unit",
@@ -19,158 +18,116 @@
       "title": "ActivityOutput",
       "type": "object"
     },
-    "EcoInventSimpleIndex": {
+    "AdapterModel": {
+      "additionalProperties": true,
       "properties": {
-        "version": {
-          "title": "Version",
+        "module_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Module Path"
+        },
+        "adapter_name": {
+          "default": null,
+          "description": "this this is to use inbuilt adapter (e.g. 'simple-assignment-adapter'",
+          "title": "Adapter Name",
           "type": "string"
         },
-        "system_model": {
-          "title": "System Model",
+        "config": {
+          "title": "Config",
+          "type": "object"
+        },
+        "methods": {
+          "title": "Methods",
+          "type": "object"
+        },
+        "note": {
+          "default": null,
+          "description": "A note for this adapter",
+          "title": "Note",
           "type": "string"
         }
       },
+      "title": "AdapterModel",
+      "type": "object"
+    },
+    "AggregationModel": {
+      "properties": {
+        "module_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            }
+          ],
+          "title": "Module Path"
+        },
+        "config": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Config"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
       "required": [
-        "version",
-        "system_model"
+        "module_path"
       ],
-      "title": "EcoInventSimpleIndex",
+      "title": "AggregationModel",
       "type": "object"
     },
     "ExperimentActivityData": {
-      "additionalProperties": false,
-      "description": "This is the dataclass for the activities in the experiment.\nthe id, is",
+      "description": "This is the dataclass for the activities in the experiment.",
       "properties": {
-        "id": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/ExperimentActivityId"
-            }
-          ],
-          "description": "The identifies (method to find) an activity"
+        "name": {
+          "title": "Name",
+          "type": "string"
         },
-        "output": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ActivityOutput"
-            },
-            {
-              "maxItems": 2,
-              "minItems": 2,
-              "prefixItems": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                }
-              ],
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "The default output of the activity",
-          "title": "Output"
+        "config": {
+          "description": "setup data (id, outputs, ... arbitrary data",
+          "title": "Config"
         },
-        "orig_id": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ExperimentActivityId"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Temporary copy of the id"
+        "adapter": {
+          "description": "The adapter to be used",
+          "title": "Adapter",
+          "type": "string"
         }
       },
       "required": [
-        "id"
+        "name",
+        "config",
+        "adapter"
       ],
       "title": "ExperimentActivityData",
-      "type": "object"
-    },
-    "ExperimentActivityId": {
-      "additionalProperties": false,
-      "properties": {
-        "database": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Database"
-        },
-        "code": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Code"
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Name"
-        },
-        "location": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Location"
-        },
-        "unit": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Unit"
-        },
-        "alias": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Alias"
-        }
-      },
-      "title": "ExperimentActivityId",
       "type": "object"
     },
     "ExperimentConfig": {
@@ -181,20 +138,22 @@
           "title": "Warn Default Demand",
           "type": "boolean"
         },
-        "include_bw_activity_in_nodes": {
+        "auto_aggregate": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": true,
-          "title": "Include Bw Activity In Nodes",
-          "type": "boolean"
+          "title": "Auto Aggregate"
         },
-        "store_raw_results": {
-          "default": false,
-          "title": "Store Raw Results",
+        "run_adapters_concurrently": {
+          "default": true,
+          "title": "Run Adapters Concurrently",
           "type": "boolean"
-        },
-        "use_k_bw_distributions": {
-          "default": 1,
-          "title": "Use K Bw Distributions",
-          "type": "integer"
         },
         "run_scenarios": {
           "anyOf": [
@@ -287,17 +246,61 @@
       "title": "ExperimentConfig",
       "type": "object"
     },
-    "ExperimentMethodData": {
+    "ExperimentHierarchyNodeData": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "aggregator": {
+          "title": "Aggregator",
+          "type": "string"
+        },
+        "config": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "setup data (id, outputs, ... arbitrary data",
+          "title": "Config"
+        },
+        "children": {
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/ExperimentHierarchyNodeData"
+                  },
+                  {
+                    "$ref": "#/$defs/ExperimentActivityData"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Children"
+        }
+      },
+      "required": [
+        "name",
+        "aggregator"
+      ],
+      "title": "ExperimentHierarchyNodeData",
+      "type": "object"
+    },
+    "ExperimentScenarioData": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Id",
-          "type": "array"
-        },
-        "alias": {
+        "name": {
           "anyOf": [
             {
               "type": "string"
@@ -307,113 +310,24 @@
             }
           ],
           "default": null,
-          "title": "Alias"
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "title": "ExperimentMethodData",
-      "type": "object"
-    },
-    "ExperimentScenarioData": {
-      "additionalProperties": false,
-      "properties": {
+          "title": "Name"
+        },
         "activities": {
-          "anyOf": [
-            {
-              "items": {
-                "maxItems": 2,
-                "minItems": 2,
-                "prefixItems": [
-                  {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "$ref": "#/$defs/ExperimentActivityId"
-                      }
-                    ]
-                  },
-                  {
-                    "anyOf": [
-                      {
-                        "$ref": "#/$defs/ActivityOutput"
-                      },
-                      {
-                        "maxItems": 2,
-                        "minItems": 2,
-                        "prefixItems": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          }
-                        ],
-                        "type": "array"
-                      }
-                    ]
-                  }
-                ],
-                "type": "array"
-              },
-              "type": "array"
-            },
-            {
-              "additionalProperties": {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/ActivityOutput"
-                  },
-                  {
-                    "maxItems": 2,
-                    "minItems": 2,
-                    "prefixItems": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "number"
-                      }
-                    ],
-                    "type": "array"
-                  }
-                ]
-              },
-              "type": "object"
-            },
-            {
-              "type": "null"
-            }
-          ],
+          "additionalProperties": {
+            "$ref": "#/$defs/ActivityOutput"
+          },
           "default": null,
-          "title": "Activities"
+          "description": "name to output, null means default-output (check exists)",
+          "title": "Activities",
+          "type": "object"
         },
         "methods": {
           "anyOf": [
             {
               "items": {
-                "anyOf": [
-                  {
-                    "$ref": "#/$defs/ExperimentMethodData"
-                  },
-                  {
-                    "type": "string"
-                  }
-                ]
+                "type": "string"
               },
               "type": "array"
-            },
-            {
-              "additionalProperties": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "type": "object"
             },
             {
               "type": "null"
@@ -422,112 +336,63 @@
           "default": null,
           "title": "Methods"
         },
-        "alias": {
+        "config": {
           "anyOf": [
             {
-              "type": "string"
+              "$ref": "#/$defs/ScenarioConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "title": "ExperimentScenarioData",
+      "type": "object"
+    },
+    "ScenarioConfig": {
+      "properties": {
+        "exclude_defaults": {
+          "anyOf": [
+            {
+              "type": "boolean"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Alias"
+          "default": false,
+          "title": "Exclude Defaults"
         }
       },
-      "title": "ExperimentScenarioData",
+      "title": "ScenarioConfig",
       "type": "object"
     }
   },
   "additionalProperties": false,
   "description": "This class is used to store the data of an experiment.",
   "properties": {
-    "bw_project": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "$ref": "#/$defs/EcoInventSimpleIndex"
-        }
-      ],
-      "description": "The brightway project name",
-      "title": "Bw Project"
+    "adapters": {
+      "description": "The adapters to be used",
+      "items": {
+        "$ref": "#/$defs/AdapterModel"
+      },
+      "title": "Adapters",
+      "type": "array"
     },
-    "activities": {
-      "anyOf": [
-        {
-          "items": {
-            "$ref": "#/$defs/ExperimentActivityData"
-          },
-          "type": "array"
-        },
-        {
-          "additionalProperties": {
-            "$ref": "#/$defs/ExperimentActivityData"
-          },
-          "type": "object"
-        },
-        {
-          "type": "string"
-        },
-        {
-          "format": "path",
-          "type": "string"
-        }
-      ],
-      "description": "The activities to be used in the experiment",
-      "title": "Activities"
-    },
-    "methods": {
-      "anyOf": [
-        {
-          "items": {
-            "$ref": "#/$defs/ExperimentMethodData"
-          },
-          "type": "array"
-        },
-        {
-          "additionalProperties": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "type": "object"
-        },
-        {
-          "type": "string"
-        },
-        {
-          "format": "path",
-          "type": "string"
-        }
-      ],
-      "description": "The impact methods to be used in the experiment",
-      "title": "Methods"
-    },
-    "bw_default_database": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "The default database of activities to be used in the experiment",
-      "title": "Bw Default Database"
+    "aggregators": {
+      "default": [],
+      "description": "The aggregators to be used",
+      "items": {
+        "$ref": "#/$defs/AggregationModel"
+      },
+      "title": "Aggregators",
+      "type": "array"
     },
     "hierarchy": {
       "anyOf": [
         {
-          "items": {},
-          "type": "array"
-        },
-        {
-          "type": "object"
+          "$ref": "#/$defs/ExperimentHierarchyNodeData"
         },
         {
           "type": "string"
@@ -535,12 +400,8 @@
         {
           "format": "path",
           "type": "string"
-        },
-        {
-          "type": "null"
         }
       ],
-      "default": null,
       "description": "The activity hierarchy to be used in the experiment",
       "title": "Hierarchy"
     },
@@ -553,20 +414,11 @@
           "type": "array"
         },
         {
-          "additionalProperties": {
-            "$ref": "#/$defs/ExperimentScenarioData"
-          },
-          "type": "object"
-        },
-        {
           "type": "string"
         },
         {
           "format": "path",
           "type": "string"
-        },
-        {
-          "type": "null"
         }
       ],
       "default": null,
@@ -583,9 +435,8 @@
     }
   },
   "required": [
-    "bw_project",
-    "activities",
-    "methods"
+    "adapters",
+    "hierarchy"
   ],
   "title": "ExperimentData",
   "type": "object"

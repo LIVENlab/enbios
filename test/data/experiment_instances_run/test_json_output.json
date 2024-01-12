@@ -1,0 +1,35 @@
+{
+  "alias": "root",
+  "output": {
+    "unit": "kilowatt_hour",
+    "magnitude": 1.0
+  },
+  "results": {
+    "EDIP 2003 no LT_non-renewable resources no LT_zinc no LT": 6.169154864577996e-06
+  },
+  "children": [
+    {
+      "alias": "energy",
+      "output": {
+        "unit": "kilowatt_hour",
+        "magnitude": 1.0
+      },
+      "results": {
+        "EDIP 2003 no LT_non-renewable resources no LT_zinc no LT": 6.169154864577996e-06
+      },
+      "children": [
+        {
+          "alias": "single_activity",
+          "output": {
+            "unit": "kilowatt_hour",
+            "magnitude": 1.0
+          },
+          "results": {
+            "EDIP 2003 no LT_non-renewable resources no LT_zinc no LT": 6.169154864577996e-06
+          },
+          "bw_activity": "b9d74efa4fd670b1977a3471ec010737"
+        }
+      ]
+    }
+  ]
+}

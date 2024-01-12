@@ -93,7 +93,7 @@ def full_duplicate(activity: Activity, code=None, **kwargs) -> Activity:
     activity_copy = activity.copy(code, **kwargs)
     for upstream in activity.upstream():
         upstream.output.new_exchange(
-            input=activity_copy, type=upstream["type"], amount=upstream.amount
+            input=activity_copy, type=upstream["type"], magnitude=upstream.magnitude
         ).save()
     activity_copy.save()
     return activity_copy

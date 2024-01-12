@@ -1,0 +1,65 @@
+[
+  {
+    "name": "normal scenario",
+    "activities": {
+      "electricity production, wind, >3MW turbine, onshore": [
+        "kilowatt_hour",
+        1
+      ],
+      "electricity production, wind, 1-3MW turbine, onshore": [
+        "kilowatt_hour",
+        1
+      ],
+      "electricity production, solar tower power plant, 20 MW": [
+        "kilowatt_hour",
+        1
+      ],
+      "electricity production, solar thermal parabolic trough, 50 MW": [
+        "kilowatt_hour",
+        1
+      ]
+    }
+  },
+  {
+    "name": null,
+    "activities": {
+      "electricity production, wind, >3MW turbine, onshore": [
+        "kilowatt_hour",
+        5
+      ],
+      "electricity production, wind, 1-3MW turbine, onshore": [
+        "kilowatt_hour",
+        4
+      ],
+      "electricity production, solar tower power plant, 20 MW": [
+        "kilowatt_hour",
+        10
+      ],
+      "electricity production, solar thermal parabolic trough, 50 MW": [
+        "kilowatt_hour",
+        5
+      ]
+    }
+  },
+  {
+    "name": null,
+    "activities": {
+      "electricity production, wind, >3MW turbine, onshore": [
+        "kilowatt_hour",
+        2
+      ],
+      "electricity production, wind, 1-3MW turbine, onshore": [
+        "kilowatt_hour",
+        9
+      ],
+      "electricity production, solar tower power plant, 20 MW": [
+        "kilowatt_hour",
+        2
+      ],
+      "electricity production, solar thermal parabolic trough, 50 MW": [
+        "kilowatt_hour",
+        7
+      ]
+    }
+  }
+]
