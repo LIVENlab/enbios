@@ -1,55 +1,60 @@
-# Enbios 2
+# ENBIOS2
+## What is ENBIOS 2
 
-This a ground up new implementation of enbios.
+ENBIOS2 (Environmental and Bioeconomic System Analysis)  is a [python-based](https://pypi.org/project/enbios/) simulation tool for the assessment of environmental impacts and resource requirements of energy system 
+pathways according to policy scenarios. These pathways are typically calculated by Energy System Optimization Models (ESOMs). Currently ENBIOS is coupled with the 
+[Calliope](https://www.callio.pe/) framework and we are working to couple it with the [TIMES](https://iea-etsap.org/index.php/etsap-tools/model-generators/times) framework.
 
-Compared to the original version of enbios, this version is more flexible does not make it's own LCA calculations, but
-uses brightway2 for that.
+ENBIOS2 is based on the integration of Life Cycle Assessment and the Multi-Scale Integrated Assessment of 
+Socio-ecosystem framework (MuSIASEM) originally developed by C. Madrid-López 
+([2019](https://zenodo.org/records/10252544) and [2020](https://zenodo.org/records/4916338))
 
-The main functionality of enbios2 is currently to run experiments, which are described a set of (brightway) activities a
-set of methods and a set of scenarios, which contain demand for the given activities.
+ENBIOS2 is a ground up new computing implementation of the ENBIOS tool. You can see more information about 
+this previous version below. Compared to the original version of enbios, this version is more flexible does not make 
+it's own LCA calculations, but uses [Brightway2](https://docs.brightway.dev/en/latest/) for that.
 
-In addition to get the results of the scenarios in the dendrogram (....) the user can also define a hierarchy, which
-contains the activities at the bottom.
+In ENBIOS2 you will implement an experiment. To do this you will need to have at hand:
+ * a defined set of activities, that are typically the energy system technologies you would like to inlcude in the assessment
+ * access to a life cycle inventory database that can be imported in Brightway2 (such as Ecoinvent) 
+or the skills and data to create yours
+ * a MuSIASEM (hierarchical) structuring of your energy system. This must be taylored to the speficis of your assessment
+and include the structural components of the system (your activities) and functional components of your systems.
+ * a set of non-linear assessment methods such as
+   * life-cycle impact assessment methods (you can use Recipe for example, but you will need to correct its linearity) 
+   * MuSIASEM methods
+ * a set of ESOM-provided pathways, which contain energy supply, demand or transfer info for the given activities
+ * If you like (optional!), you can couple ENBIOS2 with [PREMISE](https://www.sciencedirect.com/science/article/pii/S136403212200226X) for a prospective definition of 
+life cycle inventories according to different climate scenarios and integrated assessment models.
 
-Enbios 2 is a python package (https://pypi.org/project/enbios/), which can be installed with pip.
+What you get is results of impacts and resource demands by each activity (structure) and function at each level of the hierarchy.
+
+ENBIOS is developed by the [LIVENlab](https://livenlab.org/), a research lab of the [SosteniPra](https://www.sostenipra.cat/) Research group, at [ICTA-UAB](https://www.uab.cat/icta/).
 
 ## Installation
+We recommend you to run ENBIOS from a python IDE, such as Pycharm. 
+But we also have a few Jupyter notebooks for you to use, see below.
 
-(windows)
-`python -m venv venv`
+You first need to create an environment. From your terminal, try this:
 
-(linux)
-`python3.9 -m venv venv`
+ * Windows  `python -m venv venv`
+ * Linux   `python3.9 -m venv venv`
 
 Activate the environment with
 
-(windows)
+* (windows)
 `venv\Scripts\activate`
 
-(linux)
+* (linux)
 `source venv/bin/activate`
 
 Install enbios2 with
 
-(windows)
+* (windows)
 `python -m pip install enbios`
 
-(linux)
+* (linux)
 `python3 -m pip install enbios`
 
-## Demos
-
-The repository contains a few notebooks (require jupyter notebook) in the demos folder.
-
-[Getting started](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/intro.ipynb)
-
-[Plotting results](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/plot_results.ipynb)
-
-[Sorting the results in alternative hierarchies](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/multiple_hierarchies.ipynb)
-
-[Splitting the configuration](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/multiple_config_files.ipynb)
-
-[Working with trees](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/trees.ipynb)
 
 ## Experiment configuration json schema
 
@@ -73,40 +78,22 @@ databases, activities).
   run. `e.g. '["Scenario 0"]'` (indexed default aliases, when no aliases are specified in the configuration file for the
   scenarios).
 
-# What is ENBIOS
-
-ENBIOS (Environmental and Bioeconomic System Analysis) is an assessment framework designed for the assessment of the *
-*environmental impacts and resource use of energy pathways resulting from energy system optimization models (ESOMs)**.
-
-It integrates Life Cycle Assessment (LCA) and Social Metabolism Assessment using the Multi-Scale Integrated Assessment
-of Socio-Ecosystem Metabolism (MuSIASEM). It has been been co-designed with decision makers and energy modellers.
-
-The related python package [`enbios`](https://pypi.org/project/enbios/) takes data on energy system design and impact
-assessment methods to return a characterization matrix filled with bioeconomic and environmental indicators.
-
-More information on the roots of the framework and version 1 of the software can be found in [Deliverable 2.2]() of
-the [SENTINEL](https://sentinel.energy) project. Curently, we have upgraded to version 2 of the software using
-Brightway2 for LCA analysis and inventory. Samples can be consulted
-in [deliverable 2.2](https://zenodo.org/record/7994038) of the [SEEDS](https://seeds-project.org/) project
-
 ### Data inputs
 
-- Data on electricity production and power capacity from an energy model
-  -Inputs from EuroCalliope model are accepted as is.
-    - We are currently working in the integration with the TIMES model for the project LIVEN.
-- LCA inventories in .spold format
-- Methods of analysis
+- Outputs from your ESOM
+- A dictionary that connects your ESOM taxonomy with your inventory taxonomy
+- life cycle inventories in .spold format
+- The basefile with the hierarchical structuring of the system
+- your method file
 
 ### Outputs
 
-For each energy function and technology:
-
+For each system function and structure (activity):
 - Environmental impact indicators from the most used LCIA methods (Recipe2016, CML, AWARE, etc.)
 - Environmental externalization rates
-- Raw Material Recycling rates and Supply risk
+- Forthcoming: Raw Material Recycling rates and Supply risk
 
 ### Features
-
 - Integration of LCA and MuSIASEM evaluation methods
 - Import of .spold LCA inventory data to a multi-level tree-like setting
 - Library of impact assessment methods based on LCIA
@@ -114,6 +101,21 @@ For each energy function and technology:
 - Consideration of externalized environmental impacts
 - Takes data from the friendly-data package (other formats under development)
 - High level methods to quickly obtain/refresh analyses
+
+## Demos
+
+This repository contains a few notebooks (require jupyter notebook) in the demos folder, that can help you get started. 
+We are updating and commenting these. Please bear with us while we do it and feel free to give us feedback on those (thanks).
+
+[Getting started](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/intro.ipynb)
+
+[Plotting results](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/plot_results.ipynb)
+
+[Sorting the results in alternative hierarchies](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/multiple_hierarchies.ipynb)
+
+[Splitting the configuration](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/multiple_config_files.ipynb)
+
+[Working with trees](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/trees.ipynb)
 
 ## People
 
@@ -124,25 +126,31 @@ For each energy function and technology:
 
 ## Contact
 
-- For questions about the enbios framework, please contact [cristina.madrid@uab.cat](mailto:cristina.madrid@uab.cat).
+- For questions about the enbios framework, please contact the LIVENlab leader [cristina.madrid@uab.cat](mailto:cristina.madrid@uab.cat).
 
 ## Acknowledgements
+### The first ENBIOS
 
-ENBIOS is developed by the [LIVENlab](https://livenlab.org/), a research lab of the
-the [SosteniPra](https://www.sostenipra.cat/) Research group, at [ICTA-UAB](https://www.uab.cat/icta/).
-
-The first verion was built in collaboration with the Technical Institute of the Canary
-Islands ([ITC](https://www.itccanarias.org/web/es/)) and based on the Nexus Information System developed within the
+The LCA-MuSIASEM integration that is the core of ENBIOS was born a few years back (2013 seems so far now!). 
+The first prototype of the python package was built by [Rafa Nebot](https://github.com/rnebot) in a collaboration 
+with the Technical Institute of the Canary Islands ([ITC](https://www.itccanarias.org/web/es/)) and based on the Nexus Information System developed within the
 Horizon 2020 project [MAGIC-nexus](https://magic-nexus.eu/) and the LCA-MuSIASEM integration protocol developed in the
-Marie Curie project [IANEX](https://cordis.europa.eu/project/id/623593). This early development was funded by wthe
+Marie Curie project [IANEX](https://cordis.europa.eu/project/id/623593). This early development was funded by the
 Horizon 2020 project Sustainable Energy Transitions Laboratory ([SENTINEL](https://sentinel.energy>), GA 837089).
 
-The second version of `enbios` is in development with funds from the Spanish Research Agency  (AEI) and the European
-Comission (CINEA):
+ ### Current development
+ENBIOS2 is in development with funds from the Spanish Research Agency (AEI) and the European Commission (CINEA):
 
-* [SEEDS](https://seeds-project.org/) project with AEI grant PCI2020-120710-2 funds the ENBIOS 2 build based on
-  Brightway framework, adding inventory manipulation to match the mixes of the energy scenarios
-* LIVEN project with AEI grant PID2020-119565RJ-I00 funds the regionalization and conection with the TIMES energy model
+* [SEEDS](https://seeds-project.org/) project with AEI grant PCI2020-120710-2 funds the ENBIOS 2 build based on the
+  Brightway2 LCA framework, adding inventory manipulation to match the mixes of the energy scenarios and the connection with MuSIASEM
+* LIVEN project with AEI grant PID2020-119565RJ-I00 funds the regionalization of the analysis and connection with the TIMES energy model
+* ETOS project with AEI grant TED2021-132032A-I00 funds the addition of externalization
 * [JUSTWIND4ALL](https://justwind4all.eu/) project with Horizon Europe grant 101083936 funds the development of a higher
   resolution module for wind energy assessment, including new wind-specific holistic assessment methods.
 
+## References
+You can see some more info and results from ENBIOS here:
+* More information on the roots of the framework and version 1 of the software can be found in [deliverable 2.2]() of
+the [SENTINEL](https://sentinel.energy) project. 
+* An application to the assessment of energy pathway option space (with 260+ pathways modelled with calliope) with ENBIOS2 can be consulted
+in [deliverable 2.2](https://zenodo.org/record/7994038) of the [SEEDS](https://seeds-project.org/) project.
