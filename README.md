@@ -2,7 +2,7 @@
 ## What is ENBIOS 2
 
 ENBIOS2 (Environmental and Bioeconomic System Analysis)  is a [python-based](https://pypi.org/project/enbios/) simulation tool for the assessment of environmental impacts and resource requirements of energy system 
-pathways according to policy scenarios. These pathways are typically calculated by Energy System Optimization Models (ESOMs). Currently ENBIOS is coupled with the 
+pathways according to policy scenarios. These pathways are typically calculated by Energy System Optimization Models (ESOMs). Currently, ENBIOS is coupled with the 
 [Calliope](https://www.callio.pe/) framework and we are working to couple it with the [TIMES](https://iea-etsap.org/index.php/etsap-tools/model-generators/times) framework.
 
 ENBIOS2 is based on the integration of Life Cycle Assessment and the Multi-Scale Integrated Assessment of 
@@ -107,15 +107,15 @@ For each system function and structure (activity):
 This repository contains a few notebooks (require jupyter notebook) in the demos folder, that can help you get started. 
 We are updating and commenting these. Please bear with us while we do it and feel free to give us feedback on those (thanks).
 
-[Getting started](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/intro.ipynb)
+[Getting started](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/intro.ipynb)
 
-[Plotting results](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/plot_results.ipynb)
+[Plotting results](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/plot_results.ipynb)
 
-[Sorting the results in alternative hierarchies](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/multiple_hierarchies.ipynb)
+[Sorting the results in alternative hierarchies](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/multiple_hierarchies.ipynb)
 
-[Splitting the configuration](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/multiple_config_files.ipynb)
+[Splitting the configuration](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/multiple_config_files.ipynb)
 
-[Working with trees](https://github.com/LIVENlab/enbios/blob/main/enbios2/demos/trees.ipynb)
+[Working with trees](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/trees.ipynb)
 
 ## People
 
