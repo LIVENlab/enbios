@@ -5,16 +5,16 @@ from pydantic import BaseModel, model_validator
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.generic.unit_util import get_output_in_unit
-from enbios.models.experiment_base_models import AdapterModel, ActivityOutput
+from enbios.models.experiment_base_models import AdapterModel, NodeOutput
 from enbios.models.experiment_models import ResultValue
 
 
 class SimpleAssignment(BaseModel):
     activity: str
     output_unit: str
-    default_output: ActivityOutput
+    default_output: NodeOutput
     default_impacts: Optional[dict[str, ResultValue]] = None
-    scenario_outputs: Optional[dict[str, ActivityOutput]] = None
+    scenario_outputs: Optional[dict[str, NodeOutput]] = None
     scenario_impacts: Optional[dict[str, dict[str, ResultValue]]] = None
 
     @model_validator(mode="before")
@@ -52,17 +52,17 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         self.methods = methods
         return list(methods.keys())
 
-    def validate_activity_output(
-        self, node_name: str, target_output: ActivityOutput
+    def validate_node_output(
+        self, node_name: str, target_output: NodeOutput
     ) -> float:
         return get_output_in_unit(target_output, self.activities[node_name].output_unit)
 
-    def validate_activity(self, node_name: str, activity_config: Any):
+    def validate_node(self, node_name: str, activity_config: Any):
         self.activities[node_name] = SimpleAssignment(
             **{**{"activity": node_name} | activity_config}
         )
 
-    def get_activity_output_unit(self, activity_name: str) -> str:
+    def get_node_output_unit(self, activity_name: str) -> str:
         return self.activities[activity_name].output_unit
 
     def get_method_unit(self, method_name: str) -> str:
@@ -71,8 +71,8 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
     def get_default_output_value(self, activity_name: str) -> float:
         return self.activities[activity_name].default_output.magnitude
 
-    def run(self):
-        pass
+    # def run(self):
+    #     pass
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         result = {}
