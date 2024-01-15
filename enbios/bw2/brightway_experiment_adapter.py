@@ -5,7 +5,7 @@ from typing import Optional, Any, Union, Sequence
 import bw2data as bd
 from bw2data.backends import Activity
 from numpy import ndarray
-from pint import DimensionalityError, Quantity, UndefinedUnitError
+from pint import Quantity, UndefinedUnitError
 from pydantic import BaseModel, Field, RootModel, ConfigDict
 
 from enbios import get_enbios_ureg
@@ -38,12 +38,12 @@ class BWAdapterConfig(BaseModel):
     store_raw_results: bool = Field(
         False,
         description="If the numpy matrix of brightway should be stored in the adapter. "
-        "Will be stored in `raw_results[scenario.name]`",
+                    "Will be stored in `raw_results[scenario.name]`",
     )
     store_lca_object: bool = Field(
         False,
         description="If the LCA object should be stored. "
-        "Will be stored in `lca_objects[scenario.name]`",
+                    "Will be stored in `lca_objects[scenario.name]`",
     )
 
 
@@ -66,6 +66,7 @@ class BrightwayActivityConfig(BaseModel):
     default_output: NodeOutput = Field(
         None, description="Default output of the activity for all scenarios"
     )
+
 
 class BWMethodModel(BaseModel):
     name: str = Field(None, description="Name for identification")
@@ -90,7 +91,7 @@ def _bw_activity_search(activity_id: dict) -> Activity:
     bw_activity: Optional[Activity] = None
     if id_.code:
         if id_.database:
-            bw_activity = bd.Database(id_.database).get_node(id_.code)
+            bw_activity = bd.Database(id_.database).get(id_.code)
         else:
             bw_activity = get_activity(id_.code)
     elif id_.name:
@@ -102,6 +103,8 @@ def _bw_activity_search(activity_id: dict) -> Activity:
                 search_results = bd.Database(db).search(id_.name, filter=filters)
             else:
                 search_results = bd.Database(db).search(id_.name)
+                # filter exact name
+                search_results = list(filter(lambda a: a["name"] == id_.name, search_results))
             if id_.unit:
                 search_results = list(
                     filter(lambda a: a["unit"] == id_.unit, search_results)
@@ -174,7 +177,7 @@ class BrightwayAdapter(EnbiosAdapter):
             # todo: should complain, if the same method is passed twice
             bw_method = bd.methods.get(method_id)
             if not bw_method:
-                raise Exception(f"Method with id: {method_id} does not exist")
+                raise ValueError(f"Method with id: {method_id} does not exist")
             return ExperimentMethodPrepData(
                 id=tuple(method_id), bw_method_unit=bw_method["unit"]
             )
@@ -185,9 +188,9 @@ class BrightwayAdapter(EnbiosAdapter):
         return list(self.methods.keys())
 
     def validate_node_output(
-        self,
-        node_name: str,
-        target_output: NodeOutput,
+            self,
+            node_name: str,
+            target_output: NodeOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -198,10 +201,10 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_activity_unit = "not yet set"
         try:
             target_quantity: Quantity = (
-                ureg.parse_expression(
-                    bw_unit_fix(target_output.unit), case_sensitive=False
-                )
-                * target_output.magnitude
+                    ureg.parse_expression(
+                        bw_unit_fix(target_output.unit), case_sensitive=False
+                    )
+                    * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -211,15 +214,15 @@ class BrightwayAdapter(EnbiosAdapter):
                 f"of activity {node_name}. {err}. "
                 f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
             )
-            raise Exception(f"Unit error, {err}; For activity: {node_name}")
-        except DimensionalityError as err:
-            logger.error(
-                f"Cannot convert output of activity {node_name}. -"
-                f"From- \n{target_output}\n-To-"
-                f"\n{bw_activity_unit} (brightway unit)"
-                f"\n{err}"
-            )
-            raise Exception(f"Unit error for activity: {node_name}")
+            raise UndefinedUnitError(f"Unit error, {err}; For activity: {node_name}")
+        # except DimensionalityError as err:
+        #     logger.error(
+        #         f"Cannot convert output of activity {node_name}. -"
+        #         f"From- \n{target_output}\n-To-"
+        #         f"\n{bw_activity_unit} (brightway unit)"
+        #         f"\n{err}"
+        #     )
+        #     raise DimensionalityError(f"Unit error for activity: {node_name}")
 
     def validate_node(self, node_name: str, activity_config: Any):
         assert isinstance(
@@ -257,6 +260,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 act_output = scenario.activities_outputs[act_alias]
                 inventory.append({activity.bw_activity: act_output})
             except KeyError:
+                # todo not sure if that ever happens..
                 if not scenario.config.exclude_defaults:
                     raise Exception(
                         f"Activity {act_alias} not found in scenario {scenario.name}"
@@ -287,7 +291,8 @@ class BrightwayAdapter(EnbiosAdapter):
         for act_alias in self.activityMap.keys():
             if act_alias not in scenario.activities_outputs:
                 if not scenario.config.exclude_defaults:
-                    raise Exception(
+                    # todo not sure if that ever happens...
+                    raise ValueError(
                         f"Activity {act_alias} not found in scenario {scenario.name}"
                     )
                 continue
