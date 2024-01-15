@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 from pint import Quantity, UndefinedUnitError, DimensionalityError
 from pint.facets.plain import PlainQuantity
@@ -7,25 +7,25 @@ from pint.facets.plain import PlainQuantity
 import enbios
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_base_models import ActivityOutput
+from enbios.models.experiment_base_models import NodeOutput
 from enbios.models.experiment_models import ScenarioResultNodeData, ResultValue
 
 
 class EnbiosAggregator(ABC):
     @abstractmethod
-    def validate_config(self):
+    def validate_config(self, config: Optional[dict[str, Any]]):
         pass
 
     @abstractmethod
-    def validate_node_output(
+    def aggregate_node_output(
         self,
         node: BasicTreeNode[ScenarioResultNodeData],
         scenario_name: Optional[str] = "",
-    ) -> bool:
+    ) -> Optional[NodeOutput]:
         pass
 
     @abstractmethod
-    def aggregate_results(self, node: BasicTreeNode[ScenarioResultNodeData]):
+    def aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData]):
         pass
 
     @staticmethod
@@ -51,14 +51,14 @@ class SumAggregator(EnbiosAggregator):
     def __init__(self):
         self.logger = get_logger(__name__)
 
-    def validate_config(self):
+    def validate_config(self, config: Optional[dict[str, Any]]):
         pass
 
-    def validate_node_output(
+    def aggregate_node_output(
         self,
         node: BasicTreeNode[ScenarioResultNodeData],
         scenario_name: Optional[str] = "",
-    ) -> bool:
+    ) -> Optional[NodeOutput]:
         node_output: Optional[Union[Quantity, PlainQuantity]] = None
         for child in node.children:
             # if not child._data:
@@ -98,10 +98,10 @@ class SumAggregator(EnbiosAggregator):
                 break
         if node_output is not None:
             node_output = node_output.to_compact()
-            node.data.output = ActivityOutput(
+            result_node_output = NodeOutput(
                 unit=str(node_output.units), magnitude=node_output.magnitude
             )
-            return True
+            return result_node_output
         else:
             # node.set_data(TechTreeNodeData())
             self.logger.warning(
@@ -109,18 +109,19 @@ class SumAggregator(EnbiosAggregator):
                 f"(lvl: {node.level}). "
                 f"Not calculating any upper nodes."
             )
-            return False
+            return None
 
-    def aggregate_results(self, node: BasicTreeNode[ScenarioResultNodeData]):
+    def aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData]) -> dict[str, ResultValue]:
+        result: dict[str, ResultValue] = {}
         for child in node.children:
             for key, value in child.data.results.items():
                 ignore_short_multi_mag = False
-                if node.data.results.get(key) is None:
-                    node.data.results[key] = ResultValue(
+                if result.get(key) is None:
+                    result[key] = ResultValue(
                         magnitude=0, unit=value.unit, multi_magnitude=[]
                     )
                     ignore_short_multi_mag = True
-                node_agg_result = node.data.results[key]
+                node_agg_result = result[key]
                 if value.magnitude:
                     node_agg_result.magnitude += value.magnitude
                 max_len = max(
@@ -142,12 +143,13 @@ class SumAggregator(EnbiosAggregator):
                         f"Multi magnitude of child {child.name} is shorter than node {node.name}."
                     )
 
-                node.data.results[key].multi_magnitude = [
+                result[key].multi_magnitude = [
                     a + b
                     for a, b in zip(
                         node_agg_result.multi_magnitude, value.multi_magnitude
                     )
                 ]
+        return result
 
     @staticmethod
     def node_indicator() -> str:

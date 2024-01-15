@@ -1,7 +1,7 @@
 from pint import Quantity
 
 from enbios import ureg
-from enbios.models.experiment_base_models import ActivityOutput
+from enbios.models.experiment_base_models import NodeOutput
 
 
 def compact_all_to(quantities: list[Quantity], use_min: bool = True) -> list[Quantity]:
@@ -16,7 +16,7 @@ def compact_all_to(quantities: list[Quantity], use_min: bool = True) -> list[Qua
     return [q.to(base_value.units) for q in quantities]
 
 
-def get_output_in_unit(output: ActivityOutput, target_unit: str) -> float:
+def get_output_in_unit(output: NodeOutput, target_unit: str) -> float:
     """
     Convert the output to a magnitude the given unit
     :param output:

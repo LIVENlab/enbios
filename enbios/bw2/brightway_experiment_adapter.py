@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from logging import getLogger
 from typing import Optional, Any, Union, Sequence
 
-import bw2data
 import bw2data as bd
 from bw2data.backends import Activity
 from numpy import ndarray
@@ -14,7 +13,7 @@ from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
 from enbios.bw2.util import bw_unit_fix, get_activity
-from enbios.models.experiment_base_models import ActivityOutput
+from enbios.models.experiment_base_models import NodeOutput, AdapterModel
 from enbios.models.experiment_models import (
     ResultValue,
 )
@@ -64,16 +63,13 @@ class BrightwayActivityConfig(BaseModel):
     # additional filter
     unit: str = Field(None, description="Search: unit filter of results")  # unit
     # internal-name
-    default_output: ActivityOutput = Field(
+    default_output: NodeOutput = Field(
         None, description="Default output of the activity for all scenarios"
     )
 
 class BWMethodModel(BaseModel):
     name: str = Field(None, description="Name for identification")
     id: tuple[str, ...] = Field(None, description="Brightway method id")
-
-
-BWMethodDefinition = RootModel[dict[str, Sequence[str]]]
 
 
 class BWMethodDefinition(RootModel):
@@ -130,7 +126,7 @@ def _bw_activity_search(activity_id: dict) -> Activity:
 @dataclass
 class BWActivityData:
     bw_activity: Activity
-    default_output: ActivityOutput
+    default_output: NodeOutput
 
 
 class BrightwayAdapter(EnbiosAdapter):
@@ -138,7 +134,7 @@ class BrightwayAdapter(EnbiosAdapter):
     def name() -> str:
         return "brightway-adapter"
 
-    def validate_definition(self, definition: dict[str, Any]):
+    def validate_definition(self, definition: AdapterModel):
         pass
 
     def __init__(self):
@@ -188,10 +184,10 @@ class BrightwayAdapter(EnbiosAdapter):
         }
         return list(self.methods.keys())
 
-    def validate_activity_output(
+    def validate_node_output(
         self,
         node_name: str,
-        target_output: ActivityOutput,
+        target_output: NodeOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -225,7 +221,7 @@ class BrightwayAdapter(EnbiosAdapter):
             )
             raise Exception(f"Unit error for activity: {node_name}")
 
-    def validate_activity(self, node_name: str, activity_config: Any):
+    def validate_node(self, node_name: str, activity_config: Any):
         assert isinstance(
             activity_config, dict
         ), f"Activity id (type: dict) must be defined for activity {node_name}"
@@ -234,21 +230,21 @@ class BrightwayAdapter(EnbiosAdapter):
 
         self.activityMap[node_name] = BWActivityData(
             bw_activity=bw_activity,
-            default_output=ActivityOutput(
+            default_output=NodeOutput(
                 unit=bw_unit_fix(bw_activity["unit"]), magnitude=1
             ),
         )
         if "default_output" in activity_config:
             self.activityMap[
                 node_name
-            ].default_output.magnitude = self.validate_activity_output(
-                node_name, ActivityOutput(**activity_config["default_output"])
+            ].default_output.magnitude = self.validate_node_output(
+                node_name, NodeOutput(**activity_config["default_output"])
             )
 
     def get_default_output_value(self, activity_name: str) -> float:
         return self.activityMap[activity_name].default_output.magnitude
 
-    def get_activity_output_unit(self, activity_name: str) -> str:
+    def get_node_output_unit(self, activity_name: str) -> str:
         return bw_unit_fix(self.activityMap[activity_name].bw_activity["unit"])
 
     def get_method_unit(self, method_name: str) -> str:
@@ -318,6 +314,6 @@ class BrightwayAdapter(EnbiosAdapter):
             "method": BWMethodDefinition.model_json_schema(),
         }
 
-    def run(self):
-        logger.error("Brightway adapter does not implment the generic run method")
-        pass
+    # def run(self) -> dict[str,dict[str, dict[str, ResultValue]]]:
+    #     logger.error("Brightway adapter does not implment the generic run method")
+    #     return {}

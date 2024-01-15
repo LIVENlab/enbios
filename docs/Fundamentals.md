@@ -54,13 +54,13 @@ Additionally, the configuration contains 2 scenarios.
 title: Example hierarchy 
 ---
 graph LR
-    root("root\n(sum)")
-    root --> wind("wind\n(sum)")
-    root --> solar("solar\n(sum)")
-    wind --> w1[electricity production, wind, >3MW turbine, onshore]
-    wind --> w2[electricity production, wind, 1-3MW turbine, onshore]
-    solar --> s1[electricity production, solar tower power plant, 20 MW]
-    solar --> s2[electricity production, solar thermal parabolic trough, 50 MW]
+    root("root")
+    root --> wind("wind")
+    root --> solar("solar")
+    wind --> w1[wind turbine >3MW onshore]
+    wind --> w2[wind turbine 1-3MW onshore]
+    solar --> s1[solar tower power plant, 20 MW]
+    solar --> s2[solar thermal parabolic trough, 50 MW]
 ```
 
 _(structural nodes are rectangles and functional nodes are rounded rectangles)_
@@ -98,7 +98,7 @@ Full details are below the configuration
         "aggregator": "sum",
         "children": [
           {
-            "name": "electricity production, wind, >3MW turbine, onshore",
+            "name": "wind turbine >3MW onshore",
             "adapter": "bw",
             "config": {
               "code": "0d48975a3766c13e68cedeb6c24f6f74",
@@ -109,7 +109,7 @@ Full details are below the configuration
             }
           },
           {
-            "name": "electricity production, wind, 1-3MW turbine, onshore",
+            "name": "wind turbine 1-3MW onshore",
             "adapter": "bw",
             "config": {
               "code": "ed3da88fc23311ee183e9ffd376de89b"
@@ -122,14 +122,14 @@ Full details are below the configuration
         "aggregator": "sum",
         "children": [
           {
-            "name": "electricity production, solar tower power plant, 20 MW",
+            "name": "solar tower power plant, 20 MW",
             "adapter": "bw",
             "config": {
               "code": "f2700b2ffcb6b32143a6f95d9cca1721"
             }
           },
           {
-            "name": "electricity production, solar thermal parabolic trough, 50 MW",
+            "name": "solar thermal parabolic trough, 50 MW",
             "adapter": "bw",
             "config": {
               "code": "19040cdacdbf038e2f6ad59814f7a9ed"
@@ -143,19 +143,19 @@ Full details are below the configuration
     {
       "name": "normal scenario",
       "activities": {
-        "electricity production, wind, >3MW turbine, onshore": [
+        "wind turbine >3MW onshore": [
           "kilowatt_hour",
           1
         ],
-        "electricity production, wind, 1-3MW turbine, onshore": [
+        "wind turbine 1-3MW onshore": [
           "kilowatt_hour",
           1
         ],
-        "electricity production, solar tower power plant, 20 MW": [
+        "solar tower power plant, 20 MW": [
           "kilowatt_hour",
           1
         ],
-        "electricity production, solar thermal parabolic trough, 50 MW": [
+        "solar thermal parabolic trough, 50 MW": [
           "kilowatt_hour",
           1
         ]
@@ -164,19 +164,19 @@ Full details are below the configuration
     {
       "name": "randomized outputs",
       "activities": {
-        "electricity production, wind, >3MW turbine, onshore": [
+        "wind turbine >3MW onshore": [
           "kilowatt_hour",
           6
         ],
-        "electricity production, wind, 1-3MW turbine, onshore": [
+        "wind turbine 1-3MW onshore": [
           "kilowatt_hour",
           1
         ],
-        "electricity production, solar tower power plant, 20 MW": [
+        "solar tower power plant, 20 MW": [
           "kilowatt_hour",
           8
         ],
-        "electricity production, solar thermal parabolic trough, 50 MW": [
+        "solar thermal parabolic trough, 50 MW": [
           "kilowatt_hour",
           6
         ]
@@ -306,6 +306,7 @@ parameter `details` is True (default:True)),
 `config`, which will have the 2 (or the 3 in the case of aggregators) fields.
 
 E.g. get_builtin_adapters
+
 ```json
 {
   "simple-assignment-adapter": {
@@ -564,6 +565,7 @@ will return all configs for all adapters and aggregators specified in the experi
 modules, when `include_all_builtin_configs` is set True (default).
 
 The configs are in a dictionary in the fields `adapters`, `aggregators`
+
 ```json
   {
   "adapters": {
@@ -576,4 +578,100 @@ The configs are in a dictionary in the fields `adapters`, `aggregators`
 ```
 
 ## Creating Adapters and Aggregators
+
+In order to create new adapters and aggregators, one has to create module which contain a class, which inherits
+from the abstract classes `enbios.base.adapters_aggregators.adapter.EnbiosAdapter`
+or `enbios.base.adapters_aggregators.aggregator.EnbiosAggregator` respectively.
+
+The fact that these parent classes are abstract, means they both specify a set of
+abstract methods, which any subclass needs to implement.
+
+The internals of these functions is mostly up to the developer, but they have to make sure, that they return data of the
+types that enbios requires (these return types are already included as return type hints in the abstract methods).
+
+### Adapter
+
+First, there are several validation functions. These functions serve to check the correctness of the input, but also to
+store all configurations inside the adapter object as they are later needed for the execution. In case of invalid data,
+they should raise an Exception. In the case some validation is not required, it is ok, they just contain `pass`.
+
+`validate_definition(self, definition: AdapterModel)`
+
+Validates the whole adapter definition, which is the whole dictionary (parse
+as `enbios.models.experiment_base_models.AdapterModel`)
+
+`validate_config(self, config: Optional[dict[str, Any]])`
+
+Validates the configuration (the `config` value in the definition).
+
+`validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]`
+
+Validates the `methods` in the definition.
+
+`validate_node(self, node_name: str, activity_config: Any)`
+
+Validates a node configuration, that specifies this as its adapter.
+
+`validate_node_output(self, node_name: str, target_output: ActivityOutput) -> float`
+
+Validates the output of a node as part of a scenario validation in the experiment.
+
+`get_node_output_unit(self, activity_name: str) -> str`
+
+Get the output unit of a node.
+
+`get_method_unit(self, method_name: str) -> str`
+
+Get the unit of a method.
+
+`get_default_output_value(self, activity_name: str) -> float`
+
+Get the default output amountof a node (in its defined output unit).
+
+`run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]`
+
+Run a scenario.
+
+Additionally, there are some static method, which means, they can be called on the Adapter class.
+
+`static node_indicator() -> str`
+
+The indicator that can be used, to indicate that a node should use this adapter (alternatively, the name, as given in
+name() can also be used).
+
+`static get_config_schemas() -> dict[str, dict[str, Any]]`
+
+Get the configuration schemas for `config`, `method` and  `activity`. The idea here, is that, these are generated from
+Pydantic modelclasses, which are used `validate_config`, `validate_node` and `validate_methods`.
+
+`static name() -> str`
+
+Get the name of the adapter.
+
+### Aggregator
+
+`validate_config(self, config: Optional[dict[str, Any]])`
+
+Validate the configuration of the aggregator.
+
+`aggregate_node_output(self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: Optional[str] = "") -> Optional[NodeOutput]`
+
+Aggregate the outputs of the children of a node. This method should return an optional NodeOutput, if the aggregation
+was correct and there is some uniform output. This is in order to prevent errors higher up in the hierarchy. For
+example, the Sum aggregator, returns NodeOutput, if the outputs (and crucially their units) can be summed up. It returns
+None,
+if the units don't fit together.
+This function is already called during the initiation of an experiment as part of each scenario validation.
+
+`aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData])`
+
+Aggregate the restults of the children of a node.
+
+Static methods:
+
+`def node_indicator() -> str`
+
+`name() -> str`
+
+`get_config_schemas() -> dict`
 

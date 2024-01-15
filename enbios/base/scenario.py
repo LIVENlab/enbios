@@ -12,7 +12,7 @@ from enbios.generic.files import PathLike
 from enbios.models.experiment_base_models import (
     HierarchyNodeReference,
     ScenarioConfig,
-    ActivityOutput,
+    NodeOutput,
 )
 
 # for type hinting
@@ -25,7 +25,6 @@ from enbios.models.experiment_models import (
     TechTreeNodeData,
     Activity_Outputs,
 )
-
 
 logger = get_logger(__name__)
 
@@ -56,7 +55,7 @@ class Scenario:
                 activity_node = self.result_tree.find_subnode_by_name(activity_name)
             except StopIteration:
                 raise ValueError(f"Activity {activity_name} not found in result tree")
-            activity_node.data.output = ActivityOutput(
+            activity_node.data.output = NodeOutput(
                 unit=self.experiment._get_activity_output_unit(activity_name),
                 magnitude=self.activities_outputs[activity_name],
             )
@@ -67,7 +66,7 @@ class Scenario:
         if self.config.exclude_defaults:
 
             def remove_empty_nodes(
-                node: BasicTreeNode[ScenarioResultNodeData], cancel_parents_of: set[str]
+                    node: BasicTreeNode[ScenarioResultNodeData], cancel_parents_of: set[str]
             ):
                 # aggregators without children are not needed
                 if node.is_leaf and node.data.aggregator:
@@ -92,21 +91,15 @@ class Scenario:
 
     @staticmethod
     def _propagate_results_upwards(
-        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"
+            node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"
     ):
         if node.is_leaf:
             return
         else:
-            experiment.get_node_aggregator(node).aggregate_results(node)
-
-    # def _get_methods(self) -> dict[str, ExperimentMethodPrepData]:
-    #     if self.methods:
-    #         return self.methods
-    #     else:
-    #         return self.experiment.methods
+            node.data.results = experiment.get_node_aggregator(node).aggregate_node_result(node)
 
     def run(
-        self, results_as_dict: bool = True
+            self, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         # if not self._get_methods():
         #     raise ValueError(f"Scenario '{self.name}' has no methods")
@@ -170,7 +163,7 @@ class Scenario:
 
     @staticmethod
     def wrapper_data_serializer(
-        include_output: bool = True, expand_results: bool = False
+            include_output: bool = True, expand_results: bool = False
     ) -> Callable[[ScenarioResultNodeData], dict]:
         def _expand_results(results: dict[str, ResultValue]) -> dict:
             """
@@ -216,12 +209,12 @@ class Scenario:
         return data_serializer
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: Optional[dict] = None,
+            self,
+            file_path: PathLike,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: Optional[dict] = None,
     ):
         """
         Save the results (as tree) to a csv file
@@ -251,10 +244,10 @@ class Scenario:
         )
 
     def result_to_dict(
-        self,
-        include_output: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: dict = None,
+            self,
+            include_output: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: dict = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
@@ -294,9 +287,9 @@ class Scenario:
         )
 
         def recursive_convert(
-            node_: BasicTreeNode[TechTreeNodeData],
+                node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
-            output: Optional[ActivityOutput] = None
+            output: Optional[NodeOutput] = None
             results = {}
             if node_.is_leaf:
                 calc_data = self.result_tree.find_subnode_by_name(node_.name).data

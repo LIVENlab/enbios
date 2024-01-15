@@ -11,7 +11,7 @@ from enbios.base.experiment import Experiment, ScenarioResultNodeData
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.generic.files import ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_base_models import ActivityOutput
+from enbios.models.experiment_base_models import NodeOutput
 from enbios.models.experiment_models import ResultValue
 from test.enbios.conftest import tempfolder
 from test.enbios.test_project_fixture import TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH
@@ -113,7 +113,7 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                       'children': [],
                                       'data':
                                           ScenarioResultNodeData(
-                                              output=ActivityOutput(
+                                              output=NodeOutput(
                                                   unit="kilowatt_hour", magnitude=1.0),
                                               adapter="bw",
                                               aggregator=None,
@@ -121,7 +121,7 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                                   default_bw_method_name: ResultValue(unit="kilogram",
                                                                                       magnitude=_impact)})}],
                                  'data': ScenarioResultNodeData(
-                                     output=ActivityOutput(
+                                     output=NodeOutput(
                                          unit="kilowatt_hour", magnitude=1.0),
                                      adapter=None,
                                      aggregator="sum",

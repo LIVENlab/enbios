@@ -24,7 +24,7 @@ from enbios.models.environment_model import Settings
 from enbios.models.experiment_base_models import (
     ExperimentConfig,
     ExperimentScenarioData,
-    ActivityOutput,
+    NodeOutput,
 )
 from enbios.models.experiment_models import (
     Activity_Outputs,
@@ -74,7 +74,7 @@ class Experiment:
 
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
-                self._get_node_adapter(node).validate_activity(
+                self._get_node_adapter(node).validate_node(
                     node.name, node.data.config
                 )
                 self._activities[node.name] = node
@@ -82,10 +82,10 @@ class Experiment:
         def recursive_convert(
             node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
-            output: Optional[ActivityOutput] = None
+            output: Optional[NodeOutput] = None
             if node_.is_leaf:
-                output = ActivityOutput(
-                    unit=self._get_node_adapter(node_).get_activity_output_unit(
+                output = NodeOutput(
+                    unit=self._get_node_adapter(node_).get_node_output_unit(
                         node_.name
                     ),
                     magnitude=0,
@@ -163,15 +163,18 @@ class Experiment:
 
         :return: a aggregator-name-Aggregator dict
         """
-        aggregators = [load_aggregator(adapter) for adapter in self.raw_data.aggregators]
+        aggregators = []
+        for aggregator_def in self.raw_data.aggregators:
+            aggregator = load_aggregator(aggregator_def)
+            aggregator.validate_config(aggregator_def.config)
+            aggregators.append(aggregator)
 
         aggregator_names = [a.name() for a in aggregators]
         for builtin_name, aggregator in BUILTIN_AGGREGATORS.items():
             if builtin_name not in aggregator_names:
-                aggregators.append(aggregator())
+                aggregator = aggregator()
 
-        for aggregator in aggregators:
-            aggregator.validate_config()
+                aggregators.append(aggregator)
 
         return {aggregator.name(): aggregator for aggregator in aggregators}
 
@@ -257,7 +260,7 @@ class Experiment:
         """
         # todo : just used once
         activity = self._get_activity(activity_name)
-        return self._get_node_adapter(activity).get_activity_output_unit(activity_name)
+        return self._get_node_adapter(activity).get_node_output_unit(activity_name)
 
     def _validate_scenario(self, scenario_data: ExperimentScenarioData) -> Scenario:
         """
@@ -276,8 +279,8 @@ class Experiment:
                 adapter = self._get_node_adapter(activity)
 
                 if isinstance(activity_output, dict):
-                    activity_output = ActivityOutput(**activity_output)
-                result[activity_name] = adapter.validate_activity_output(
+                    activity_output = NodeOutput(**activity_output)
+                result[activity_name] = adapter.validate_node_output(
                     activity_name, activity_output
                 )
             return result

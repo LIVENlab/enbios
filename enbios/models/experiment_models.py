@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, model_validator, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
 from enbios.const import DEFAULT_SUM_AGGREGATOR
-from enbios.models.experiment_base_models import StrictInputConfig, ActivityOutput
+from enbios.models.experiment_base_models import StrictInputConfig, NodeOutput
 
 
 class TechTreeNodeData(BaseModel):
@@ -35,7 +35,7 @@ class TechTreeNodeData(BaseModel):
         return v
 
 
-class ResultValue(ActivityOutput):
+class ResultValue(NodeOutput):
     model_config = StrictInputConfig
     magnitude: Optional[float] = None
     multi_magnitude: Optional[list[float]] = field(default_factory=list)
@@ -43,7 +43,7 @@ class ResultValue(ActivityOutput):
 
 class ScenarioResultNodeData(BaseModel):
     model_config = StrictInputConfig
-    output: Optional[ActivityOutput] = None
+    output: Optional[NodeOutput] = None
     results: dict[str, ResultValue] = field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None

@@ -4,7 +4,7 @@ from typing import Any, Optional
 from enbios.base.scenario import Scenario
 from enbios.generic.enbios2_logging import get_logger
 from enbios.models.experiment_base_models import (
-    ActivityOutput,
+    NodeOutput,
     AdapterModel,
 )
 from enbios.models.experiment_models import ResultValue
@@ -32,17 +32,17 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def validate_activity_output(
-        self, node_name: str, target_output: ActivityOutput
+    def validate_node(self, node_name: str, activity_config: Any):
+        pass
+
+    @abstractmethod
+    def validate_node_output(
+        self, node_name: str, target_output: NodeOutput
     ) -> float:
         pass
 
     @abstractmethod
-    def validate_activity(self, node_name: str, activity_config: Any):
-        pass
-
-    @abstractmethod
-    def get_activity_output_unit(self, activity_name: str) -> str:
+    def get_node_output_unit(self, activity_name: str) -> str:
         pass
 
     @abstractmethod
@@ -51,10 +51,6 @@ class EnbiosAdapter(ABC):
 
     @abstractmethod
     def get_default_output_value(self, activity_name: str) -> float:
-        pass
-
-    @abstractmethod
-    def run(self):
         pass
 
     @abstractmethod

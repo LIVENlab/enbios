@@ -122,7 +122,7 @@ class ScenarioConfig(BaseModel):
     ] = False  # will only use on activities that are specified in the scenario
 
 
-class ActivityOutput(BaseModel):
+class NodeOutput(BaseModel):
     model_config = StrictInputConfig
     unit: str
     magnitude: float = 1.0
@@ -139,7 +139,7 @@ class ActivityOutput(BaseModel):
 class ExperimentScenarioData(BaseModel):
     model_config = StrictInputConfig
     name: Optional[str] = Field(None)
-    activities: dict[str, ActivityOutput] = Field(
+    activities: dict[str, NodeOutput] = Field(
         None, description="name to output, null means default-output (check exists)"
     )
 
