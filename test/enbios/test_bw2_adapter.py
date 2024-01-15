@@ -122,6 +122,7 @@ def test_get_method_unit(experiment_setup):
     method = list((experiment_setup["scenario"]["adapters"][0]["methods"].keys()))[0]
     assert exp.adapters[0].get_method_unit(method)
 
+
 def test_get_config_schema():
     schemas = BrightwayAdapter.get_config_schemas()
     assert schemas is not None
@@ -148,14 +149,13 @@ def test_run_exclude_defaults(experiment_setup):
         "activities": {
             experiment_setup["scenario"]["hierarchy"]["children"][0]["name"]: ["kWh", 5]
         },
-        "config": {"exclude_defaults":True}
+        "config": {"exclude_defaults": True}
     }]
     exp = Experiment(experiment_setup["scenario"])
 
     exp.run()
 
+
 def test_run_use_distribution(experiment_setup):
     experiment_setup["scenario"]["adapters"][0]["config"]["use_k_bw_distributions"] = 2
     Experiment(experiment_setup["scenario"]).run()
-
-
