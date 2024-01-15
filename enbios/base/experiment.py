@@ -74,9 +74,7 @@ class Experiment:
 
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
-                self._get_node_adapter(node).validate_node(
-                    node.name, node.data.config
-                )
+                self._get_node_adapter(node).validate_node(node.name, node.data.config)
                 self._activities[node.name] = node
 
         def recursive_convert(
@@ -85,9 +83,7 @@ class Experiment:
             output: Optional[NodeOutput] = None
             if node_.is_leaf:
                 output = NodeOutput(
-                    unit=self._get_node_adapter(node_).get_node_output_unit(
-                        node_.name
-                    ),
+                    unit=self._get_node_adapter(node_).get_node_output_unit(node_.name),
                     magnitude=0,
                 )
             return BasicTreeNode(

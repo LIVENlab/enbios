@@ -32,5 +32,8 @@ def import_ecoinvent(project_name: str, dataset_path: str, database_name: str):
 
 
 if __name__ == "__main__":
-    import_ecoinvent("ei391", "/home/ra/projects/enbios/data/ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/datasets",
-                     "ei391_cutoff_ecoSpold02")
+    import_ecoinvent(
+        "ei391",
+        "/home/ra/projects/enbios/data/ecoinvent/ecoinvent 3.9.1_cutoff_ecoSpold02/datasets",
+        "ei391_cutoff_ecoSpold02",
+    )

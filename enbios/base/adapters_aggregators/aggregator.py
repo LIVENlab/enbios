@@ -111,7 +111,9 @@ class SumAggregator(EnbiosAggregator):
             )
             return None
 
-    def aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData]) -> dict[str, ResultValue]:
+    def aggregate_node_result(
+        self, node: BasicTreeNode[ScenarioResultNodeData]
+    ) -> dict[str, ResultValue]:
         result: dict[str, ResultValue] = {}
         for child in node.children:
             for key, value in child.data.results.items():

@@ -38,12 +38,12 @@ class BWAdapterConfig(BaseModel):
     store_raw_results: bool = Field(
         False,
         description="If the numpy matrix of brightway should be stored in the adapter. "
-                    "Will be stored in `raw_results[scenario.name]`",
+        "Will be stored in `raw_results[scenario.name]`",
     )
     store_lca_object: bool = Field(
         False,
         description="If the LCA object should be stored. "
-                    "Will be stored in `lca_objects[scenario.name]`",
+        "Will be stored in `lca_objects[scenario.name]`",
     )
 
 
@@ -104,7 +104,9 @@ def _bw_activity_search(activity_id: dict) -> Activity:
             else:
                 search_results = bd.Database(db).search(id_.name)
                 # filter exact name
-                search_results = list(filter(lambda a: a["name"] == id_.name, search_results))
+                search_results = list(
+                    filter(lambda a: a["name"] == id_.name, search_results)
+                )
             if id_.unit:
                 search_results = list(
                     filter(lambda a: a["unit"] == id_.unit, search_results)
@@ -188,9 +190,9 @@ class BrightwayAdapter(EnbiosAdapter):
         return list(self.methods.keys())
 
     def validate_node_output(
-            self,
-            node_name: str,
-            target_output: NodeOutput,
+        self,
+        node_name: str,
+        target_output: NodeOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -201,10 +203,10 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_activity_unit = "not yet set"
         try:
             target_quantity: Quantity = (
-                    ureg.parse_expression(
-                        bw_unit_fix(target_output.unit), case_sensitive=False
-                    )
-                    * target_output.magnitude
+                ureg.parse_expression(
+                    bw_unit_fix(target_output.unit), case_sensitive=False
+                )
+                * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -233,9 +235,7 @@ class BrightwayAdapter(EnbiosAdapter):
 
         self.activityMap[node_name] = BWActivityData(
             bw_activity=bw_activity,
-            default_output=NodeOutput(
-                unit=bw_unit_fix(bw_activity["unit"]), magnitude=1
-            ),
+            default_output=NodeOutput(unit=bw_unit_fix(bw_activity["unit"]), magnitude=1),
         )
         if "default_output" in activity_config:
             self.activityMap[
