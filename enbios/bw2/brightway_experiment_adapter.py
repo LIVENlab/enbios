@@ -226,22 +226,22 @@ class BrightwayAdapter(EnbiosAdapter):
         #     )
         #     raise DimensionalityError(f"Unit error for activity: {node_name}")
 
-    def validate_node(self, node_name: str, activity_config: Any):
+    def validate_node(self, node_name: str, node_config: Any):
         assert isinstance(
-            activity_config, dict
+            node_config, dict
         ), f"Activity id (type: dict) must be defined for activity {node_name}"
         # get the brightway activity
-        bw_activity = _bw_activity_search(activity_config)
+        bw_activity = _bw_activity_search(node_config)
 
         self.activityMap[node_name] = BWActivityData(
             bw_activity=bw_activity,
             default_output=NodeOutput(unit=bw_unit_fix(bw_activity["unit"]), magnitude=1),
         )
-        if "default_output" in activity_config:
+        if "default_output" in node_config:
             self.activityMap[
                 node_name
             ].default_output.magnitude = self.validate_node_output(
-                node_name, NodeOutput(**activity_config["default_output"])
+                node_name, NodeOutput(**node_config["default_output"])
             )
 
     def get_default_output_value(self, activity_name: str) -> float:

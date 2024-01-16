@@ -55,9 +55,9 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
     def validate_node_output(self, node_name: str, target_output: NodeOutput) -> float:
         return get_output_in_unit(target_output, self.activities[node_name].output_unit)
 
-    def validate_node(self, node_name: str, activity_config: Any):
+    def validate_node(self, node_name: str, node_config: Any):
         self.activities[node_name] = SimpleAssignment(
-            **{**{"activity": node_name} | activity_config}
+            **{**{"activity": node_name} | node_config}
         )
 
     def get_node_output_unit(self, activity_name: str) -> str:

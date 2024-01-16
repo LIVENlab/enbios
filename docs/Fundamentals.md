@@ -608,7 +608,7 @@ Validates the configuration (the `config` value in the definition).
 
 Validates the `methods` in the definition.
 
-`validate_node(self, node_name: str, activity_config: Any)`
+`validate_node(self, node_name: str, node_config: Any)`
 
 Validates a node configuration, for each node that specifies this as its adapter.
 

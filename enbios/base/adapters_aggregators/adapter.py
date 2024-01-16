@@ -32,7 +32,7 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def validate_node(self, node_name: str, activity_config: Any):
+    def validate_node(self, node_name: str, node_config: Any):
         pass
 
     @abstractmethod
