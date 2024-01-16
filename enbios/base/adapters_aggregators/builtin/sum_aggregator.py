@@ -18,6 +18,9 @@ class SumAggregator(EnbiosAggregator):
     def validate_config(self, config: Optional[dict[str, Any]]):
         pass
 
+    def validate_node(self, node_name: str, node_config: Any):
+        pass
+
     def aggregate_node_output(
         self,
         node: BasicTreeNode[ScenarioResultNodeData],

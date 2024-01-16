@@ -13,6 +13,11 @@ class EnbiosAggregator(ABC):
         pass
 
     @abstractmethod
+    def validate_node(self, node_name: str, node_config: Any):
+        pass
+
+
+    @abstractmethod
     def aggregate_node_output(
         self,
         node: BasicTreeNode[ScenarioResultNodeData],

@@ -610,7 +610,7 @@ Validates the `methods` in the definition.
 
 `validate_node(self, node_name: str, activity_config: Any)`
 
-Validates a node configuration, that specifies this as its adapter.
+Validates a node configuration, for each node that specifies this as its adapter.
 
 `validate_node_output(self, node_name: str, target_output: ActivityOutput) -> float`
 
@@ -626,7 +626,7 @@ Get the unit of a method.
 
 `get_default_output_value(self, activity_name: str) -> float`
 
-Get the default output amountof a node (in its defined output unit).
+Get the default output amount of a node (in its defined output unit).
 
 `run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]`
 
@@ -642,7 +642,7 @@ name() can also be used).
 `static get_config_schemas() -> dict[str, dict[str, Any]]`
 
 Get the configuration schemas for `config`, `method` and  `activity`. The idea here, is that, these are generated from
-Pydantic modelclasses, which are used `validate_config`, `validate_node` and `validate_methods`.
+Pydantic model classes, which are used `validate_config`, `validate_node` and `validate_methods`.
 
 `static name() -> str`
 
@@ -653,6 +653,10 @@ Get the name of the adapter.
 `validate_config(self, config: Optional[dict[str, Any]])`
 
 Validate the configuration of the aggregator.
+
+`validate_node(self, node_name: str, node_config: Any)`
+
+Validates a node configuration, for each node that specifies this as its aggregator.
 
 `aggregate_node_output(self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: Optional[str] = "") -> Optional[NodeOutput]`
 
@@ -665,13 +669,18 @@ This function is already called during the initiation of an experiment as part o
 
 `aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData])`
 
-Aggregate the restults of the children of a node.
+Aggregate the results of the children of a node.
 
 Static methods:
 
 `def node_indicator() -> str`
 
+The indicator that can be used, to indicate that a node should use this aggregator (alternatively, the name, as given in
+name() can also be used).
+
 `name() -> str`
+
+Get the name of the adapter.
 
 `get_config_schemas() -> dict`
 

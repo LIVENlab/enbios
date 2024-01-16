@@ -60,22 +60,27 @@ class Experiment:
             data = config_file_path.read_data()
 
         self.raw_data = validate_experiment_data(data)
+        # resolve hierarchy and scenarios filepaths if present
         resolve_input_files(self.raw_data)
 
+        # load and validate adapters and aggregators
         self._adapters: dict[str, EnbiosAdapter]
         self.methods: list[str]
         self._adapters, self.methods = self._validate_adapters()
         self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
 
+        # validate overall hierarchy
         self.hierarchy_root: BasicTreeNode[
             TechTreeNodeData
         ] = validate_experiment_hierarchy(self.raw_data.hierarchy)
         self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
-
+        # validate individual nodes based on their adapter/aggregator
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
                 self._get_node_adapter(node).validate_node(node.name, node.data.config)
                 self._activities[node.name] = node
+            else:
+                self.get_node_aggregator(node).validate_node(node.name, node.data.config)
 
         def recursive_convert(
             node_: BasicTreeNode[TechTreeNodeData],
@@ -143,11 +148,6 @@ class Experiment:
             adapter.validate_config(adapter_def.config)
             adapters.append(adapter)
             adapter_methods = adapter.validate_methods(adapter_def.methods)
-            # if any([m in self.methods for m in adapter_methods.keys()]):
-            #     raise ValueError(
-            #         f"Some Method(s) {adapter_methods.keys()} already defined in "
-            #         f"another adapter"
-            #     )
             methods.extend([f"{adapter.node_indicator()}.{m}" for m in adapter_methods])
 
         adapter_map = {adapter.name(): adapter for adapter in adapters}
@@ -207,7 +207,7 @@ class Experiment:
     ) -> EnbiosAggregatorType:
         """
         Get the aggregator of a node
-        :param node: node, either in some hierarchy
+        :param node:
         :return:
         """
         return self._get_module_by_name_or_node_indicator(
@@ -412,7 +412,7 @@ class Experiment:
         #         results[scenario.alias] = scenario.set_results(
         #             scenario_results[index],
         #             distribution_results,
-        #             i == self.config.use_k_bw_distributions - 1,
+        #             i == self.config.use_k_bw_distributions - 1
         #         )
         self._execution_time = time.time() - start_time
         return results
