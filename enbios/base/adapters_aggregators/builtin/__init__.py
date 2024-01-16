@@ -1,4 +1,4 @@
-from enbios.base.adapters_aggregators.aggregator import SumAggregator
+from enbios.base.adapters_aggregators.builtin.sum_aggregator import SumAggregator
 from enbios.base.adapters_aggregators.builtin.simple_assignment_adapter import (
     SimpleAssignmentAdapter,
 )
