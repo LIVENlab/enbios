@@ -289,7 +289,7 @@ And the structural nodes in the example, have a config specific for the _brightw
 }
 ```
 
-All adapters/aggregators have the static function `get_config_schemas`, which gives us the corresponding jsonschemas for
+All adapters/aggregators have the static function `get_config_schemas`, which gives us the corresponding json-schemas for
 configuration. Adapters return 3 schemas which are (by convention) called: `adapter`, `activity` and `method`, while
 aggregators contain the schemas `aggregator`, `activity`.
 

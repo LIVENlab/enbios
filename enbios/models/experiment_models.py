@@ -1,10 +1,8 @@
 from dataclasses import field
 from typing import Optional, Any
 
-from pydantic import BaseModel, Field, model_validator, field_validator
-from pydantic_core.core_schema import ValidationInfo
+from pydantic import BaseModel, Field, model_validator
 
-from enbios.const import DEFAULT_SUM_AGGREGATOR
 from enbios.models.experiment_base_models import StrictInputConfig, NodeOutput
 
 
@@ -26,13 +24,6 @@ class TechTreeNodeData(BaseModel):
                 "Node must be either leaf ('id', 'adapter`) " "or non-leaf ('aggregator')"
             )
         return data
-
-    @field_validator("aggregator", mode="before")
-    @classmethod
-    def add_default_aggregator(cls, v: str, values: ValidationInfo) -> str:
-        if not values.data["adapter"]:
-            return DEFAULT_SUM_AGGREGATOR
-        return v
 
 
 class ResultValue(NodeOutput):

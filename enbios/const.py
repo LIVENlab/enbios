@@ -1,6 +1,4 @@
 from pathlib import Path
-import os
-from typing import Literal
 
 import os
 import sys
@@ -17,9 +15,3 @@ MAIN_DATABASE_PATH = BASE_DATABASES_PATH / "meta.sqlite"
 BASE_SCHEMA_PATH = BASE_DATA_PATH / "schema"
 
 BASE_TEST_DATA_PATH = Path(__file__).parent.parent / "test/data"
-
-# Important data paths/files
-BW_PROJECT_INDEX_FILE = BASE_DATA_PATH / "bw_project_index.json"
-
-
-DEFAULT_SUM_AGGREGATOR = "sum"
