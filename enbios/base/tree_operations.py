@@ -1,4 +1,4 @@
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Callable
 
 from enbios.models.experiment_base_models import (
     ExperimentHierarchyNodeData,
@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 
 
 def validate_experiment_hierarchy(
-    hierarchy: ExperimentHierarchyNodeData,
+        hierarchy: ExperimentHierarchyNodeData,
 ) -> BasicTreeNode[TechTreeNodeData]:
     # todo allow no output only when there are scenarios...
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
@@ -38,8 +38,9 @@ def validate_experiment_hierarchy(
 
 
 def validate_experiment_reference_hierarchy(
-    hierarchy: HierarchyNodeReference,
-    original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
+        hierarchy: HierarchyNodeReference,
+        original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
+        get_node_aggregator_fcn: Callable
 ) -> BasicTreeNode[TechTreeNodeData]:
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
         hierarchy.model_dump(), dataclass=TechTreeNodeData
@@ -59,7 +60,8 @@ def validate_experiment_reference_hierarchy(
             if not node.data.aggregator:
                 orig_node = original_experiment_hierarchy.find_subnode_by_name(node.name)
                 if not orig_node:
-                    raise ValueError(f"Node '{node.name}' not found in original hierarchy")
+                    get_node_aggregator_fcn(node).validate_node(node.name, node.data.config)
+                    # raise ValueError(f"Node '{node.name}' not found in original hierarchy")
                 node.set_data(orig_node.data)
         return True
 
@@ -68,7 +70,7 @@ def validate_experiment_reference_hierarchy(
 
 
 def recursive_resolve_outputs(
-    node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
+        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
 ):
     # todo, does this takes default values when an activity is not defined
     #  in the scenario?

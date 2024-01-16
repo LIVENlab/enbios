@@ -236,7 +236,7 @@ class Scenario:
 
         use_tree = self.result_tree
         if alternative_hierarchy:
-            use_tree = self.rearrange_results(alternative_hierarchy)
+            use_tree = self._rearrange_results(alternative_hierarchy)
 
         use_tree.to_csv(
             file_path,
@@ -274,18 +274,18 @@ class Scenario:
         if warn_no_results and not self._has_run:
             logger.warning(f"Scenario '{self.name}' has not been run yet")
         if alternative_hierarchy:
-            h = self.rearrange_results(alternative_hierarchy.copy())
+            h = self._rearrange_results(alternative_hierarchy.copy())
             return recursive_transform(h)
         else:
             return recursive_transform(self.result_tree.copy())
 
-    def rearrange_results(self, hierarchy: dict) -> BasicTreeNode[ScenarioResultNodeData]:
+    def _rearrange_results(self, hierarchy: dict) -> BasicTreeNode[ScenarioResultNodeData]:
         hierarchy_obj = HierarchyNodeReference(**hierarchy)
 
         hierarchy_root: BasicTreeNode[
             TechTreeNodeData
         ] = validate_experiment_reference_hierarchy(
-            hierarchy_obj, self.experiment.hierarchy_root
+            hierarchy_obj, self.experiment.hierarchy_root, self.experiment.get_node_aggregator
         )
 
         def recursive_convert(

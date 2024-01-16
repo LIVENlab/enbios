@@ -6,9 +6,7 @@ def test_simple_assignment_adapter():
         "adapters": [
             {
                 "adapter_name": "simple-assignment-adapter",
-                "config": {
-
-                },
+                "config": {},
                 "methods": {
                     "test": "co2"
                 }
@@ -41,11 +39,12 @@ def test_simple_assignment_adapter():
 
     exp = Experiment(data)
     res = exp.run()
-    rearrange = exp.scenarios[0].rearrange_results({
+    rearrange = exp.scenarios[0].result_to_dict(alternative_hierarchy={
         "name": "root",
         "children": [
             {
                 "name": "middle",
+                "aggregator":"sum",
                 "children": [
                     {
                         "name": "test",
@@ -53,4 +52,5 @@ def test_simple_assignment_adapter():
             }
         ]
     })
-    pass
+    print(rearrange)
+    assert rearrange
