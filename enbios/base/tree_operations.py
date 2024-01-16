@@ -59,7 +59,7 @@ def validate_experiment_reference_hierarchy(
             if not node.data.aggregator:
                 orig_node = original_experiment_hierarchy.find_subnode_by_name(node.name)
                 if not orig_node:
-                    raise ValueError(f"Node {node.name} not found in original hierarchy")
+                    raise ValueError(f"Node '{node.name}' not found in original hierarchy")
                 node.set_data(orig_node.data)
         return True
 

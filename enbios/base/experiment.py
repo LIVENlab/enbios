@@ -1,7 +1,6 @@
 import csv
 import math
 import time
-from collections import Counter
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
@@ -11,11 +10,12 @@ from typing import TypeVar
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.adapters_aggregators.builtin import BUILTIN_ADAPTERS, BUILTIN_AGGREGATORS
-from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
 from enbios.base.tree_operations import validate_experiment_hierarchy
+from enbios.base.validation import validate_run_scenario_setting, validate_scenarios, validate_scenario, \
+    validate_adapters, validate_aggregators
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
@@ -27,7 +27,6 @@ from enbios.models.experiment_base_models import (
     NodeOutput,
 )
 from enbios.models.experiment_models import (
-    Activity_Outputs,
     ScenarioResultNodeData,
     TechTreeNodeData,
 )
@@ -66,8 +65,8 @@ class Experiment:
         # load and validate adapters and aggregators
         self._adapters: dict[str, EnbiosAdapter]
         self.methods: list[str]
-        self._adapters, self.methods = self._validate_adapters()
-        self._aggregators: dict[str, EnbiosAggregator] = self._validate_aggregators()
+        self._adapters, self.methods = validate_adapters(self.raw_data.adapters)
+        self._aggregators: dict[str, EnbiosAggregator] = validate_aggregators(self.raw_data.aggregators)
 
         # validate overall hierarchy
         self.hierarchy_root: BasicTreeNode[
@@ -77,18 +76,18 @@ class Experiment:
         # validate individual nodes based on their adapter/aggregator
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
-                self._get_node_adapter(node).validate_node(node.name, node.data.config)
+                self.get_node_adapter(node).validate_node(node.name, node.data.config)
                 self._activities[node.name] = node
             else:
                 self.get_node_aggregator(node).validate_node(node.name, node.data.config)
 
         def recursive_convert(
-            node_: BasicTreeNode[TechTreeNodeData],
+                node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: Optional[NodeOutput] = None
             if node_.is_leaf:
                 output = NodeOutput(
-                    unit=self._get_node_adapter(node_).get_node_output_unit(node_.name),
+                    unit=self.get_node_adapter(node_).get_node_output_unit(node_.name),
                     magnitude=0,
                 )
             return BasicTreeNode(
@@ -105,8 +104,12 @@ class Experiment:
             self.hierarchy_root
         )
 
-        self.scenarios: list[Scenario] = self._validate_scenarios()
-        self._validate_run_scenario_setting()
+        self.scenarios: list[Scenario] = validate_scenarios(self.raw_data.scenarios,
+                                                            Experiment.DEFAULT_SCENARIO_NAME,
+                                                            self)
+        validate_run_scenario_setting(self.env_settings,
+                                      self.config,
+                                      self.scenario_names)
 
         self._lca: Optional[StackedMultiLCA] = None
         self._execution_time: float = float("NaN")
@@ -115,66 +118,7 @@ class Experiment:
     #     adapter_name, method_name = method_name.split(".")
     #     return self._adapters[adapter_name].get_method_unit(method_name)
 
-    def _validate_run_scenario_setting(self):
-        """
-        Validate a run environmental variable that is setting the scenario
-        """
-        if self.env_settings.RUN_SCENARIOS:
-            if self.config.run_scenarios:
-                logger.info(
-                    "Environment variable 'RUN_SCENARIOS' is set "
-                    "and overwriting experiment config."
-                )
-            self.config.run_scenarios = self.env_settings.RUN_SCENARIOS
-        if self.config.run_scenarios:
-            for scenario in self.config.run_scenarios:
-                if scenario not in self.scenario_names:
-                    raise ValueError(
-                        f"Scenario '{scenario}' not found in experiment scenarios. "
-                        f"Scenarios are: {self.scenario_names}"
-                    )
-
-    def _validate_adapters(self) -> tuple[dict[str:EnbiosAdapter], list[str]]:
-        """
-        Validate the adapters in this experiment data
-
-        :return: adapter-dict and method names
-        """
-        adapters = []
-        methods = []
-        for adapter_def in self.raw_data.adapters:
-            adapter = load_adapter(adapter_def)
-            adapter.validate_definition(adapter_def)
-            adapter.validate_config(adapter_def.config)
-            adapters.append(adapter)
-            adapter_methods = adapter.validate_methods(adapter_def.methods)
-            methods.extend([f"{adapter.node_indicator()}.{m}" for m in adapter_methods])
-
-        adapter_map = {adapter.name(): adapter for adapter in adapters}
-        return adapter_map, methods
-
-    def _validate_aggregators(self) -> dict[str, EnbiosAggregator]:
-        """
-        Validate the aggregators in this experiment data
-
-        :return: a aggregator-name-Aggregator dict
-        """
-        aggregators = []
-        for aggregator_def in self.raw_data.aggregators:
-            aggregator = load_aggregator(aggregator_def)
-            aggregator.validate_config(aggregator_def.config)
-            aggregators.append(aggregator)
-
-        aggregator_names = [a.name() for a in aggregators]
-        for builtin_name, aggregator in BUILTIN_AGGREGATORS.items():
-            if builtin_name not in aggregator_names:
-                aggregator = aggregator()
-
-                aggregators.append(aggregator)
-
-        return {aggregator.name(): aggregator for aggregator in aggregators}
-
-    def _get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
+    def get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
         Get an activity by either its name
         as it is defined in the experiment data
@@ -186,8 +130,8 @@ class Experiment:
             raise ValueError(f"Activity with name '{name}' not found")
         return activity
 
-    def _get_node_adapter(
-        self, node: BasicTreeNode[TechTreeNodeData]
+    def get_node_adapter(
+            self, node: BasicTreeNode[TechTreeNodeData]
     ) -> EnbiosAdapterType:
         """
         Get the adapter of a node in the experiment hierarchy
@@ -200,10 +144,10 @@ class Experiment:
         )
 
     def get_node_aggregator(
-        self,
-        node: Union[
-            BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
-        ],
+            self,
+            node: Union[
+                BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
+            ],
     ) -> EnbiosAggregatorType:
         """
         Get the aggregator of a node
@@ -215,10 +159,10 @@ class Experiment:
         )
 
     def _get_module_by_name_or_node_indicator(
-        self,
-        name_or_indicator: str,
-        module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
-        node_name: Optional[str] = None,
+            self,
+            name_or_indicator: str,
+            module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
+            node_name: Optional[str] = None,
     ) -> Union[EnbiosAdapter, EnbiosAggregator]:
         modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = (
             self._adapters if module_type == EnbiosAdapter else self._aggregators
@@ -237,7 +181,7 @@ class Experiment:
             + f"Available {module_type.__name__}s are: {[m.node_indicator() for m in modules.values()]}"
         )
 
-    def _get_activity_default_output(self, activity_name: str) -> float:
+    def get_activity_default_output(self, activity_name: str) -> float:
         """
         Get the default output of an activity (bottom node) by its name
 
@@ -245,8 +189,8 @@ class Experiment:
         :return: magnitude value of the default output
         """
         # todo remove, since seems to be just called once
-        activity = self._get_activity(activity_name)
-        return self._get_node_adapter(activity).get_default_output_value(activity.name)
+        activity = self.get_activity(activity_name)
+        return self.get_node_adapter(activity).get_default_output_value(activity.name)
 
     def _get_activity_output_unit(self, activity_name: str) -> str:
         """
@@ -255,90 +199,8 @@ class Experiment:
         :return:
         """
         # todo : just used once
-        activity = self._get_activity(activity_name)
-        return self._get_node_adapter(activity).get_node_output_unit(activity_name)
-
-    def _validate_scenario(self, scenario_data: ExperimentScenarioData) -> Scenario:
-        """
-        Validate one scenario
-        :param scenario_data:
-        :return:
-        """
-
-        def validate_activities(scenario_: ExperimentScenarioData) -> Activity_Outputs:
-            activities = scenario_.activities or {}
-            result: dict[str, float] = {}
-
-            for activity_name, activity_output in activities.items():
-                activity = self._get_activity(activity_name)
-
-                adapter = self._get_node_adapter(activity)
-
-                if isinstance(activity_output, dict):
-                    activity_output = NodeOutput(**activity_output)
-                result[activity_name] = adapter.validate_node_output(
-                    activity_name, activity_output
-                )
-            return result
-
-        scenario_activities_outputs: Activity_Outputs = validate_activities(scenario_data)
-        defined_activities = list(scenario_activities_outputs.keys())
-
-        # fill up the missing activities with default values
-        if not scenario_data.config.exclude_defaults:
-            for activity_name in self._activities.keys():
-                if activity_name not in defined_activities:
-                    scenario_activities_outputs[
-                        activity_name
-                    ] = self._get_activity_default_output(activity_name)
-
-        # todo shall we bring back. scenario specific methods??
-        # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
-        # if _scenario.methods:
-        #     for index_, method_ in enumerate(_scenario.methods):
-        #         if isinstance(method_, str):
-        #             global_method = self.methods.get(method_)
-        #             assert global_method
-        #             resolved_methods[global_method.name] = global_method
-
-        return Scenario(
-            experiment=self,  # type: ignore
-            name=scenario_data.name,
-            activities_outputs=scenario_activities_outputs,
-            # methods={},
-            config=scenario_data.config,
-            result_tree=self.base_result_tree.copy(),
-        )
-
-    def _validate_scenarios(self) -> list[Scenario]:
-        """
-        :return:
-        """
-
-        scenarios: list[Scenario] = []
-
-        # undefined scenarios. just one default scenario
-        if not self.raw_data.scenarios:
-            self.raw_data.scenarios = [
-                ExperimentScenarioData(name=Experiment.DEFAULT_SCENARIO_NAME)
-            ]
-
-        # set names if not given
-        for index, scenario_data in enumerate(self.raw_data.scenarios):
-            scenario_data.name_factory(index)
-
-        # check for name duplicates
-        name_count = Counter([s.name for s in self.raw_data.scenarios])
-        # get the scenarios that have the same name
-        duplicate_names = [name for name, count in name_count.items() if count > 1]
-        if duplicate_names:
-            raise ValueError(f"Scenarios with the same name: {duplicate_names}")
-
-        for index, scenario_data in enumerate(self.raw_data.scenarios):
-            scenario = self._validate_scenario(scenario_data)
-            scenarios.append(scenario)
-            scenario.prepare_tree()
-        return scenarios
+        activity = self.get_activity(activity_name)
+        return self.get_node_adapter(activity).get_node_output_unit(activity_name)
 
     def get_scenario(self, scenario_name: str) -> Scenario:
         """
@@ -352,7 +214,7 @@ class Experiment:
         raise ValueError(f"Scenario '{scenario_name}' not found")
 
     def run_scenario(
-        self, scenario_name: str, results_as_dict: bool = True
+            self, scenario_name: str, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a specific scenario
@@ -363,7 +225,7 @@ class Experiment:
         return self.get_scenario(scenario_name).run(results_as_dict)
 
     def run(
-        self, results_as_dict: bool = True
+            self, results_as_dict: bool = True
     ) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
         """
         Run all scenarios. Returns a dict with the scenario name as key
@@ -439,11 +301,11 @@ class Experiment:
                 return "not run"
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        scenario_name: Optional[str] = None,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = True,
+            self,
+            file_path: PathLike,
+            scenario_name: Optional[str] = None,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = True,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -538,7 +400,7 @@ class Experiment:
         return list(self._adapters.values())
 
     def run_scenario_config(
-        self, scenario_config: dict, result_as_dict: bool = True
+            self, scenario_config: dict, result_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An
@@ -548,7 +410,7 @@ class Experiment:
         """
         scenario_data = ExperimentScenarioData(**scenario_config)
         scenario_data.name_factory(len(self.scenarios))
-        scenario = self._validate_scenario(scenario_data)
+        scenario = validate_scenario(scenario_data, self)
         scenario.prepare_tree()
         return scenario.run(result_as_dict)
 
@@ -562,7 +424,7 @@ class Experiment:
         def print_node(node: BasicTreeNode[TechTreeNodeData], _):
             module_name: str
             if node.data.adapter:
-                module_name = self._get_node_adapter(node).name()
+                module_name = self.get_node_adapter(node).name()
             else:
                 module_name = self.get_node_aggregator(node).name()
             activity_rows.append(f"{' ' * node.level}{node.name} - {module_name}")
@@ -583,7 +445,7 @@ class Experiment:
 
     @staticmethod
     def get_module_definition(
-        clazz: Union[EnbiosAdapter, EnbiosAggregator], details: bool = True
+            clazz: Union[EnbiosAdapter, EnbiosAggregator], details: bool = True
     ) -> dict[str, Any]:
         result: dict = {
             "node_indicator": clazz.node_indicator(),
@@ -611,7 +473,7 @@ class Experiment:
         return result
 
     def get_all_configs(
-        self, include_all_builtin_configs: bool = True
+            self, include_all_builtin_configs: bool = True
     ) -> dict[str, dict[str, dict[str, Any]]]:
         """
         Result structure:
@@ -628,15 +490,15 @@ class Experiment:
             "adapters": {
                 name: Experiment.get_module_definition(adapter, True)
                 for name, adapter in (
-                    self._adapters
-                    | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
+                        self._adapters
+                        | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
                 ).items()
             },
             "aggregators": {
                 name: Experiment.get_module_definition(aggregator, True)
                 for name, aggregator in (
-                    self._aggregators
-                    | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
+                        self._aggregators
+                        | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
                 ).items()
             },
         }
