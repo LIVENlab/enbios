@@ -25,24 +25,24 @@ def regionalization(lca: LCA, location_key: str = "location") -> dict[str, float
     base_loc_map = {}
     # all other indices to last locs
     loc_tree = []
-    for a in ActivityDataset.select(ActivityDataset):
-        if a.type == "process":
-            loc = a.data.get(location_key)
-            if not isinstance(loc, tuple):
-                continue
-            final_loc = loc[-1]
-            base_loc_map.setdefault(final_loc, []).append(a.id - 1)
-            for idx, rest in enumerate(loc[:-1]):
-                if len(loc_tree) <= idx:
-                    loc_tree.append({})
-                loc_tree[idx].setdefault(rest, set()).add(loc[idx + 1])
+    for a in ActivityDataset.select(ActivityDataset).where(ActivityDataset.type == "process"):
+        # if a.type == "process":
+        loc = a.data.get(location_key)
+        if not isinstance(loc, tuple):
+            continue
+        final_loc = loc[-1]
+        base_loc_map.setdefault(final_loc, []).append(a.id)
+        for idx, rest in enumerate(loc[:-1]):
+            if len(loc_tree) <= idx:
+                loc_tree.append({})
+            loc_tree[idx].setdefault(rest, set()).add(loc[idx + 1])
 
     loc_tree.reverse()
 
     res_map = {}
     # do matrix multiplication for each final location
     for loc, idxs in base_loc_map.items():
-        res_map[loc] = (lca.characterization_matrix * lca.inventory[:, idxs]).sum()
+        res_map[loc] = (lca.characterization_matrix * lca.inventory[:, [lca.dicts.activity[c] for c in idxs]]).sum()
 
     # sum up location results, per level...
     for lvl in loc_tree:

@@ -3,7 +3,7 @@ from logging import getLogger
 from typing import Optional, Any, Union, Sequence
 
 import bw2data as bd
-from bw2data.backends import Activity
+from bw2data.backends import Activity, ActivityDataset
 from numpy import ndarray
 from pint import Quantity, UndefinedUnitError
 from pydantic import BaseModel, Field, RootModel, ConfigDict, model_validator
@@ -32,13 +32,14 @@ class ExperimentMethodPrepData(BaseModel):
 
 class RegionalizationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
-    simple_regionalization: bool = Field(False)
+    run_regionalization: bool = Field(False)
     select_regions: set = Field(None)
+    set_node_regions: dict[str, tuple[str, ...]] = Field({}, description="Set node regions")
 
     @model_validator(mode="before")
     @classmethod
     def validate(cls, data: Any) -> Any:
-        if data["simple_regionalization"]:
+        if data["run_regionalization"]:
             if data.get("select_regions") is None:
                 raise ValueError(f"Select regions for BW regionalization (field: 'select_regions')")
         return data
@@ -60,8 +61,8 @@ class BWAdapterConfig(BaseModel):
         description="If the LCA object should be stored. "
                     "Will be stored in `lca_objects[scenario.name]`",
     )
-    simple_regionalization: Optional[RegionalizationConfig] = Field(None,
-                                                                    description="Generate regionalized LCA")
+    simple_regionalization: RegionalizationConfig = Field(None,
+                                                          description="Generate regionalized LCA")
 
 
 class BrightwayActivityConfig(BaseModel):
@@ -76,7 +77,8 @@ class BrightwayActivityConfig(BaseModel):
         None, description="Search:Brightway activity code"
     )  # brightway code
     # search and filter
-    location: Union[str, tuple[str, ...]] = Field(None, description="Search:Location filter")  # location
+    location: str = Field(None, description="Search:Location filter")  # location
+    enb_location: tuple[str, ...] = Field(None, description="Location for regionalization")
     # additional filter
     unit: str = Field(None, description="Search: unit filter of results")  # unit
     # internal-name
@@ -115,7 +117,7 @@ def _bw_activity_search(activity_id: dict) -> Activity:
         filters = {}
         search_in_dbs = [id_.database] if id_.database else bd.databases
         for db in search_in_dbs:
-            if id_.location and isinstance(id_.location, str):
+            if id_.location:
                 filters["location"] = id_.location
                 search_results = bd.Database(db).search(id_.name, filter=filters)
             else:
@@ -161,7 +163,7 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def __init__(self):
         super(BrightwayAdapter, self).__init__()
-        self.config = None
+        self.config: BWAdapterConfig = BWAdapterConfig(bw_project="")
         self.activityMap: dict[str, BWActivityData] = {}
         self.methods: dict[str, ExperimentMethodPrepData] = {}
         self.scenario_calc_setups: dict[
@@ -169,6 +171,7 @@ class BrightwayAdapter(EnbiosAdapter):
         ] = {}  # scenario_alias to BWCalculationSetup
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
         self.lca_objects: dict[str, list[StackedMultiLCA]] = {}  # scenario_alias to lca objects
+        self.all_regions_set: bool = False  # as part of first run_scenario, go through set_node_regions
 
     @staticmethod
     def node_indicator() -> str:
@@ -262,7 +265,6 @@ class BrightwayAdapter(EnbiosAdapter):
             )
         if self.config.simple_regionalization:
             if node_config["enb_location"]:
-                print(bw_activity._data)
                 bw_activity["enb_location"] = node_config["enb_location"]
                 bw_activity.save()
 
@@ -292,29 +294,39 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup = BWCalculationSetup(scenario.name, inventory, methods)
         calculation_setup.register()
         self.scenario_calc_setups[scenario.name] = calculation_setup
+        if not self.all_regions_set and self.config.simple_regionalization.run_regionalization:
+            activity_codes: list[str] = list(self.config.simple_regionalization.set_node_regions.keys())
+            # this approach is much faster than individual updates
+            with ActivityDataset._meta.database.atomic():
+                for a in ActivityDataset.select().where(ActivityDataset.code.in_(activity_codes)):
+                    a.data["enb_location"] = self.config.simple_regionalization.set_node_regions[a.code]
+                    a.save()  # This updates each user in the database
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         self.prepare_scenario(scenario)
         use_distributions = self.config.use_k_bw_distributions > 1
-        raw_results: Union[list[ndarray], ndarray] = [] # todo always a list?
-        regionalization_results: list[dict[str, float]] = []
-        run_regionalization = self.config.simple_regionalization.simple_regionalization
+        raw_results: Union[list[ndarray], ndarray] = []  # todo always a list?
+        regionalization_results: list[list[dict[str, float]]] = []
+        run_regionalization = self.config.simple_regionalization.run_regionalization
         for i in range(self.config.use_k_bw_distributions):
-            print("multi", i)
             _lca = StackedMultiLCA(
-                self.scenario_calc_setups[scenario.name], use_distributions
+                self.scenario_calc_setups[scenario.name], use_distributions, calc_lcia=not run_regionalization
             )
             if self.config.store_lca_object:
                 if not self.lca_objects.get(scenario.name):
                     self.lca_objects[scenario.name] = []
                 self.lca_objects[scenario.name].append(_lca)
-            raw_results.append(_lca.results)
+            if not run_regionalization:
+                raw_results.append(_lca.results)
 
             if run_regionalization:
-                regionalization_results.append(regionalization(_lca.lca, "enb_location"))
-
+                regio_ist_res = []
+                for col, cf_matrix in enumerate(_lca.method_matrices):
+                    _lca.lca.characterization_matrix = cf_matrix
+                    regio_ist_res.append(regionalization(_lca.lca, "enb_location"))
+                regionalization_results.append(regio_ist_res)
         if self.config.store_raw_results:
-            self.raw_results[scenario.name] = raw_results
+            self.raw_results[scenario.name] = raw_results if not run_regionalization else regionalization_results
 
         result_data: dict[str, Any] = {}
         act_idx = 0
@@ -330,17 +342,23 @@ class BrightwayAdapter(EnbiosAdapter):
             for m_idx, method in enumerate(self.methods.items()):
                 method_name, method_data = method
                 # todo this could be a type
-                method_result = ResultValue(unit=method_data.bw_method_unit)
-                if use_distributions:
-                    method_result.multi_magnitude = [
-                        res[act_idx, m_idx] for res in raw_results
-                    ]
+                if run_regionalization:
+                    for region in self.config.simple_regionalization.select_regions:
+                        if region not in regionalization_results[0][m_idx]:
+                            logger.warning(f"Region {region} not in regionalized results")
+                            continue
+                        method_result = ResultValue(unit=method_data.bw_method_unit)
+                        method_result.magnitude = regionalization_results[0][m_idx][region]
+                        result_data[act_alias][f"{method_name}_{region}"] = method_result
                 else:
-                    if run_regionalization:
-                        pass
+                    method_result = ResultValue(unit=method_data.bw_method_unit)
+                    if use_distributions:
+                        method_result.multi_magnitude = [
+                            res[act_idx, m_idx] for res in raw_results
+                        ]
                     else:
                         method_result.magnitude = raw_results[0][act_idx, m_idx]
-                result_data[act_alias][method_name] = method_result
+                    result_data[act_alias][method_name] = method_result
             act_idx += 1
         return result_data
 

@@ -54,11 +54,12 @@ class StackedMultiLCA:
         self,
         calc_setup: BWCalculationSetup,
         use_distributions: bool = False,
+        calc_lcia: bool = True,
         log_config=None,
     ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
-
+        x: MulitLCA
         self.lca = LCA(
             demand=self.all,
             method=self.methods[0],
@@ -94,10 +95,11 @@ class StackedMultiLCA:
             self.lca.lci(fu)
             self.supply_arrays.append(self.lca.supply_array)
 
-            for col, cf_matrix in enumerate(self.method_matrices):
-                self.lca.characterization_matrix = cf_matrix
-                self.lca.lcia_calculation()
-                self.results[row, col] = self.lca.score
+            if calc_lcia:
+                for col, cf_matrix in enumerate(self.method_matrices):
+                    self.lca.characterization_matrix = cf_matrix
+                    self.lca.lcia_calculation()
+                    self.results[row, col] = self.lca.score
 
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
