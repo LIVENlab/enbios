@@ -159,3 +159,11 @@ def test_run_exclude_defaults(experiment_setup):
 def test_run_use_distribution(experiment_setup):
     experiment_setup["scenario"]["adapters"][0]["config"]["use_k_bw_distributions"] = 2
     Experiment(experiment_setup["scenario"]).run()
+
+
+def test_regionalization(experiment_setup):
+    experiment_setup["scenario"]["hierarchy"]["children"][0]["config"]["enb_location"] = ("ES", "cat")
+    experiment_setup["scenario"]["adapters"][0]["config"]["simple_regionalization"] = {"simple_regionalization": True,
+                                                                                       "select_regions": {"ES"}}
+    exp = Experiment(experiment_setup["scenario"])
+    exp.run()

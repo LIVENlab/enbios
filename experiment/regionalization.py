@@ -9,7 +9,7 @@ there should be no activity with location ("ES", "ara") (where ES is at index 0)
 """
 
 
-def regionalization(lca: LCA) -> dict[str, float]:
+def regionalization(lca: LCA, location_key: str = "location") -> dict[str, float]:
     """
     :param lca: bw LCA object
     :return: dictionary, location > impact score
@@ -27,7 +27,7 @@ def regionalization(lca: LCA) -> dict[str, float]:
     loc_tree = []
     for a in ActivityDataset.select(ActivityDataset):
         if a.type == "process":
-            loc = a.data["location"]
+            loc = a.data.get(location_key)
             if not isinstance(loc, tuple):
                 continue
             final_loc = loc[-1]

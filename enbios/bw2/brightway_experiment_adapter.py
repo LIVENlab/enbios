@@ -6,7 +6,7 @@ import bw2data as bd
 from bw2data.backends import Activity
 from numpy import ndarray
 from pint import Quantity, UndefinedUnitError
-from pydantic import BaseModel, Field, RootModel, ConfigDict
+from pydantic import BaseModel, Field, RootModel, ConfigDict, model_validator
 
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
@@ -17,6 +17,7 @@ from enbios.models.experiment_base_models import NodeOutput, AdapterModel
 from enbios.models.experiment_models import (
     ResultValue,
 )
+from experiment.regionalization import regionalization
 
 logger = getLogger(__file__)
 
@@ -29,6 +30,20 @@ class ExperimentMethodPrepData(BaseModel):
     bw_method_unit: str
 
 
+class RegionalizationConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
+    simple_regionalization: bool = Field(False)
+    select_regions: set = Field(None)
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate(cls, data: Any) -> Any:
+        if data["simple_regionalization"]:
+            if data.get("select_regions") is None:
+                raise ValueError(f"Select regions for BW regionalization (field: 'select_regions')")
+        return data
+
+
 class BWAdapterConfig(BaseModel):
     bw_project: str
     # methods: MethodsDataTypesExt
@@ -38,13 +53,15 @@ class BWAdapterConfig(BaseModel):
     store_raw_results: bool = Field(
         False,
         description="If the numpy matrix of brightway should be stored in the adapter. "
-        "Will be stored in `raw_results[scenario.name]`",
+                    "Will be stored in `raw_results[scenario.name]`",
     )
     store_lca_object: bool = Field(
         False,
         description="If the LCA object should be stored. "
-        "Will be stored in `lca_objects[scenario.name]`",
+                    "Will be stored in `lca_objects[scenario.name]`",
     )
+    simple_regionalization: Optional[RegionalizationConfig] = Field(None,
+                                                                    description="Generate regionalized LCA")
 
 
 class BrightwayActivityConfig(BaseModel):
@@ -59,7 +76,7 @@ class BrightwayActivityConfig(BaseModel):
         None, description="Search:Brightway activity code"
     )  # brightway code
     # search and filter
-    location: str = Field(None, description="Search:Location filter")  # location
+    location: Union[str, tuple[str, ...]] = Field(None, description="Search:Location filter")  # location
     # additional filter
     unit: str = Field(None, description="Search: unit filter of results")  # unit
     # internal-name
@@ -98,7 +115,7 @@ def _bw_activity_search(activity_id: dict) -> Activity:
         filters = {}
         search_in_dbs = [id_.database] if id_.database else bd.databases
         for db in search_in_dbs:
-            if id_.location:
+            if id_.location and isinstance(id_.location, str):
                 filters["location"] = id_.location
                 search_results = bd.Database(db).search(id_.name, filter=filters)
             else:
@@ -151,7 +168,7 @@ class BrightwayAdapter(EnbiosAdapter):
             str, BWCalculationSetup
         ] = {}  # scenario_alias to BWCalculationSetup
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
-        self.lca_objects: dict[str, StackedMultiLCA] = {}  # scenario_alias to lca objects
+        self.lca_objects: dict[str, list[StackedMultiLCA]] = {}  # scenario_alias to lca objects
 
     @staticmethod
     def node_indicator() -> str:
@@ -190,9 +207,9 @@ class BrightwayAdapter(EnbiosAdapter):
         return list(self.methods.keys())
 
     def validate_node_output(
-        self,
-        node_name: str,
-        target_output: NodeOutput,
+            self,
+            node_name: str,
+            target_output: NodeOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -203,10 +220,10 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_activity_unit = "not yet set"
         try:
             target_quantity: Quantity = (
-                ureg.parse_expression(
-                    bw_unit_fix(target_output.unit), case_sensitive=False
-                )
-                * target_output.magnitude
+                    ureg.parse_expression(
+                        bw_unit_fix(target_output.unit), case_sensitive=False
+                    )
+                    * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -243,6 +260,11 @@ class BrightwayAdapter(EnbiosAdapter):
             ].default_output.magnitude = self.validate_node_output(
                 node_name, NodeOutput(**node_config["default_output"])
             )
+        if self.config.simple_regionalization:
+            if node_config["enb_location"]:
+                print(bw_activity._data)
+                bw_activity["enb_location"] = node_config["enb_location"]
+                bw_activity.save()
 
     def get_default_output_value(self, activity_name: str) -> float:
         return self.activityMap[activity_name].default_output.magnitude
@@ -274,14 +296,22 @@ class BrightwayAdapter(EnbiosAdapter):
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         self.prepare_scenario(scenario)
         use_distributions = self.config.use_k_bw_distributions > 1
-        raw_results: Union[list[ndarray], ndarray] = []
+        raw_results: Union[list[ndarray], ndarray] = [] # todo always a list?
+        regionalization_results: list[dict[str, float]] = []
+        run_regionalization = self.config.simple_regionalization.simple_regionalization
         for i in range(self.config.use_k_bw_distributions):
+            print("multi", i)
             _lca = StackedMultiLCA(
                 self.scenario_calc_setups[scenario.name], use_distributions
             )
             if self.config.store_lca_object:
-                self.lca_objects[scenario.name] = _lca
+                if not self.lca_objects.get(scenario.name):
+                    self.lca_objects[scenario.name] = []
+                self.lca_objects[scenario.name].append(_lca)
             raw_results.append(_lca.results)
+
+            if run_regionalization:
+                regionalization_results.append(regionalization(_lca.lca, "enb_location"))
 
         if self.config.store_raw_results:
             self.raw_results[scenario.name] = raw_results
@@ -306,7 +336,10 @@ class BrightwayAdapter(EnbiosAdapter):
                         res[act_idx, m_idx] for res in raw_results
                     ]
                 else:
-                    method_result.magnitude = raw_results[0][act_idx, m_idx]
+                    if run_regionalization:
+                        pass
+                    else:
+                        method_result.magnitude = raw_results[0][act_idx, m_idx]
                 result_data[act_alias][method_name] = method_result
             act_idx += 1
         return result_data
