@@ -33,14 +33,14 @@ def validate_experiment_hierarchy(
         )
         return True
 
-    tech_tree.recursive_apply(validate_node_data, depth_first=True)
+    tech_tree.recursive_apply(validate_node_data, depth_first=True)  # type: ignore
     return tech_tree
 
 
 def validate_experiment_reference_hierarchy(
         hierarchy: HierarchyNodeReference,
         original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
-        get_node_aggregator_fcn: Callable
+        get_node_aggregator_fcn: Callable,
 ) -> BasicTreeNode[TechTreeNodeData]:
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
         hierarchy.model_dump(), dataclass=TechTreeNodeData
@@ -60,12 +60,14 @@ def validate_experiment_reference_hierarchy(
             if not node.data.aggregator:
                 orig_node = original_experiment_hierarchy.find_subnode_by_name(node.name)
                 if not orig_node:
-                    get_node_aggregator_fcn(node).validate_node(node.name, node.data.config)
+                    get_node_aggregator_fcn(node).validate_node(
+                        node.name, node.data.config
+                    )
                     # raise ValueError(f"Node '{node.name}' not found in original hierarchy")
                 node.set_data(orig_node.data)
         return True
 
-    tech_tree.recursive_apply(validate_node_data, depth_first=True)
+    tech_tree.recursive_apply(validate_node_data, depth_first=True)  # type: ignore
     return tech_tree
 
 

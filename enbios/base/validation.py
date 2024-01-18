@@ -8,8 +8,13 @@ from enbios.base.adapters_aggregators.builtin import BUILTIN_AGGREGATORS
 from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.scenario import Scenario
 from enbios.models.environment_model import Settings
-from enbios.models.experiment_base_models import ExperimentConfig, ExperimentScenarioData, NodeOutput, AdapterModel, \
-    AggregationModel
+from enbios.models.experiment_base_models import (
+    ExperimentConfig,
+    ExperimentScenarioData,
+    NodeOutput,
+    AdapterModel,
+    AggregationModel,
+)
 from enbios.models.experiment_models import Activity_Outputs
 
 if TYPE_CHECKING:
@@ -18,7 +23,9 @@ if TYPE_CHECKING:
 logger = getLogger(__name__)
 
 
-def validate_adapters(experiment_adapters: list[AdapterModel]) -> tuple[dict[str:EnbiosAdapter], list[str]]:
+def validate_adapters(
+    experiment_adapters: list[AdapterModel],
+) -> tuple[dict[str:EnbiosAdapter], list[str]]:
     """
     Validate the adapters in this experiment data
 
@@ -38,7 +45,9 @@ def validate_adapters(experiment_adapters: list[AdapterModel]) -> tuple[dict[str
     return adapter_map, methods
 
 
-def validate_aggregators(experiment_aggregators: list[AggregationModel]) -> dict[str, EnbiosAggregator]:
+def validate_aggregators(
+    experiment_aggregators: list[AggregationModel],
+) -> dict[str, EnbiosAggregator]:
     """
     Validate the aggregators in this experiment data
 
@@ -60,16 +69,16 @@ def validate_aggregators(experiment_aggregators: list[AggregationModel]) -> dict
     return {aggregator.name(): aggregator for aggregator in aggregators}
 
 
-def validate_scenarios(experiment_scenarios: list[ExperimentScenarioData],
-                       default_scenario_name: str,
-                       experiment: "Experiment") -> list[Scenario]:
+def validate_scenarios(
+    experiment_scenarios: list[ExperimentScenarioData],
+    default_scenario_name: str,
+    experiment: "Experiment",
+) -> list[Scenario]:
     scenarios: list[Scenario] = []
 
     # undefined scenarios. just one default scenario
     if not experiment_scenarios:
-        experiment_scenarios = [
-            ExperimentScenarioData(name=default_scenario_name)
-        ]
+        experiment_scenarios = [ExperimentScenarioData(name=default_scenario_name)]
 
     # set names if not given
     for index, scenario_data in enumerate(experiment_scenarios):
@@ -89,8 +98,9 @@ def validate_scenarios(experiment_scenarios: list[ExperimentScenarioData],
     return scenarios
 
 
-def validate_scenario(scenario_data: ExperimentScenarioData,
-                      experiment: "Experiment") -> Scenario:
+def validate_scenario(
+    scenario_data: ExperimentScenarioData, experiment: "Experiment"
+) -> Scenario:
     """
     Validate one scenario
     :param scenario_data:
@@ -121,9 +131,9 @@ def validate_scenario(scenario_data: ExperimentScenarioData,
         for activity_name in experiment.activities_names:
             if activity_name not in defined_activities:
                 activity = experiment.get_activity(activity_name)
-                scenario_activities_outputs[
-                    activity_name
-                ] = experiment.get_node_adapter(activity).get_default_output_value(activity.name)
+                scenario_activities_outputs[activity_name] = experiment.get_node_adapter(
+                    activity
+                ).get_default_output_value(activity.name)
 
     return Scenario(
         experiment=experiment,  # type: ignore
@@ -135,9 +145,9 @@ def validate_scenario(scenario_data: ExperimentScenarioData,
     )
 
 
-def validate_run_scenario_setting(env_settings: Settings,
-                                  experiment_config: ExperimentConfig,
-                                  scenario_names: list[str]):
+def validate_run_scenario_setting(
+    env_settings: Settings, experiment_config: ExperimentConfig, scenario_names: list[str]
+):
     """
     Validate a run environmental variable that is setting the scenario
     """

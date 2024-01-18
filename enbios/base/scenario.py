@@ -57,7 +57,9 @@ class Scenario:
                 raise ValueError(f"Activity {activity_name} not found in result tree")
             activity = self.experiment.get_activity(activity_name)
             activity_node.data.output = NodeOutput(
-                unit=self.experiment.get_node_adapter(activity).get_node_output_unit(activity_name),
+                unit=self.experiment.get_node_adapter(activity).get_node_output_unit(
+                    activity_name
+                ),
                 magnitude=self.activities_outputs[activity_name],
             )
             # todo adapter/aggregator specific additional data
@@ -280,13 +282,17 @@ class Scenario:
         else:
             return recursive_transform(self.result_tree.copy())
 
-    def _rearrange_results(self, hierarchy: dict) -> BasicTreeNode[ScenarioResultNodeData]:
+    def _rearrange_results(
+        self, hierarchy: dict
+    ) -> BasicTreeNode[ScenarioResultNodeData]:
         hierarchy_obj = HierarchyNodeReference(**hierarchy)
 
         hierarchy_root: BasicTreeNode[
             TechTreeNodeData
         ] = validate_experiment_reference_hierarchy(
-            hierarchy_obj, self.experiment.hierarchy_root, self.experiment.get_node_aggregator
+            hierarchy_obj,
+            self.experiment.hierarchy_root,
+            self.experiment.get_node_aggregator,
         )
 
         def recursive_convert(

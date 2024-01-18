@@ -49,12 +49,12 @@ class RegioStackedMultiLCA:
     """
 
     def __init__(
-            self,
-            calc_setup: BWCalculationSetup,
-            select_locations: set[str],
-            use_distributions: bool = False,
-            location_key: str = "enb_location",
-            log_config=None,
+        self,
+        calc_setup: BWCalculationSetup,
+        select_locations: set[str],
+        use_distributions: bool = False,
+        location_key: str = "enb_location",
+        log_config=None,
     ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
@@ -62,7 +62,7 @@ class RegioStackedMultiLCA:
             demand=self.all,
             method=self.methods[0],
             log_config=log_config,
-            use_distributions=use_distributions
+            use_distributions=use_distributions,
         )
         logger.info(
             {
@@ -74,7 +74,9 @@ class RegioStackedMultiLCA:
         self.lca.lci()
         self.method_matrices = []
         self.supply_arrays = []
-        self.results = np.zeros((len(self.func_units), len(self.methods), len(select_locations)))
+        self.results = np.zeros(
+            (len(self.func_units), len(self.methods), len(select_locations))
+        )
         self.locations_base_map: dict[str, list[int]] = {}
         self.loc_tree: list[dict[str, set[str]]] = []
         self.resolve_loc_basemap(location_key)
@@ -102,8 +104,11 @@ class RegioStackedMultiLCA:
                 self.lca.characterization_matrix = cf_matrix
                 for loc, idxs in self.locations_base_map.items():
                     res = (
-                            self.lca.characterization_matrix * self.lca.inventory[:,
-                                                               [self.lca.dicts.activity[c] for c in idxs]]).sum()
+                        self.lca.characterization_matrix
+                        * self.lca.inventory[
+                            :, [self.lca.dicts.activity[c] for c in idxs]
+                        ]
+                    ).sum()
                     res_map[loc] = res
 
                 # sum up location results, per level...
@@ -124,7 +129,9 @@ class RegioStackedMultiLCA:
         # base_loc_map = {}
         # all other indices to last locs
         # loc_tree = []
-        for a in ActivityDataset.select(ActivityDataset).where(ActivityDataset.type == "process"):
+        for a in ActivityDataset.select(ActivityDataset).where(
+            ActivityDataset.type == "process"
+        ):
             # if a.type == "process":
             loc = a.data.get(location_key)
             if not isinstance(loc, tuple):
