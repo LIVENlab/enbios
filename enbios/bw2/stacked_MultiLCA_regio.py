@@ -33,7 +33,7 @@ class InventoryMatrices:
         return self.biosphere_matrix * self.supply_arrays[fu_index]
 
 
-class StackedMultiLCA:
+class RegioStackedMultiLCA:
     """Wrapper class for performing LCA calculations with
     many functional units and LCIA methods.
 
@@ -51,7 +51,7 @@ class StackedMultiLCA:
     def __init__(
             self,
             calc_setup: BWCalculationSetup,
-            select_locations: list[str],
+            select_locations: set[str],
             use_distributions: bool = False,
             location_key: str = "enb_location",
             log_config=None,
@@ -74,7 +74,7 @@ class StackedMultiLCA:
         self.lca.lci()
         self.method_matrices = []
         self.supply_arrays = []
-        self.results = np.zeros((len(self.func_units), len(self.methods), len(self.methods)))
+        self.results = np.zeros((len(self.func_units), len(self.methods), len(select_locations)))
         self.locations_base_map: dict[str, list[int]] = {}
         self.loc_tree: list[dict[str, set[str]]] = []
         self.resolve_loc_basemap(location_key)
@@ -104,6 +104,7 @@ class StackedMultiLCA:
                     res = (
                             self.lca.characterization_matrix * self.lca.inventory[:,
                                                                [self.lca.dicts.activity[c] for c in idxs]]).sum()
+                    res_map[loc] = res
                 # self.lca.lcia_calculation()
 
                 # sum up location results, per level...

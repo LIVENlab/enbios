@@ -63,6 +63,7 @@ def first_activity_config() -> dict:
     return {
         "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
         "unit": "kilowatt hour",
+        # "code": 'b9d74efa4fd670b1977a3471ec010737',
         "location": "DK",
         "default_output": {
             "unit": "kWh",

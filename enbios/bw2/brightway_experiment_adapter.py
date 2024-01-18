@@ -12,12 +12,12 @@ from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
+from enbios.bw2.stacked_MultiLCA_regio import RegioStackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.models.experiment_base_models import NodeOutput, AdapterModel
 from enbios.models.experiment_models import (
     ResultValue,
 )
-from experiment.regionalization import regionalization
 
 logger = getLogger(__file__)
 
@@ -33,13 +33,13 @@ class ExperimentMethodPrepData(BaseModel):
 class RegionalizationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
     run_regionalization: bool = Field(False)
-    select_regions: set = Field(None)
+    select_regions: set = Field(None, description="regions to store the results for")
     set_node_regions: dict[str, tuple[str, ...]] = Field({}, description="Set node regions")
 
     @model_validator(mode="before")
     @classmethod
     def validate(cls, data: Any) -> Any:
-        if data["run_regionalization"]:
+        if data.get("run_regionalization", False):
             if data.get("select_regions") is None:
                 raise ValueError(f"Select regions for BW regionalization (field: 'select_regions')")
         return data
@@ -61,8 +61,8 @@ class BWAdapterConfig(BaseModel):
         description="If the LCA object should be stored. "
                     "Will be stored in `lca_objects[scenario.name]`",
     )
-    simple_regionalization: RegionalizationConfig = Field(None,
-                                                          description="Generate regionalized LCA")
+    simple_regionalization: RegionalizationConfig = Field(description="Generate regionalized LCA",
+                                                          default_factory=RegionalizationConfig)
 
 
 class BrightwayActivityConfig(BaseModel):
@@ -170,7 +170,7 @@ class BrightwayAdapter(EnbiosAdapter):
             str, BWCalculationSetup
         ] = {}  # scenario_alias to BWCalculationSetup
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
-        self.lca_objects: dict[str, list[StackedMultiLCA]] = {}  # scenario_alias to lca objects
+        self.lca_objects: dict[str, list[Union[StackedMultiLCA, RegioStackedMultiLCA]]] = {}  # scenario_alias to lca objects
         self.all_regions_set: bool = False  # as part of first run_scenario, go through set_node_regions
 
     @staticmethod
@@ -263,8 +263,8 @@ class BrightwayAdapter(EnbiosAdapter):
             ].default_output.magnitude = self.validate_node_output(
                 node_name, NodeOutput(**node_config["default_output"])
             )
-        if self.config.simple_regionalization:
-            if node_config["enb_location"]:
+        if self.config.simple_regionalization.run_regionalization:
+            if "enb_location" in node_config:
                 bw_activity["enb_location"] = node_config["enb_location"]
                 bw_activity.save()
 
@@ -294,7 +294,7 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup = BWCalculationSetup(scenario.name, inventory, methods)
         calculation_setup.register()
         self.scenario_calc_setups[scenario.name] = calculation_setup
-        if self.config.simple_regionalization.run_regionalization: and not self.all_regions_set
+        if self.config.simple_regionalization.run_regionalization and not self.all_regions_set:
             activity_codes: list[str] = list(self.config.simple_regionalization.set_node_regions.keys())
             # this approach is much faster than individual updates
             with ActivityDataset._meta.database.atomic():
@@ -305,28 +305,28 @@ class BrightwayAdapter(EnbiosAdapter):
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         self.prepare_scenario(scenario)
         use_distributions = self.config.use_k_bw_distributions > 1
-        raw_results: Union[list[ndarray], ndarray] = []  # todo always a list?
-        regionalization_results: list[list[dict[str, float]]] = []
+        raw_results: Union[list[ndarray], ndarray] = []
+        raw_region_results = []
+        self.lca_objects[scenario.name] = []
         run_regionalization = self.config.simple_regionalization.run_regionalization
         for i in range(self.config.use_k_bw_distributions):
-            _lca = StackedMultiLCA(
-                self.scenario_calc_setups[scenario.name], use_distributions, calc_lcia=not run_regionalization
-            )
-            if self.config.store_lca_object:
-                if not self.lca_objects.get(scenario.name):
-                    self.lca_objects[scenario.name] = []
-                self.lca_objects[scenario.name].append(_lca)
-            if not run_regionalization:
-                raw_results.append(_lca.results)
-
             if run_regionalization:
-                regio_ist_res = []
-                for col, cf_matrix in enumerate(_lca.method_matrices):
-                    _lca.lca.characterization_matrix = cf_matrix
-                    regio_ist_res.append(regionalization(_lca.lca, "enb_location"))
-                regionalization_results.append(regio_ist_res)
+                _lca = RegioStackedMultiLCA(
+                    self.scenario_calc_setups[scenario.name],
+                    self.config.simple_regionalization.select_regions,
+                    use_distributions
+                )
+                raw_region_results.append(_lca.results)
+            else:
+                _lca = StackedMultiLCA(
+                    self.scenario_calc_setups[scenario.name], use_distributions
+                )
+                raw_results.append(_lca.results)
+            if self.config.store_lca_object:
+                self.lca_objects[scenario.name].append(_lca)
+
         if self.config.store_raw_results:
-            self.raw_results[scenario.name] = raw_results if not run_regionalization else regionalization_results
+            self.raw_results[scenario.name] = raw_results
 
         result_data: dict[str, Any] = {}
         act_idx = 0
@@ -341,16 +341,13 @@ class BrightwayAdapter(EnbiosAdapter):
             result_data[act_alias] = {}
             for m_idx, method in enumerate(self.methods.items()):
                 method_name, method_data = method
-                # todo this could be a type
                 if run_regionalization:
-                    for region in self.config.simple_regionalization.select_regions:
-                        if region not in regionalization_results[0][m_idx]:
-                            logger.warning(f"Region {region} not in regionalized results")
-                            continue
+                    for region_idx, region in enumerate(self.config.simple_regionalization.select_regions):
                         method_result = ResultValue(unit=method_data.bw_method_unit)
-                        method_result.magnitude = regionalization_results[0][m_idx][region]
+                        method_result.magnitude = raw_region_results[0][act_idx, m_idx, region_idx]
                         result_data[act_alias][f"{method_name}_{region}"] = method_result
                 else:
+                    # todo this could be a type
                     method_result = ResultValue(unit=method_data.bw_method_unit)
                     if use_distributions:
                         method_result.multi_magnitude = [
