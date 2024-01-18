@@ -231,7 +231,7 @@ def test_regionalization(experiment_setup):
     experiment_setup["scenario"]["adapters"][0]["config"]["simple_regionalization"] = {"run_regionalization": False}
     exp = Experiment(experiment_setup["scenario"])
     res = exp.run()
-    print(res)
+    # print(res)
 
     method_total_result = {}
     for method_regio, result in regio_res["default scenario"]["results"].items():
@@ -239,7 +239,7 @@ def test_regionalization(experiment_setup):
         # print(result)
         method_total_result[method] = method_total_result.get(method, 0) + result["magnitude"]
     for method, result in res["default scenario"]["results"].items():
-        print(method_total_result[method], result["magnitude"], method_total_result[method] - result["magnitude"])
+        # print(method_total_result[method], result["magnitude"], method_total_result[method] - result["magnitude"])
         assert method_total_result[method] == pytest.approx(result["magnitude"], abs=1e-15)
 
 

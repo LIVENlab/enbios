@@ -5,6 +5,7 @@ from typing import Optional, Any, Union, Sequence
 import bw2data as bd
 from bw2data.backends import Activity, ActivityDataset
 from numpy import ndarray
+from numpy._typing import NDArray
 from pint import Quantity, UndefinedUnitError
 from pydantic import BaseModel, Field, RootModel, ConfigDict, model_validator
 
@@ -297,6 +298,7 @@ class BrightwayAdapter(EnbiosAdapter):
         if self.config.simple_regionalization.run_regionalization and not self.all_regions_set:
             activity_codes: list[str] = list(self.config.simple_regionalization.set_node_regions.keys())
             # this approach is much faster than individual updates
+            # noinspection PyUnresolvedReferences
             with ActivityDataset._meta.database.atomic():
                 for a in ActivityDataset.select().where(ActivityDataset.code.in_(activity_codes)):
                     a.data["enb_location"] = self.config.simple_regionalization.set_node_regions[a.code]
@@ -305,8 +307,7 @@ class BrightwayAdapter(EnbiosAdapter):
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         self.prepare_scenario(scenario)
         use_distributions = self.config.use_k_bw_distributions > 1
-        raw_results: Union[list[ndarray], ndarray] = []
-        raw_region_results = []
+        raw_results: list[NDArray] = []
         self.lca_objects[scenario.name] = []
         run_regionalization = self.config.simple_regionalization.run_regionalization
         for i in range(self.config.use_k_bw_distributions):
@@ -316,7 +317,7 @@ class BrightwayAdapter(EnbiosAdapter):
                     self.config.simple_regionalization.select_regions,
                     use_distributions=use_distributions
                 )
-                raw_region_results.append(_lca.results)
+                raw_results.append(_lca.results)
             else:
                 _lca = StackedMultiLCA(
                     self.scenario_calc_setups[scenario.name], use_distributions
@@ -339,22 +340,21 @@ class BrightwayAdapter(EnbiosAdapter):
                     )
                 continue
             result_data[act_alias] = {}
+            result_field = "multi_magnitude" if use_distributions else "magnitude"
             for m_idx, method in enumerate(self.methods.items()):
                 method_name, method_data = method
                 if run_regionalization:
                     for region_idx, region in enumerate(self.config.simple_regionalization.select_regions):
                         method_result = ResultValue(unit=method_data.bw_method_unit)
-                        result_field = "multi_magnitude" if use_distributions else "magnitude"
-                        setattr(method_result, result_field, [
-                            res[act_idx, m_idx, region_idx] for res in raw_region_results
-                        ])
+                        method_res_values = [res[act_idx, m_idx, region_idx] for res in raw_results]
+                        setattr(method_result, result_field,
+                                method_res_values if use_distributions else method_res_values[0])
                         result_data[act_alias][f"{method_name}.{region}"] = method_result
                 else:
                     method_result = ResultValue(unit=method_data.bw_method_unit)
-                    result_field = "multi_magnitude" if use_distributions else "magnitude"
-                    setattr(method_result, result_field, [
-                        res[act_idx, m_idx] for res in raw_results
-                    ])
+                    method_res_values = [res[act_idx, m_idx] for res in raw_results]
+                    setattr(method_result, result_field,
+                            method_res_values if use_distributions else method_res_values[0])
                     result_data[act_alias][method_name] = method_result
             act_idx += 1
         return result_data
