@@ -26,7 +26,6 @@ ureg = get_enbios_ureg()
 
 class ExperimentMethodPrepData(BaseModel):
     id: tuple[str, ...]
-    # todo should go...
     bw_method_unit: str
 
 
@@ -351,7 +350,6 @@ class BrightwayAdapter(EnbiosAdapter):
                         ])
                         result_data[act_alias][f"{method_name}.{region}"] = method_result
                 else:
-                    # todo this could be a type
                     method_result = ResultValue(unit=method_data.bw_method_unit)
                     result_field = "multi_magnitude" if use_distributions else "magnitude"
                     setattr(method_result, result_field, [

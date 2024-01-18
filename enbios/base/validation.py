@@ -125,15 +125,6 @@ def validate_scenario(scenario_data: ExperimentScenarioData,
                     activity_name
                 ] = experiment.get_node_adapter(activity).get_default_output_value(activity.name)
 
-    # todo shall we bring back. scenario specific methods??
-    # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
-    # if _scenario.methods:
-    #     for index_, method_ in enumerate(_scenario.methods):
-    #         if isinstance(method_, str):
-    #             global_method = self.methods.get(method_)
-    #             assert global_method
-    #             resolved_methods[global_method.name] = global_method
-
     return Scenario(
         experiment=experiment,  # type: ignore
         name=scenario_data.name,

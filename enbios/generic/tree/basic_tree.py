@@ -226,9 +226,6 @@ class BasicTreeNode(Generic[T]):
         :param data_factory:
         :return: a node containing the whole tree
         """
-        # TODO type parameter of BasicTreeNode
-        # if compact:
-        #     return BasicTreeNode.from_compact_dict(data, data_factory=data_factory)
         name = data.get("name")
         children = data.get("children")
         if dataclass:

@@ -14,7 +14,6 @@ class ExperimentConfig(BaseModel):
         bool
     ] = True  # aggregate, with same indicator, as all children, if given.
     run_adapters_concurrently: bool = True
-    # include_bw_activity_in_nodes: bool = True # todo: bring this to aggregator
     run_scenarios: Optional[
         list[str]
     ] = None  # list of scenario-name to run, ALSO AS ENV-VAR
@@ -73,8 +72,7 @@ class AggregationModel(BaseModel):
 
 class ExperimentHierarchyNodeData(BaseModel):
     name: str
-    aggregator: str
-    # todo not used yet
+    aggregator: str = Field(..., description="name or node-indicator of the aggregator")
     config: Optional[Any] = Field(
         None, description="setup data (id, outputs, ... arbitrary data"
     )
@@ -142,9 +140,6 @@ class ExperimentScenarioData(BaseModel):
     activities: dict[str, NodeOutput] = Field(
         None, description="name to output, null means default-output (check exists)"
     )
-
-    # either the name, or the id of any method. not method means running them all
-    methods: Optional[list[Union[str]]] = None  # todo currently not used
     config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
 
     def name_factory(self, index: int):
