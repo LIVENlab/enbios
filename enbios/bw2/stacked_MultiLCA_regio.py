@@ -105,7 +105,6 @@ class RegioStackedMultiLCA:
                             self.lca.characterization_matrix * self.lca.inventory[:,
                                                                [self.lca.dicts.activity[c] for c in idxs]]).sum()
                     res_map[loc] = res
-                # self.lca.lcia_calculation()
 
                 # sum up location results, per level...
                 for lvl in self.loc_tree:

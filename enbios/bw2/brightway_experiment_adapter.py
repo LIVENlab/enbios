@@ -170,7 +170,8 @@ class BrightwayAdapter(EnbiosAdapter):
             str, BWCalculationSetup
         ] = {}  # scenario_alias to BWCalculationSetup
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
-        self.lca_objects: dict[str, list[Union[StackedMultiLCA, RegioStackedMultiLCA]]] = {}  # scenario_alias to lca objects
+        self.lca_objects: dict[
+            str, list[Union[StackedMultiLCA, RegioStackedMultiLCA]]] = {}  # scenario_alias to lca objects
         self.all_regions_set: bool = False  # as part of first run_scenario, go through set_node_regions
 
     @staticmethod
@@ -314,7 +315,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 _lca = RegioStackedMultiLCA(
                     self.scenario_calc_setups[scenario.name],
                     self.config.simple_regionalization.select_regions,
-                    use_distributions
+                    use_distributions=use_distributions
                 )
                 raw_region_results.append(_lca.results)
             else:
@@ -344,17 +345,18 @@ class BrightwayAdapter(EnbiosAdapter):
                 if run_regionalization:
                     for region_idx, region in enumerate(self.config.simple_regionalization.select_regions):
                         method_result = ResultValue(unit=method_data.bw_method_unit)
-                        method_result.magnitude = raw_region_results[0][act_idx, m_idx, region_idx]
+                        result_field = "multi_magnitude" if use_distributions else "magnitude"
+                        setattr(method_result, result_field, [
+                            res[act_idx, m_idx, region_idx] for res in raw_region_results
+                        ])
                         result_data[act_alias][f"{method_name}.{region}"] = method_result
                 else:
                     # todo this could be a type
                     method_result = ResultValue(unit=method_data.bw_method_unit)
-                    if use_distributions:
-                        method_result.multi_magnitude = [
-                            res[act_idx, m_idx] for res in raw_results
-                        ]
-                    else:
-                        method_result.magnitude = raw_results[0][act_idx, m_idx]
+                    result_field = "multi_magnitude" if use_distributions else "magnitude"
+                    setattr(method_result, result_field, [
+                        res[act_idx, m_idx] for res in raw_results
+                    ])
                     result_data[act_alias][method_name] = method_result
             act_idx += 1
         return result_data

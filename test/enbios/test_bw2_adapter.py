@@ -161,9 +161,11 @@ def test_run_exclude_defaults(experiment_setup):
     exp.run()
 
 
-def test_run_use_distribution(experiment_setup):
+def test_run_use_distribution(experiment_setup, default_bw_method_name):
     experiment_setup["scenario"]["adapters"][0]["config"]["use_k_bw_distributions"] = 2
-    Experiment(experiment_setup["scenario"]).run()
+    result = Experiment(experiment_setup["scenario"]).run()
+    assert len(result["default scenario"]["results"]['zinc_no_LT']["multi_magnitude"]) == 2
+    assert all(v != 0.0 for v in result["default scenario"]["results"]['zinc_no_LT']["multi_magnitude"])
 
 
 def test_regionalization(experiment_setup):
@@ -184,6 +186,7 @@ def test_regionalization(experiment_setup):
 
     cats = json.load((BASE_TEST_DATA_PATH / "catalan_activities.json").open())
 
+    # noinspection PyUnresolvedReferences
     with ActivityDataset._meta.database.atomic():
         for a in ActivityDataset.select().where(ActivityDataset.type == "process"):
             if a.code in cats:
@@ -218,25 +221,13 @@ def test_regionalization(experiment_setup):
     except Exception as e:
         print(e)
     finally:
+        # noinspection PyUnresolvedReferences
         with ActivityDataset._meta.database.atomic():
             for a in ActivityDataset.select().where(ActivityDataset.type == "process"):
                 if "enb_location" in a.data:
                     del a.data["enb_location"]
                     a.save()
 
-# c = 0
-# bw2data.projects.set_current(experiment_setup["scenario"]["adapters"][0]["config"]["bw_project"])
-# with ActivityDataset._meta.database.atomic():
-#     for a in ActivityDataset.select().where(ActivityDataset.type == "process"):
-#         if "enb_location" in a.data:
-#             if a.data["enb_location"] == ("ES", "cat"):
-#                 c += 1
-# print("cats", c)
-#             # del a.data["enb_location"]  # = ("ES", "cat")
-#             # a.save()
-#
-# print(regio_res)
-#
     experiment_setup["scenario"]["adapters"][0]["config"]["simple_regionalization"] = {"run_regionalization": False}
     exp = Experiment(experiment_setup["scenario"])
     res = exp.run()
@@ -246,7 +237,70 @@ def test_regionalization(experiment_setup):
     for method_regio, result in regio_res["default scenario"]["results"].items():
         method, region = method_regio.split(".")
         # print(result)
-        method_total_result[method] = method_total_result.get(method, 0 )+ result["magnitude"]
+        method_total_result[method] = method_total_result.get(method, 0) + result["magnitude"]
     for method, result in res["default scenario"]["results"].items():
-        print(method_total_result[method], result["magnitude"], method_total_result[method] -  result["magnitude"])
+        print(method_total_result[method], result["magnitude"], method_total_result[method] - result["magnitude"])
         assert method_total_result[method] == pytest.approx(result["magnitude"], abs=1e-15)
+
+
+def test_regionalization_distribution(experiment_setup):
+    experiment_setup["scenario"]["hierarchy"]["children"] = [
+        {'name': 'electricity production, wind, 1-3MW turbine, onshore',
+         'adapter': 'brightway-adapter',
+         'config': {'code': 'ed3da88fc23311ee183e9ffd376de89b',
+                    "enb_location": ("ES", "cat"),
+                    'default_output': {'unit': 'kilowatt_hour', 'magnitude': 3}}},
+        {'name': 'electricity production, wind, 1-3MW turbine, offshore',
+         'adapter': 'brightway-adapter',
+         'config': {'code': '6ebfe52dc3ef5b4d35bb603b03559023',
+                    "enb_location": ("ES", "cat")}}]
+
+    bw_adapter = experiment_setup["scenario"]["adapters"][0]
+    bw2data.projects.set_current(bw_adapter["config"]["bw_project"])
+
+    cats = json.load((BASE_TEST_DATA_PATH / "catalan_activities.json").open())
+
+    # noinspection PyUnresolvedReferences
+    with ActivityDataset._meta.database.atomic():
+        for a in ActivityDataset.select().where(ActivityDataset.type == "process"):
+            if a.code in cats:
+                a.data["enb_location"] = ("ES", "cat")
+            else:
+                a.data["enb_location"] = ("OTHER", "rest")
+            a.save()
+    bw_adapter["config"]["simple_regionalization"] = {"run_regionalization": True,
+                                                      "select_regions": {"ES", "OTHER"},
+                                                      "set_node_regions": {}}  # ,
+    bw_adapter["config"]["use_k_bw_distributions"] = 2
+
+    bw_adapter["methods"] = {
+        "GWP1000": (
+            "ReCiPe 2016 v1.03, midpoint (H)",
+            "climate change",
+            "global warming potential (GWP1000)",
+        ),
+        "FETP": (
+            "ReCiPe 2016 v1.03, midpoint (H)",
+            "ecotoxicity: freshwater",
+            "freshwater ecotoxicity potential (FETP)",
+        ),
+        "HTPnc": (
+            "ReCiPe 2016 v1.03, midpoint (H)",
+            "human toxicity: non-carcinogenic",
+            "human toxicity potential (HTPnc)",
+        ),
+    }
+    try:
+        exp = Experiment(experiment_setup["scenario"])
+        regio_res = exp.run()
+        print(json.dumps(regio_res, indent=2))
+    except Exception as e:
+        print(e)
+    finally:
+        # noinspection PyUnresolvedReferences
+        with ActivityDataset._meta.database.atomic():
+            for a in ActivityDataset.select().where(ActivityDataset.type == "process"):
+                if "enb_location" in a.data:
+                    del a.data["enb_location"]
+                    a.save()
+    pass
