@@ -345,7 +345,7 @@ class BrightwayAdapter(EnbiosAdapter):
                     for region_idx, region in enumerate(self.config.simple_regionalization.select_regions):
                         method_result = ResultValue(unit=method_data.bw_method_unit)
                         method_result.magnitude = raw_region_results[0][act_idx, m_idx, region_idx]
-                        result_data[act_alias][f"{method_name}_{region}"] = method_result
+                        result_data[act_alias][f"{method_name}.{region}"] = method_result
                 else:
                     # todo this could be a type
                     method_result = ResultValue(unit=method_data.bw_method_unit)

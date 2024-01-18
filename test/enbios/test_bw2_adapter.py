@@ -7,6 +7,7 @@ from pint import UndefinedUnitError
 
 from enbios.base.experiment import Experiment
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
+from enbios.const import BASE_TEST_DATA_PATH
 from test.enbios.conftest import experiment_setup
 
 
@@ -178,21 +179,23 @@ def test_regionalization(experiment_setup):
          'config': {'code': '6ebfe52dc3ef5b4d35bb603b03559023',
                     "enb_location": ("ES", "cat")}}]
 
-    bw2data.projects.set_current(experiment_setup["scenario"]["adapters"][0]["config"]["bw_project"])
+    bw_adapter = experiment_setup["scenario"]["adapters"][0]
+    bw2data.projects.set_current(bw_adapter["config"]["bw_project"])
+
+    cats = json.load((BASE_TEST_DATA_PATH / "catalan_activities.json").open())
+
     with ActivityDataset._meta.database.atomic():
         for a in ActivityDataset.select().where(ActivityDataset.type == "process"):
-            if "enb_location" in a.data:
-                del a.data["enb_location"]  # = ("ES", "cat")
-                a.save()
-    experiment_setup["scenario"]["adapters"][0]["config"]["simple_regionalization"] = {"run_regionalization": True,
-                                                                                       "select_regions": {"ES"},
-                                                                                       "set_node_regions": {}}  # ,
-    cats = json.load(open("catalan.json"))
-    for c in cats:
-        experiment_setup["scenario"]["adapters"][0]["config"]["simple_regionalization"]["set_node_regions"][c] = (
-        "ES", "cat")
+            if a.code in cats:
+                a.data["enb_location"] = ("ES", "cat")
+            else:
+                a.data["enb_location"] = ("OTHER", "rest")
+            a.save()
+    bw_adapter["config"]["simple_regionalization"] = {"run_regionalization": True,
+                                                      "select_regions": {"ES", "OTHER"},
+                                                      "set_node_regions": {}}  # ,
 
-    experiment_setup["scenario"]["adapters"][0]["methods"] = {
+    bw_adapter["methods"] = {
         "GWP1000": (
             "ReCiPe 2016 v1.03, midpoint (H)",
             "climate change",
@@ -209,24 +212,41 @@ def test_regionalization(experiment_setup):
             "human toxicity potential (HTPnc)",
         ),
     }
-    exp = Experiment(experiment_setup["scenario"])
+    try:
+        exp = Experiment(experiment_setup["scenario"])
+        regio_res = exp.run()
+    except Exception as e:
+        print(e)
+    finally:
+        with ActivityDataset._meta.database.atomic():
+            for a in ActivityDataset.select().where(ActivityDataset.type == "process"):
+                if "enb_location" in a.data:
+                    del a.data["enb_location"]
+                    a.save()
 
-    regio_res = exp.run()
-
-    c = 0
-    bw2data.projects.set_current(experiment_setup["scenario"]["adapters"][0]["config"]["bw_project"])
-    with ActivityDataset._meta.database.atomic():
-        for a in ActivityDataset.select().where(ActivityDataset.type == "process"):
-            if "enb_location" in a.data:
-                if a.data["enb_location"] == ("ES", "cat"):
-                    c += 1
-    print("cats", c)
-                # del a.data["enb_location"]  # = ("ES", "cat")
-                # a.save()
-
-    print(regio_res)
-
+# c = 0
+# bw2data.projects.set_current(experiment_setup["scenario"]["adapters"][0]["config"]["bw_project"])
+# with ActivityDataset._meta.database.atomic():
+#     for a in ActivityDataset.select().where(ActivityDataset.type == "process"):
+#         if "enb_location" in a.data:
+#             if a.data["enb_location"] == ("ES", "cat"):
+#                 c += 1
+# print("cats", c)
+#             # del a.data["enb_location"]  # = ("ES", "cat")
+#             # a.save()
+#
+# print(regio_res)
+#
     experiment_setup["scenario"]["adapters"][0]["config"]["simple_regionalization"] = {"run_regionalization": False}
     exp = Experiment(experiment_setup["scenario"])
     res = exp.run()
     print(res)
+
+    method_total_result = {}
+    for method_regio, result in regio_res["default scenario"]["results"].items():
+        method, region = method_regio.split(".")
+        # print(result)
+        method_total_result[method] = method_total_result.get(method, 0 )+ result["magnitude"]
+    for method, result in res["default scenario"]["results"].items():
+        print(method_total_result[method], result["magnitude"], method_total_result[method] -  result["magnitude"])
+        assert method_total_result[method] == pytest.approx(result["magnitude"], abs=1e-15)

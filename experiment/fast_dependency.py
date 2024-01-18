@@ -173,16 +173,3 @@ if __name__ == "__main__":
     # level, inputs, all_exchanges = get_tree_with_levels(act_code, max_level=1)
     # level_id, input_id = code_transform(level, inputs)
 
-    bw2data.projects.set_current("ecoinvent_391")
-    db:SQLiteBackend = bw2data.Database("ecoinvent_391_cutoff")
-    pass
-    with ActivityDataset._meta.database.atomic():
-        for a in tqdm(ActivityDataset.select().where(ActivityDataset.type == "process")):
-            a.data["enb_location"] = ("ES", "cat")
-            a.save()  # This updates each user in the database
-
-    # acts = [Activity(a) for a in ActivityDataset.select().where(ActivityDataset.type == "process")]
-    # # print(len(acts))
-    # for a in tqdm(acts):
-    #     a["enb_location"] = ("ES", "cat")
-    #     a.save()
