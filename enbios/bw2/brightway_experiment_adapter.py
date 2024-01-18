@@ -294,7 +294,7 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup = BWCalculationSetup(scenario.name, inventory, methods)
         calculation_setup.register()
         self.scenario_calc_setups[scenario.name] = calculation_setup
-        if not self.all_regions_set and self.config.simple_regionalization.run_regionalization:
+        if self.config.simple_regionalization.run_regionalization: and not self.all_regions_set
             activity_codes: list[str] = list(self.config.simple_regionalization.set_node_regions.keys())
             # this approach is much faster than individual updates
             with ActivityDataset._meta.database.atomic():

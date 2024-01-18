@@ -3,12 +3,10 @@ from dataclasses import dataclass
 
 import bw2data
 import numpy as np
-
-from bw2data import get_activity
-from bw2data.backends import Activity
-
 from bw2calc.lca import LCA
 from bw2calc.utils import wrap_functional_unit
+from bw2data import get_activity
+from bw2data.backends import Activity, ActivityDataset
 
 logger = logging.getLogger("bw2calc")
 
@@ -51,10 +49,12 @@ class StackedMultiLCA:
     """
 
     def __init__(
-        self,
-        calc_setup: BWCalculationSetup,
-        use_distributions: bool = False,
-        log_config=None,
+            self,
+            calc_setup: BWCalculationSetup,
+            select_locations: list[str],
+            use_distributions: bool = False,
+            location_key: str = "enb_location",
+            log_config=None,
     ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
@@ -62,7 +62,7 @@ class StackedMultiLCA:
             demand=self.all,
             method=self.methods[0],
             log_config=log_config,
-            use_distributions=use_distributions,
+            use_distributions=use_distributions
         )
         logger.info(
             {
@@ -74,7 +74,10 @@ class StackedMultiLCA:
         self.lca.lci()
         self.method_matrices = []
         self.supply_arrays = []
-        self.results = np.zeros((len(self.func_units), len(self.methods)))
+        self.results = np.zeros((len(self.func_units), len(self.methods), len(self.methods)))
+        self.locations_base_map: dict[str, list[int]] = {}
+        self.loc_tree: list[dict[str, set[str]]] = []
+        self.resolve_loc_basemap(location_key)
         for method in self.methods:
             self.lca.switch_method(method)
             self.method_matrices.append(self.lca.characterization_matrix)
@@ -93,12 +96,47 @@ class StackedMultiLCA:
             self.lca.lci(fu)
             self.supply_arrays.append(self.lca.supply_array)
 
+            res_map = {}
+
             for col, cf_matrix in enumerate(self.method_matrices):
                 self.lca.characterization_matrix = cf_matrix
-                self.lca.lcia_calculation()
-                self.results[row, col] = self.lca.score
+                for loc, idxs in self.locations_base_map.items():
+                    res = (
+                            self.lca.characterization_matrix * self.lca.inventory[:,
+                                                               [self.lca.dicts.activity[c] for c in idxs]]).sum()
+                # self.lca.lcia_calculation()
+
+                # sum up location results, per level...
+                for lvl in self.loc_tree:
+                    for loc, sub_loc in lvl.items():
+                        # print(loc, contained)
+                        res_map[loc] = 0
+                        for cloc in sub_loc:
+                            res_map[loc] += res_map[cloc]
+
+                for loc, loc_name in enumerate(select_locations):
+                    self.results[row, col, loc] = res_map[loc_name]
 
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
+
+    def resolve_loc_basemap(self, location_key: str = "enb_location"):
+        # final location -> id
+        # base_loc_map = {}
+        # all other indices to last locs
+        # loc_tree = []
+        for a in ActivityDataset.select(ActivityDataset).where(ActivityDataset.type == "process"):
+            # if a.type == "process":
+            loc = a.data.get(location_key)
+            if not isinstance(loc, tuple):
+                continue
+            final_loc = loc[-1]
+            self.locations_base_map.setdefault(final_loc, []).append(a.id)
+            for idx, rest in enumerate(loc[:-1]):
+                if len(self.loc_tree) <= idx:
+                    self.loc_tree.append({})
+                self.loc_tree[idx].setdefault(rest, set()).add(loc[idx + 1])
+
+        self.loc_tree.reverse()
 
     @property
     def all(self):
