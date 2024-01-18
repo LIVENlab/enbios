@@ -181,27 +181,6 @@ class Experiment:
             + f"Available {module_type.__name__}s are: {[m.node_indicator() for m in modules.values()]}"
         )
 
-    def get_activity_default_output(self, activity_name: str) -> float:
-        """
-        Get the default output of an activity (bottom node) by its name
-
-        :param activity_name: name of the activity
-        :return: magnitude value of the default output
-        """
-        # todo remove, since seems to be just called once
-        activity = self.get_activity(activity_name)
-        return self.get_node_adapter(activity).get_default_output_value(activity.name)
-
-    def _get_activity_output_unit(self, activity_name: str) -> str:
-        """
-        Get the unit of the activity (bottom node) by its name
-        :param activity_name:
-        :return:
-        """
-        # todo : just used once
-        activity = self.get_activity(activity_name)
-        return self.get_node_adapter(activity).get_node_output_unit(activity_name)
-
     def get_scenario(self, scenario_name: str) -> Scenario:
         """
         Get a scenario by its name
@@ -243,39 +222,9 @@ class Experiment:
 
         results = {}
         start_time = time.time()
-        # TODO RUN AT ONCE...
         for scenario in run_scenarios:
             scenario.reset_execution_time()
             results[scenario.name] = scenario.run(results_as_dict)
-        #     if scenario.methods:
-        #         raise ValueError(
-        #             f"Scenario cannot have individual methods. '{scenario.name}'"
-        #         )
-        #     inventory: list[dict[Activity, float]] = []
-        #     for activity_name, act_out in scenario.activities_outputs.items():
-        #         bw_activity = scenario.experiment.get_activity(
-        #             activity_name.alias
-        #         ).bw_activity
-        #         inventory.append({bw_activity: act_out})
-        #     inventories.append(inventory)
-
-        # run experiment
-        # start_time = time.time()
-        # calculation_setup = BWCalculationSetup(
-        #     "experiment", list(itertools.chain(*inventories)), methods
-        # )
-
-        # distribution_results = self.config.use_k_bw_distributions > 1
-        # results: dict[str, BasicTreeNode[ScenarioResultNodeData]] = {}
-        # for i in range(self.config.use_k_bw_distributions):
-        #     raw_results = StackedMultiLCA(calculation_setup, distribution_results).results
-        #     scenario_results = np.split(raw_results, len(run_scenarios))
-        #     for index, scenario in enumerate(run_scenarios):
-        #         results[scenario.alias] = scenario.set_results(
-        #             scenario_results[index],
-        #             distribution_results,
-        #             i == self.config.use_k_bw_distributions - 1
-        #         )
         self._execution_time = time.time() - start_time
         return results
 

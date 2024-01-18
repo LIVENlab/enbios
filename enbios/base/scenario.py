@@ -55,8 +55,9 @@ class Scenario:
                 activity_node = self.result_tree.find_subnode_by_name(activity_name)
             except StopIteration:
                 raise ValueError(f"Activity {activity_name} not found in result tree")
+            activity = self.experiment.get_activity(activity_name)
             activity_node.data.output = NodeOutput(
-                unit=self.experiment._get_activity_output_unit(activity_name),
+                unit=self.experiment.get_node_adapter(activity).get_node_output_unit(activity_name),
                 magnitude=self.activities_outputs[activity_name],
             )
             # todo adapter/aggregator specific additional data
@@ -337,8 +338,6 @@ class Scenario:
 
     def describe(self):
         output = f"Scenario '{self.name}'\n"
-
         output += json.dumps(self.activities_outputs, indent=2)
         # todo: the tree instead...
-
         return output

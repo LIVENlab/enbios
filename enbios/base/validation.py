@@ -120,9 +120,10 @@ def validate_scenario(scenario_data: ExperimentScenarioData,
     if not scenario_data.config.exclude_defaults:
         for activity_name in experiment.activities_names:
             if activity_name not in defined_activities:
+                activity = experiment.get_activity(activity_name)
                 scenario_activities_outputs[
                     activity_name
-                ] = experiment.get_activity_default_output(activity_name)
+                ] = experiment.get_node_adapter(activity).get_default_output_value(activity.name)
 
     # todo shall we bring back. scenario specific methods??
     # resolved_methods: dict[str, ExperimentMethodPrepData] = {}
