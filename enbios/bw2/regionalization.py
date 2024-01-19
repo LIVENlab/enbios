@@ -9,9 +9,10 @@ there should be no activity with location ("ES", "ara") (where ES is at index 0)
 """
 
 
-def regionalization(lca: LCA, location_key: str = "location") -> dict[str, float]:
+def regionalization(lca: LCA, location_key: str = "enb_location") -> dict[str, float]:
     """
     :param lca: bw LCA object
+    :param location_key:
     :return: dictionary, location > impact score
     """
     if not hasattr(lca, "inventory"):
