@@ -327,7 +327,7 @@ class Experiment:
     def __repr__(self):
         return (
             f"Experiment: (call info() for details)\n"
-            f"Activities: {len(self._structural_nodes)}\n"
+            f"Structural nodes: {len(self._structural_nodes)}\n"
             f"Methods: {len(self.methods)}\n"
             f"Hierarchy (depth): {self.hierarchy_root.depth}\n"
             f"Scenarios: {len(self.scenarios)}\n"
@@ -389,7 +389,7 @@ class Experiment:
         methods_str = "\n".join([f" {m}" for m in self.methods])
         return (
             f"Experiment: \n"
-            f"Activities: {len(self._structural_nodes)}\n"
+            f"Structural nodes: {len(self._structural_nodes)}\n"
             f"{node_rows_str}\n"
             f"Methods: {len(self.methods)}\n"
             f"{methods_str}\n"

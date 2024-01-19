@@ -86,19 +86,19 @@ def stacked_bar_plot(
         ax = axs[idx]
 
         # Create the bar plot using the specific Axes object
-        nodes: list[BasicTreeNode[ScenarioResultNodeData]] = []
+        nodes_data: list[BasicTreeNode[ScenarioResultNodeData]] = []
         # todo, what is going on here..?
         if nodes:
-            for alias in nodes:
-                node = experiment.hierarchy_root.find_subnode_by_name(alias)
+            for node_name in nodes:
+                node = experiment.hierarchy_root.find_subnode_by_name(node_name)
                 if not node:
-                    raise ValueError(f"Alias {alias} not found in hierarchy")
-                nodes.append(node)
+                    raise ValueError(f"Alias {node_name} not found in hierarchy")
+                nodes_data.append(node)
         else:
-            nodes = experiment.hierarchy_root.collect_all_nodes_at_level(level)
+            nodes_data = experiment.hierarchy_root.collect_all_nodes_at_level(level)
 
-        node_names = [node.name for node in nodes]
-        df: DataFrame = rs.collect_tech_results(node_names)
+        node_name = [node.name for node in nodes_data]
+        df: DataFrame = rs.collect_tech_results(node_name)
         df_pivot: DataFrame = df.pivot(index="scenario", columns="tech", values=method)
         df_pivot = df_pivot.reindex(df["scenario"].drop_duplicates().tolist())
         df_pivot.plot(kind="bar", stacked=True, ax=ax)
@@ -128,7 +128,7 @@ def star_plot(
     df = rs.normalized_df()
 
     if len(rs.methods) < 3:
-        raise ValueError("Starplots require at least 3 methods")
+        raise ValueError("Star-plots require at least 3 methods")
 
     labels = rs.method_label_names(False)
 

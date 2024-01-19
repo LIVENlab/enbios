@@ -1,7 +1,7 @@
 [
   {
     "name": "normal scenario",
-    "activities": {
+    "nodes": {
       "electricity production, wind, >3MW turbine, onshore": [
         "kilowatt_hour",
         1
@@ -22,7 +22,7 @@
   },
   {
     "name": null,
-    "activities": {
+    "nodes": {
       "electricity production, wind, >3MW turbine, onshore": [
         "kilowatt_hour",
         5
@@ -43,7 +43,7 @@
   },
   {
     "name": null,
-    "activities": {
+    "nodes": {
       "electricity production, wind, >3MW turbine, onshore": [
         "kilowatt_hour",
         2
