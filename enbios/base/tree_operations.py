@@ -80,7 +80,6 @@ def recursive_resolve_outputs(
         return
     cancel_parts_of: set = kwargs["cancel_parents_of"]
     if any(child.id in cancel_parts_of for child in node.children):
-        node.set_data(ScenarioResultNodeData())
         cancel_parts_of.add(node.id)
 
     aggregator = experiment.get_node_aggregator(node)

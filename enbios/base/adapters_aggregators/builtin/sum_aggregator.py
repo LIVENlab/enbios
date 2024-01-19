@@ -30,6 +30,8 @@ class SumAggregator(EnbiosAggregator):
         for child in node.children:
             # if not child._data:
             #     raise ValueError(f"Node {child.name} has no data")
+            if not child.data.output:
+                continue
             node_output_unit = child.data.output.unit
             if node_output_unit is None:
                 node_output = None
