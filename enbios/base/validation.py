@@ -107,7 +107,7 @@ def validate_scenario(
     :return:
     """
 
-    def validate_nodes(scenario_: ExperimentScenarioData) -> dict[str,float]:
+    def validate_nodes(scenario_: ExperimentScenarioData) -> dict[str, float]:
         nodes = scenario_.nodes or {}
         result: dict[str, float] = {}
 
@@ -117,9 +117,7 @@ def validate_scenario(
 
             if isinstance(node_output, dict):
                 node_output = NodeOutput(**node_output)
-            result[node_name_] = adapter.validate_node_output(
-                node_name_, node_output
-            )
+            result[node_name_] = adapter.validate_node_output(node_name_, node_output)
         return result
 
     scenario_nodes_outputs: dict[str, float] = validate_nodes(scenario_data)

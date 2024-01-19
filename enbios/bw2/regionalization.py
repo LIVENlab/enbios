@@ -26,7 +26,9 @@ def regionalization(lca: LCA, location_key: str = "enb_location") -> dict[str, f
     base_loc_map = {}
     # all other indices to last locs
     loc_tree = []
-    for a in ActivityDataset.select(ActivityDataset).where(ActivityDataset.type == "process"):
+    for a in ActivityDataset.select(ActivityDataset).where(
+        ActivityDataset.type == "process"
+    ):
         # if a.type == "process":
         loc = a.data.get(location_key)
         if not isinstance(loc, tuple):
@@ -43,7 +45,10 @@ def regionalization(lca: LCA, location_key: str = "enb_location") -> dict[str, f
     res_map = {}
     # do matrix multiplication for each final location
     for loc, idxs in base_loc_map.items():
-        res_map[loc] = (lca.characterization_matrix * lca.inventory[:, [lca.dicts.activity[c] for c in idxs]]).sum()
+        res_map[loc] = (
+            lca.characterization_matrix
+            * lca.inventory[:, [lca.dicts.activity[c] for c in idxs]]
+        ).sum()
 
     # sum up location results, per level...
     for lvl in loc_tree:

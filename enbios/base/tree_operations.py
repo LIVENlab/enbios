@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 
 
 def validate_experiment_hierarchy(
-        hierarchy: ExperimentHierarchyNodeData,
+    hierarchy: ExperimentHierarchyNodeData,
 ) -> BasicTreeNode[TechTreeNodeData]:
     # todo allow no output only when there are scenarios...
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
@@ -38,9 +38,9 @@ def validate_experiment_hierarchy(
 
 
 def validate_experiment_reference_hierarchy(
-        hierarchy: HierarchyNodeReference,
-        original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
-        get_node_aggregator_fcn: Callable,
+    hierarchy: HierarchyNodeReference,
+    original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
+    get_node_aggregator_fcn: Callable,
 ) -> BasicTreeNode[TechTreeNodeData]:
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
         hierarchy.model_dump(), dataclass=TechTreeNodeData
@@ -72,7 +72,7 @@ def validate_experiment_reference_hierarchy(
 
 
 def recursive_resolve_outputs(
-        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
+    node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
 ):
     # todo, does this takes default values when an node is not defined
     #  in the scenario?

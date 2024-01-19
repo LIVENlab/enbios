@@ -56,9 +56,9 @@ class Scenario:
                 raise ValueError(f"Node {node_name} not found in result tree")
             structural_node = self.experiment.get_structural_node(node_name)
             structural_result_node.data.output = NodeOutput(
-                unit=self.experiment.get_node_adapter(structural_node).get_node_output_unit(
-                    node_name
-                ),
+                unit=self.experiment.get_node_adapter(
+                    structural_node
+                ).get_node_output_unit(node_name),
                 magnitude=self.structural_nodes_outputs[node_name],
             )
             # todo adapter/aggregator specific additional data
