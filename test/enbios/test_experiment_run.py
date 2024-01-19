@@ -53,7 +53,7 @@ def experiment_scenario_setup(bw_adapter_config, first_activity_config):
         "scenarios": [
             {
                 "name": "scenario1",
-                "activities": {
+                "nodes": {
                     "single_activity": {
                         "unit": "kWh",
                         "magnitude": 1
@@ -62,7 +62,7 @@ def experiment_scenario_setup(bw_adapter_config, first_activity_config):
             },
             {
                 "name": "scenario2",
-                "activities": {
+                "nodes": {
                     "single_activity": {
                         "unit": "MWh",
                         "magnitude": 2
@@ -209,13 +209,13 @@ def test_stacked_lca(bw_adapter_config, first_activity_config, second_activity_c
         },
         "scenarios": [
             {
-                "activities": {"single_activity": {"unit": "kWh", "magnitude": 3}}
+                "nodes": {"single_activity": {"unit": "kWh", "magnitude": 3}}
             },
             {
-                "activities": {"single_activity": {"unit": "kWh", "magnitude": 4}}
+                "nodes": {"single_activity": {"unit": "kWh", "magnitude": 4}}
             },
             {
-                "activities": {"single_activity": {"unit": "kWh", "magnitude": 5}}
+                "nodes": {"single_activity": {"unit": "kWh", "magnitude": 5}}
             }
         ]
     }

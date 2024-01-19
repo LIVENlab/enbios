@@ -37,7 +37,7 @@
   },
   "scenarios": [
     {
-      "activities": {
+      "nodes": {
         "A": {
           "unit": "MWh",
           "magnitude": 30
@@ -45,7 +45,7 @@
       }
     },
     {
-      "activities": {
+      "nodes": {
         "A": {
           "unit": "Mwh",
           "magnitude": 20
