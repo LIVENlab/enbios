@@ -11,7 +11,7 @@ class TechTreeNodeData(BaseModel):
     aggregator: Optional[str] = None
     # for
     config: Optional[Any] = Field(
-        None, description="The identifies (method to find) an activity"
+        None, description="The identifies (method to find) a node"
     )
 
     @model_validator(mode="before")
@@ -38,6 +38,3 @@ class ScenarioResultNodeData(BaseModel):
     results: dict[str, ResultValue] = field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
-
-
-Activity_Outputs = dict[str, float]

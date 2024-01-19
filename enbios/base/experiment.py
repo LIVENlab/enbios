@@ -79,12 +79,12 @@ class Experiment:
         self.hierarchy_root: BasicTreeNode[
             TechTreeNodeData
         ] = validate_experiment_hierarchy(self.raw_data.hierarchy)
-        self._activities: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
+        self._structural_nodes: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
         # validate individual nodes based on their adapter/aggregator
         for node in self.hierarchy_root.iter_all_nodes():
             if node.is_leaf:
                 self.get_node_adapter(node).validate_node(node.name, node.data.config)
-                self._activities[node.name] = node
+                self._structural_nodes[node.name] = node
             else:
                 self.get_node_aggregator(node).validate_node(node.name, node.data.config)
 
@@ -123,17 +123,17 @@ class Experiment:
     #     adapter_name, method_name = method_name.split(".")
     #     return self._adapters[adapter_name].get_method_unit(method_name)
 
-    def get_activity(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
+    def get_structural_node(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
-        Get an activity by either its name
+        Get an node by either its name
         as it is defined in the experiment data
         :param name:
-        :return: ExtendedExperimentActivityData
+        :return: BasicTreeNode[TechTreeNodeData]
         """
-        activity = self._activities.get(name, None)
-        if not activity:
-            raise ValueError(f"Activity with name '{name}' not found")
-        return activity
+        node = self._structural_nodes.get(name, None)
+        if not node:
+            raise ValueError(f"Node with name '{name}' not found")
+        return node
 
     def get_node_adapter(
         self, node: BasicTreeNode[TechTreeNodeData]
@@ -308,7 +308,7 @@ class Experiment:
     def result_to_dict(self, include_output: bool = True) -> list[dict[str, Any]]:
         """
         Get the results of all scenarios as a list of dictionaries as dictionaries
-        :param include_output: Include the output of each activity in the tree
+        :param include_output: Include the output of each node in the tree
         :return:
         """
         return [
@@ -327,15 +327,15 @@ class Experiment:
     def __repr__(self):
         return (
             f"Experiment: (call info() for details)\n"
-            f"Activities: {len(self._activities)}\n"
+            f"Activities: {len(self._structural_nodes)}\n"
             f"Methods: {len(self.methods)}\n"
             f"Hierarchy (depth): {self.hierarchy_root.depth}\n"
             f"Scenarios: {len(self.scenarios)}\n"
         )
 
     @property
-    def activities_names(self) -> list[str]:
-        return list(self._activities.keys())
+    def structural_nodes_names(self) -> list[str]:
+        return list(self._structural_nodes.keys())
 
     @property
     def scenario_names(self) -> list[str]:
@@ -373,7 +373,7 @@ class Experiment:
         Information about the experiment
         :return:
         """
-        activity_rows: list[str] = []
+        node_rows: list[str] = []
 
         def print_node(node: BasicTreeNode[TechTreeNodeData], _):
             module_name: str
@@ -381,16 +381,16 @@ class Experiment:
                 module_name = self.get_node_adapter(node).name()
             else:
                 module_name = self.get_node_aggregator(node).name()
-            activity_rows.append(f"{' ' * node.level}{node.name} - {module_name}")
+            node_rows.append(f"{' ' * node.level}{node.name} - {module_name}")
 
         self.hierarchy_root.recursive_apply(print_node, False, False, None)
 
-        activity_rows_str = "\n".join(activity_rows)
+        node_rows_str = "\n".join(node_rows)
         methods_str = "\n".join([f" {m}" for m in self.methods])
         return (
             f"Experiment: \n"
-            f"Activities: {len(self._activities)}\n"
-            f"{activity_rows_str}\n"
+            f"Activities: {len(self._structural_nodes)}\n"
+            f"{node_rows_str}\n"
             f"Methods: {len(self.methods)}\n"
             f"{methods_str}\n"
             f"Hierarchy (depth): {self.hierarchy_root.depth}\n"

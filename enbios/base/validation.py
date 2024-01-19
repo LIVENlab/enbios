@@ -15,7 +15,6 @@ from enbios.models.experiment_base_models import (
     AdapterModel,
     AggregationModel,
 )
-from enbios.models.experiment_models import Activity_Outputs
 
 if TYPE_CHECKING:
     from enbios.base.experiment import Experiment
@@ -108,38 +107,37 @@ def validate_scenario(
     :return:
     """
 
-    def validate_activities(scenario_: ExperimentScenarioData) -> Activity_Outputs:
-        activities = scenario_.activities or {}
+    def validate_nodes(scenario_: ExperimentScenarioData) -> dict[str,float]:
+        nodes = scenario_.nodes or {}
         result: dict[str, float] = {}
 
-        for activity_name, activity_output in activities.items():
-            activity = experiment.get_activity(activity_name)
-            adapter = experiment.get_node_adapter(activity)
+        for node_name_, node_output in nodes.items():
+            node_ = experiment.get_structural_node(node_name_)
+            adapter = experiment.get_node_adapter(node_)
 
-            if isinstance(activity_output, dict):
-                activity_output = NodeOutput(**activity_output)
-            result[activity_name] = adapter.validate_node_output(
-                activity_name, activity_output
+            if isinstance(node_output, dict):
+                node_output = NodeOutput(**node_output)
+            result[node_name_] = adapter.validate_node_output(
+                node_name_, node_output
             )
         return result
 
-    scenario_activities_outputs: Activity_Outputs = validate_activities(scenario_data)
-    defined_activities = list(scenario_activities_outputs.keys())
+    scenario_nodes_outputs: dict[str, float] = validate_nodes(scenario_data)
+    defined_nodes = list(scenario_nodes_outputs.keys())
 
     # fill up the missing activities with default values
     if not scenario_data.config.exclude_defaults:
-        for activity_name in experiment.activities_names:
-            if activity_name not in defined_activities:
-                activity = experiment.get_activity(activity_name)
-                scenario_activities_outputs[activity_name] = experiment.get_node_adapter(
-                    activity
-                ).get_default_output_value(activity.name)
+        for node_name in experiment.structural_nodes_names:
+            if node_name not in defined_nodes:
+                node = experiment.get_structural_node(node_name)
+                scenario_nodes_outputs[node_name] = experiment.get_node_adapter(
+                    node
+                ).get_default_output_value(node.name)
 
     return Scenario(
         experiment=experiment,  # type: ignore
         name=scenario_data.name,
-        activities_outputs=scenario_activities_outputs,
-        # methods={},
+        structural_nodes_outputs=scenario_nodes_outputs,
         config=scenario_data.config,
         result_tree=experiment.base_result_tree.copy(),
     )

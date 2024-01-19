@@ -30,15 +30,15 @@ class SumAggregator(EnbiosAggregator):
         for child in node.children:
             # if not child._data:
             #     raise ValueError(f"Node {child.name} has no data")
-            activity_output = child.data.output.unit
-            if activity_output is None:
+            node_output_unit = child.data.output.unit
+            if node_output_unit is None:
                 node_output = None
-                self.logger.warning(f"No output unit of activity '{child.name}'.")
+                self.logger.warning(f"No output unit of node '{child.name}'.")
                 break
             output_mag: Optional[float] = None
             try:
                 output_mag = (
-                    enbios.get_enbios_ureg().parse_expression(activity_output)
+                    enbios.get_enbios_ureg().parse_expression(node_output_unit)
                     * child.data.output.magnitude
                 )
                 if not node_output:
@@ -47,7 +47,7 @@ class SumAggregator(EnbiosAggregator):
                     node_output += output_mag
             except UndefinedUnitError as err:
                 self.logger.error(
-                    f"Cannot parse output unit '{activity_output}' of activity "
+                    f"Cannot parse output unit '{node_output_unit}' of node "
                     f"{child.name}. {err}. "
                     f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
                 )

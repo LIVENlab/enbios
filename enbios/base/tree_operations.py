@@ -74,7 +74,7 @@ def validate_experiment_reference_hierarchy(
 def recursive_resolve_outputs(
         node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
 ):
-    # todo, does this takes default values when an activity is not defined
+    # todo, does this takes default values when an node is not defined
     #  in the scenario?
     if node.is_leaf:
         return

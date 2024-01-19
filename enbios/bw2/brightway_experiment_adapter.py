@@ -279,11 +279,11 @@ class BrightwayAdapter(EnbiosAdapter):
                 bw_activity["enb_location"] = node_config["enb_location"]
                 bw_activity.save()
 
-    def get_default_output_value(self, activity_name: str) -> float:
-        return self.activityMap[activity_name].default_output.magnitude
+    def get_default_output_value(self, node_name: str) -> float:
+        return self.activityMap[node_name].default_output.magnitude
 
-    def get_node_output_unit(self, activity_name: str) -> str:
-        return bw_unit_fix(self.activityMap[activity_name].bw_activity["unit"])
+    def get_node_output_unit(self, node_name: str) -> str:
+        return bw_unit_fix(self.activityMap[node_name].bw_activity["unit"])
 
     def get_method_unit(self, method_name: str) -> str:
         return self.methods[method_name].bw_method_unit
@@ -292,7 +292,7 @@ class BrightwayAdapter(EnbiosAdapter):
         inventory: list[dict[Activity, float]] = []
         for act_alias, activity in self.activityMap.items():
             try:
-                act_output = scenario.activities_outputs[act_alias]
+                act_output = scenario.structural_nodes_outputs[act_alias]
                 inventory.append({activity.bw_activity: act_output})
             except KeyError:
                 # todo not sure if that ever happens..
@@ -351,7 +351,7 @@ class BrightwayAdapter(EnbiosAdapter):
         result_data: dict[str, Any] = {}
         act_idx = 0
         for act_alias in self.activityMap.keys():
-            if act_alias not in scenario.activities_outputs:
+            if act_alias not in scenario.structural_nodes_outputs:
                 if not scenario.config.exclude_defaults:
                     # todo not sure if that ever happens...
                     raise ValueError(

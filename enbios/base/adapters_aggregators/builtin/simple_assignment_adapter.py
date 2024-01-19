@@ -10,7 +10,7 @@ from enbios.models.experiment_models import ResultValue
 
 
 class SimpleAssignment(BaseModel):
-    activity: str
+    node_name: str
     output_unit: str
     default_output: NodeOutput
     default_impacts: Optional[dict[str, ResultValue]] = None
@@ -39,7 +39,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     def __init__(self):
         super().__init__()
-        self.activities: dict[str, SimpleAssignment] = {}  # name: activity
+        self.nodes: dict[str, SimpleAssignment] = {}  # name: node
         self.methods: Optional[dict[str, str]] = None  # name: unit
 
     def validate_definition(self, definition: AdapterModel):
@@ -53,38 +53,38 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         return list(methods.keys())
 
     def validate_node_output(self, node_name: str, target_output: NodeOutput) -> float:
-        return get_output_in_unit(target_output, self.activities[node_name].output_unit)
+        return get_output_in_unit(target_output, self.nodes[node_name].output_unit)
 
     def validate_node(self, node_name: str, node_config: Any):
-        self.activities[node_name] = SimpleAssignment(
-            **{**{"activity": node_name} | node_config}
+        self.nodes[node_name] = SimpleAssignment(
+            **{**{"node_name": node_name} | node_config}
         )
 
-    def get_node_output_unit(self, activity_name: str) -> str:
-        return self.activities[activity_name].output_unit
+    def get_node_output_unit(self, node_name: str) -> str:
+        return self.nodes[node_name].output_unit
 
     def get_method_unit(self, method_name: str) -> str:
         return self.methods[method_name]
 
-    def get_default_output_value(self, activity_name: str) -> float:
-        return self.activities[activity_name].default_output.magnitude
+    def get_default_output_value(self, node_name: str) -> float:
+        return self.nodes[node_name].default_output.magnitude
 
     # def run(self):
     #     pass
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         result = {}
-        for activity, config in self.activities.items():
-            activity_results = result.setdefault(activity, {})
+        for node, config in self.nodes.items():
+            node_results = result.setdefault(node, {})
             for method in self.methods:
                 if config.scenario_impacts:
                     if scenario.name in config.scenario_impacts:
-                        activity_results[method] = config.scenario_impacts[scenario.name][
+                        node_results[method] = config.scenario_impacts[scenario.name][
                             method
                         ]
                 elif config.default_impacts:
                     if method in config.default_impacts:
-                        activity_results[method] = config.default_impacts[method]
+                        node_results[method] = config.default_impacts[method]
         return result
 
     @staticmethod
@@ -93,4 +93,4 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     @staticmethod
     def get_config_schemas() -> dict:
-        return {"activity": SimpleAssignment.model_json_schema()}
+        return {"node_name": SimpleAssignment.model_json_schema()}

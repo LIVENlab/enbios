@@ -40,7 +40,7 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_node_output_unit(self, activity_name: str) -> str:
+    def get_node_output_unit(self, node_name: str) -> str:
         pass
 
     @abstractmethod
@@ -48,7 +48,7 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_default_output_value(self, activity_name: str) -> float:
+    def get_default_output_value(self, node_name: str) -> float:
         pass
 
     @abstractmethod
@@ -56,7 +56,7 @@ class EnbiosAdapter(ABC):
         """
         Run a specific scenario. The adapter should return a dictionary of the form:
             {
-                activity_name: {
+                node_name: {
                     method_name: ResultValue (unit, magnitude)
                 }
             }

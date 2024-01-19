@@ -151,7 +151,7 @@ def test_run_exclude_defaults(experiment_setup):
 
     experiment_setup["scenario"]["scenarios"] = [{
         "name": "scenario1",
-        "activities": {
+        "nodes": {
             experiment_setup["scenario"]["hierarchy"]["children"][0]["name"]: ["kWh", 5]
         },
         "config": {"exclude_defaults": True}
