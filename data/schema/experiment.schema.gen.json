@@ -1,23 +1,5 @@
 {
   "$defs": {
-    "ActivityOutput": {
-      "properties": {
-        "unit": {
-          "title": "Unit",
-          "type": "string"
-        },
-        "magnitude": {
-          "default": 1.0,
-          "title": "Magnitude",
-          "type": "number"
-        }
-      },
-      "required": [
-        "unit"
-      ],
-      "title": "ActivityOutput",
-      "type": "object"
-    },
     "AdapterModel": {
       "additionalProperties": true,
       "properties": {
@@ -71,9 +53,19 @@
             {
               "format": "path",
               "type": "string"
+            },
+            {
+              "type": "null"
             }
           ],
+          "default": null,
           "title": "Module Path"
+        },
+        "aggregator_name": {
+          "default": null,
+          "description": "this this is to use inbuilt aggregator (e.g. 'simple-assignment-adapter'",
+          "title": "Aggregator Name",
+          "type": "string"
         },
         "config": {
           "anyOf": [
@@ -99,9 +91,6 @@
           "title": "Note"
         }
       },
-      "required": [
-        "module_path"
-      ],
       "title": "AggregationModel",
       "type": "object"
     },
@@ -253,6 +242,7 @@
           "type": "string"
         },
         "aggregator": {
+          "description": "name or node-indicator of the aggregator",
           "title": "Aggregator",
           "type": "string"
         },
@@ -312,29 +302,14 @@
           "default": null,
           "title": "Name"
         },
-        "activities": {
+        "nodes": {
           "additionalProperties": {
-            "$ref": "#/$defs/ActivityOutput"
+            "$ref": "#/$defs/NodeOutput"
           },
           "default": null,
           "description": "name to output, null means default-output (check exists)",
-          "title": "Activities",
+          "title": "Nodes",
           "type": "object"
-        },
-        "methods": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Methods"
         },
         "config": {
           "anyOf": [
@@ -348,6 +323,25 @@
         }
       },
       "title": "ExperimentScenarioData",
+      "type": "object"
+    },
+    "NodeOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "magnitude": {
+          "default": 1.0,
+          "title": "Magnitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "unit"
+      ],
+      "title": "NodeOutput",
       "type": "object"
     },
     "ScenarioConfig": {
