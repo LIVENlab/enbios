@@ -1,8 +1,7 @@
 from typing import Optional
 
 import bw2data
-from bw2data.backends import ActivityDataset, ExchangeDataset, Activity, SQLiteBackend
-from tqdm import tqdm
+from bw2data.backends import ActivityDataset, ExchangeDataset, Activity
 
 
 def check_unique_codes():
@@ -67,14 +66,12 @@ def get_tree(code: str,
 def get_tree_with_levels(code: str,
                          keep_exchange_type: Optional[list[str]] = None,
                          check_unique_code: Optional[bool] = True,
-                         store_ids: bool = False,
                          max_level: Optional[int] = -1) -> tuple[dict[str, int], dict[str, set[str]], list[int]]:
     """
     Get all nodes that are connected to the given node. (as inputs)
     :param code: root code
     :param keep_exchange_type: keep the exchanges of the given type
     :param check_unique_code: check if the codes are unique
-    :param store_ids: store the ids instead of codes
     :param max_level: max level to go down. -1 for infinite
     :return:
     """
@@ -120,9 +117,9 @@ def get_tree_with_levels(code: str,
                 inputs[exc.output_code].add(exc.input_code)
             else:
                 # get level of visited node
-                def rec_inc(node: str, new_level):
-                    level[node] = new_level
-                    for inp in inputs.get(node, []):
+                def rec_inc(_node: str, new_level):
+                    level[_node] = new_level
+                    for inp in inputs.get(_node, []):
                         rec_inc(inp, new_level + 1)
 
                 rec_inc(exc.input_code, level[exc.output_code] + 1)
@@ -172,4 +169,3 @@ if __name__ == "__main__":
     # tree = get_tree('b9d74efa4fd670b1977a3471ec010737')
     # level, inputs, all_exchanges = get_tree_with_levels(act_code, max_level=1)
     # level_id, input_id = code_transform(level, inputs)
-

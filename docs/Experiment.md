@@ -10,7 +10,7 @@ Optional properties are:
 
 - bw_default_database: Default database to be used for the project (speeds up search of activities)
 - hierarchy: The technology hierarchy to be used for structuring the results
-- scenarios: The scenarios to be used for the experiment, with different activity demands
+- scenarios: The scenarios to be used for the experiment, with different node demands
 
 Following we define the most straight forward way to describe all properties. There are alternatives, which are
 described in the documentation of the experiment schema.

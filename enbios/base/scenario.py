@@ -23,7 +23,6 @@ from enbios.models.experiment_models import (
     ScenarioResultNodeData,
     ResultValue,
     TechTreeNodeData,
-    Activity_Outputs,
 )
 
 logger = get_logger(__name__)
@@ -37,7 +36,7 @@ class Scenario:
 
     _has_run: bool = False
     # this should be a simpler type - just str: float
-    activities_outputs: Activity_Outputs = field(default_factory=dict)
+    structural_nodes_outputs: dict[str, float] = field(default_factory=dict)
     # methods: Optional[dict[str, ExperimentMethodPrepData]] = None
     _execution_time: float = float("NaN")
     config: ScenarioConfig = field(default_factory=ScenarioConfig)
@@ -45,26 +44,26 @@ class Scenario:
     def prepare_tree(self):
         """Prepare the result tree for calculating scenario outputs.
         This populates the result tree with ScenarioResultNodeData objects
-        for each activity node, which store the output magnitude and units.
-        If config is set, it also stores the BW activity dict with the node.
+        for each node, which store the output magnitude and units.
+        If config is set, it also stores the BW node dict with the node.
         """
 
-        activities_names = list(self.activities_outputs.keys())
-        for result_index, activity_name in enumerate(activities_names):
+        structural_nodes_names = list(self.structural_nodes_outputs.keys())
+        for result_index, node_name in enumerate(structural_nodes_names):
             try:
-                activity_node = self.result_tree.find_subnode_by_name(activity_name)
+                structural_result_node = self.result_tree.find_subnode_by_name(node_name)
             except StopIteration:
-                raise ValueError(f"Activity {activity_name} not found in result tree")
-            activity = self.experiment.get_activity(activity_name)
-            activity_node.data.output = NodeOutput(
-                unit=self.experiment.get_node_adapter(activity).get_node_output_unit(
-                    activity_name
+                raise ValueError(f"Node {node_name} not found in result tree")
+            structural_node = self.experiment.get_structural_node(node_name)
+            structural_result_node.data.output = NodeOutput(
+                unit=self.experiment.get_node_adapter(structural_node).get_node_output_unit(
+                    node_name
                 ),
-                magnitude=self.activities_outputs[activity_name],
+                magnitude=self.structural_nodes_outputs[node_name],
             )
             # todo adapter/aggregator specific additional data
             # if self.experiment.config.include_bw_activity_in_nodes:
-            #     activity_node.data.bw_activity = bw_activity
+            #     node_node.data.bw_activity = bw_activity
 
         if self.config.exclude_defaults:
 
@@ -76,7 +75,7 @@ class Scenario:
                     node.remove_self()
 
             for leave in self.result_tree.iter_leaves():
-                if leave.name not in activities_names:
+                if leave.name not in structural_nodes_names:
                     leave.remove_self()
             self.result_tree.recursive_apply(
                 remove_empty_nodes, depth_first=True, cancel_parents_of=set()
@@ -152,19 +151,19 @@ class Scenario:
         self._execution_time = float("NaN")
 
     def set_results(self, result_data: dict[str, Any]):
-        for activity, activity_result in result_data.items():
-            activity_node = self.result_tree.find_subnode_by_name(activity)
-            if not activity_node:
+        for node_name, node_result in result_data.items():
+            node = self.result_tree.find_subnode_by_name(node_name)
+            if not node:
                 if self.config.exclude_defaults:
                     logger.warning(
-                        f"Activity '{activity}' not found in result tree. "
+                        f"Structural node '{node_name}' not found in result tree. "
                         f"Make sure that the adapter for does not generate results for default"
-                        f"activities that are not in the scenario."
+                        f"nodes that are not in the scenario."
                     )
                 else:
-                    logger.error(f"Activity '{activity}' not found in result tree")
+                    logger.error(f"Node '{node_name}' not found in result tree")
                 continue
-            activity_node.data.results = activity_result
+            node.data.results = node_result
 
     @staticmethod
     def wrapper_data_serializer(
@@ -344,6 +343,6 @@ class Scenario:
 
     def describe(self):
         output = f"Scenario '{self.name}'\n"
-        output += json.dumps(self.activities_outputs, indent=2)
+        output += json.dumps(self.structural_nodes_outputs, indent=2)
         # todo: the tree instead...
         return output

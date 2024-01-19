@@ -112,7 +112,7 @@ def test_single_lca_compare(run_basic_experiment: Experiment,
                             default_bw_method_name: str,
                             default_method_tuple):
     expected_value = experiment_setup["expected_result_tree"]["data"].results[default_bw_method_name]
-    activity = run_basic_experiment.get_activity("single_activity")
+    activity = run_basic_experiment.get_structural_node("single_activity")
     bw_adapter: BrightwayAdapter = run_basic_experiment.get_node_adapter(activity)
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
@@ -264,7 +264,7 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: di
         "scenarios": [
             {
                 "name": "scenario1",
-                "activities": {
+                "nodes": {
                     "single_activity": {
                         "unit": "kWh",
                         "magnitude": 1
@@ -273,7 +273,7 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: di
             },
             {
                 "name": "scenario2",
-                "activities": {
+                "nodes": {
                     "single_activity": {
                         "unit": "MWh",
                         "magnitude": 2
@@ -289,7 +289,7 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: di
                 "config": {
                     "exclude_defaults": True
                 },
-                "activities": {
+                "nodes": {
                     "single_activity": {
                         "unit": "kWh",
                         "magnitude": 1
