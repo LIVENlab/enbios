@@ -48,7 +48,7 @@ class Scenario:
         If config is set, it also stores the BW node dict with the node.
         """
 
-        structural_nodes_names = self.experiment.structural_nodes_names
+        structural_nodes_names = list(self.structural_nodes_outputs.keys())
         for result_index, node_name in enumerate(structural_nodes_names):
             try:
                 structural_result_node = self.result_tree.find_subnode_by_name(node_name)

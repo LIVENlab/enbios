@@ -157,7 +157,6 @@ def test_run_exclude_defaults(experiment_setup):
         "config": {"exclude_defaults": True}
     }]
     exp = Experiment(experiment_setup["scenario"])
-
     exp.run()
 
 
