@@ -2,7 +2,7 @@ from bw2calc import LCA
 from bw2data.backends import ActivityDataset
 
 """
-Go through your activity dataset and assign location tuples to data["locations"]
+Go through your activity dataset and assign location tuples to data["enb_locations"]
 activities should have a location tuple, with increasing granularity of locations. e.g. ("EU", "ES","cat")
 location levels should be consistent. meaning, since ES is on index 1, 
 there should be no activity with location ("ES", "ara") (where ES is at index 0)
