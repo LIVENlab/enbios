@@ -57,7 +57,7 @@ Install enbios2 with
 
 ## Fundamentals
 
-[Read fundamentals about setting up enbios experiment](https://github.com/LIVENlab/enbios/blob/main/docs/Fundamentals.md)
+[Read fundamentals about setting up an enbios experiment](https://github.com/LIVENlab/enbios/blob/main/docs/Fundamentals.md)
 
 ## Experiment configuration json schema
 
