@@ -117,6 +117,8 @@ We are updating and commenting these. Please bear with us while we do it and fee
 
 [Working with trees](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/trees.ipynb)
 
+[Experiment with uncertainties](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/uncertainty_experiment.ipynb)
+
 ## People
 
 * [Ramin Soleymani](https://es.linkedin.com/in/ramin-soleymani-4703b17). -[ICTA-UAB](https://www.uab.cat/icta/)
