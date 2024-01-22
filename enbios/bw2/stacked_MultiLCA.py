@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from typing import Optional
 
 import bw2data
 import numpy as np
@@ -54,16 +55,17 @@ class StackedMultiLCA:
         self,
         calc_setup: BWCalculationSetup,
         use_distributions: bool = False,
-        log_config=None,
+        logger: Optional[logging.Logger] = None,
     ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
         self.lca = LCA(
             demand=self.all,
             method=self.methods[0],
-            log_config=log_config,
             use_distributions=use_distributions,
         )
+        if not logger:
+            logger = logging.getLogger(__name__)
         logger.info(
             {
                 "message": "Started MultiLCA calculation",
@@ -80,6 +82,7 @@ class StackedMultiLCA:
             self.method_matrices.append(self.lca.characterization_matrix)
 
         for row, func_unit in enumerate(self.func_units):
+            logger.debug(f"Demand {row}/{len(self.func_units)}")
             fu_spec, fu_demand = list(func_unit.items())[0]
             if isinstance(fu_spec, int):
                 fu = {fu_spec: fu_demand}
@@ -94,6 +97,7 @@ class StackedMultiLCA:
             self.supply_arrays.append(self.lca.supply_array)
 
             for col, cf_matrix in enumerate(self.method_matrices):
+                # logger.debug(f"Method {col}/{len(self.method_matrices)}")
                 self.lca.characterization_matrix = cf_matrix
                 self.lca.lcia_calculation()
                 self.results[row, col] = self.lca.score

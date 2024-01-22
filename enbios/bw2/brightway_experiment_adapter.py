@@ -330,6 +330,7 @@ class BrightwayAdapter(EnbiosAdapter):
         self.lca_objects[scenario.name] = []
         run_regionalization = self.config.simple_regionalization.run_regionalization
         for i in range(self.config.use_k_bw_distributions):
+            self.get_logger().info(f"Brightway adapter: Run distribution {i}/{self.config.use_k_bw_distributions}")
             if run_regionalization:
                 _lca = RegioStackedMultiLCA(
                     self.scenario_calc_setups[scenario.name],
@@ -339,7 +340,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 raw_results.append(_lca.results)
             else:
                 _lca = StackedMultiLCA(
-                    self.scenario_calc_setups[scenario.name], use_distributions
+                    self.scenario_calc_setups[scenario.name], use_distributions, logger=self.get_logger()
                 )
                 raw_results.append(_lca.results)
             if self.config.store_lca_object:

@@ -66,7 +66,7 @@ class EnbiosAdapter(ABC):
         pass
 
     def get_logger(self):
-        return get_logger(f"__name__ ({self.name})")
+        return get_logger(f"ADAPTER::({self.name()})")
 
     @staticmethod
     @abstractmethod

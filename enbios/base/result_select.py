@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 
 from numpy import ndarray
 from pandas import DataFrame
@@ -9,10 +9,10 @@ from enbios.base.experiment import Experiment
 
 class ResultsSelector:
     def __init__(
-        self,
-        experiment: Experiment,
-        scenarios: Optional[list[str]] = None,
-        methods: Optional[list[str]] = None,
+            self,
+            experiment: Experiment,
+            scenarios: Optional[list[str]] = None,
+            methods: Optional[list[str]] = None,
     ):
         """
         Initialize the object with experiment, scenarios, and methods.
@@ -28,13 +28,13 @@ class ResultsSelector:
             for scenario in scenarios:
                 if scenario not in all_scenarios:
                     raise ValueError(f"Scenario {scenario} not found in experiment")
-            self.scenarios = scenarios
+            self.scenarios: list[str] = scenarios
         else:
-            self.scenarios = all_scenarios
+            self.scenarios: list[str] = all_scenarios
 
         all_methods: list[
             str
-        ] = self.experiment.methods  # [m.split(".")[1] for m in ]  # type: ignore
+        ] = self.experiment.method_names  # [m.split(".")[1] for m in ]  # type: ignore
 
         all_method_names: list[str] = self.experiment.method_names
         self.methods: list[str] = []
@@ -55,9 +55,9 @@ class ResultsSelector:
 
     @staticmethod
     def get_result_selector(
-        result_selector: Union[Experiment, "ResultsSelector"],
-        scenarios: Optional[list[str]] = None,
-        methods: Optional[list[str]] = None,
+            result_selector: Union[Experiment, "ResultsSelector"],
+            scenarios: Optional[list[str]] = None,
+            methods: Optional[list[str]] = None,
     ) -> "ResultsSelector":
         if isinstance(result_selector, Experiment):
             return ResultsSelector(result_selector, scenarios=scenarios, methods=methods)
@@ -128,8 +128,8 @@ class ResultsSelector:
     def method_label_names(self, include_unit: bool = True) -> list[str]:
         return [
             (
-                method
-                + ("\n" + self.experiment.get_method_unit(method) if include_unit else "")
+                    method
+                    + ("\n" + self.experiment.get_method_unit(method) if include_unit else "")
             )
             for method in self.methods
         ]
@@ -153,7 +153,8 @@ class ResultsSelector:
             baseline_df[col] = baseline_df[col].astype(dtype)
         return baseline_df.reset_index(drop=True)
 
-    def collect_tech_results(self, node_aliases: list[str]):
+    def collect_tech_results(self, node_aliases: list[str],
+                             value_name: Literal["magnitude", "multi_magnitude"] = "magnitude"):
         df = DataFrame()
         for scenario in self.scenarios:
             scenario_results = self.experiment.get_scenario(scenario).result_tree
@@ -167,7 +168,7 @@ class ResultsSelector:
                         "tech": node_alias,
                     }
                     | {
-                        method: value.magnitude
+                        method: getattr(value, value_name)
                         for method, value in node.data.results.items()
                         if method in self.method_names
                     },

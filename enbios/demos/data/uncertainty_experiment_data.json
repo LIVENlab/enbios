@@ -1,0 +1,132 @@
+{
+  "adapters": [
+    {
+      "adapter_name": "brightway-adapter",
+      "config": {
+        "bw_project": "",
+        "use_k_bw_distributions": 5
+      },
+      "methods": {
+        "global warming potential (GWP1000)": [
+          "ReCiPe 2016 v1.03, midpoint (H)",
+          "climate change",
+          "global warming potential (GWP1000)"
+        ],
+        "water pollutants": [
+          "Ecological Scarcity 2021",
+          "emissions to water",
+          "water pollutants"
+        ]
+      }
+    }
+  ],
+  "hierarchy": {
+    "name": "EnergySystem",
+    "aggregator": "sum",
+    "children": [
+      {
+        "name": "Generation",
+        "children": [
+          {
+            "name": "Electricity_generation",
+            "children": [
+              {
+                "name": "wind_onshore__electricity",
+                "config": {
+                  "code": "81174ec2c20931c1a36f65c654bbd11e"
+                },
+                "adapter": "bw"
+              },
+              {
+                "name": "wind_offshore__electricity",
+                "config": {
+                  "code": "46839adbc3cf15621ddbbe687eaa6df1"
+                },
+                "adapter": "bw"
+              }
+            ],
+            "aggregator": "sum"
+          },
+          {
+            "name": "Thermal_generation",
+            "children": [
+              {
+                "name": "biofuel_supply__biofuel",
+                "config": {
+                  "code": "f1cc5e0b69dcd3bdb2c6a4d393521a65"
+                },
+                "adapter": "bw"
+              },
+              {
+                "name": "chp_biofuel_extraction__heat",
+                "config": {
+                  "code": "413bc4617794c6e8b07038dbeca64adb"
+                },
+                "adapter": "bw"
+              }
+            ],
+            "aggregator": "sum"
+          }
+        ],
+        "aggregator": "sum"
+      },
+      {
+        "name": "Conversions",
+        "children": [
+          {
+            "name": "ConversionsT",
+            "children": [
+              {
+                "name": "biofuel_to_diesel__diesel",
+                "config": {
+                  "code": "3a6586952eff793738eef72743703e90"
+                },
+                "adapter": "bw"
+              },
+              {
+                "name": "biofuel_to_methane__methane",
+                "config": {
+                  "code": "7d82a9b0a28dc30058260b5c68fbad95"
+                },
+                "adapter": "bw"
+              }
+            ],
+            "aggregator": "sum"
+          }
+        ],
+        "aggregator": "sum"
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "0",
+      "nodes": {
+        "biofuel_supply__biofuel": [
+          "kilogram",
+          2842897593.0081835
+        ],
+        "biofuel_to_diesel__diesel": [
+          "kilogram",
+          226141452.37025702
+        ],
+        "biofuel_to_methane__methane": [
+          "cubic meter",
+          240964492.04181156
+        ],
+        "chp_biofuel_extraction__heat": [
+          "megajoule",
+          941785.54105752
+        ],
+        "wind_offshore__electricity": [
+          "kilowatt hour",
+          1142566.6357662922
+        ],
+        "wind_onshore__electricity": [
+          "kilowatt hour",
+          57514890465.62103
+        ]
+      }
+    }
+  ]
+}

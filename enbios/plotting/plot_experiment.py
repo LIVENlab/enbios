@@ -1,14 +1,15 @@
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Callable, Any
 
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.projections import PolarAxes
 from pandas import DataFrame
 
-from enbios.base.result_select import ResultsSelector
 from enbios.base.experiment import Experiment
+from enbios.base.result_select import ResultsSelector
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike
 from enbios.generic.tree.basic_tree import BasicTreeNode
@@ -18,10 +19,10 @@ logger = get_logger(__name__)
 
 
 def bar_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
 
@@ -50,13 +51,13 @@ def bar_plot(
 
 
 def stacked_bar_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    level: int = 1,
-    short_method_names: bool = True,
-    nodes: Optional[list[str]] = None,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        level: int = 1,
+        short_method_names: bool = True,
+        nodes: Optional[list[str]] = None,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     experiment = rs.experiment
@@ -111,18 +112,18 @@ def stacked_bar_plot(
 
 
 def star_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    *,
-    fill: bool = True,
-    r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-    show_r_ticks: bool = True,
-    show_grid: bool = True,
-    col: int = 4,
-    row: Optional[int] = None,
-    show_labels: bool = True,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        *,
+        fill: bool = True,
+        r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+        show_r_ticks: bool = True,
+        show_grid: bool = True,
+        col: int = 4,
+        row: Optional[int] = None,
+        show_labels: bool = True,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df()
@@ -205,18 +206,18 @@ def star_plot(
 
 
 def single_star_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    *,
-    r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-    show_r_ticks: bool = True,
-    show_grid: bool = True,
-    col: int = 4,
-    row: Optional[int] = None,
-    short_method_names: bool = True,
-    show_labels: bool = True,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        *,
+        r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+        show_r_ticks: bool = True,
+        show_grid: bool = True,
+        col: int = 4,
+        row: Optional[int] = None,
+        short_method_names: bool = True,
+        show_labels: bool = True,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     """
     plots multiple scenarios into one star plot
@@ -272,11 +273,11 @@ def single_star_plot(
 
 
 def plot_heatmap(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    special_df: Optional[DataFrame] = None,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        special_df: Optional[DataFrame] = None,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     if special_df is not None:
@@ -315,11 +316,11 @@ def plot_heatmap(
 
 
 def plot_sankey(
-    exp: Experiment,
-    scenario_name: str,
-    method_: str,
-    *,
-    image_file: Optional[PathLike] = None,
+        exp: Experiment,
+        scenario_name: str,
+        method_: str,
+        *,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     try:  # type: ignore
         import plotly.graph_objects as go
@@ -364,10 +365,10 @@ def plot_sankey(
 
 
 def one_axes_scatter_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    selected_scenario: str,
-    methods: Optional[list[str]] = None,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        selected_scenario: str,
+        methods: Optional[list[str]] = None,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, None, methods)
     df = rs.normalized_df()
@@ -397,3 +398,74 @@ def one_axes_scatter_plot(
     if image_file:
         fig.write_image(Path(image_file).as_posix())
     return fig  # Return the figure object
+
+
+def plot_multivalue_results(
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        level: int = 1,
+        methods: Optional[list[str]] = None,
+        nodes: Optional[list[str]] = None,
+        image_file: Optional[PathLike] = None,
+        err_method: Optional[Callable[[np.ndarray], float]] = None
+):
+    rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
+    experiment = rs.experiment
+
+    if level >= experiment.hierarchy_root.depth:
+        logger.warning(
+            f"Level {level} is higher or equal (>=) than the depth of the hierarchy "
+            f"({experiment.hierarchy_root.depth}). "
+            f"Limiting to {experiment.hierarchy_root.depth - 1}"
+        )
+        level = experiment.hierarchy_root.depth - 1
+
+    n_rows = len(rs.method_names) * len(rs.scenarios)
+    n_cols = 1
+
+    nodes_data: list[BasicTreeNode[ScenarioResultNodeData]] = []
+    if nodes:
+        for node_names in nodes:
+            node = experiment.hierarchy_root.find_subnode_by_name(node_names)
+            if not node:
+                raise ValueError(f"Alias {node_names} not found in hierarchy")
+            nodes_data.append(node)
+    else:
+        nodes_data = experiment.hierarchy_root.collect_all_nodes_at_level(level)
+    fig, axs = plt.subplots(
+        n_rows, n_cols, figsize=(2 * len(nodes_data), 5 * n_rows)
+    )  # Assuming each subplot has a height of 5, adjust as needed
+
+    if n_rows == 1:
+        axs = [axs]
+    for sidx, scenario in enumerate(rs.scenarios):
+        # print(scenario)
+        for midx, method in enumerate(rs.methods):
+            # print(method)
+            ax: Axes = axs[sidx * midx + midx]
+
+            node_names = [node.name for node in nodes_data]
+            df: DataFrame = rs.collect_tech_results(node_names, "multi_magnitude")
+            for nidx, n in enumerate(nodes_data):
+                value_array = df[method][nidx]
+                y = np.mean(value_array)
+                if not err_method:
+                    y_err = np.std(value_array)
+                else:
+                    y_err = err_method(value_array)
+
+                ax.errorbar(nidx, y, y_err, fmt='o', linewidth=2, capsize=6)
+            x_labels = node_names
+            x = np.arange(len(x_labels))
+            ax.set_xticks(x)
+            ax.set_xticklabels(x_labels)
+            ax.set_title(f"Scenario {scenario}")
+            ax.set_ylabel(f"{method}\n{rs.experiment.get_method_unit(method)}")
+
+            # ax.set_ylabel
+            # ax.set(xlim=(-0.5, len(x_labels) - 0.5), ylim=(0, max(value_array) + yerr_std + 1))
+
+        plt.tight_layout()
+        if image_file:
+            fig.write_image(Path(image_file).as_posix())
+        return fig  # Return the figure object

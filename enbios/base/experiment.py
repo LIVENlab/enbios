@@ -89,7 +89,7 @@ class Experiment:
                 self.get_node_aggregator(node).validate_node(node.name, node.data.config)
 
         def recursive_convert(
-            node_: BasicTreeNode[TechTreeNodeData],
+                node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: Optional[NodeOutput] = None
             if node_.is_leaf:
@@ -119,10 +119,6 @@ class Experiment:
         self._lca: Optional[StackedMultiLCA] = None
         self._execution_time: float = float("NaN")
 
-    # def get_method_unit(self, method_name: str) -> str:
-    #     adapter_name, method_name = method_name.split(".")
-    #     return self._adapters[adapter_name].get_method_unit(method_name)
-
     def get_structural_node(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
         Get an node by either its name
@@ -136,7 +132,7 @@ class Experiment:
         return node
 
     def get_node_adapter(
-        self, node: BasicTreeNode[TechTreeNodeData]
+            self, node: BasicTreeNode[TechTreeNodeData]
     ) -> EnbiosAdapterType:
         """
         Get the adapter of a node in the experiment hierarchy
@@ -149,10 +145,10 @@ class Experiment:
         )
 
     def get_node_aggregator(
-        self,
-        node: Union[
-            BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
-        ],
+            self,
+            node: Union[
+                BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
+            ],
     ) -> EnbiosAggregatorType:
         """
         Get the aggregator of a node
@@ -164,10 +160,10 @@ class Experiment:
         )
 
     def _get_module_by_name_or_node_indicator(
-        self,
-        name_or_indicator: str,
-        module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
-        node_name: Optional[str] = None,
+            self,
+            name_or_indicator: str,
+            module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
+            node_name: Optional[str] = None,
     ) -> Union[EnbiosAdapter, EnbiosAggregator]:
         modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = (
             self._adapters if module_type == EnbiosAdapter else self._aggregators
@@ -198,7 +194,7 @@ class Experiment:
         raise ValueError(f"Scenario '{scenario_name}' not found")
 
     def run_scenario(
-        self, scenario_name: str, results_as_dict: bool = True
+            self, scenario_name: str, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a specific scenario
@@ -209,7 +205,7 @@ class Experiment:
         return self.get_scenario(scenario_name).run(results_as_dict)
 
     def run(
-        self, results_as_dict: bool = True
+            self, results_as_dict: bool = True
     ) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
         """
         Run all scenarios. Returns a dict with the scenario name as key
@@ -255,11 +251,11 @@ class Experiment:
                 return "not run"
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        scenario_name: Optional[str] = None,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = True,
+            self,
+            file_path: PathLike,
+            scenario_name: Optional[str] = None,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = True,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -354,7 +350,7 @@ class Experiment:
         return list(self._adapters.values())
 
     def run_scenario_config(
-        self, scenario_config: dict, result_as_dict: bool = True
+            self, scenario_config: dict, result_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An
@@ -399,7 +395,7 @@ class Experiment:
 
     @staticmethod
     def get_module_definition(
-        clazz: Union[EnbiosAdapter, EnbiosAggregator], details: bool = True
+            clazz: Union[EnbiosAdapter, EnbiosAggregator], details: bool = True
     ) -> dict[str, Any]:
         result: dict = {
             "node_indicator": clazz.node_indicator(),
@@ -427,7 +423,7 @@ class Experiment:
         return result
 
     def get_all_configs(
-        self, include_all_builtin_configs: bool = True
+            self, include_all_builtin_configs: bool = True
     ) -> dict[str, dict[str, dict[str, Any]]]:
         """
         Result structure:
@@ -444,15 +440,15 @@ class Experiment:
             "adapters": {
                 name: Experiment.get_module_definition(adapter, True)
                 for name, adapter in (
-                    self._adapters
-                    | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
+                        self._adapters
+                        | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
                 ).items()
             },
             "aggregators": {
                 name: Experiment.get_module_definition(aggregator, True)
                 for name, aggregator in (
-                    self._aggregators
-                    | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
+                        self._aggregators
+                        | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
                 ).items()
             },
         }
@@ -460,8 +456,16 @@ class Experiment:
         return result
 
     def get_method_unit(self, method: str) -> str:
-        assert method in self.methods
-        adapter_indicator, method_name = method.split(".")
+        if "." in method:
+            assert method in self.methods, f"Method {method} missing. Candidates: {', '.join(self.methods)}"
+            adapter_indicator, method_name = method.split(".")
+        else:
+            assert method in self.method_names
+            found = False
+            for m in self.methods:
+                if m.split(".")[-1] == method:
+                    adapter_indicator, method_name = m.split(".")
+                    break
         return self._get_module_by_name_or_node_indicator(
             adapter_indicator, EnbiosAdapter
         ).get_method_unit(method_name)
