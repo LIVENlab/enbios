@@ -55,6 +55,9 @@ Install enbios2 with
 * (linux)
 `python3 -m pip install enbios`
 
+## Fundamentals
+
+[Read fundamentals about setting up an enbios experiment](https://github.com/LIVENlab/enbios/blob/main/docs/Fundamentals.md)
 
 ## Experiment configuration json schema
 
