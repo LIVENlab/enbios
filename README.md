@@ -3,7 +3,7 @@
 
 ENBIOS2 (Environmental and Bioeconomic System Analysis)  is a [python-based](https://pypi.org/project/enbios/) simulation tool for the assessment of environmental impacts and resource requirements of energy system 
 pathways according to policy scenarios. These pathways are typically calculated by Energy System Optimization Models (ESOMs). Currently, ENBIOS is coupled with the 
-[Calliope](https://www.callio.pe/) framework and we are working to couple it with the [TIMES](https://iea-etsap.org/index.php/etsap-tools/model-generators/times) framework.
+[Calliope](https://www.callio.pe/) framework, and we are working to couple it with the [TIMES](https://iea-etsap.org/index.php/etsap-tools/model-generators/times) framework.
 
 ENBIOS2 is based on the integration of Life Cycle Assessment and the Multi-Scale Integrated Assessment of 
 Socio-ecosystem framework (MuSIASEM) originally developed by C. Madrid-López 
@@ -11,7 +11,7 @@ Socio-ecosystem framework (MuSIASEM) originally developed by C. Madrid-López
 
 ENBIOS2 is a ground up new computing implementation of the ENBIOS tool. You can see more information about 
 this previous version below. Compared to the original version of enbios, this version is more flexible does not make 
-it's own LCA calculations, but uses [Brightway2](https://docs.brightway.dev/en/latest/) for that.
+its own LCA calculations, but uses [Brightway2](https://docs.brightway.dev/en/latest/) for that.
 
 In ENBIOS2 you will implement an experiment. To do this you will need to have at hand:
  * a defined set of activities, that are typically the energy system technologies you would like to inlcude in the assessment
