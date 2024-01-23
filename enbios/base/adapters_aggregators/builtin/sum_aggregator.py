@@ -37,7 +37,7 @@ class SumAggregator(EnbiosAggregator):
                 node_output = None
                 self.logger.warning(f"No output unit of node '{child.name}'.")
                 break
-            output_mag: Optional[float] = None
+            output_mag: Optional[Quantity] = None
             try:
                 output_mag = (
                     enbios.get_enbios_ureg().parse_expression(node_output_unit)
@@ -56,11 +56,11 @@ class SumAggregator(EnbiosAggregator):
                 node_output = None
                 break
             except DimensionalityError as err:
-                set_base_unit = node_output.to_base_units() if node_output else ""
+                set_base_unit = node_output.to_base_units().units if node_output else ""
                 self.logger.warning(
-                    f"Cannot aggregate output to parent: {node.name}. "
-                    f"From earlier children the base unit is {set_base_unit} "
-                    f"and from {child.name} it is {output_mag}."
+                    f"Cannot aggregate output to parent: '{node.name}'. "
+                    f"From earlier children the base unit is '{set_base_unit}'"
+                    f"and from '{child.name}' it is '{output_mag.units}'."
                     f" {err}"
                 )
                 node_output = None
