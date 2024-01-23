@@ -121,7 +121,7 @@ class Experiment:
 
     def get_structural_node(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
-        Get an node by either its name
+        Get a node by either its name
         as it is defined in the experiment data
         :param name:
         :return: BasicTreeNode[TechTreeNodeData]
@@ -456,6 +456,7 @@ class Experiment:
         return result
 
     def get_method_unit(self, method: str) -> str:
+        adapter_indicator, method_name = "", ""
         if "." in method:
             assert method in self.methods, f"Method {method} missing. Candidates: {', '.join(self.methods)}"
             adapter_indicator, method_name = method.split(".")
@@ -465,7 +466,10 @@ class Experiment:
             for m in self.methods:
                 if m.split(".")[-1] == method:
                     adapter_indicator, method_name = m.split(".")
+                    found = True
                     break
+            if not found:
+                raise ValueError(f"Method {method} not found")
         return self._get_module_by_name_or_node_indicator(
             adapter_indicator, EnbiosAdapter
         ).get_method_unit(method_name)

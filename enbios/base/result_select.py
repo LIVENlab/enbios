@@ -1,10 +1,14 @@
 from typing import Optional, Union, Literal
 
+import pandas as pd
 from numpy import ndarray
 from pandas import DataFrame
 from sklearn.preprocessing import MinMaxScaler
 
 from enbios.base.experiment import Experiment
+from enbios.generic.enbios2_logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class ResultsSelector:
@@ -153,26 +157,41 @@ class ResultsSelector:
             baseline_df[col] = baseline_df[col].astype(dtype)
         return baseline_df.reset_index(drop=True)
 
-    def collect_tech_results(self, node_aliases: list[str],
+    def validate_node_selection(self, level: int, nodes: list[str]) -> list[str]:
+        if level >= self.experiment.hierarchy_root.depth:
+            logger.warning(
+                f"Level {level} is higher or equal (>=) than the depth of the hierarchy "
+                f"({self.experiment.hierarchy_root.depth}). "
+                f"Limiting to {self.experiment.hierarchy_root.depth - 1}"
+            )
+            level = self.experiment.hierarchy_root.depth - 1
+
+        if nodes:
+            for node_name in nodes:
+                node = self.experiment.hierarchy_root.find_subnode_by_name(node_name)
+                if not node:
+                    raise ValueError(f"Alias {node_name} not found in hierarchy")
+        else:
+            nodes = [n.name for n in self.experiment.hierarchy_root.collect_all_nodes_at_level(level)]
+        return nodes
+
+    def collect_tech_results(self, nodes: list[str],
                              value_name: Literal["magnitude", "multi_magnitude"] = "magnitude"):
         df = DataFrame()
         for scenario in self.scenarios:
             scenario_results = self.experiment.get_scenario(scenario).result_tree
-            for node_alias in node_aliases:
-                node = scenario_results.find_subnode_by_name(node_alias)
+            for node_name in nodes:
+                node = scenario_results.find_subnode_by_name(node_name)
                 assert node is not None
                 # add a row
-                df = df._append(
-                    {
-                        "scenario": scenario,
-                        "tech": node_alias,
-                    }
-                    | {
-                        method: getattr(value, value_name)
-                        for method, value in node.data.results.items()
-                        if method in self.method_names
-                    },
-                    ignore_index=True,
-                )
-
+                df = pd.concat([df, DataFrame([{
+                                                   "scenario": scenario,
+                                                   "tech": node_name,
+                                               }
+                                               | {
+                                                   method: getattr(value, value_name)
+                                                   for method, value in node.data.results.items()
+                                                   if method in self.method_names
+                                               }])],
+                               ignore_index=True, copy=False)
         return df

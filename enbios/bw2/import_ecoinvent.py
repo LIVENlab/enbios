@@ -5,6 +5,7 @@ import bw2io
 
 
 def import_ecoinvent(project_name: str, dataset_path: str, database_name: str):
+
     project_created = False
 
     db_path: Path = Path(dataset_path)

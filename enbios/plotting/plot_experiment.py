@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Union, Callable, Any
+from typing import Optional, Union, Callable
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -60,15 +60,8 @@ def stacked_bar_plot(
         image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
-    experiment = rs.experiment
 
-    if level >= experiment.hierarchy_root.depth:
-        logger.warning(
-            f"Level {level} is higher or equal (>=) than the depth of the hierarchy "
-            f"({experiment.hierarchy_root.depth}). "
-            f"Limiting to {experiment.hierarchy_root.depth - 1}"
-        )
-        level = experiment.hierarchy_root.depth - 1
+    nodes: list[str] = rs.validate_node_selection(level, nodes)
     # Define the number of rows and columns for the subplots
     n_rows = len(rs.method_names)
     n_cols = 1
@@ -85,21 +78,7 @@ def stacked_bar_plot(
 
     for idx, method in enumerate(rs.method_names):
         ax = axs[idx]
-
-        # Create the bar plot using the specific Axes object
-        nodes_data: list[BasicTreeNode[ScenarioResultNodeData]] = []
-        # todo, what is going on here..?
-        if nodes:
-            for node_name in nodes:
-                node = experiment.hierarchy_root.find_subnode_by_name(node_name)
-                if not node:
-                    raise ValueError(f"Alias {node_name} not found in hierarchy")
-                nodes_data.append(node)
-        else:
-            nodes_data = experiment.hierarchy_root.collect_all_nodes_at_level(level)
-
-        node_name = [node.name for node in nodes_data]
-        df: DataFrame = rs.collect_tech_results(node_name)
+        df: DataFrame = rs.collect_tech_results(nodes)
         df_pivot: DataFrame = df.pivot(index="scenario", columns="tech", values=method)
         df_pivot = df_pivot.reindex(df["scenario"].drop_duplicates().tolist())
         df_pivot.plot(kind="bar", stacked=True, ax=ax)
@@ -213,9 +192,6 @@ def single_star_plot(
         r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
         show_r_ticks: bool = True,
         show_grid: bool = True,
-        col: int = 4,
-        row: Optional[int] = None,
-        short_method_names: bool = True,
         show_labels: bool = True,
         image_file: Optional[PathLike] = None,
 ) -> Figure:
@@ -227,9 +203,6 @@ def single_star_plot(
     :param r_ticks:
     :param show_r_ticks:
     :param show_grid:
-    :param col:
-    :param row:
-    :param short_method_names:
     :param show_labels:
     :param image_file:
     :return:
@@ -237,12 +210,16 @@ def single_star_plot(
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df()
 
+    if len(rs.methods) < 3:
+        raise ValueError("Star-plots require at least 3 methods")
+
     labels = rs.method_label_names(False)
 
     # Create figure and axes
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 
     cmap = plt.colormaps.get_cmap("tab10")
+    angles = 0
     for idx, scenario_name in enumerate(scenarios):
         values = df.loc[df["scenario"] == scenario_name].values.tolist()[0][1:]
         values.append(values[0])
@@ -258,7 +235,8 @@ def single_star_plot(
     ax.set_theta_offset(np.pi / 2)
     ax.set_theta_direction(-1)
     ax.set_rlabel_position(30)
-    ax.set_rticks(list(r_ticks))
+    if show_r_ticks:
+        ax.set_rticks(list(r_ticks))
 
     if not show_grid:
         ax.grid(False)
@@ -269,6 +247,8 @@ def single_star_plot(
     else:
         ax.set_xticklabels([""] * len(labels))
     ax.set_rmax(1)
+    if image_file:
+        fig.write_image(Path(image_file).as_posix())
     return fig
 
 
@@ -278,37 +258,31 @@ def plot_heatmap(
         methods: Optional[list[str]] = None,
         special_df: Optional[DataFrame] = None,
         image_file: Optional[PathLike] = None,
+        x_label_rotation: Optional[int] = 45
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
-    if special_df is not None:
-        rs.check_special_df(special_df)
-        df = special_df
-    else:
-        df = rs.normalized_df()
+    df = special_df if special_df is not None else rs.normalized_df()
+
+    def set_plot_settings(ax, df, rs: ResultsSelector):
+        im = ax.imshow(df, cmap="summer")
+        labels = rs.method_label_names(include_unit=False)
+        ax.set_xticks(np.arange(len(rs.scenarios)), labels=rs.scenarios)
+        ax.set_yticks(np.arange(len(rs.method_names)), labels=labels)
+        plt.setp(ax.get_xticklabels(), rotation=x_label_rotation, ha="right", rotation_mode="anchor")
+        ax.figure.colorbar(im, ax=ax)
+        return ax
+
+    def plot_values_on_grid(ax, df, rs: ResultsSelector):
+        for i in range(len(rs.scenarios)):
+            for j in range(len(rs.methods)):
+                ax.text(i, j, "%.2f" % df[df.columns[i]][j], ha="center", va="center", color="black")
+        return ax
 
     df = df.set_index("scenario").transpose()
 
     fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5, len(rs.method_names) * 1.5))
-    im = ax.imshow(df, cmap="summer")
-
-    labels = rs.method_label_names(include_unit=False)
-    ax.set_xticks(np.arange(len(rs.scenarios)), labels=rs.scenarios)
-    ax.set_yticks(np.arange(len(rs.method_names)), labels=labels)
-
-    # Rotate the tick labels and set their alignment.
-    plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-    ax.figure.colorbar(im, ax=ax, **{})
-    for i in range(len(rs.scenarios)):
-        for j in range(len(rs.methods)):
-            ax.text(
-                i,
-                j,
-                "%.2f" % df[df.columns[i]][j],
-                ha="center",
-                va="center",
-                color="black",
-            )
-
+    set_plot_settings(ax, df, rs)
+    plot_values_on_grid(ax, df, rs)
     fig.tight_layout()
     if image_file:
         fig.write_image(Path(image_file).as_posix())
@@ -319,6 +293,8 @@ def plot_sankey(
         exp: Experiment,
         scenario_name: str,
         method_: str,
+        default_bar_color: Optional[str] = "blue",
+        color_map: Optional[dict[str, str]] = None,
         *,
         image_file: Optional[PathLike] = None,
 ) -> Figure:
@@ -331,6 +307,8 @@ def plot_sankey(
     scenario = exp.get_scenario(scenario_name)
     all_nodes = list(scenario.result_tree.iter_all_nodes())
     node_labels = [node.name for node in all_nodes]
+    color_map = color_map or {}
+    node_colors = [color_map.get(n, default_bar_color) for n in node_labels]
     method_ = method_.split(".")[-1]
 
     source = []
@@ -351,7 +329,7 @@ def plot_sankey(
                     thickness=20,
                     line=dict(color="black", width=0.5),
                     label=node_labels,
-                    color="blue",
+                    color=node_colors,
                 ),
                 link=dict(source=source, target=target, value=value),
             )
@@ -412,28 +390,13 @@ def plot_multivalue_results(
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     experiment = rs.experiment
 
-    if level >= experiment.hierarchy_root.depth:
-        logger.warning(
-            f"Level {level} is higher or equal (>=) than the depth of the hierarchy "
-            f"({experiment.hierarchy_root.depth}). "
-            f"Limiting to {experiment.hierarchy_root.depth - 1}"
-        )
-        level = experiment.hierarchy_root.depth - 1
+    nodes = rs.validate_node_selection(level, nodes)
 
     n_rows = len(rs.method_names) * len(rs.scenarios)
     n_cols = 1
 
-    nodes_data: list[BasicTreeNode[ScenarioResultNodeData]] = []
-    if nodes:
-        for node_names in nodes:
-            node = experiment.hierarchy_root.find_subnode_by_name(node_names)
-            if not node:
-                raise ValueError(f"Alias {node_names} not found in hierarchy")
-            nodes_data.append(node)
-    else:
-        nodes_data = experiment.hierarchy_root.collect_all_nodes_at_level(level)
     fig, axs = plt.subplots(
-        n_rows, n_cols, figsize=(2 * len(nodes_data), 5 * n_rows)
+        n_rows, n_cols, figsize=(2 * len(nodes), 5 * n_rows)
     )  # Assuming each subplot has a height of 5, adjust as needed
 
     if n_rows == 1:
@@ -444,9 +407,8 @@ def plot_multivalue_results(
             # print(method)
             ax: Axes = axs[sidx * midx + midx]
 
-            node_names = [node.name for node in nodes_data]
-            df: DataFrame = rs.collect_tech_results(node_names, "multi_magnitude")
-            for nidx, n in enumerate(nodes_data):
+            df: DataFrame = rs.collect_tech_results(nodes, "multi_magnitude")
+            for nidx, n in enumerate(nodes):
                 value_array = df[method][nidx]
                 y = np.mean(value_array)
                 if not err_method:
@@ -455,10 +417,9 @@ def plot_multivalue_results(
                     y_err = err_method(value_array)
 
                 ax.errorbar(nidx, y, y_err, fmt='o', linewidth=2, capsize=6)
-            x_labels = node_names
-            x = np.arange(len(x_labels))
+            x = np.arange(len(nodes))
             ax.set_xticks(x)
-            ax.set_xticklabels(x_labels)
+            ax.set_xticklabels(nodes)
             ax.set_title(f"Scenario {scenario}")
             ax.set_ylabel(f"{method}\n{rs.experiment.get_method_unit(method)}")
 
