@@ -19,10 +19,10 @@ logger = get_logger(__name__)
 
 
 def bar_plot(
-        experiment: Union[Experiment, ResultsSelector],
-        scenarios: Optional[list[str]] = None,
-        methods: Optional[list[str]] = None,
-        image_file: Optional[PathLike] = None,
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
 
@@ -51,13 +51,13 @@ def bar_plot(
 
 
 def stacked_bar_plot(
-        experiment: Union[Experiment, ResultsSelector],
-        scenarios: Optional[list[str]] = None,
-        methods: Optional[list[str]] = None,
-        level: int = 1,
-        short_method_names: bool = True,
-        nodes: Optional[list[str]] = None,
-        image_file: Optional[PathLike] = None,
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    level: int = 1,
+    short_method_names: bool = True,
+    nodes: Optional[list[str]] = None,
+    image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
 
@@ -91,18 +91,18 @@ def stacked_bar_plot(
 
 
 def star_plot(
-        experiment: Union[Experiment, ResultsSelector],
-        scenarios: Optional[list[str]] = None,
-        methods: Optional[list[str]] = None,
-        *,
-        fill: bool = True,
-        r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-        show_r_ticks: bool = True,
-        show_grid: bool = True,
-        col: int = 4,
-        row: Optional[int] = None,
-        show_labels: bool = True,
-        image_file: Optional[PathLike] = None,
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    *,
+    fill: bool = True,
+    r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+    show_r_ticks: bool = True,
+    show_grid: bool = True,
+    col: int = 4,
+    row: Optional[int] = None,
+    show_labels: bool = True,
+    image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df()
@@ -185,15 +185,15 @@ def star_plot(
 
 
 def single_star_plot(
-        experiment: Union[Experiment, ResultsSelector],
-        scenarios: Optional[list[str]] = None,
-        methods: Optional[list[str]] = None,
-        *,
-        r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-        show_r_ticks: bool = True,
-        show_grid: bool = True,
-        show_labels: bool = True,
-        image_file: Optional[PathLike] = None,
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    *,
+    r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+    show_r_ticks: bool = True,
+    show_grid: bool = True,
+    show_labels: bool = True,
+    image_file: Optional[PathLike] = None,
 ) -> Figure:
     """
     plots multiple scenarios into one star plot
@@ -253,12 +253,12 @@ def single_star_plot(
 
 
 def plot_heatmap(
-        experiment: Union[Experiment, ResultsSelector],
-        scenarios: Optional[list[str]] = None,
-        methods: Optional[list[str]] = None,
-        special_df: Optional[DataFrame] = None,
-        image_file: Optional[PathLike] = None,
-        x_label_rotation: Optional[int] = 45
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    methods: Optional[list[str]] = None,
+    special_df: Optional[DataFrame] = None,
+    image_file: Optional[PathLike] = None,
+    x_label_rotation: Optional[int] = 45,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = special_df if special_df is not None else rs.normalized_df()
@@ -268,14 +268,26 @@ def plot_heatmap(
         labels = rs.method_label_names(include_unit=False)
         ax.set_xticks(np.arange(len(rs.scenarios)), labels=rs.scenarios)
         ax.set_yticks(np.arange(len(rs.method_names)), labels=labels)
-        plt.setp(ax.get_xticklabels(), rotation=x_label_rotation, ha="right", rotation_mode="anchor")
+        plt.setp(
+            ax.get_xticklabels(),
+            rotation=x_label_rotation,
+            ha="right",
+            rotation_mode="anchor",
+        )
         ax.figure.colorbar(im, ax=ax)
         return ax
 
     def plot_values_on_grid(ax, df, rs: ResultsSelector):
         for i in range(len(rs.scenarios)):
             for j in range(len(rs.methods)):
-                ax.text(i, j, "%.2f" % df[df.columns[i]][j], ha="center", va="center", color="black")
+                ax.text(
+                    i,
+                    j,
+                    "%.2f" % df[df.columns[i]][j],
+                    ha="center",
+                    va="center",
+                    color="black",
+                )
         return ax
 
     df = df.set_index("scenario").transpose()
@@ -290,13 +302,13 @@ def plot_heatmap(
 
 
 def plot_sankey(
-        exp: Experiment,
-        scenario_name: str,
-        method_: str,
-        default_bar_color: Optional[str] = "blue",
-        color_map: Optional[dict[str, str]] = None,
-        *,
-        image_file: Optional[PathLike] = None,
+    exp: Experiment,
+    scenario_name: str,
+    method_: str,
+    default_bar_color: Optional[str] = "blue",
+    color_map: Optional[dict[str, str]] = None,
+    *,
+    image_file: Optional[PathLike] = None,
 ) -> Figure:
     try:  # type: ignore
         import plotly.graph_objects as go
@@ -343,10 +355,10 @@ def plot_sankey(
 
 
 def one_axes_scatter_plot(
-        experiment: Union[Experiment, ResultsSelector],
-        selected_scenario: str,
-        methods: Optional[list[str]] = None,
-        image_file: Optional[PathLike] = None,
+    experiment: Union[Experiment, ResultsSelector],
+    selected_scenario: str,
+    methods: Optional[list[str]] = None,
+    image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, None, methods)
     df = rs.normalized_df()
@@ -379,13 +391,13 @@ def one_axes_scatter_plot(
 
 
 def plot_multivalue_results(
-        experiment: Union[Experiment, ResultsSelector],
-        scenarios: Optional[list[str]] = None,
-        level: int = 1,
-        methods: Optional[list[str]] = None,
-        nodes: Optional[list[str]] = None,
-        image_file: Optional[PathLike] = None,
-        err_method: Optional[Callable[[np.ndarray], float]] = None
+    experiment: Union[Experiment, ResultsSelector],
+    scenarios: Optional[list[str]] = None,
+    level: int = 1,
+    methods: Optional[list[str]] = None,
+    nodes: Optional[list[str]] = None,
+    image_file: Optional[PathLike] = None,
+    err_method: Optional[Callable[[np.ndarray], float]] = None,
 ):
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     experiment = rs.experiment
@@ -416,7 +428,7 @@ def plot_multivalue_results(
                 else:
                     y_err = err_method(value_array)
 
-                ax.errorbar(nidx, y, y_err, fmt='o', linewidth=2, capsize=6)
+                ax.errorbar(nidx, y, y_err, fmt="o", linewidth=2, capsize=6)
             x = np.arange(len(nodes))
             ax.set_xticks(x)
             ax.set_xticklabels(nodes)
