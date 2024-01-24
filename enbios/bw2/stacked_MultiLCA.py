@@ -9,8 +9,6 @@ from bw2calc.utils import wrap_functional_unit
 from bw2data import get_activity
 from bw2data.backends import Activity
 
-from enbios.bw2.bw_models import NonLinearCharacterizationConfig
-
 logger = logging.getLogger("bw2calc")
 
 
@@ -109,33 +107,34 @@ class StackedMultiLCA:
 
             for col, cf_matrix in enumerate(self.method_matrices):
                 # logger.debug(f"Method {col}/{len(self.method_matrices)}")
-                if non_linear_methods_flags[col]:
-                    summed_inventory = self.lca.inventory.sum(1)
-                    func_array = [
-                        lambda v: 0 for _ in range(self.lca.biosphere_matrix.shape[0])
-                    ]
-
-                    for activity_id, matrix_idx in self.lca.dicts.biosphere.items():
-                        if activity_id in cf_matrix:
-                            func_array[self.lca.dicts.biosphere[activity_id]] = cf_matrix[activity_id]
-                    result = np.array([])
-                    for summed_row, function in zip(summed_inventory, func_array):
-                        result = np.append(result, function(summed_row))
-                    self.lca.characterized_inventory = result
-                else:
-                    self.lca.characterization_matrix = cf_matrix
-                    self.lcia_calculation()
+                self.lca.characterization_matrix = cf_matrix
+                self.lcia_calculation(non_linear_methods_flags[col])
                 self.results[row, col] = self.lca.score
 
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
-    def lcia_calculation(self) -> None:
+    def lcia_calculation(self, non_linear: bool = False) -> None:
         """The actual LCIA calculation.
-
         Separated from ``lcia`` to be reusable in cases where the matrices are already built, e.g. ``redo_lcia`` and Monte Carlo classes.
-
         """
-        self.lca.characterized_inventory = self.lca.characterization_matrix * self.lca.inventory
+        if non_linear:
+            summed_inventory = self.lca.inventory.sum(1)
+            func_array = [
+                lambda v: 0 for _ in range(self.lca.biosphere_matrix.shape[0])
+            ]
+
+            for activity_id, matrix_idx in self.lca.dicts.biosphere.items():
+                if activity_id in self.lca.characterization_matrix:
+                    func_array[self.lca.dicts.biosphere[activity_id]] = self.lca.characterization_matrix[activity_id]
+            result = np.array([])
+            for summed_row, function in zip(summed_inventory, func_array):
+                result = np.append(result, function(summed_row))
+            # TODO characterized_inventory should actully be m*n (m:num bioflows, n:processes)
+            # here it is (1*n)
+            # but we dont calc that, cuz not using the summed_inventory would probably take much longer
+            self.lca.characterized_inventory = result
+        else:
+            self.lca.characterized_inventory = self.lca.characterization_matrix * self.lca.inventory
 
     @property
     def all(self):

@@ -342,7 +342,7 @@ class Experiment:
         return list([s.name for s in self.scenarios])
 
     @property
-    def adapters(self) -> list[EnbiosAdapter]:
+    def adapters(self) -> list[EnbiosAdapterType]:
         """
         Get all adapters in a list
         :return:

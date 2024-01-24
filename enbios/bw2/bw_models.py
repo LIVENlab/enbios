@@ -101,7 +101,6 @@ class BWAdapterConfig(BaseModel):
 
 
 class BrightwayActivityConfig(BaseModel):
-    # todo this is too bw specific
     name: str = Field(
         None, description="Search:Name of the brightway activity"
     )  # brightway name

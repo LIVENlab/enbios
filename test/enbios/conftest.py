@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import bw2data
 import pytest
 
 from enbios.base.experiment import Experiment
@@ -21,7 +22,6 @@ def default_method_tuple() -> tuple:
     return 'EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT'
 
 
-
 @pytest.fixture
 def default_bw_config() -> dict:
     return {
@@ -32,10 +32,13 @@ def default_bw_config() -> dict:
 
 
 @pytest.fixture
+def set_bw_default_project(default_bw_config):
+    bw2data.projects.set_current(default_bw_config["bw_project"])
+
+
+@pytest.fixture
 def default_bw_method_name() -> str:
     return "zinc_no_LT"
-
-
 
 
 @pytest.fixture
@@ -55,7 +58,6 @@ def bw_adapter_config(default_bw_config: dict, default_method_tuple: tuple, defa
         },
         "note": "brightway-adapter"
     }
-
 
 
 @pytest.fixture
@@ -118,10 +120,12 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                          default_bw_method_name: ResultValue(unit="kilogram", magnitude=_impact)})}
     }
 
+
 @pytest.fixture
 def basic_experiment(experiment_setup) -> Experiment:
     scenario_data = experiment_setup["scenario"]
     return Experiment(scenario_data)
+
 
 @pytest.fixture
 def run_basic_experiment(basic_experiment) -> Experiment:
