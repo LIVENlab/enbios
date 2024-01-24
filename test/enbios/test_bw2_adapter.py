@@ -265,3 +265,18 @@ def test_regionalization_distribution(experiment_setup):
                     del a.data["enb_location"]
                     a.save()
     pass
+
+
+def test_nonlinear_methods(experiment_setup: dict, default_bw_method_name: str):
+    experiment_setup["scenario"]["adapters"][0]["config"]["store_lca_object"] = True
+    experiment_setup["scenario"]["adapters"][0]["config"]["store_raw_results"] = True
+    experiment_setup["scenario"]["adapters"][0]["config"]["nonlinear_characterization"] = {"methods":{
+        default_bw_method_name: {
+            "functions": {
+                ('biosphere3', '38a622c6-f086-4763-a952-7c6b3b1c42ba'): lambda x: 0
+            },
+            "get_defaults_from_original": True
+        }}}
+    experiment = Experiment(experiment_setup["scenario"])
+    result = experiment.run()
+    print(result)

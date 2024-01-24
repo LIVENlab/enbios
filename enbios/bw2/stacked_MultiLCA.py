@@ -1,15 +1,15 @@
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Callable
 
 import bw2data
 import numpy as np
-
+from bw2calc.lca import LCA
+from bw2calc.utils import wrap_functional_unit
 from bw2data import get_activity
 from bw2data.backends import Activity
 
-from bw2calc.lca import LCA
-from bw2calc.utils import wrap_functional_unit
+from enbios.bw2.bw_models import NonLinearCharacterizationConfig
 
 logger = logging.getLogger("bw2calc")
 
@@ -36,6 +36,7 @@ class InventoryMatrices:
         return self.biosphere_matrix * self.supply_arrays[fu_index]
 
 
+
 class StackedMultiLCA:
     """Wrapper class for performing LCA calculations with
     many functional units and LCIA methods.
@@ -52,13 +53,16 @@ class StackedMultiLCA:
     """
 
     def __init__(
-        self,
-        calc_setup: BWCalculationSetup,
-        use_distributions: bool = False,
-        logger: Optional[logging.Logger] = None,
+            self,
+            calc_setup: BWCalculationSetup,
+            use_distributions: bool = False,
+            method_activity_func_maps: dict[tuple[str,...], dict[int,Callable[[float], float]]] = None,
+            logger: Optional[logging.Logger] = None,
+
     ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
+        has_nonlinear_functions: bool = method_activity_func_maps is not None
         self.lca = LCA(
             demand=self.all,
             method=self.methods[0],
@@ -74,12 +78,19 @@ class StackedMultiLCA:
             }
         )
         self.lca.lci()
+        non_linear_methods_flags:list[bool] = []
         self.method_matrices = []
         self.supply_arrays = []
         self.results = np.zeros((len(self.func_units), len(self.methods)))
         for method in self.methods:
             self.lca.switch_method(method)
-            self.method_matrices.append(self.lca.characterization_matrix)
+            if has_nonlinear_functions and method in method_activity_func_maps:
+                method_characterization = method_activity_func_maps[method]
+                self.method_matrices.append(method_characterization)
+                non_linear_methods_flags.append(True)
+            else:
+                self.method_matrices.append(self.lca.characterization_matrix)
+                non_linear_methods_flags.append(False)
 
         for row, func_unit in enumerate(self.func_units):
             logger.debug(f"Demand {row}/{len(self.func_units)}")
@@ -98,11 +109,33 @@ class StackedMultiLCA:
 
             for col, cf_matrix in enumerate(self.method_matrices):
                 # logger.debug(f"Method {col}/{len(self.method_matrices)}")
-                self.lca.characterization_matrix = cf_matrix
-                self.lca.lcia_calculation()
+                if non_linear_methods_flags[col]:
+                    summed_inventory = self.lca.inventory.sum(1)
+                    func_array = [
+                        lambda v: 0 for _ in range(self.lca.biosphere_matrix.shape[0])
+                    ]
+
+                    for activity_id, matrix_idx in self.lca.dicts.biosphere.items():
+                        if activity_id in cf_matrix:
+                            func_array[self.lca.dicts.biosphere[activity_id]] = cf_matrix[activity_id]
+                    result = np.array([])
+                    for summed_row, function in zip(summed_inventory, func_array):
+                        result = np.append(result, function(summed_row))
+                    self.lca.characterized_inventory = result
+                else:
+                    self.lca.characterization_matrix = cf_matrix
+                    self.lcia_calculation()
                 self.results[row, col] = self.lca.score
 
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
+
+    def lcia_calculation(self) -> None:
+        """The actual LCIA calculation.
+
+        Separated from ``lcia`` to be reusable in cases where the matrices are already built, e.g. ``redo_lcia`` and Monte Carlo classes.
+
+        """
+        self.lca.characterized_inventory = self.lca.characterization_matrix * self.lca.inventory
 
     @property
     def all(self):

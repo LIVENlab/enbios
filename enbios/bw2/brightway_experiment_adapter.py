@@ -1,17 +1,20 @@
-from dataclasses import dataclass
+from functools import reduce
 from logging import getLogger
-from typing import Optional, Any, Union, Sequence
+from typing import Optional, Any, Union, Sequence, Callable
 
+import bw2data
 import bw2data as bd
+from bw2calc.dictionary_manager import ReversibleRemappableDictionary
 from bw2data.backends import Activity, ActivityDataset
 from numpy import ndarray
 from numpy._typing import NDArray
 from pint import Quantity, UndefinedUnitError
-from pydantic import BaseModel, Field, RootModel, ConfigDict, model_validator
 
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
+from enbios.bw2.bw_models import ExperimentMethodPrepData, BWAdapterConfig, BrightwayActivityConfig, BWMethodDefinition, \
+    BWActivityData, NonLinearMethodConfig
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
 from enbios.bw2.stacked_MultiLCA_regio import RegioStackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
@@ -23,88 +26,6 @@ from enbios.models.experiment_models import (
 logger = getLogger(__file__)
 
 ureg = get_enbios_ureg()
-
-
-class ExperimentMethodPrepData(BaseModel):
-    id: tuple[str, ...]
-    bw_method_unit: str
-
-
-class RegionalizationConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
-    run_regionalization: bool = Field(False)
-    select_regions: set = Field(None, description="regions to store the results for")
-    set_node_regions: dict[str, tuple[str, ...]] = Field(
-        {}, description="Set node regions"
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def validate(cls, data: Any) -> Any:
-        if data.get("run_regionalization", False):
-            if data.get("select_regions") is None:
-                raise ValueError(
-                    "Select regions for BW regionalization (field: 'select_regions')"
-                )
-        return data
-
-
-class BWAdapterConfig(BaseModel):
-    bw_project: str
-    # methods: MethodsDataTypesExt
-    use_k_bw_distributions: int = Field(
-        1, description="Number of samples to use for MonteCarlo"
-    )
-    store_raw_results: bool = Field(
-        False,
-        description="If the numpy matrix of brightway should be stored in the adapter. "
-        "Will be stored in `raw_results[scenario.name]`",
-    )
-    store_lca_object: bool = Field(
-        False,
-        description="If the LCA object should be stored. "
-        "Will be stored in `lca_objects[scenario.name]`",
-    )
-    simple_regionalization: RegionalizationConfig = Field(
-        description="Generate regionalized LCA", default_factory=RegionalizationConfig
-    )
-
-
-class BrightwayActivityConfig(BaseModel):
-    # todo this is too bw specific
-    name: str = Field(
-        None, description="Search:Name of the brightway activity"
-    )  # brightway name
-    database: str = Field(
-        None, description="Search:Name of the database to search first"
-    )  # brightway database
-    code: str = Field(
-        None, description="Search:Brightway activity code"
-    )  # brightway code
-    # search and filter
-    location: str = Field(None, description="Search:Location filter")  # location
-    enb_location: tuple[str, ...] = Field(
-        None, description="Location for regionalization"
-    )
-    # additional filter
-    unit: str = Field(None, description="Search: unit filter of results")  # unit
-    # internal-name
-    default_output: NodeOutput = Field(
-        None, description="Default output of the activity for all scenarios"
-    )
-
-
-class BWMethodModel(BaseModel):
-    name: str = Field(None, description="Name for identification")
-    id: tuple[str, ...] = Field(None, description="Brightway method id")
-
-
-class BWMethodDefinition(RootModel):
-    model_config = ConfigDict(
-        title="Method definition",
-        json_schema_extra={"description": "Simply a dict: name : BW method tuple"},
-    )
-    root: dict[str, Sequence[str]]
 
 
 def _bw_activity_search(activity_id: dict) -> Activity:
@@ -154,12 +75,6 @@ def _bw_activity_search(activity_id: dict) -> Activity:
     return bw_activity
 
 
-@dataclass
-class BWActivityData:
-    bw_activity: Activity
-    default_output: NodeOutput
-
-
 class BrightwayAdapter(EnbiosAdapter):
     @staticmethod
     def name() -> str:
@@ -204,7 +119,7 @@ class BrightwayAdapter(EnbiosAdapter):
     def validate_methods(self, methods: dict[str, Any]) -> list[str]:
         assert methods, "Methods must be defined for brightway adapter"
         # validation
-        BWMethodDefinition(methods)
+        self.method_info = BWMethodDefinition(methods)
 
         def validate_method(method_id: Sequence[str]) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
@@ -221,9 +136,9 @@ class BrightwayAdapter(EnbiosAdapter):
         return list(self.methods.keys())
 
     def validate_node_output(
-        self,
-        node_name: str,
-        target_output: NodeOutput,
+            self,
+            node_name: str,
+            target_output: NodeOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -234,10 +149,10 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_activity_unit = "not yet set"
         try:
             target_quantity: Quantity = (
-                ureg.parse_expression(
-                    bw_unit_fix(target_output.unit), case_sensitive=False
-                )
-                * target_output.magnitude
+                    ureg.parse_expression(
+                        bw_unit_fix(target_output.unit), case_sensitive=False
+                    )
+                    * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -306,8 +221,8 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup.register()
         self.scenario_calc_setups[scenario.name] = calculation_setup
         if (
-            self.config.simple_regionalization.run_regionalization
-            and not self.all_regions_set
+                self.config.simple_regionalization.run_regionalization
+                and not self.all_regions_set
         ):
             activity_codes: list[str] = list(
                 self.config.simple_regionalization.set_node_regions.keys()
@@ -316,7 +231,7 @@ class BrightwayAdapter(EnbiosAdapter):
             # noinspection PyUnresolvedReferences
             with ActivityDataset._meta.database.atomic():
                 for a in ActivityDataset.select().where(
-                    ActivityDataset.code.in_(activity_codes)
+                        ActivityDataset.code.in_(activity_codes)
                 ):
                     a.data[
                         "enb_location"
@@ -329,6 +244,9 @@ class BrightwayAdapter(EnbiosAdapter):
         raw_results: list[NDArray] = []
         self.lca_objects[scenario.name] = []
         run_regionalization = self.config.simple_regionalization.run_regionalization
+        method_activity_func_maps: Optional[dict[tuple[str,...], dict[int, Callable[[float], float]]]] = None
+        if self.config.nonlinear_characterization:
+            method_activity_func_maps = self.prepare_nonlinear_methods()
         for i in range(self.config.use_k_bw_distributions):
             self.get_logger().info(
                 f"Brightway adapter: Run distribution {i}/{self.config.use_k_bw_distributions}"
@@ -337,13 +255,14 @@ class BrightwayAdapter(EnbiosAdapter):
                 _lca = RegioStackedMultiLCA(
                     self.scenario_calc_setups[scenario.name],
                     self.config.simple_regionalization.select_regions,
-                    use_distributions=use_distributions,
+                    use_distributions=use_distributions
                 )
                 raw_results.append(_lca.results)
             else:
                 _lca = StackedMultiLCA(
                     self.scenario_calc_setups[scenario.name],
                     use_distributions,
+                    method_activity_func_maps=method_activity_func_maps,
                     logger=self.get_logger(),
                 )
                 raw_results.append(_lca.results)
@@ -369,7 +288,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 method_name, method_data = method
                 if run_regionalization:
                     for region_idx, region in enumerate(
-                        self.config.simple_regionalization.select_regions
+                            self.config.simple_regionalization.select_regions
                     ):
                         method_result = ResultValue(unit=method_data.bw_method_unit)
                         method_res_values = [
@@ -395,6 +314,52 @@ class BrightwayAdapter(EnbiosAdapter):
             act_idx += 1
         return result_data
 
+    def prepare_nonlinear_methods(self):
+        # create dummy LCA to get the biosphere_matrix and prep_lca.dicts.biosphere
+        # prep_lca = self.prepare_lca_for_nonlinear(calc_setup)
+        config = self.config.nonlinear_characterization
+        method_activity2func_maps = {}
+        for method_name, method_config in config.methods.items():
+            method_activity2func_map = self.prepare_nonlinear_method(method_name, method_config)
+            bw_method_id = self.methods[method_name].id
+            method_activity2func_maps[bw_method_id] = method_activity2func_map
+        return method_activity2func_maps
+
+    def prepare_nonlinear_method(self,
+                                 method_name: str,
+                                 method_config: NonLinearMethodConfig) -> dict[int, Callable[[float], float]]:
+
+        result_func_map: dict[int, Callable[[float], float]] = {}  # [None] * prep_lca.biosphere_matrix.shape[0]
+        if method_name not in self.methods:
+            raise ValueError(f"Unknown method '{method_name}' specified for nonlinear methods")
+        # bw method id (tuple[str,...])
+        bw_method_id: tuple[str, ...] = self.methods[method_name].id
+        # key: (database,code) -> id
+        biosphere_keys2ids = self.temp_biosphere_key2ids(list(method_config.functions.keys()))
+        for key, id in biosphere_keys2ids.items():
+            result_func_map[id] = method_config.functions[key]
+        if method_config.get_defaults_from_original:
+            bw_method_data = bw2data.Method(bw_method_id).load()
+            bw_cf_activity_key2ids = self.temp_biosphere_key2ids(
+                [tuple[str, str](method_key) for method_key, _ in bw_method_data])
+            for method_key, cf in bw_method_data:
+                activity_id = bw_cf_activity_key2ids[tuple(method_key)]
+                result_func_map[activity_id] = lambda v, cf_=cf: v * cf_
+        return result_func_map
+
+    # def prepare_lca_for_nonlinear(self, calc_setup: BWCalculationSetup) -> LCA:
+    #     all = {key: 1 for func_unit in calc_setup.inv for key in func_unit}
+    #     func_units = calc_setup.inv
+    #     methods = calc_setup.ia
+    #     prep_lca = LCA(
+    #         demand=all,
+    #         method=methods[0],
+    #         log_config=None,
+    #     )
+    #     # build the biosphere matrix
+    #     prep_lca.load_lci_data()
+    #     return prep_lca
+
     @staticmethod
     def get_config_schemas() -> dict:
         return {
@@ -406,3 +371,18 @@ class BrightwayAdapter(EnbiosAdapter):
     # def run(self) -> dict[str,dict[str, dict[str, ResultValue]]]:
     #     logger.error("Brightway adapter does not implment the generic run method")
     #     return {}
+
+    # def temp_biosphere_activities(self, lca: LCA):
+    #     biosphere_activities = ActivityDataset.select().where(ActivityDataset.id.in_(lca.dicts.bisphere.keys()))
+
+    def temp_biosphere_activities(self, keys: list[tuple[str, str]]) -> list[ActivityDataset]:
+        conditions = [((ActivityDataset.database == db) & (ActivityDataset.code == code)) for db, code in keys]
+        from operator import or_
+        if len(conditions) == 1:
+            return list(ActivityDataset.select().where(conditions[0]))
+
+        return list(ActivityDataset.select().where(reduce(or_, conditions)))
+
+    def temp_biosphere_key2ids(self, keys: list[tuple[str, str]]) -> ReversibleRemappableDictionary:
+        biosphere_activities = self.temp_biosphere_activities(keys)
+        return ReversibleRemappableDictionary({(a.database, a.code): a.id for a in biosphere_activities})
