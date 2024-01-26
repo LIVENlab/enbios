@@ -1,18 +1,14 @@
-import logging
+from typing import Callable
 
 import numpy as np
-from bw2calc.lca import LCA
 from bw2calc.multi_lca import InventoryMatrices
-from bw2calc.utils import wrap_functional_unit
-from bw2data import get_activity
-from bw2data.backends import Activity, ActivityDataset
+from bw2data.backends import ActivityDataset
 
+from enbios.bw2.MultiLCA_util import BaseStackedMultiLCA
 from enbios.bw2.bw_models import BWCalculationSetup
 
-logger = logging.getLogger("bw2calc")
 
-
-class RegioStackedMultiLCA:
+class RegioStackedMultiLCA(BaseStackedMultiLCA):
     """Wrapper class for performing LCA calculations with
     many functional units and LCIA methods.
 
@@ -28,67 +24,35 @@ class RegioStackedMultiLCA:
     """
 
     def __init__(
-        self,
-        calc_setup: BWCalculationSetup,
-        select_locations: set[str],
-        use_distributions: bool = False,
-        location_key: str = "enb_location",
-        log_config=None,
+            self,
+            calc_setup: BWCalculationSetup,
+            select_locations: set[str],
+            use_distributions: bool = False,
+            location_key: str = "enb_location",
+            method_activity_func_maps: dict[tuple[str, ...], dict[int, Callable[[float], float]]] = None,
     ):
-        self.func_units = calc_setup.inv
-        self.methods = calc_setup.ia
-        self.lca = LCA(
-            demand=self.all,
-            method=self.methods[0],
-            log_config=log_config,
-            use_distributions=use_distributions,
-        )
-        logger.info(
-            {
-                "message": "Started MultiLCA calculation",
-                "methods": list(self.methods),
-                "functional units": [wrap_functional_unit(o) for o in self.func_units],
-            }
-        )
-        self.lca.lci()
-        self.method_matrices = []
-        self.supply_arrays = []
-        self.results = np.zeros(
-            (len(self.func_units), len(self.methods), len(select_locations))
-        )
+        super().__init__(calc_setup,
+                         np.zeros(
+                             (len(self.func_units), len(self.methods), len(select_locations))
+                         ),
+                         use_distributions)
+
         self.locations_base_map: dict[str, list[int]] = {}
         self.loc_tree: list[dict[str, set[str]]] = []
         self.resolve_loc_basemap(location_key)
-        for method in self.methods:
-            self.lca.switch_method(method)
-            self.method_matrices.append(self.lca.characterization_matrix)
 
         for row, func_unit in enumerate(self.func_units):
-            fu_spec, fu_demand = list(func_unit.items())[0]
-            if isinstance(fu_spec, int):
-                fu = {fu_spec: fu_demand}
-            elif isinstance(fu_spec, Activity):
-                fu = {fu[0].id: fu[1] for fu in list(func_unit.items())}
-            elif isinstance(fu_spec, tuple):
-                a = get_activity(fu_spec)
-                fu = {a.id: fu[1] for fu in list(func_unit.items())}
-            else:
-                raise ValueError("Unknown functional unit type")
-            self.lca.lci(fu)
-            self.supply_arrays.append(self.lca.supply_array)
+            self.prep_demand(row, func_unit)
 
             res_map = {}
 
             for col, cf_matrix in enumerate(self.method_matrices):
                 self.lca.characterization_matrix = cf_matrix
                 for loc, idxs in self.locations_base_map.items():
-                    res = (
-                        self.lca.characterization_matrix
-                        * self.lca.inventory[
-                            :, [self.lca.dicts.activity[c] for c in idxs]
-                        ]
-                    ).sum()
-                    res_map[loc] = res
+                    regional_characterized_inventory = self.lcia_calculation(self.non_linear_methods_flags[col], self.lca.inventory[
+                              :, [self.lca.dicts.activity[c] for c in idxs]
+                              ])
+                    res_map[loc] = regional_characterized_inventory.sum()
 
                 # sum up location results, per level...
                 for lvl in self.loc_tree:
@@ -109,7 +73,7 @@ class RegioStackedMultiLCA:
         # all other indices to last locs
         # loc_tree = []
         for a in ActivityDataset.select(ActivityDataset).where(
-            ActivityDataset.type == "process"
+                ActivityDataset.type == "process"
         ):
             # if a.type == "process":
             loc = a.data.get(location_key)

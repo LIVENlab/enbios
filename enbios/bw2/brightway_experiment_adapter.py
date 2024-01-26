@@ -254,7 +254,6 @@ class BrightwayAdapter(EnbiosAdapter):
                     self.scenario_calc_setups[scenario.name],
                     use_distributions,
                     method_activity_func_maps=method_activity_func_maps,
-                    logger=self.get_logger(),
                 )
                 raw_results.append(_lca.results)
             if self.config.store_lca_object:
