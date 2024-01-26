@@ -1,37 +1,16 @@
 import logging
-from dataclasses import dataclass
 from typing import Optional, Callable
 
-import bw2data
 import numpy as np
 from bw2calc.lca import LCA
+from bw2calc.multi_lca import InventoryMatrices
 from bw2calc.utils import wrap_functional_unit
 from bw2data import get_activity
 from bw2data.backends import Activity
 
+from enbios.bw2.bw_models import BWCalculationSetup
+
 logger = logging.getLogger("bw2calc")
-
-
-@dataclass
-class BWCalculationSetup:
-    name: str
-    inv: list[dict[Activity, float]]
-    ia: list[tuple[str, ...]]
-
-    def register(self):
-        bw2data.calculation_setups[self.name] = {"inv": self.inv, "ia": self.ia}
-
-
-class InventoryMatrices:
-    def __init__(self, biosphere_matrix, supply_arrays):
-        self.biosphere_matrix = biosphere_matrix
-        self.supply_arrays = supply_arrays
-
-    def __getitem__(self, fu_index):
-        if fu_index is Ellipsis:
-            raise ValueError("Must specify integer indices")
-
-        return self.biosphere_matrix * self.supply_arrays[fu_index]
 
 
 

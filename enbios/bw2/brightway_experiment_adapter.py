@@ -119,7 +119,7 @@ class BrightwayAdapter(EnbiosAdapter):
     def validate_methods(self, methods: dict[str, Any]) -> list[str]:
         assert methods, "Methods must be defined for brightway adapter"
         # validation
-        self.method_info = BWMethodDefinition(methods)
+        BWMethodDefinition(methods)
 
         def validate_method(method_id: Sequence[str]) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
@@ -146,7 +146,6 @@ class BrightwayAdapter(EnbiosAdapter):
         :param target_output:
         :return:
         """
-        bw_activity_unit = "not yet set"
         try:
             target_quantity: Quantity = (
                     ureg.parse_expression(
@@ -163,14 +162,6 @@ class BrightwayAdapter(EnbiosAdapter):
                 f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
             )
             raise UndefinedUnitError(f"Unit error, {err}; For activity: {node_name}")
-        # except DimensionalityError as err:
-        #     logger.error(
-        #         f"Cannot convert output of activity {node_name}. -"
-        #         f"From- \n{target_output}\n-To-"
-        #         f"\n{bw_activity_unit} (brightway unit)"
-        #         f"\n{err}"
-        #     )
-        #     raise DimensionalityError(f"Unit error for activity: {node_name}")
 
     def validate_node(self, node_name: str, node_config: Any):
         assert isinstance(
@@ -347,18 +338,6 @@ class BrightwayAdapter(EnbiosAdapter):
                 result_func_map[activity_id] = lambda v, cf_=cf: v * cf_
         return result_func_map
 
-    # def prepare_lca_for_nonlinear(self, calc_setup: BWCalculationSetup) -> LCA:
-    #     all = {key: 1 for func_unit in calc_setup.inv for key in func_unit}
-    #     func_units = calc_setup.inv
-    #     methods = calc_setup.ia
-    #     prep_lca = LCA(
-    #         demand=all,
-    #         method=methods[0],
-    #         log_config=None,
-    #     )
-    #     # build the biosphere matrix
-    #     prep_lca.load_lci_data()
-    #     return prep_lca
 
     @staticmethod
     def get_config_schemas() -> dict:
@@ -367,13 +346,6 @@ class BrightwayAdapter(EnbiosAdapter):
             "activity": BrightwayActivityConfig.model_json_schema(),
             "method": BWMethodDefinition.model_json_schema(),
         }
-
-    # def run(self) -> dict[str,dict[str, dict[str, ResultValue]]]:
-    #     logger.error("Brightway adapter does not implment the generic run method")
-    #     return {}
-
-    # def temp_biosphere_activities(self, lca: LCA):
-    #     biosphere_activities = ActivityDataset.select().where(ActivityDataset.id.in_(lca.dicts.bisphere.keys()))
 
     def temp_biosphere_activities(self, keys: list[tuple[str, str]]) -> list[ActivityDataset]:
         conditions = [((ActivityDataset.database == db) & (ActivityDataset.code == code)) for db, code in keys]

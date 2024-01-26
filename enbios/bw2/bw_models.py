@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Optional, Callable, Sequence
 
+import bw2data
 from bw2data.backends import Activity
 from pydantic import BaseModel, ConfigDict, Field, model_validator, RootModel
 
@@ -35,15 +36,11 @@ class RegionalizationConfig(BaseModel):
 
 
 class NonLinearMethodConfig(BaseModel):
-    name: str= Field(None, description="bw method tuple name", init_var=False)
-    bw_id: tuple[str, ...] = Field(None, description="bw method tuple name", init_var=False)
-    functions: dict[tuple[str, str], Callable[[float], float]]
-    # default_function: Optional[Callable[[float], float]]
+    name: str = Field(None, description="bw method tuple name")
+    bw_id: tuple[str, ...] = Field(None, description="bw method tuple name")
+    functions: dict[tuple[str, str], Callable[[float], float]] = Field(..., exclude=True)
     get_defaults_from_original: Optional[bool] = Field(False,
-                                             description="Method is already defined in BW and has characterization values. ")
-    # bw_methods_data: Optional[dict[Sequence[str], dict[int, Callable[[float], float]]]] = Field(
-    #     default_factory=dict,
-    #     description="Preparation. defaults filled in. Converted from names to bw tuples", init_var=False)
+                                                       description="Method is already defined in BW and has characterization values. ")
 
     @model_validator(mode="before")
     @classmethod
@@ -62,6 +59,15 @@ class NonLinearMethodConfig(BaseModel):
             data["default_function"] = lambda v: v
         return data
 
+    # @classmethod
+    # def model_json_schema(cls):
+    #     # Generate the default schema
+    #     schema = super().model_json_schema()
+    #
+    #     # Modify the schema for the 'functions' field
+    #     # For example, represent it as a dictionary of strings
+    #     schema['properties']['functions'] = {'type': 'object', 'additionalProperties': {'type': 'string'}}
+    #     return schema
 
 class NonLinearCharacterizationConfig(BaseModel):
     methods: dict[str, NonLinearMethodConfig] = Field(
@@ -75,6 +81,7 @@ class NonLinearCharacterizationConfig(BaseModel):
         for method_name, method_config in data["methods"].items():
             method_config["name"] = method_name
         return data
+
 
 class BWAdapterConfig(BaseModel):
     bw_project: str
@@ -140,3 +147,14 @@ class BWMethodDefinition(RootModel):
 class BWActivityData:
     bw_activity: Activity
     default_output: NodeOutput
+
+
+
+@dataclass
+class BWCalculationSetup:
+    name: str
+    inv: list[dict[Activity, float]]
+    ia: list[tuple[str, ...]]
+
+    def register(self):
+        bw2data.calculation_setups[self.name] = {"inv": self.inv, "ia": self.ia}
