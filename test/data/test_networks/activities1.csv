@@ -1,0 +1,12 @@
+name,code,unit,type
+product,product,unit,process
+material1,material1,unit,process
+material2,material2,unit,process
+material3,material3,unit,process
+material4,material4,unit,process
+material5,material5,unit,process
+material6,material6,unit,process
+energy1,energy1,MW,process
+energy2,energy2,MW,process
+co2,co2,kg,emission
+waste,waste,kg,emission

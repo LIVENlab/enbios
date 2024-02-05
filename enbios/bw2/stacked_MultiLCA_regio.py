@@ -33,38 +33,70 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
     ):
         super().__init__(calc_setup,
                          np.zeros(
-                             (len(self.func_units), len(self.methods), len(select_locations))
+                             (len(calc_setup.inv), len(calc_setup.ia), len(select_locations))
                          ),
-                         use_distributions)
+                         use_distributions,
+                         method_activity_func_maps)
 
         self.locations_base_map: dict[str, list[int]] = {}
         self.loc_tree: list[dict[str, set[str]]] = []
+        self.full_loc_map: dict[str, set[str]] = {}  # for each location (any level) all ids
         self.resolve_loc_basemap(location_key)
 
         for row, func_unit in enumerate(self.func_units):
             self.prep_demand(row, func_unit)
 
             res_map = {}
-
             for col, cf_matrix in enumerate(self.method_matrices):
                 self.lca.characterization_matrix = cf_matrix
-                for loc, idxs in self.locations_base_map.items():
-                    regional_characterized_inventory = self.lcia_calculation(self.non_linear_methods_flags[col], self.lca.inventory[
-                              :, [self.lca.dicts.activity[c] for c in idxs]
-                              ])
-                    res_map[loc] = regional_characterized_inventory.sum()
+                # linear methods can be done separately and summed together
+                # todo optimise this
+                # here we need to differentiate between linear and nonlinear.
+                # the nonlinear should not just sum up sub-location results. thats why we also generate the
+                # full_loc_map
+                if not self.non_linear_methods_flags[col]:
+                    for loc, idxs in self.locations_base_map.items():
+                        regional_characterized_inventory = self.lcia_calculation(self.non_linear_methods_flags[col],
+                                                                                 self.lca.inventory[
+                                                                                 :, [self.lca.dicts.activity[c] for c in
+                                                                                     idxs]
+                                                                                 ])
+                        res_map[loc] = regional_characterized_inventory.sum()
 
-                # sum up location results, per level...
-                for lvl in self.loc_tree:
-                    for loc, sub_loc in lvl.items():
-                        # print(loc, contained)
-                        res_map[loc] = 0
-                        for cloc in sub_loc:
-                            res_map[loc] += res_map[cloc]
+                    # sum up location results, per level...
+                    for lvl in self.loc_tree:
+                        for loc, sub_loc in lvl.items():
+                            # print(loc, contained)
+                            res_map[loc] = 0
+                            for cloc in sub_loc:
+                                res_map[loc] += res_map[cloc]
 
-                for loc, loc_name in enumerate(select_locations):
-                    self.results[row, col, loc] = res_map[loc_name]
+                    for loc, loc_name in enumerate(select_locations):
+                        self.results[row, col, loc] = res_map[loc_name]
+                else:
+                    for loc, idxs in self.locations_base_map.items():
+                        regional_characterized_inventory = self.lcia_calculation(self.non_linear_methods_flags[col],
+                                                                                 self.lca.inventory[
+                                                                                 :, [self.lca.dicts.activity[c] for c in
+                                                                                     idxs]
+                                                                                 ])
+                        # res_matrices[loc] = regional_characterized_inventory
+                        res_map[loc] = regional_characterized_inventory.sum()
 
+                    # sum up location results, per level...
+                    for lvl in self.loc_tree:
+                        for loc, sub_loc in lvl.items():
+                            if loc in select_locations:
+                                all_loc_idxs = self.full_loc_map[loc]
+                                regional_characterized_inventory = self.lcia_calculation(
+                                    self.non_linear_methods_flags[col], self.lca.inventory[
+                                                                        :, [self.lca.dicts.activity[c] for c in
+                                                                            all_loc_idxs]
+                                                                        ])
+                                res_map[loc] = regional_characterized_inventory.sum()
+
+                    for loc, loc_name in enumerate(select_locations):
+                        self.results[row, col, loc] = res_map[loc_name]
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
     def resolve_loc_basemap(self, location_key: str = "enb_location"):
@@ -86,9 +118,13 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
                     self.loc_tree.append({})
                 self.loc_tree[idx].setdefault(rest, set()).add(loc[idx + 1])
 
+        self.full_loc_map = {}
         self.loc_tree.reverse()
-
-    @property
-    def all(self):
-        """Get all possible databases by merging all functional units"""
-        return {key: 1 for func_unit in self.func_units for key in func_unit}
+        for level in self.loc_tree:
+            for loc, sub_locs in level.items():
+                self.full_loc_map[loc] = []
+                for sub_loc in sub_locs:
+                    if sub_loc in self.locations_base_map:
+                        self.full_loc_map[loc].extend(self.locations_base_map[sub_loc])
+                    else:
+                        self.full_loc_map[loc].extend(self.full_loc_map[sub_loc])

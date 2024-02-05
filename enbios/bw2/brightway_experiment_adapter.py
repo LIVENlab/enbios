@@ -253,7 +253,8 @@ class BrightwayAdapter(EnbiosAdapter):
                 _lca = RegioStackedMultiLCA(
                     self.scenario_calc_setups[scenario.name],
                     self.config.simple_regionalization.select_regions,
-                    use_distributions=use_distributions
+                    use_distributions=use_distributions,
+                    method_activity_func_maps=method_activity_func_maps,
                 )
                 raw_results.append(_lca.results)
             else:

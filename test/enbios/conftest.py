@@ -1,3 +1,4 @@
+from csv import DictReader
 from pathlib import Path
 
 import bw2data
@@ -131,3 +132,41 @@ def basic_experiment(experiment_setup) -> Experiment:
 def run_basic_experiment(basic_experiment) -> Experiment:
     basic_experiment.run()
     return basic_experiment
+
+
+@pytest.fixture
+def test_network_project_db_name() -> tuple[str, str]:
+    return "test_network", "db"
+
+
+@pytest.fixture
+def create_test_network(test_network_project_db_name):
+    import bw2data
+    try:
+        from bw_tools.network_build import build_network
+    except ImportError as err:
+        raise AssertionError("Cannot import bw_tools.network_build")
+
+    project_name, db_name = test_network_project_db_name
+    try:
+        bw2data.projects.delete_project(project_name, True)
+    except ValueError:
+        pass
+
+    bw2data.projects.set_current(project_name)
+
+    db = bw2data.Database(db_name)
+    db.register()
+
+    activities = list(DictReader((BASE_TEST_DATA_PATH / "test_networks/activities1.csv").open(encoding="utf-8")))
+    exchanges = list(DictReader((BASE_TEST_DATA_PATH / "test_networks/exchanges1.csv").open(encoding="utf-8")))
+    build_network(db, {
+        "activities": activities,
+        "exchanges": exchanges
+    })
+
+    yield
+    try:
+        bw2data.projects.delete_project(project_name, True)
+    except ValueError:
+        pass

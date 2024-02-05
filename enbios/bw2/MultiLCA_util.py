@@ -87,14 +87,15 @@ class BaseStackedMultiLCA(ABC):
         """The actual LCIA calculation.
         Separated from ``lcia`` to be reusable in cases where the matrices are already built, e.g. ``redo_lcia`` and Monte Carlo classes.
         """
-        if not inventory:
+        if inventory is None:
             inventory = self.lca.inventory
         if non_linear:
             summed_inventory = inventory.sum(1)
+            # initiate cf array with 0 functions
             func_array = [
                 lambda v: 0 for _ in range(self.lca.biosphere_matrix.shape[0])
             ]
-
+            # assign the proper function to the cf array
             for activity_id, matrix_idx in self.lca.dicts.biosphere.items():
                 if activity_id in self.lca.characterization_matrix:
                     func_array[self.lca.dicts.biosphere[activity_id]] = self.lca.characterization_matrix[activity_id]

@@ -7,6 +7,7 @@ from bw2calc import LCA
 from bw2data.backends import ActivityDataset
 from pint import UndefinedUnitError
 
+from bw_tools import mermaid_diagram
 from enbios.base.experiment import Experiment
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.const import BASE_TEST_DATA_PATH
@@ -301,7 +302,7 @@ def test_nonlinear_methods2(set_bw_default_project,
     # test 2: normal LCA with some demand * 2 compared to demand * 1 and non-linear func (values * 2)
     biosphere_cfs = bw2data.Method(default_method_tuple).load()
     nonlinear_cfs = {
-        tuple(key): lambda v, cf_ = cf:  v * (cf_ * 2)
+        tuple(key): lambda v, cf_=cf: v * (cf_ * 2)
         for key, cf in biosphere_cfs
     }
     adapter_def = experiment_setup["scenario"]["adapters"][0]
@@ -358,5 +359,101 @@ def test_nonlinear_methods3(set_bw_default_project,
     summed_inventory = lca.inventory.sum(1)
     pass
 
-def test_regionlized_nonlinear_characterization():
-    pass
+
+def test_regionlized_nonlinear_characterization(test_network_project_db_name: tuple[str, str], create_test_network):
+    # biosphere_cfs = bw2data.Method(default_method_tuple).load()
+    # nonlinear_cfs = {
+    #     tuple(key): lambda v, cf_=cf: v * (cf_ * 2)
+    #     for key, cf in biosphere_cfs
+    # }
+    # adapter_def = experiment_setup["scenario"]["adapters"][0]
+    # adapter_def["config"]["nonlinear_characterization"] = {"methods": {
+    #     default_bw_method_name: {
+    #         "functions": nonlinear_cfs,
+    #         "get_defaults_from_original": False
+    #     }}}
+    project_name, db_name = test_network_project_db_name
+    bw2data.projects.set_current(project_name)
+    db = bw2data.Database(db_name)
+    all_activities = list(db)
+    a = mermaid_diagram.create_diagram(all_activities, False)
+
+    # some basic method
+    method_id = ('IPCC',)
+    ipcc = bw2data.Method(method_id)
+    ipcc.write([
+        (db.get("co2").key, {'amount': 1})
+    ])
+    ipcc.metadata = ipcc.metadata | {"unit": "kg CO2-Eq"}
+    # method end
+    # test basic lca
+    product = db.get("product")
+    lca = LCA({product: 1}, method_id)
+    lca.lci()
+    lca.lcia()
+    score = lca.score
+    assert score == 330.0
+    # test lca end
+
+    activities = {a["code"]: a for a in list(db)}
+    activity_locations_data = json.load(
+        (BASE_TEST_DATA_PATH / "test_networks/activity_locations.json").open(encoding="utf-8"))
+    for loc_data in activity_locations_data[:1]:
+        for code, loc in loc_data.items():
+            activity = activities[code]
+            activity["enb_location"] = tuple(loc)
+            activity.save()
+
+    experiment_data = json.load(
+        (BASE_TEST_DATA_PATH / "individual_setups/bw_adapter_regionalized.json").open(encoding="utf-8"))
+    # exp = Experiment(experiment_data)
+    # res = exp.run()
+    # assert res["default scenario"]["results"]["ipcc.CAT"]["magnitude"] == pytest.approx(110, abs=1e-10)
+
+    waste_method_id = ('IPCC', 'waste')
+    waste_method = bw2data.Method(waste_method_id)
+    waste_method.write([
+        (db.get("waste").key, {'amount': 1})
+    ])
+    waste_method.metadata = waste_method.metadata | {"unit": "kg"}
+    lca = LCA({product: 1}, waste_method_id)
+    lca.lci()
+    lca.lcia()
+    score = lca.score
+    assert score == 208.0
+    experiment_data["adapters"][0]["methods"] = {"waste": ['IPCC', 'waste']}
+    experiment_data["adapters"][0]["config"]["simple_regionalization"]["select_regions"] = ["CAT", "ES", "ARA", "EU"]
+    exp = Experiment(experiment_data)
+    # res = exp.run()
+    # expected_results = {'waste.CAT': 24, 'waste.ES': 132, 'waste.ARA': 104, 'waste.EU': 148}
+    # for waste_loc, res in res["default scenario"]["results"].items():
+    #     assert expected_results[waste_loc] == pytest.approx(res["magnitude"], abs=1e-10)
+
+    def custom_waste_cf(v: float) -> float:
+        if v < 100:
+            return v
+        elif v < 120:
+            return v * 1.5
+        else:
+            return v * 3
+
+    experiment_data["adapters"][0]["config"]["nonlinear_characterization"] = {"methods": {
+        "waste": {
+            "functions": {
+                (db_name, "waste"): custom_waste_cf
+            },
+            "get_defaults_from_original": False
+        }}}
+    exp = Experiment(experiment_data)
+    res = exp.run()
+    # cat: * 24*1, ES: 132 * 3, ARA: 104 * 1.5, EU: 148 * 3
+    """
+    {
+    'waste.CAT': {'unit': 'kg', 'magnitude': 24.0},
+    'waste.ES': {'unit': 'kg', 'magnitude': 184.0},
+    'waste.EU': {'unit': 'kg', 'magnitude': 200.0},
+    'waste.ARA': {'unit': 'kg', 'magnitude': 156.0}}
+    """
+    expected_results = {'waste.CAT': 24, 'waste.ES': 396, 'waste.ARA': 156.0, 'waste.EU': 444}
+    for waste_loc, res in res["default scenario"]["results"].items():
+        assert expected_results[waste_loc] == pytest.approx(res["magnitude"], abs=1e-10)

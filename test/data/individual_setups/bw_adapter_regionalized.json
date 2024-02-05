@@ -1,0 +1,34 @@
+{
+  "adapters": [
+    {
+      "adapter_name": "brightway-adapter",
+      "config": {
+        "bw_project": "test_network",
+        "simple_regionalization": {
+          "run_regionalization": true,
+          "select_regions": [
+            "CAT"
+          ]
+        }
+      },
+      "methods": {
+        "ipcc": [
+          "IPCC"
+        ]
+      }
+    }
+  ],
+  "hierarchy": {
+    "name": "root",
+    "aggregator": "sum",
+    "children": [
+      {
+        "name": "product",
+        "adapter": "bw",
+        "config": {
+          "code": "product"
+        }
+      }
+    ]
+  }
+}

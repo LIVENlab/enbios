@@ -1,0 +1,71 @@
+[
+  {
+    "product": [
+      "EU",
+      "ES",
+      "CAT"
+    ],
+    "material1": [
+      "EU",
+      "ES",
+      "CAT"
+    ],
+    "material2": [
+      "EU",
+      "ES",
+      "ARA"
+    ],
+    "material3": [
+      "EU",
+      "ES",
+      "ARA"
+    ],
+    "material4": [
+      "EU",
+      "ES",
+      "MAD"
+    ],
+    "material5": [
+      "EU",
+      "DE",
+      "COL"
+    ],
+    "material6": [
+      "SA",
+      "CHI",
+      "SDC"
+    ],
+    "energy1": [
+      "EU",
+      "ES",
+      "CAT"
+    ],
+    "energy2": [
+      "EU",
+      "ES",
+      "ARA"
+    ]
+  },
+  {
+    "product": [],
+    "material1": [],
+    "material2": [],
+    "material3": [],
+    "material4": [],
+    "material5": [],
+    "material6": [],
+    "energy1": [],
+    "energy2": []
+  },
+  {
+    "product": [],
+    "material1": [],
+    "material2": [],
+    "material3": [],
+    "material4": [],
+    "material5": [],
+    "material6": [],
+    "energy1": [],
+    "energy2": []
+  }
+]
