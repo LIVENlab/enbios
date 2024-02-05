@@ -1,4 +1,3 @@
-from functools import reduce
 from logging import getLogger
 from typing import Optional, Any, Union, Sequence, Callable
 
@@ -104,6 +103,11 @@ class BrightwayAdapter(EnbiosAdapter):
     def node_indicator() -> str:
         return "bw"
 
+    def assert_all_codes_unique(self):
+        all_activities = list(ActivityDataset.select())
+        assert len(all_activities) == len(
+            set([a.code for a in all_activities])), f"It is recommended that all activities have unique codes"
+
     def validate_config(self, config: dict[str, Any]):
         self.config = BWAdapterConfig(**config)
         if self.config.use_k_bw_distributions < 1:
@@ -116,6 +120,7 @@ class BrightwayAdapter(EnbiosAdapter):
             raise ValueError(f"Project {self.config.bw_project} not found")
         else:
             bd.projects.set_current(self.config.bw_project)
+        self.assert_all_codes_unique()
 
     def validate_methods(self, methods: dict[str, Any]) -> list[str]:
         assert methods, "Methods must be defined for brightway adapter"
@@ -327,12 +332,12 @@ class BrightwayAdapter(EnbiosAdapter):
         # bw method id (tuple[str,...])
         bw_method_id: tuple[str, ...] = self.methods[method_name].id
         # key: (database,code) -> id
-        biosphere_keys2ids = self.temp_biosphere_key2ids(list(method_config.functions.keys()))
+        biosphere_keys2ids = self.activities_keys_id_map(list(method_config.functions.keys()))
         for key, id_ in biosphere_keys2ids.items():
             result_func_map[id_] = method_config.functions[key]
         if method_config.get_defaults_from_original:
             bw_method_data = bw2data.Method(bw_method_id).load()
-            bw_cf_activity_key2ids = self.temp_biosphere_key2ids(
+            bw_cf_activity_key2ids = self.activities_keys_id_map(
                 [tuple[str, str](method_key) for method_key, _ in bw_method_data])
             for method_key, cf in bw_method_data:
                 activity_id = bw_cf_activity_key2ids[tuple(method_key)]
@@ -359,16 +364,8 @@ class BrightwayAdapter(EnbiosAdapter):
             "method": BWMethodDefinition.model_json_schema(),
         }
 
-    # noinspection PyMethodMayBeStatic
-    def temp_biosphere_activities(self, keys: list[tuple[str, str]]) -> list[ActivityDataset]:
-        conditions = [((ActivityDataset.database == db) & (ActivityDataset.code == code)) for db, code in keys]
-        from operator import or_
-        if len(conditions) == 1:
-            return list(ActivityDataset.select().where(conditions[0]))
-
-        return list(ActivityDataset.select().where(reduce(or_, conditions)))
-
-    def temp_biosphere_key2ids(self, keys: list[tuple[str, str]]) -> ReversibleRemappableDictionary:
-        biosphere_activities = self.temp_biosphere_activities(keys)
+    def activities_keys_id_map(self, keys: list[tuple[str, str]]) -> ReversibleRemappableDictionary:
+        codes = [code for _, code in keys]
+        biosphere_activities = list(ActivityDataset.select().where(ActivityDataset.code.in_(codes)))
         # noinspection PyUnresolvedReferences
         return ReversibleRemappableDictionary({(a.database, a.code): a.id for a in biosphere_activities})

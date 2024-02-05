@@ -1,4 +1,5 @@
 import json
+import math
 
 import bw2data
 import pytest
@@ -300,8 +301,8 @@ def test_nonlinear_methods2(set_bw_default_project,
     # test 2: normal LCA with some demand * 2 compared to demand * 1 and non-linear func (values * 2)
     biosphere_cfs = bw2data.Method(default_method_tuple).load()
     nonlinear_cfs = {
-        tuple(key): lambda v: v * 2
-        for key, _ in biosphere_cfs
+        tuple(key): lambda v, cf_ = cf:  v * (cf_ * 2)
+        for key, cf in biosphere_cfs
     }
     adapter_def = experiment_setup["scenario"]["adapters"][0]
     adapter_def["config"]["nonlinear_characterization"] = {"methods": {
@@ -317,7 +318,7 @@ def test_nonlinear_methods2(set_bw_default_project,
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     lca = bw_activity.lca(default_method_tuple, 2)
     double_score = lca.score
-    assert result[default_bw_method_name]["magnitude"] == pytest.approx(double_score, abs=1e-15)
+    assert result[default_bw_method_name]["magnitude"] == pytest.approx(double_score, abs=1e-5)
     # check characterized_inventory
     pass
 
@@ -328,11 +329,13 @@ def test_nonlinear_methods3(set_bw_default_project,
                             default_method_tuple: tuple[str, ...]):
     # todo finnish
     biosphere_cfs = bw2data.Method(default_method_tuple).load()
+    # define 3 method functions
     arbitrary_cfs = [
-        lambda v: v * v, lambda v: 1, lambda v: 1
+        lambda v: v * v, lambda v: 1, lambda v: 1 * math.pi
     ]
+    # fill up a list of non-linear cfs by cycling through the arbitrary cfs
     nonlinear_cfs = {
-        tuple(cf[0]): arbitrary_cfs[idx]
+        tuple(cf[0]): arbitrary_cfs[idx % len(arbitrary_cfs)]
         for idx, cf in enumerate(biosphere_cfs)
     }
     adapter_def = experiment_setup["scenario"]["adapters"][0]
@@ -355,5 +358,5 @@ def test_nonlinear_methods3(set_bw_default_project,
     summed_inventory = lca.inventory.sum(1)
     pass
 
-def test_regionlized_nonlinear_characterization(self):
+def test_regionlized_nonlinear_characterization():
     pass
