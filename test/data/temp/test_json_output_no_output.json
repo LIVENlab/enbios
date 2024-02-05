@@ -1,18 +1,18 @@
 {
   "name": "root",
   "results": {
-    "zinc_no_LT": {
-      "unit": "kilogram",
-      "magnitude": 6.16915484407017e-06
+    "GWP1000": {
+      "unit": "kg CO2-Eq",
+      "magnitude": 1.5707658207925896
     }
   },
   "children": [
     {
       "name": "single_activity",
       "results": {
-        "zinc_no_LT": {
-          "unit": "kilogram",
-          "magnitude": 6.16915484407017e-06
+        "GWP1000": {
+          "unit": "kg CO2-Eq",
+          "magnitude": 1.5707658207925896
         }
       }
     }

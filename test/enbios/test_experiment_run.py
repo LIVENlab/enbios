@@ -301,7 +301,7 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: di
     exp = Experiment(scenario)
     exp.run()
     # scenario 1, single_activity
-    expected_value1 = experiment_setup["expected_result_tree"]["data"].results['zinc_no_LT']
+    expected_value1 = experiment_setup["expected_result_tree"]["data"].results[default_bw_method_name]
     assert expected_value1 == exp.scenarios[0].result_tree[0].data.results[default_bw_method_name]
     # scenario 1, total (around double of single_activity)
     assert exp.scenarios[0].result_tree.data.results[default_bw_method_name].magnitude == expected_value1.magnitude * 2

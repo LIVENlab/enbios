@@ -137,7 +137,8 @@ def test_get_config_schema():
 def test_run_store_data(experiment_setup):
     experiment_setup["scenario"]["adapters"][0]["config"]["store_lca_object"] = True
     experiment_setup["scenario"]["adapters"][0]["config"]["store_raw_results"] = True
-    Experiment(experiment_setup["scenario"]).run()
+    exp = Experiment(experiment_setup["scenario"])
+    result = exp.run()
 
 
 def test_run_exclude_defaults(experiment_setup):
@@ -164,8 +165,8 @@ def test_run_exclude_defaults(experiment_setup):
 def test_run_use_distribution(experiment_setup, default_bw_method_name):
     experiment_setup["scenario"]["adapters"][0]["config"]["use_k_bw_distributions"] = 2
     result = Experiment(experiment_setup["scenario"]).run()
-    assert len(result["default scenario"]["results"]['zinc_no_LT']["multi_magnitude"]) == 2
-    assert all(v != 0.0 for v in result["default scenario"]["results"]['zinc_no_LT']["multi_magnitude"])
+    assert len(result["default scenario"]["results"][default_bw_method_name]["multi_magnitude"]) == 2
+    assert all(v != 0.0 for v in result["default scenario"]["results"][default_bw_method_name]["multi_magnitude"])
 
 
 def regionalization_setup(experiment_setup: dict):
@@ -251,7 +252,6 @@ def test_regionalization(experiment_setup):
 def test_regionalization_distribution(experiment_setup):
     regionalization_setup(experiment_setup)
     experiment_setup["scenario"]["adapters"][0]["config"]["use_k_bw_distributions"] = 2
-
     try:
         exp = Experiment(experiment_setup["scenario"])
         regio_res = exp.run()
@@ -353,4 +353,7 @@ def test_nonlinear_methods3(set_bw_default_project,
     # get the summed inventory, which are basically all biosphere activities
     # Total Biosphere Demand Vector
     summed_inventory = lca.inventory.sum(1)
+    pass
+
+def test_regionlized_nonlinear_characterization(self):
     pass

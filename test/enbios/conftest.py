@@ -19,7 +19,7 @@ def tempfolder() -> Path:
 
 @pytest.fixture
 def default_method_tuple() -> tuple:
-    return 'EDIP 2003 no LT', 'non-renewable resources no LT', 'zinc no LT'
+    return 'ReCiPe 2016 v1.03, midpoint (E)', 'climate change', 'global warming potential (GWP1000)'
 
 
 @pytest.fixture
@@ -38,12 +38,12 @@ def set_bw_default_project(default_bw_config):
 
 @pytest.fixture
 def default_bw_method_name() -> str:
-    return "zinc_no_LT"
+    return "GWP1000"
 
 
 @pytest.fixture
 def default_result_score() -> float:
-    return 6.16915484407017e-06
+    return 1.5707658207925896
 
 
 @pytest.fixture
@@ -109,7 +109,7 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                               adapter="bw",
                                               aggregator=None,
                                               results={
-                                                  default_bw_method_name: ResultValue(unit="kilogram",
+                                                  default_bw_method_name: ResultValue(unit="kg CO2-Eq",
                                                                                       magnitude=_impact)})}],
                                  'data': ScenarioResultNodeData(
                                      output=NodeOutput(
@@ -117,7 +117,7 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                      adapter=None,
                                      aggregator="sum",
                                      results={
-                                         default_bw_method_name: ResultValue(unit="kilogram", magnitude=_impact)})}
+                                         default_bw_method_name: ResultValue(unit="kg CO2-Eq", magnitude=_impact)})}
     }
 
 
