@@ -7,14 +7,15 @@ import bw2data as bd
 from bw2calc.dictionary_manager import ReversibleRemappableDictionary
 from bw2data.backends import Activity, ActivityDataset
 from numpy import ndarray
-from numpy._typing import NDArray
 from pint import Quantity, UndefinedUnitError
+from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
+from pydantic_core import core_schema, PydanticOmit
 
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
-from enbios.bw2.bw_models import ExperimentMethodPrepData, BWAdapterConfig, BrightwayActivityConfig, BWMethodDefinition, \
-    BWActivityData, NonLinearMethodConfig
+from enbios.bw2.bw_models import (ExperimentMethodPrepData, BWAdapterConfig, BrightwayActivityConfig,
+                                  BWMethodDefinition, BWActivityData, NonLinearMethodConfig)
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
 from enbios.bw2.stacked_MultiLCA_regio import RegioStackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
@@ -220,6 +221,7 @@ class BrightwayAdapter(EnbiosAdapter):
             )
             # this approach is much faster than individual updates
             # noinspection PyUnresolvedReferences
+            # noinspection PyProtectedMember
             with ActivityDataset._meta.database.atomic():
                 for a in ActivityDataset.select().where(
                         ActivityDataset.code.in_(activity_codes)
@@ -232,15 +234,15 @@ class BrightwayAdapter(EnbiosAdapter):
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         self.prepare_scenario(scenario)
         use_distributions = self.config.use_k_bw_distributions > 1
-        raw_results: list[NDArray] = []
+        raw_results: list[ndarray] = []
         self.lca_objects[scenario.name] = []
         run_regionalization = self.config.simple_regionalization.run_regionalization
-        method_activity_func_maps: Optional[dict[tuple[str,...], dict[int, Callable[[float], float]]]] = None
+        method_activity_func_maps: Optional[dict[tuple[str, ...], dict[int, Callable[[float], float]]]] = None
         if self.config.nonlinear_characterization:
             method_activity_func_maps = self.prepare_nonlinear_methods()
         for i in range(self.config.use_k_bw_distributions):
             self.get_logger().info(
-                f"Brightway adapter: Run distribution {i}/{self.config.use_k_bw_distributions}"
+                f"Brightway adapter: Run distribution {i + 1}/{self.config.use_k_bw_distributions}"
             )
             if run_regionalization:
                 _lca = RegioStackedMultiLCA(
@@ -326,8 +328,8 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_method_id: tuple[str, ...] = self.methods[method_name].id
         # key: (database,code) -> id
         biosphere_keys2ids = self.temp_biosphere_key2ids(list(method_config.functions.keys()))
-        for key, id in biosphere_keys2ids.items():
-            result_func_map[id] = method_config.functions[key]
+        for key, id_ in biosphere_keys2ids.items():
+            result_func_map[id_] = method_config.functions[key]
         if method_config.get_defaults_from_original:
             bw_method_data = bw2data.Method(bw_method_id).load()
             bw_cf_activity_key2ids = self.temp_biosphere_key2ids(
@@ -337,15 +339,27 @@ class BrightwayAdapter(EnbiosAdapter):
                 result_func_map[activity_id] = lambda v, cf_=cf: v * cf_
         return result_func_map
 
-
     @staticmethod
     def get_config_schemas() -> dict:
+        # todo: currently ignoring callable
+
+        class MyGenerateJsonSchema(GenerateJsonSchema):
+            def handle_invalid_for_json_schema(
+                    self, schema: core_schema.CoreSchema, error_info: str
+            ) -> JsonSchemaValue:
+                if schema["type"] == "callable":
+                    logger.warning("Ignoring callable during schema generation...")
+                    raise PydanticOmit
+                return super().handle_invalid_for_json_schema(schema, error_info)
+
+        adapter_schema = BWAdapterConfig.model_json_schema(schema_generator=MyGenerateJsonSchema)
         return {
-            "adapter": BWAdapterConfig.model_json_schema(),
+            "adapter": adapter_schema,
             "activity": BrightwayActivityConfig.model_json_schema(),
             "method": BWMethodDefinition.model_json_schema(),
         }
 
+    # noinspection PyMethodMayBeStatic
     def temp_biosphere_activities(self, keys: list[tuple[str, str]]) -> list[ActivityDataset]:
         conditions = [((ActivityDataset.database == db) & (ActivityDataset.code == code)) for db, code in keys]
         from operator import or_
@@ -356,4 +370,5 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def temp_biosphere_key2ids(self, keys: list[tuple[str, str]]) -> ReversibleRemappableDictionary:
         biosphere_activities = self.temp_biosphere_activities(keys)
+        # noinspection PyUnresolvedReferences
         return ReversibleRemappableDictionary({(a.database, a.code): a.id for a in biosphere_activities})
