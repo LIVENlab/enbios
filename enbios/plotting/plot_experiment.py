@@ -46,7 +46,7 @@ def bar_plot(
 
     plt.tight_layout()
     if image_file:
-        fig.write_image(Path(image_file).as_posix())
+        fig.savefig(Path(image_file).as_posix())
     return fig  # Return the figure object
 
 
@@ -86,7 +86,7 @@ def stacked_bar_plot(
 
     plt.tight_layout()
     if image_file:
-        fig.write_image(Path(image_file).as_posix())
+        fig.savefig(Path(image_file).as_posix())
     return fig  # Return the figure object
 
 
@@ -180,7 +180,7 @@ def star_plot(
 
     plt.tight_layout()
     if image_file:
-        fig.write_image(Path(image_file).as_posix())
+        fig.savefig(Path(image_file).as_posix())
     return fig
 
 
@@ -248,7 +248,7 @@ def single_star_plot(
         ax.set_xticklabels([""] * len(labels))
     ax.set_rmax(1)
     if image_file:
-        fig.write_image(Path(image_file).as_posix())
+        fig.savefig(Path(image_file).as_posix())
     return fig
 
 
@@ -293,11 +293,12 @@ def plot_heatmap(
     df = df.set_index("scenario").transpose()
 
     fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5, len(rs.method_names) * 1.5))
+    fig: Figure = fig
     set_plot_settings(ax, df, rs)
     plot_values_on_grid(ax, df, rs)
     fig.tight_layout()
     if image_file:
-        fig.write_image(Path(image_file).as_posix())
+        fig.savefig(Path(image_file).as_posix())
     return fig
 
 
@@ -386,7 +387,7 @@ def one_axes_scatter_plot(
             spine.set_visible(False)
     plt.tight_layout()
     if image_file:
-        fig.write_image(Path(image_file).as_posix())
+        fig.savefig(Path(image_file).as_posix())
     return fig  # Return the figure object
 
 
@@ -440,5 +441,5 @@ def plot_multivalue_results(
 
         plt.tight_layout()
         if image_file:
-            fig.write_image(Path(image_file).as_posix())
+            fig.savefig(Path(image_file).as_posix())
         return fig  # Return the figure object
