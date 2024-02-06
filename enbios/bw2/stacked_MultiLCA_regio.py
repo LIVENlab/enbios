@@ -4,6 +4,7 @@ import numpy as np
 from bw2calc.multi_lca import InventoryMatrices
 from bw2data.backends import ActivityDataset
 
+from bw_tools import split_lcia
 from enbios.bw2.MultiLCA_util import BaseStackedMultiLCA
 from enbios.bw2.bw_models import BWCalculationSetup
 
@@ -38,72 +39,27 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
                          use_distributions,
                          method_activity_func_maps)
 
-        self.locations_base_map: dict[str, list[int]] = {}
-        self.loc_tree: list[dict[str, set[str]]] = []
-        self.full_loc_map: dict[str, set[str]] = {}  # for each location (any level) all ids
-        self.resolve_loc_basemap(location_key)
+        self.locations_base_map: dict[str, list[int]] = self.resolve_loc_basemap(location_key)
 
         for row, func_unit in enumerate(self.func_units):
             self.prep_demand(row, func_unit)
-
-            res_map = {}
             for col, cf_matrix in enumerate(self.method_matrices):
                 self.lca.characterization_matrix = cf_matrix
-                # linear methods can be done separately and summed together
-                # todo optimise this
-                # here we need to differentiate between linear and nonlinear.
-                # the nonlinear should not just sum up sub-location results. thats why we also generate the
-                # full_loc_map
-                if not self.non_linear_methods_flags[col]:
-                    for loc, idxs in self.locations_base_map.items():
-                        regional_characterized_inventory = self.lcia_calculation(self.non_linear_methods_flags[col],
-                                                                                 self.lca.inventory[
-                                                                                 :, [self.lca.dicts.activity[c] for c in
-                                                                                     idxs]
-                                                                                 ])
-                        res_map[loc] = regional_characterized_inventory.sum()
 
-                    # sum up location results, per level...
-                    for lvl in self.loc_tree:
-                        for loc, sub_loc in lvl.items():
-                            # print(loc, contained)
-                            res_map[loc] = 0
-                            for cloc in sub_loc:
-                                res_map[loc] += res_map[cloc]
-
-                    for loc, loc_name in enumerate(select_locations):
-                        self.results[row, col, loc] = res_map[loc_name]
-                else:
-                    for loc, idxs in self.locations_base_map.items():
-                        regional_characterized_inventory = self.lcia_calculation(self.non_linear_methods_flags[col],
-                                                                                 self.lca.inventory[
-                                                                                 :, [self.lca.dicts.activity[c] for c in
-                                                                                     idxs]
-                                                                                 ])
-                        # res_matrices[loc] = regional_characterized_inventory
-                        res_map[loc] = regional_characterized_inventory.sum()
-
-                    # sum up location results, per level...
-                    for lvl in self.loc_tree:
-                        for loc, sub_loc in lvl.items():
-                            if loc in select_locations:
-                                all_loc_idxs = self.full_loc_map[loc]
-                                regional_characterized_inventory = self.lcia_calculation(
-                                    self.non_linear_methods_flags[col], self.lca.inventory[
-                                                                        :, [self.lca.dicts.activity[c] for c in
-                                                                            all_loc_idxs]
-                                                                        ])
-                                res_map[loc] = regional_characterized_inventory.sum()
-
-                    for loc, loc_name in enumerate(select_locations):
-                        self.results[row, col, loc] = res_map[loc_name]
+                for loc_idx, loc in enumerate(select_locations):
+                    activity_ids = self.locations_base_map[loc]
+                    # todo, this is a bw_utils method split_inventory
+                    regional_characterized_inventory = self.lcia_calculation(self.non_linear_methods_flags[col],
+                                                                             split_lcia.split_inventory(self.lca,
+                                                                                                        activity_ids))
+                    self.results[row, col, loc_idx] = regional_characterized_inventory.sum()
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
     def resolve_loc_basemap(self, location_key: str = "enb_location"):
         # final location -> id
-        # base_loc_map = {}
+        base_loc_map = {}
         # all other indices to last locs
-        # loc_tree = []
+        loc_tree = []
         for a in ActivityDataset.select(ActivityDataset).where(
                 ActivityDataset.type == "process"
         ):
@@ -112,19 +68,18 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
             if not isinstance(loc, tuple):
                 continue
             final_loc = loc[-1]
-            self.locations_base_map.setdefault(final_loc, []).append(a.id)
+            base_loc_map.setdefault(final_loc, []).append(a.id)
+            # make tree list at least as long as length
             for idx, rest in enumerate(loc[:-1]):
-                if len(self.loc_tree) <= idx:
-                    self.loc_tree.append({})
-                self.loc_tree[idx].setdefault(rest, set()).add(loc[idx + 1])
-
-        self.full_loc_map = {}
-        self.loc_tree.reverse()
-        for level in self.loc_tree:
+                if len(loc_tree) <= idx:
+                    loc_tree.append({})
+                # set location default and add location
+                loc_tree[idx].setdefault(rest, set()).add(loc[idx + 1])
+        loc_tree.reverse()
+        for level in loc_tree:
             for loc, sub_locs in level.items():
-                self.full_loc_map[loc] = []
+                base_loc_map.setdefault(loc, [])
                 for sub_loc in sub_locs:
-                    if sub_loc in self.locations_base_map:
-                        self.full_loc_map[loc].extend(self.locations_base_map[sub_loc])
-                    else:
-                        self.full_loc_map[loc].extend(self.full_loc_map[sub_loc])
+                    base_loc_map[loc].extend(base_loc_map[sub_loc])
+
+        return base_loc_map

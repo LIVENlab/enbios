@@ -1,10 +1,11 @@
-from typing import Generator, Iterator
+from typing import Generator, Iterator, Literal
 
 import bw2data
+from bw2calc import LCA
 from bw2data import databases as bw_databases
-from bw2data.project import projects as bw_projects
-
 from bw2data.backends import Activity, ExchangeDataset, ActivityDataset
+from bw2data.project import projects as bw_projects
+from scipy.sparse import csr_matrix
 
 
 def info_exchanges(act: Activity) -> dict:
@@ -22,7 +23,7 @@ def info_exchanges(act: Activity) -> dict:
 
 
 def iter_exchange_by_ids(
-    ids: Iterator[int], batch_size: int = 1000
+        ids: Iterator[int], batch_size: int = 1000
 ) -> Generator[ExchangeDataset, None, None]:
     """
     Iterate over exchanges by ids
@@ -46,7 +47,7 @@ def iter_exchange_by_ids(
 
 
 def iter_activities_by_codes(
-    codes: Iterator[str], batch_size: int = 1000
+        codes: Iterator[str], batch_size: int = 1000
 ) -> Generator[ActivityDataset, None, None]:
     """
     Iterate over activities by codes
@@ -161,6 +162,48 @@ def delete_all_projects():
     bw2data.projects.purge_deleted_directories()
 
 
-if __name__ == "__main__":
-    report()
-    # bw2data.projects.purge_deleted_directories()
+"""
+Following two functions are from bw_utils...
+"""
+
+
+def _check_lca(lca: LCA, make_calculations: bool = True,
+               inventory_name: Literal["inventory", "characterized_inventory"] = "inventory"):
+    if not hasattr(lca, "inventory"):
+        if make_calculations:
+            print("calculating inventory")
+            lca.lci()
+        else:
+            raise ValueError("Must do lci first")
+    if inventory_name == "inventory":
+        return
+
+    if not hasattr(lca, "characterization_matrix"):
+        print("loading lcia data")
+        lca.load_lcia_data()
+
+    if not hasattr(lca, "characterized_inventory"):
+        if make_calculations:
+            print("calculating lcia")
+            lca.lcia()
+        else:
+            raise ValueError("Must do lcia first")
+
+
+def split_inventory(lca: LCA,
+                    technosphere_activities: list[int],
+                    inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
+                    make_calculations: bool = True) -> csr_matrix:
+    """
+    Split the results of a lcia calculation into groups. Each group is a list of activities, specified by their ids.
+    Calculations of lci and lcia are performed when they are missing and `make_calculations` is set to `True`
+    :param lca: bw LCA object
+    :param technosphere_activities: list of (technosphere) activity-groups, activities are specified by their 'id'
+    :param make_calculations: make lci and lcia calculations if the corresponding matrices are missing
+    :return: a list of sparse matrices, which are characterized inventories split by the activity groups.
+    score can be calculated by calling `sum()` for any matrix.
+    """
+    _check_lca(lca, make_calculations, inventory_name)
+    inventory = getattr(lca, inventory_name)
+    # do matrix multiplication for each final location
+    return inventory[:, [lca.dicts.activity[c] for c in technosphere_activities]]
