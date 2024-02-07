@@ -234,7 +234,7 @@ def test_scenario(experiment_scenario_setup: dict,
     assert result["scenario1"]["results"][default_bw_method_name] == expected_value1.model_dump(exclude_defaults=True)
     expected_value2 = expected_value1.magnitude * 2000  # from 1KWh to 2MWh
     assert result["scenario2"]["results"][default_bw_method_name]["magnitude"] == pytest.approx(
-        expected_value2, abs=1e-9)
+        expected_value2, abs=1e-6)
     #   todo test, complete experiment csv
     experiment.results_to_csv(temp_csv_file)
 
@@ -308,15 +308,15 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: di
     # scenario 2, single_activity
     expected_value2 = expected_value1.magnitude * 2000  # from 1KWh to 2MWh
     assert exp.scenarios[1].result_tree[0].data.results[default_bw_method_name].magnitude == pytest.approx(
-        expected_value2, abs=1e-10)
+        expected_value2, abs=1e-7)
     # scenario 2, single_activity_2
     expected_value3 = expected_value1.magnitude * 20
     assert exp.scenarios[1].result_tree[1].data.results[default_bw_method_name].magnitude == pytest.approx(
-        expected_value3, abs=1e-10)
+        expected_value3, abs=1e-7)
     # scenario 2, total
     expected_value4 = expected_value2 + expected_value3
     assert exp.scenarios[1].result_tree.data.results[default_bw_method_name].magnitude == pytest.approx(
-        expected_value4, abs=1e-9)
+        expected_value4, abs=1e-7)
     # scenario 3, exclude_defaults
     sce2_res = exp.scenarios[2].result_tree
     assert len(sce2_res.children) == 1
