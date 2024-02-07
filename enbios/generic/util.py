@@ -1,10 +1,14 @@
 import contextlib
+import inspect
 import io
 import re
+import sys
 from enum import Enum
+from importlib import import_module
 from pathlib import Path
 from time import time
-from typing import Union, Type, Any
+from types import ModuleType
+from typing import Union, Type, Any, Callable
 
 from enbios.const import BASE_DATA_PATH
 from enbios.generic.enbios2_logging import get_logger
@@ -13,7 +17,7 @@ logger = get_logger(__name__)
 
 
 def generate_levensthein_name_map(
-    names_a: list[str], names_b: list[str]
+        names_a: list[str], names_b: list[str]
 ) -> dict[str, str]:
     try:
         from Levenshtein import ratio
@@ -34,7 +38,7 @@ def generate_levensthein_name_map(
 
 
 def generate_levensthein_dict_map(
-    names_a: list[str], dicts: list[dict], dict_key: str
+        names_a: list[str], dicts: list[dict], dict_key: str
 ) -> dict[str, dict]:
     try:
         from Levenshtein import ratio
@@ -124,3 +128,15 @@ def timed():
         yield
     finally:
         print(f"({time() - start:.2f}s)")
+
+
+def load_module(module_path: str) -> ModuleType:
+    _path = Path(module_path)
+    if not _path.exists():
+        raise ValueError(f"Module path '{module_path}' does not exist")
+    sys.path.insert(0, _path.parent.as_posix())
+    return import_module(_path.stem)
+
+
+def get_module_functions(module: ModuleType) -> dict[str, Callable]:
+    return {name: func for name, func in inspect.getmembers(module) if inspect.isfunction(func)}

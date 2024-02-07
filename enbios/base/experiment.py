@@ -144,6 +144,14 @@ class Experiment:
             node.data.adapter, EnbiosAdapter, node.name
         )
 
+
+    def get_adapter_by_name(self, name: str) -> EnbiosAdapterType:
+        """
+        Get an adapter by its name
+        :param name:
+        :return:
+        """
+        return self._get_module_by_name_or_node_indicator(name, EnbiosAdapter)
     def get_node_aggregator(
         self,
         node: Union[

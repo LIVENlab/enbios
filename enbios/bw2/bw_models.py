@@ -20,7 +20,7 @@ class RegionalizationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
     run_regionalization: bool = Field(False)
     select_regions: set = Field(None, description="regions to store the results for")
-    set_node_regions: dict[str, tuple[str, ...]] = Field(
+    set_node_regions: dict[str, Sequence[str]] = Field(
         {}, description="Set node regions"
     )
 
@@ -36,9 +36,15 @@ class RegionalizationConfig(BaseModel):
 
 
 class NonLinearMethodConfig(BaseModel):
+    model_config = ConfigDict(extra='forbid', validate_assignment=True, strict=True)
     name: str = Field(None, description="bw method tuple name")
-    bw_id: tuple[str, ...] = Field(None, description="bw method tuple name")
-    functions: dict[tuple[str, str], Callable[[float], float]] = Field(..., exclude=True)
+    # bw_id: tuple[str, ...] = Field(None, description="bw method tuple name")
+    functions: dict[tuple[str, str], Callable[[float], float]] = Field(None, exclude=True)
+    module_path_function_name: tuple[str, str] = Field(None,
+                                                       description="path to a module and a function name. "
+                                                                   "which holds a function that returns a "
+                                                                   "'dict[tuple[str, str], Callable[[float], float]]'")
+    default_function: Callable[[float], float] = Field(None, init_var=False)
     get_defaults_from_original: Optional[bool] = Field(False,
                                                        description="Method is already defined in BW and has characterization values. ")
 
@@ -57,6 +63,12 @@ class NonLinearMethodConfig(BaseModel):
                            f"'default_function' or 'get_defaults_from_original'. Creating 'default_function'"
                            f"with f(x) = x")
             data["default_function"] = lambda v: v
+
+        # either 'functions' or 'module_path_function_name' must be present
+        has_functions = data.get("functions") is not None
+        has_module_path_function_name = data.get("module_path_function_name")
+        if not has_functions and not has_module_path_function_name:
+            raise ValueError("Either 'functions' or 'module_path_function_name' must be present.")
         return data
 
     # @classmethod
@@ -68,6 +80,7 @@ class NonLinearMethodConfig(BaseModel):
     #     # For example, represent it as a dictionary of strings
     #     schema['properties']['functions'] = {'type': 'object', 'additionalProperties': {'type': 'string'}}
     #     return schema
+
 
 class NonLinearCharacterizationConfig(BaseModel):
     methods: dict[str, NonLinearMethodConfig] = Field(
@@ -147,7 +160,6 @@ class BWMethodDefinition(RootModel):
 class BWActivityData:
     bw_activity: Activity
     default_output: NodeOutput
-
 
 
 @dataclass

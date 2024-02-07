@@ -18,6 +18,7 @@ from enbios.bw2.bw_models import (ExperimentMethodPrepData, BWAdapterConfig, Bri
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
 from enbios.bw2.stacked_MultiLCA_regio import RegioStackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
+from enbios.generic.util import load_module, get_module_functions
 from enbios.models.experiment_base_models import NodeOutput, AdapterModel
 from enbios.models.experiment_models import (
     ResultValue,
@@ -132,8 +133,9 @@ class BrightwayAdapter(EnbiosAdapter):
             bw_method = bd.methods.get(method_id)
             if not bw_method:
                 raise ValueError(f"Method with id: {method_id} does not exist")
+            unit = bw_method.get("unit","undefined method unit")
             return ExperimentMethodPrepData(
-                id=tuple(method_id), bw_method_unit=bw_method["unit"]
+                id=tuple(method_id), bw_method_unit=unit
             )
 
         self.methods: dict[str, ExperimentMethodPrepData] = {
@@ -228,12 +230,15 @@ class BrightwayAdapter(EnbiosAdapter):
             # noinspection PyUnresolvedReferences
             # noinspection PyProtectedMember
             with ActivityDataset._meta.database.atomic():
-                for a in ActivityDataset.select().where(
-                        ActivityDataset.code.in_(activity_codes)
-                ):
+                activities = list(ActivityDataset.select().where(ActivityDataset.code.in_(activity_codes)))
+                # validate all activities are present
+                if len(activities) != len(activity_codes):
+                    missing = set(activity_codes) - set(a.code for a in activities)
+                    logger.warning(f"Some activities specified in 'set_node_regions' are not found: {missing}")
+                for a in activities:
                     a.data[
                         "enb_location"
-                    ] = self.config.simple_regionalization.set_node_regions[a.code]
+                    ] = tuple(self.config.simple_regionalization.set_node_regions[a.code])
                     a.save()  # This updates each user in the database
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
@@ -332,6 +337,13 @@ class BrightwayAdapter(EnbiosAdapter):
             raise ValueError(f"Unknown method '{method_name}' specified for nonlinear methods")
         # bw method id (tuple[str,...])
         bw_method_id: tuple[str, ...] = self.methods[method_name].id
+        if method_config.module_path_function_name:
+            module_path, func_name = method_config.module_path_function_name
+            func: Callable = get_module_functions(load_module(module_path)).get(func_name)
+            if not func:
+                raise ValueError(f"Could not find function: '{func_name} in module: {module_path}, which is defined for"
+                                 f"brightway-adapter non-linear method definition for method: {method_name}")
+            method_config.functions = func()
         # key: (database,code) -> id
         biosphere_keys2ids = self.activities_keys_id_map(list(method_config.functions.keys()))
         for key, id_ in biosphere_keys2ids.items():
