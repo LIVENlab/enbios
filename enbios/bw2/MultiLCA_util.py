@@ -32,13 +32,6 @@ class BaseStackedMultiLCA(ABC):
             use_distributions=use_distributions,
         )
         self.logger = logging.getLogger(__name__)
-        self.logger.info(
-            {
-                "message": "Started MultiLCA calculation",
-                "methods": list(self.methods),
-                "functional units": [wrap_functional_unit(o) for o in self.func_units],
-            }
-        )
         self.results = results_structure
         self.lca.lci()
         self.non_linear_methods_flags: list[bool] = []

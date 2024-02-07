@@ -251,9 +251,10 @@ class BrightwayAdapter(EnbiosAdapter):
         if self.config.nonlinear_characterization:
             method_activity_func_maps = self.prepare_nonlinear_methods()
         for i in range(self.config.use_k_bw_distributions):
-            self.get_logger().info(
-                f"Brightway adapter: Run distribution {i + 1}/{self.config.use_k_bw_distributions}"
-            )
+            if self.config.use_k_bw_distributions > 1:
+                self.get_logger().info(
+                    f"Brightway adapter: Run distribution {i + 1}/{self.config.use_k_bw_distributions}"
+                )
             if run_regionalization:
                 _lca = RegioStackedMultiLCA(
                     self.scenario_calc_setups[scenario.name],
