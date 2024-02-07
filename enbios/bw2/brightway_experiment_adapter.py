@@ -275,12 +275,17 @@ class BrightwayAdapter(EnbiosAdapter):
         if self.config.store_raw_results:
             self.raw_results[scenario.name] = raw_results
 
+        return self._assign_results2nodes(raw_results, scenario, use_distributions, run_regionalization)
+
+    def _assign_results2nodes(self,
+                              raw_results: list[ndarray],
+                              scenario: Scenario,
+                              use_distributions: bool,
+                              has_regionalization: bool):
         result_data: dict[str, Any] = {}
-        act_idx = 0
-        for act_alias in self.activityMap.keys():
+        for act_idx, act_alias in enumerate(self.activityMap.keys()):
             if act_alias not in scenario.structural_nodes_outputs:
                 if not scenario.config.exclude_defaults:
-                    # todo not sure if that ever happens...
                     raise ValueError(
                         f"Activity {act_alias} not found in scenario {scenario.name}"
                     )
@@ -289,7 +294,7 @@ class BrightwayAdapter(EnbiosAdapter):
             result_field = "multi_magnitude" if use_distributions else "magnitude"
             for m_idx, method in enumerate(self.methods.items()):
                 method_name, method_data = method
-                if run_regionalization:
+                if has_regionalization:
                     for region_idx, region in enumerate(
                             self.config.simple_regionalization.select_regions
                     ):
@@ -314,7 +319,6 @@ class BrightwayAdapter(EnbiosAdapter):
                         method_res_values if use_distributions else method_res_values[0],
                     )
                     result_data[act_alias][method_name] = method_result
-            act_idx += 1
         return result_data
 
     def prepare_nonlinear_methods(self):
