@@ -4,9 +4,9 @@ import numpy as np
 from bw2calc.multi_lca import InventoryMatrices
 from bw2data.backends import ActivityDataset
 
-from bw_tools import split_lcia
 from enbios.bw2.MultiLCA_util import BaseStackedMultiLCA
 from enbios.bw2.bw_models import BWCalculationSetup
+from enbios.bw2.util import split_inventory
 
 
 class RegioStackedMultiLCA(BaseStackedMultiLCA):
@@ -50,8 +50,7 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
                     activity_ids = self.locations_base_map[loc]
                     # todo, this is a bw_utils method split_inventory
                     regional_characterized_inventory = self.lcia_calculation(self.non_linear_methods_flags[col],
-                                                                             split_lcia.split_inventory(self.lca,
-                                                                                                        activity_ids))
+                                                                             split_inventory(self.lca, activity_ids))
                     self.results[row, col, loc_idx] = regional_characterized_inventory.sum()
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
