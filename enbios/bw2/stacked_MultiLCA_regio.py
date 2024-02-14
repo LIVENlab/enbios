@@ -25,21 +25,25 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
     """
 
     def __init__(
-            self,
-            calc_setup: BWCalculationSetup,
-            select_locations: set[str],
-            use_distributions: bool = False,
-            location_key: str = "enb_location",
-            method_activity_func_maps: dict[tuple[str, ...], dict[int, Callable[[float], float]]] = None,
+        self,
+        calc_setup: BWCalculationSetup,
+        select_locations: set[str],
+        use_distributions: bool = False,
+        location_key: str = "enb_location",
+        method_activity_func_maps: dict[
+            tuple[str, ...], dict[int, Callable[[float], float]]
+        ] = None,
     ):
-        super().__init__(calc_setup,
-                         np.zeros(
-                             (len(calc_setup.inv), len(calc_setup.ia), len(select_locations))
-                         ),
-                         use_distributions,
-                         method_activity_func_maps)
+        super().__init__(
+            calc_setup,
+            np.zeros((len(calc_setup.inv), len(calc_setup.ia), len(select_locations))),
+            use_distributions,
+            method_activity_func_maps,
+        )
 
-        self.locations_base_map: dict[str, list[int]] = self.resolve_loc_basemap(location_key)
+        self.locations_base_map: dict[str, list[int]] = self.resolve_loc_basemap(
+            location_key
+        )
 
         for row, func_unit in enumerate(self.func_units):
             self.prep_demand(row, func_unit)
@@ -49,9 +53,13 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
                 for loc_idx, loc in enumerate(select_locations):
                     activity_ids = self.locations_base_map[loc]
                     # todo, this is a bw_utils method split_inventory
-                    regional_characterized_inventory = self.lcia_calculation(self.non_linear_methods_flags[col],
-                                                                             split_inventory(self.lca, activity_ids))
-                    self.results[row, col, loc_idx] = regional_characterized_inventory.sum()
+                    regional_characterized_inventory = self.lcia_calculation(
+                        self.non_linear_methods_flags[col],
+                        split_inventory(self.lca, activity_ids),
+                    )
+                    self.results[
+                        row, col, loc_idx
+                    ] = regional_characterized_inventory.sum()
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
     def resolve_loc_basemap(self, location_key: str = "enb_location"):
@@ -60,7 +68,7 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
         # all other indices to last locs
         loc_tree = []
         for a in ActivityDataset.select(ActivityDataset).where(
-                ActivityDataset.type == "process"
+            ActivityDataset.type == "process"
         ):
             # if a.type == "process":
             loc = a.data.get(location_key)

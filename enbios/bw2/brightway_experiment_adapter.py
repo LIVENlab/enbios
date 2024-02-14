@@ -13,8 +13,14 @@ from pydantic_core import core_schema, PydanticOmit
 from enbios import get_enbios_ureg
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
-from enbios.bw2.bw_models import (ExperimentMethodPrepData, BWAdapterConfig, BrightwayActivityConfig,
-                                  BWMethodDefinition, BWActivityData, NonLinearMethodConfig)
+from enbios.bw2.bw_models import (
+    ExperimentMethodPrepData,
+    BWAdapterConfig,
+    BrightwayActivityConfig,
+    BWMethodDefinition,
+    BWActivityData,
+    NonLinearMethodConfig,
+)
 from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
 from enbios.bw2.stacked_MultiLCA_regio import RegioStackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
@@ -107,7 +113,8 @@ class BrightwayAdapter(EnbiosAdapter):
     def assert_all_codes_unique(self):
         all_activities = list(ActivityDataset.select())
         assert len(all_activities) == len(
-            set([a.code for a in all_activities])), f"It is recommended that all activities have unique codes"
+            set([a.code for a in all_activities])
+        ), "It is recommended that all activities have unique codes"
 
     def validate_config(self, config: dict[str, Any]):
         self.config = BWAdapterConfig(**config)
@@ -133,10 +140,8 @@ class BrightwayAdapter(EnbiosAdapter):
             bw_method = bd.methods.get(method_id)
             if not bw_method:
                 raise ValueError(f"Method with id: {method_id} does not exist")
-            unit = bw_method.get("unit","undefined method unit")
-            return ExperimentMethodPrepData(
-                id=tuple(method_id), bw_method_unit=unit
-            )
+            unit = bw_method.get("unit", "undefined method unit")
+            return ExperimentMethodPrepData(id=tuple(method_id), bw_method_unit=unit)
 
         self.methods: dict[str, ExperimentMethodPrepData] = {
             name: validate_method(method) for name, method in methods.items()
@@ -144,9 +149,9 @@ class BrightwayAdapter(EnbiosAdapter):
         return list(self.methods.keys())
 
     def validate_node_output(
-            self,
-            node_name: str,
-            target_output: NodeOutput,
+        self,
+        node_name: str,
+        target_output: NodeOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -156,10 +161,10 @@ class BrightwayAdapter(EnbiosAdapter):
         """
         try:
             target_quantity: Quantity = (
-                    ureg.parse_expression(
-                        bw_unit_fix(target_output.unit), case_sensitive=False
-                    )
-                    * target_output.magnitude
+                ureg.parse_expression(
+                    bw_unit_fix(target_output.unit), case_sensitive=False
+                )
+                * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -220,8 +225,8 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup.register()
         self.scenario_calc_setups[scenario.name] = calculation_setup
         if (
-                self.config.simple_regionalization.run_regionalization
-                and not self.all_regions_set
+            self.config.simple_regionalization.run_regionalization
+            and not self.all_regions_set
         ):
             activity_codes: list[str] = list(
                 self.config.simple_regionalization.set_node_regions.keys()
@@ -230,15 +235,21 @@ class BrightwayAdapter(EnbiosAdapter):
             # noinspection PyUnresolvedReferences
             # noinspection PyProtectedMember
             with ActivityDataset._meta.database.atomic():
-                activities = list(ActivityDataset.select().where(ActivityDataset.code.in_(activity_codes)))
+                activities = list(
+                    ActivityDataset.select().where(
+                        ActivityDataset.code.in_(activity_codes)
+                    )
+                )
                 # validate all activities are present
                 if len(activities) != len(activity_codes):
                     missing = set(activity_codes) - set(a.code for a in activities)
-                    logger.warning(f"Some activities specified in 'set_node_regions' are not found: {missing}")
+                    logger.warning(
+                        f"Some activities specified in 'set_node_regions' are not found: {missing}"
+                    )
                 for a in activities:
-                    a.data[
-                        "enb_location"
-                    ] = tuple(self.config.simple_regionalization.set_node_regions[a.code])
+                    a.data["enb_location"] = tuple(
+                        self.config.simple_regionalization.set_node_regions[a.code]
+                    )
                     a.save()  # This updates each user in the database
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
@@ -247,7 +258,9 @@ class BrightwayAdapter(EnbiosAdapter):
         raw_results: list[ndarray] = []
         self.lca_objects[scenario.name] = []
         run_regionalization = self.config.simple_regionalization.run_regionalization
-        method_activity_func_maps: Optional[dict[tuple[str, ...], dict[int, Callable[[float], float]]]] = None
+        method_activity_func_maps: Optional[
+            dict[tuple[str, ...], dict[int, Callable[[float], float]]]
+        ] = None
         if self.config.nonlinear_characterization:
             method_activity_func_maps = self.prepare_nonlinear_methods()
         for i in range(self.config.use_k_bw_distributions):
@@ -276,13 +289,17 @@ class BrightwayAdapter(EnbiosAdapter):
         if self.config.store_raw_results:
             self.raw_results[scenario.name] = raw_results
 
-        return self._assign_results2nodes(raw_results, scenario, use_distributions, run_regionalization)
+        return self._assign_results2nodes(
+            raw_results, scenario, use_distributions, run_regionalization
+        )
 
-    def _assign_results2nodes(self,
-                              raw_results: list[ndarray],
-                              scenario: Scenario,
-                              use_distributions: bool,
-                              has_regionalization: bool):
+    def _assign_results2nodes(
+        self,
+        raw_results: list[ndarray],
+        scenario: Scenario,
+        use_distributions: bool,
+        has_regionalization: bool,
+    ):
         result_data: dict[str, Any] = {}
         for act_idx, act_alias in enumerate(self.activityMap.keys()):
             if act_alias not in scenario.structural_nodes_outputs:
@@ -297,7 +314,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 method_name, method_data = method
                 if has_regionalization:
                     for region_idx, region in enumerate(
-                            self.config.simple_regionalization.select_regions
+                        self.config.simple_regionalization.select_regions
                     ):
                         method_result = ResultValue(unit=method_data.bw_method_unit)
                         method_res_values = [
@@ -328,35 +345,45 @@ class BrightwayAdapter(EnbiosAdapter):
         config = self.config.nonlinear_characterization
         method_activity2func_maps = {}
         for method_name, method_config in config.methods.items():
-            method_activity2func_map = self.prepare_nonlinear_method(method_name, method_config)
+            method_activity2func_map = self.prepare_nonlinear_method(
+                method_name, method_config
+            )
             bw_method_id = self.methods[method_name].id
             method_activity2func_maps[bw_method_id] = method_activity2func_map
         return method_activity2func_maps
 
-    def prepare_nonlinear_method(self,
-                                 method_name: str,
-                                 method_config: NonLinearMethodConfig) -> dict[int, Callable[[float], float]]:
-
-        result_func_map: dict[int, Callable[[float], float]] = {}  # [None] * prep_lca.biosphere_matrix.shape[0]
+    def prepare_nonlinear_method(
+        self, method_name: str, method_config: NonLinearMethodConfig
+    ) -> dict[int, Callable[[float], float]]:
+        result_func_map: dict[
+            int, Callable[[float], float]
+        ] = {}  # [None] * prep_lca.biosphere_matrix.shape[0]
         if method_name not in self.methods:
-            raise ValueError(f"Unknown method '{method_name}' specified for nonlinear methods")
+            raise ValueError(
+                f"Unknown method '{method_name}' specified for nonlinear methods"
+            )
         # bw method id (tuple[str,...])
         bw_method_id: tuple[str, ...] = self.methods[method_name].id
         if method_config.module_path_function_name:
             module_path, func_name = method_config.module_path_function_name
             func: Callable = get_module_functions(load_module(module_path)).get(func_name)
             if not func:
-                raise ValueError(f"Could not find function: '{func_name} in module: {module_path}, which is defined for"
-                                 f"brightway-adapter non-linear method definition for method: {method_name}")
+                raise ValueError(
+                    f"Could not find function: '{func_name} in module: {module_path}, which is defined for"
+                    f"brightway-adapter non-linear method definition for method: {method_name}"
+                )
             method_config.functions = func()
         # key: (database,code) -> id
-        biosphere_keys2ids = self.activities_keys_id_map(list(method_config.functions.keys()))
+        biosphere_keys2ids = self.activities_keys_id_map(
+            list(method_config.functions.keys())
+        )
         for key, id_ in biosphere_keys2ids.items():
             result_func_map[id_] = method_config.functions[key]
         if method_config.get_defaults_from_original:
             bw_method_data = bw2data.Method(bw_method_id).load()
             bw_cf_activity_key2ids = self.activities_keys_id_map(
-                [tuple[str, str](method_key) for method_key, _ in bw_method_data])
+                [tuple[str, str](method_key) for method_key, _ in bw_method_data]
+            )
             for method_key, cf in bw_method_data:
                 activity_id = bw_cf_activity_key2ids[tuple(method_key)]
                 result_func_map[activity_id] = lambda v, cf_=cf: v * cf_
@@ -368,22 +395,30 @@ class BrightwayAdapter(EnbiosAdapter):
 
         class MyGenerateJsonSchema(GenerateJsonSchema):
             def handle_invalid_for_json_schema(
-                    self, schema: core_schema.CoreSchema, error_info: str
+                self, schema: core_schema.CoreSchema, error_info: str
             ) -> JsonSchemaValue:
                 if schema["type"] == "callable":
                     logger.warning("Ignoring callable during schema generation...")
                     raise PydanticOmit
                 return super().handle_invalid_for_json_schema(schema, error_info)
 
-        adapter_schema = BWAdapterConfig.model_json_schema(schema_generator=MyGenerateJsonSchema)
+        adapter_schema = BWAdapterConfig.model_json_schema(
+            schema_generator=MyGenerateJsonSchema
+        )
         return {
             "adapter": adapter_schema,
             "activity": BrightwayActivityConfig.model_json_schema(),
             "method": BWMethodDefinition.model_json_schema(),
         }
 
-    def activities_keys_id_map(self, keys: list[tuple[str, str]]) -> ReversibleRemappableDictionary:
+    def activities_keys_id_map(
+        self, keys: list[tuple[str, str]]
+    ) -> ReversibleRemappableDictionary:
         codes = [code for _, code in keys]
-        biosphere_activities = list(ActivityDataset.select().where(ActivityDataset.code.in_(codes)))
+        biosphere_activities = list(
+            ActivityDataset.select().where(ActivityDataset.code.in_(codes))
+        )
         # noinspection PyUnresolvedReferences
-        return ReversibleRemappableDictionary({(a.database, a.code): a.id for a in biosphere_activities})
+        return ReversibleRemappableDictionary(
+            {(a.database, a.code): a.id for a in biosphere_activities}
+        )

@@ -144,7 +144,6 @@ class Experiment:
             node.data.adapter, EnbiosAdapter, node.name
         )
 
-
     def get_adapter_by_name(self, name: str) -> EnbiosAdapterType:
         """
         Get an adapter by its name
@@ -152,6 +151,7 @@ class Experiment:
         :return:
         """
         return self._get_module_by_name_or_node_indicator(name, EnbiosAdapter)
+
     def get_node_aggregator(
         self,
         node: Union[
@@ -358,7 +358,10 @@ class Experiment:
         return list(self._adapters.values())
 
     def run_scenario_config(
-        self, scenario_config: dict, result_as_dict: bool = True, append_scenario: bool = True
+        self,
+        scenario_config: dict,
+        result_as_dict: bool = True,
+        append_scenario: bool = True,
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An

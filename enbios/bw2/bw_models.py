@@ -20,9 +20,7 @@ class RegionalizationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
     run_regionalization: bool = Field(False)
     select_regions: set = Field(None, description="regions to store the results for")
-    set_node_regions: dict[str, Sequence[str]] = Field(
-        {}, description="Set node regions"
-    )
+    set_node_regions: dict[str, Sequence[str]] = Field({}, description="Set node regions")
 
     @model_validator(mode="before")
     @classmethod
@@ -36,17 +34,21 @@ class RegionalizationConfig(BaseModel):
 
 
 class NonLinearMethodConfig(BaseModel):
-    model_config = ConfigDict(extra='forbid', validate_assignment=True, strict=True)
+    model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
     name: str = Field(None, description="bw method tuple name")
     # bw_id: tuple[str, ...] = Field(None, description="bw method tuple name")
     functions: dict[tuple[str, str], Callable[[float], float]] = Field(None, exclude=True)
-    module_path_function_name: tuple[str, str] = Field(None,
-                                                       description="path to a module and a function name. "
-                                                                   "which holds a function that returns a "
-                                                                   "'dict[tuple[str, str], Callable[[float], float]]'")
+    module_path_function_name: tuple[str, str] = Field(
+        None,
+        description="path to a module and a function name. "
+        "which holds a function that returns a "
+        "'dict[tuple[str, str], Callable[[float], float]]'",
+    )
     default_function: Callable[[float], float] = Field(None, init_var=False)
-    get_defaults_from_original: Optional[bool] = Field(False,
-                                                       description="Method is already defined in BW and has characterization values. ")
+    get_defaults_from_original: Optional[bool] = Field(
+        False,
+        description="Method is already defined in BW and has characterization values. ",
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -56,19 +58,24 @@ class NonLinearMethodConfig(BaseModel):
         if has_default_function and has_get_defaults_from_original:
             logger.warning(
                 f"brightway nonlinear method config for method '{data['name']}' should only have one"
-                f"'default_function' or 'get_defaults_from_original'. Using 'default_function'")
-            data['get_defaults_from_original'] = False
+                f"'default_function' or 'get_defaults_from_original'. Using 'default_function'"
+            )
+            data["get_defaults_from_original"] = False
         if not has_default_function and not has_get_defaults_from_original:
-            logger.warning(f"brightway nonlinear method config for method '{data['name']}' should either have"
-                           f"'default_function' or 'get_defaults_from_original'. Creating 'default_function'"
-                           f"with f(x) = x")
+            logger.warning(
+                f"brightway nonlinear method config for method '{data['name']}' should either have"
+                f"'default_function' or 'get_defaults_from_original'. Creating 'default_function'"
+                f"with f(x) = x"
+            )
             data["default_function"] = lambda v: v
 
         # either 'functions' or 'module_path_function_name' must be present
         has_functions = data.get("functions") is not None
         has_module_path_function_name = data.get("module_path_function_name")
         if not has_functions and not has_module_path_function_name:
-            raise ValueError("Either 'functions' or 'module_path_function_name' must be present.")
+            raise ValueError(
+                "Either 'functions' or 'module_path_function_name' must be present."
+            )
         return data
 
     # @classmethod
@@ -86,7 +93,8 @@ class NonLinearCharacterizationConfig(BaseModel):
     methods: dict[str, NonLinearMethodConfig] = Field(
         ...,
         description="Non linear characterization. "
-                    "Nested Dictionary: method_name > NonLinearMethodConfig")
+        "Nested Dictionary: method_name > NonLinearMethodConfig",
+    )
 
     @model_validator(mode="before")
     @classmethod
@@ -105,19 +113,19 @@ class BWAdapterConfig(BaseModel):
     store_raw_results: bool = Field(
         False,
         description="If the numpy matrix of brightway should be stored in the adapter. "
-                    "Will be stored in `raw_results[scenario.name]`",
+        "Will be stored in `raw_results[scenario.name]`",
     )
     store_lca_object: bool = Field(
         False,
         description="If the LCA object should be stored. "
-                    "Will be stored in `lca_objects[scenario.name]`",
+        "Will be stored in `lca_objects[scenario.name]`",
     )
     simple_regionalization: RegionalizationConfig = Field(
         description="Generate regionalized LCA", default_factory=RegionalizationConfig
     )
     nonlinear_characterization: Optional[NonLinearCharacterizationConfig] = Field(
-        None,
-        description="Nonlinear characterization")
+        None, description="Nonlinear characterization"
+    )
 
 
 class BrightwayActivityConfig(BaseModel):
