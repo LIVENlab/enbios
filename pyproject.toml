@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 
 [project]
 name = "enbios"
-version = "2.2.6"
+version = "2.2.7"
 description = "Enbios 2"
 authors = [
     { name = "Ramin Soleymani" },
