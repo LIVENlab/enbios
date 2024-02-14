@@ -36,9 +36,7 @@ class ResultsSelector:
         else:
             self.scenarios: list[str] = all_scenarios
 
-        all_methods: list[
-            str
-        ] = self.experiment.method_names  # [m.split(".")[1] for m in ]  # type: ignore
+        all_methods: list[str] = self.experiment.method_names
 
         all_method_names: list[str] = self.experiment.method_names
         self.methods: list[str] = []

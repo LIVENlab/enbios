@@ -23,7 +23,7 @@ def info_exchanges(act: Activity) -> dict:
 
 
 def iter_exchange_by_ids(
-        ids: Iterator[int], batch_size: int = 1000
+    ids: Iterator[int], batch_size: int = 1000
 ) -> Generator[ExchangeDataset, None, None]:
     """
     Iterate over exchanges by ids
@@ -47,7 +47,7 @@ def iter_exchange_by_ids(
 
 
 def iter_activities_by_codes(
-        codes: Iterator[str], batch_size: int = 1000
+    codes: Iterator[str], batch_size: int = 1000
 ) -> Generator[ActivityDataset, None, None]:
     """
     Iterate over activities by codes
@@ -167,8 +167,11 @@ Following two functions are from bw_utils...
 """
 
 
-def _check_lca(lca: LCA, make_calculations: bool = True,
-               inventory_name: Literal["inventory", "characterized_inventory"] = "inventory"):
+def _check_lca(
+    lca: LCA,
+    make_calculations: bool = True,
+    inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
+):
     if not hasattr(lca, "inventory"):
         if make_calculations:
             print("calculating inventory")
@@ -190,10 +193,12 @@ def _check_lca(lca: LCA, make_calculations: bool = True,
             raise ValueError("Must do lcia first")
 
 
-def split_inventory(lca: LCA,
-                    technosphere_activities: list[int],
-                    inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
-                    make_calculations: bool = True) -> csr_matrix:
+def split_inventory(
+    lca: LCA,
+    technosphere_activities: list[int],
+    inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
+    make_calculations: bool = True,
+) -> csr_matrix:
     """
     Split the results of a lcia calculation into groups. Each group is a list of activities, specified by their ids.
     Calculations of lci and lcia are performed when they are missing and `make_calculations` is set to `True`

@@ -22,15 +22,17 @@ class StackedMultiLCA(BaseStackedMultiLCA):
     """
 
     def __init__(
-            self,
-            calc_setup: BWCalculationSetup,
-            use_distributions: bool = False,
-            method_activity_func_maps: dict[tuple[str,...], dict[int,Callable[[float], float]]] = None,
+        self,
+        calc_setup: BWCalculationSetup,
+        use_distributions: bool = False,
+        method_activity_func_maps: dict[
+            tuple[str, ...], dict[int, Callable[[float], float]]
+        ] = None,
     ):
-        super().__init__(calc_setup,
-                         np.zeros((len(calc_setup.inv), len(calc_setup.ia))),
-                         use_distributions,
-                         method_activity_func_maps)
+        super().__init__(
+            calc_setup,
+            np.zeros((len(calc_setup.inv), len(calc_setup.ia))),
+            use_distributions,
+            method_activity_func_maps,
+        )
         self.main_loop()
-
-

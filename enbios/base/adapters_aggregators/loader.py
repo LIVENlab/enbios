@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 def create_module_object(
-        model_data: Union[AdapterModel, AggregationModel], base_class: Type
+    model_data: Union[AdapterModel, AggregationModel], base_class: Type
 ) -> Union[EnbiosAdapter, EnbiosAggregator]:
     if model_data.module_path:
         try:
