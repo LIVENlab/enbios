@@ -358,7 +358,7 @@ class Experiment:
         return list(self._adapters.values())
 
     def run_scenario_config(
-        self, scenario_config: dict, result_as_dict: bool = True
+        self, scenario_config: dict, result_as_dict: bool = True, append_scenario: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An
@@ -368,8 +368,15 @@ class Experiment:
         """
         scenario_data = ExperimentScenarioData(**scenario_config)
         scenario_data.name_factory(len(self.scenarios))
+
+        extra_index = 1
+        if scenario_data.name in self.scenario_names:
+            scenario_data.name = scenario_data.name + f" ({extra_index})"
+            extra_index += 1
         scenario = validate_scenario(scenario_data, self)
         scenario.prepare_tree()
+        if append_scenario:
+            self.scenarios.append(scenario)
         return scenario.run(result_as_dict)
 
     def info(self) -> str:

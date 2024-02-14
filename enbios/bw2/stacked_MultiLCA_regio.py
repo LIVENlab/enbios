@@ -64,7 +64,7 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
         ):
             # if a.type == "process":
             loc = a.data.get(location_key)
-            if not isinstance(loc, tuple):
+            if not isinstance(loc, tuple) and not isinstance(loc, list):
                 continue
             final_loc = loc[-1]
             base_loc_map.setdefault(final_loc, []).append(a.id)
