@@ -38,6 +38,7 @@ pydantic==2.5.2
 pyparsing==3.0.9
 PyPrind==2.11.3
 python-dateutil==2.8.2
+python-mermaid==0.1.3
 pytz==2023.3
 pyxlsb==1.0.10
 PyYAML==6.0.1
