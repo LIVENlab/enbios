@@ -1,0 +1,4 @@
+graph BT
+    b --> a
+    x --> b
+    x[cool]

@@ -1,0 +1,5 @@
+graph BT
+    b --> a
+    x --> b
+    x[cool]:::bw
+    b:::sum,method:non_linear1
