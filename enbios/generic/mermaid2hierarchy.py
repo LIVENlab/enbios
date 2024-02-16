@@ -4,7 +4,7 @@ from typing import Optional, Any
 
 from pydantic import BaseModel, Field
 from pyparsing import ParserElement, Word, alphas, Or, Literal, Keyword, \
-    one_of, DelimitedList, Opt, srange, Group, alphanums, ParseException
+    one_of, DelimitedList, Opt, srange, Group, alphanums, ParseException, ParseResults
 
 from enbios.generic.files import PathLike
 
@@ -20,7 +20,13 @@ def _create_node_def(group_name: Optional[str] = None) -> ParserElement:
     node_name = Word(alphas, alphanums).set_results_name("name")
     attribute_expression = Group(
         Word(alphas).set_results_name("key", list_all_matches=True) + Literal(":") + Word(
-            srange("[a-zA-Z_0-9]")).set_results_name("value", list_all_matches=True)).set_results_name("conf")
+            srange("[a-zA-Z_0-9]")).set_results_name("value", list_all_matches=True)).set_results_name("config")
+
+    @attribute_expression.set_parse_action
+    def resolve_identifier(results: ParseResults):
+        # turns it from key, value lists to a dictionary {<key>:<value>}
+        conf = results.config
+        return dict(zip(list(conf.key), list(conf.value)))
 
     NODE_SHAPES = {
         "normal": ("[", "]"),
@@ -184,7 +190,6 @@ def _nodes2enbios_hierarchy(root_node: _Node):
             "name": node.name,
             module_type: node.module_name,
             "config": node.config,
-
         }
         if node.children:
             node_dict["children"] = [convert_node(kid) for kid in node.children]
@@ -198,8 +203,10 @@ def _dump_hierarchy(hierarchy: dict, file_path: Path):
     json.dump(hierarchy, file_path.open("w", encoding="utf-8"), indent=4)
 
 
-def convert_file(file_path: PathLike, destination_path: PathLike):
+def convert_file(file_path: PathLike, destination_path: Optional[PathLike] = None) -> dict:
     p = _read_file(Path(file_path))
     res = _process_result(p, False)
     hierarchy = _nodes2enbios_hierarchy(res)
-    _dump_hierarchy(hierarchy, Path(destination_path))
+    if destination_path:
+        _dump_hierarchy(hierarchy, Path(destination_path))
+    return hierarchy

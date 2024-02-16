@@ -1,0 +1,4 @@
+graph TB
+    a --> b
+    b --> x
+    x
