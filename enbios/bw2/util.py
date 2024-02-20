@@ -1,10 +1,13 @@
+from pathlib import Path
 from typing import Generator, Iterator, Literal
 
 import bw2data
+import bw2io
 from bw2calc import LCA
 from bw2data import databases as bw_databases
 from bw2data.backends import Activity, ExchangeDataset, ActivityDataset
 from bw2data.project import projects as bw_projects
+from bw2io import SingleOutputEcospold2Importer
 from scipy.sparse import csr_matrix
 
 
@@ -212,3 +215,50 @@ def split_inventory(
     inventory = getattr(lca, inventory_name)
     # do matrix multiplication for each final location
     return inventory[:, [lca.dicts.activity[c] for c in technosphere_activities]]
+
+
+"""
+This package has just one function for setting up a brightway project with a evoincent database
+"""
+
+
+
+def safe_setup_ecoinvent(project_name: str,
+                         ecoinvent_db_path: str,
+                         db_name: str,
+                         delete_project: bool = False,
+                         delete_if_unlinked: bool = True):
+    """
+    Initiate a project with a ecoinvent database
+    :param project_name: new project name
+    :param ecoinvent_db_path: dataset path of the ecoinvent database
+    :param db_name: name of the new database containing the ecoinvent database
+    :param delete_project: Delete existing project
+    :param delete_if_unlinked: Delete project if linking didn't work
+    :return:
+    """
+    if project_name in bw2data.projects:
+        if delete_project:
+            bw2data.projects.delete_project(project_name, True)
+        raise KeyError(f"Project '{project_name}' already exists")
+    db_path = Path(ecoinvent_db_path)
+    spold_files_glob = db_path.glob("*.spold")
+    if not db_path.exists:
+        raise FileNotFoundError(f"{ecoinvent_db_path} does not exist")
+    if not next(spold_files_glob):
+        raise KeyError(f"There are no spold files in {ecoinvent_db_path}")
+    bw2data.projects.create_project(project_name)
+    bw2data.projects.set_current(project_name)
+    bw2io.bw2setup()
+
+    imported = SingleOutputEcospold2Importer(ecoinvent_db_path, db_name)
+    imported.apply_strategies()
+    # print(type(imported))
+    if imported.all_linked:
+        imported.write_database()
+    else:
+        if delete_if_unlinked:
+            bw2data.projects.delete_project(project_name, True)
+        else:
+            imported.write_unlinked(f"{db_name}_unlinked")
+
