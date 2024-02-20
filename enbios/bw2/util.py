@@ -222,12 +222,13 @@ This package has just one function for setting up a brightway project with a evo
 """
 
 
-
-def safe_setup_ecoinvent(project_name: str,
-                         ecoinvent_db_path: str,
-                         db_name: str,
-                         delete_project: bool = False,
-                         delete_if_unlinked: bool = True):
+def safe_setup_ecoinvent(
+    project_name: str,
+    ecoinvent_db_path: str,
+    db_name: str,
+    delete_project: bool = False,
+    delete_if_unlinked: bool = True,
+):
     """
     Initiate a project with a ecoinvent database
     :param project_name: new project name
@@ -261,4 +262,3 @@ def safe_setup_ecoinvent(project_name: str,
             bw2data.projects.delete_project(project_name, True)
         else:
             imported.write_unlinked(f"{db_name}_unlinked")
-

@@ -3,14 +3,31 @@ from pathlib import Path
 from typing import Optional, Any
 
 from pydantic import BaseModel, Field
-from pyparsing import ParserElement, Word, alphas, Or, Literal, Keyword, \
-    one_of, DelimitedList, Opt, srange, Group, alphanums, ParseException, ParseResults, White
+from pyparsing import (
+    ParserElement,
+    Word,
+    alphas,
+    Or,
+    Literal,
+    Keyword,
+    one_of,
+    DelimitedList,
+    Opt,
+    srange,
+    Group,
+    alphanums,
+    ParseException,
+    ParseResults,
+    White,
+)
 
 from enbios.generic.files import PathLike
 
 
 def _create_init_def() -> ParserElement:
-    init: ParserElement = Keyword("graph") + Opt(White() + one_of("TB TD BT RL LR").set_results_name("direction"))
+    init: ParserElement = Keyword("graph") + Opt(
+        White() + one_of("TB TD BT RL LR").set_results_name("direction")
+    )
     init = init.leave_whitespace()
     return init
 
@@ -19,8 +36,10 @@ def _create_node_def(group_name: Optional[str] = None) -> ParserElement:
     # Define the base components of a node
     node_name = Word(alphas, alphanums).set_results_name("name")
     attribute_expression = Group(
-        Word(alphas).set_results_name("key", list_all_matches=True) + Literal(":") + Word(
-            srange("[a-zA-Z_0-9]")).set_results_name("value", list_all_matches=True)).set_results_name("config")
+        Word(alphas).set_results_name("key", list_all_matches=True)
+        + Literal(":")
+        + Word(srange("[a-zA-Z_0-9]")).set_results_name("value", list_all_matches=True)
+    ).set_results_name("config")
 
     @attribute_expression.set_parse_action
     def resolve_identifier(results: ParseResults):
@@ -48,17 +67,24 @@ def _create_node_def(group_name: Optional[str] = None) -> ParserElement:
     all_expressions = [node_name]
     for shape in NODE_SHAPES.values():
         node_display_name = Word(alphas)  # Assuming this definition is correct
-        all_expressions.append(node_name + Literal(shape[0]) + node_display_name + Literal(shape[1]))
+        all_expressions.append(
+            node_name + Literal(shape[0]) + node_display_name + Literal(shape[1])
+        )
 
     # Combine the base node definition with optional process type and unit expression
     node_def_base = Or(all_expressions)
     ada_agg_expression = Word(alphas).set_results_name("module_name")
 
-    node_def = Or([
-        node_def_base,
-        # todo: should porse the whole thing. otherwise attributes at the like this method:non-linear result in method:non
-        node_def_base + Literal(":::") + ada_agg_expression + Opt(Literal(",") + DelimitedList(attribute_expression))
-    ])
+    node_def = Or(
+        [
+            node_def_base,
+            # todo: should porse the whole thing. otherwise attributes at the like this method:non-linear result in method:non
+            node_def_base
+            + Literal(":::")
+            + ada_agg_expression
+            + Opt(Literal(",") + DelimitedList(attribute_expression)),
+        ]
+    )
 
     if group_name:
         return Group(node_def).set_results_name(group_name)
@@ -69,13 +95,14 @@ def _create_link_def() -> ParserElement:
     simple_link_strings = ["-->"]
     simple_arrow = Or([Literal(s) for s in simple_link_strings])
     # pyparsing_common.real.set_results_name("module_name")
-    text_arrow = (Literal("--") + Word(alphas).set_results_name("module_name") + Literal("-->"))
+    text_arrow = (
+        Literal("--") + Word(alphas).set_results_name("module_name") + Literal("-->")
+    )
     arrow = Or((simple_arrow, text_arrow))
     return _create_node_def("l") + arrow + _create_node_def("r")
 
 
 def _parse_file(file_path: Path) -> list[dict]:
-    direction = "TD"
     init_def = _create_init_def()
     node_def = _create_node_def()
     link_def = _create_link_def()
@@ -91,7 +118,12 @@ def _parse_file(file_path: Path) -> list[dict]:
                 results.append(init_res.as_dict())
                 after_init = True
                 continue
-            combined = Or((Group(node_def).set_results_name("node"), Group(link_def).set_results_name("link")))
+            combined = Or(
+                (
+                    Group(node_def).set_results_name("node"),
+                    Group(link_def).set_results_name("link"),
+                )
+            )
             try:
                 res = combined.parse_string(line)
             except ParseException as err:
@@ -122,13 +154,13 @@ class _Node(BaseModel):
 class _Link(BaseModel):
     left_node: _Node = Field(validation_alias="l")
     right_node: _Node = Field(validation_alias="r")
-    module_name: Optional[str] = Field(None,
-                                       description="The module (adaptor/aggregator) of the lower (left side) node")
+    module_name: Optional[str] = Field(
+        None, description="The module (adaptor/aggregator) of the lower (left side) node"
+    )
     # value: float = 1
 
 
-def _create_tree(results: list[dict],
-                 strict_node_def: bool = True) -> _Node:
+def _create_tree(results: list[dict], strict_node_def: bool = True) -> _Node:
     all_nodes: list[_Node] = []
 
     # [x] check all nodes have only one def
@@ -187,7 +219,9 @@ def _create_tree(results: list[dict],
             if not root:
                 root = node
             else:
-                raise ValueError(f"There can only be one root, which is '{root}. '{node}' has no parent")
+                raise ValueError(
+                    f"There can only be one root, which is '{root}. '{node}' has no parent"
+                )
         # cycle check
         else:
             next_parent = node.parent
@@ -222,7 +256,9 @@ def _dump_hierarchy(hierarchy: dict, file_path: Path):
     json.dump(hierarchy, file_path.open("w", encoding="utf-8"), indent=4)
 
 
-def convert_file(file_path: PathLike, destination_path: Optional[PathLike] = None) -> dict:
+def convert_file(
+    file_path: PathLike, destination_path: Optional[PathLike] = None
+) -> dict:
     p = _parse_file(Path(file_path))
     tree = _create_tree(p, False)
     hierarchy = _tree2enbios_hierarchy(tree)

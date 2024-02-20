@@ -230,9 +230,11 @@ class BrightwayAdapter(EnbiosAdapter):
             and not self.all_regions_set
         ):
             # memorize nodes from the tree in order to not delete their location
-            keep_locations_of_activities:list[str] = []
+            keep_locations_of_activities: list[str] = []
             if self.config.simple_regionalization.clear_all_other_node_regions:
-                keep_locations_of_activities = [a.bw_activity["code"] for a in self.activityMap.values()]
+                keep_locations_of_activities = [
+                    a.bw_activity["code"] for a in self.activityMap.values()
+                ]
 
                 range_length = 1000
                 activities_to_reset = list(
@@ -241,11 +243,15 @@ class BrightwayAdapter(EnbiosAdapter):
                     )
                 )
 
-                for range_start in range(math.ceil(len(activities_to_reset) / range_length)):
+                for range_start in range(
+                    math.ceil(len(activities_to_reset) / range_length)
+                ):
                     # noinspection PyUnresolvedReferences
                     # noinspection PyProtectedMember
                     with ActivityDataset._meta.database.atomic():
-                        for a in activities_to_reset[range_start*range_length: (range_start+1)*range_length]:
+                        for a in activities_to_reset[
+                            range_start * range_length : (range_start + 1) * range_length
+                        ]:
                             a.data["enb_location"] = None
                             a.save()
 
@@ -264,7 +270,9 @@ class BrightwayAdapter(EnbiosAdapter):
                 )
                 # validate all activities are present
                 if len(activities_to_reset) != len(activity_codes):
-                    missing = set(activity_codes) - set(a.code for a in activities_to_reset)
+                    missing = set(activity_codes) - set(
+                        a.code for a in activities_to_reset
+                    )
                     logger.warning(
                         f"Some activities specified in 'set_node_regions' are not found: {missing}"
                     )
@@ -273,8 +281,6 @@ class BrightwayAdapter(EnbiosAdapter):
                         self.config.simple_regionalization.set_node_regions[a.code]
                     )
                     a.save()  # This updates each user in the database
-
-
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         self.prepare_scenario(scenario)
