@@ -6,8 +6,7 @@
     {
       "module_path": "",
       "config": {
-        "bw_project": "{BW_PROJECT}",
-        "bw_default_database": "{BW_DATABASE}"
+        "bw_project": "{BW_PROJECT}"
       },
       "methods": {
         "zinc_no_LT": [

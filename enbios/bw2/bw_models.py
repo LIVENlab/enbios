@@ -21,6 +21,8 @@ class RegionalizationConfig(BaseModel):
     run_regionalization: bool = Field(False)
     select_regions: set = Field(None, description="regions to store the results for")
     set_node_regions: dict[str, Sequence[str]] = Field({}, description="Set node regions")
+    clear_all_other_node_regions : Optional[bool] = Field(False,
+                                                          description="Delete all regions not in 'hierarchy' and 'set_node_regions'")
 
     @model_validator(mode="before")
     @classmethod
@@ -28,7 +30,7 @@ class RegionalizationConfig(BaseModel):
         if data.get("run_regionalization", False):
             if data.get("select_regions") is None:
                 raise ValueError(
-                    "Select regions for BW regionalization (field: 'select_regions')"
+                    "Select regions missing for BW regionalization (field: 'select_regions')"
                 )
         return data
 
@@ -41,8 +43,8 @@ class NonLinearMethodConfig(BaseModel):
     module_path_function_name: tuple[str, str] = Field(
         None,
         description="path to a module and a function name. "
-        "which holds a function that returns a "
-        "'dict[tuple[str, str], Callable[[float], float]]'",
+                    "which holds a function that returns a "
+                    "'dict[tuple[str, str], Callable[[float], float]]'",
     )
     default_function: Callable[[float], float] = Field(None, init_var=False)
     get_defaults_from_original: Optional[bool] = Field(
@@ -93,7 +95,7 @@ class NonLinearCharacterizationConfig(BaseModel):
     methods: dict[str, NonLinearMethodConfig] = Field(
         ...,
         description="Non linear characterization. "
-        "Nested Dictionary: method_name > NonLinearMethodConfig",
+                    "Nested Dictionary: method_name > NonLinearMethodConfig",
     )
 
     @model_validator(mode="before")
@@ -105,6 +107,7 @@ class NonLinearCharacterizationConfig(BaseModel):
 
 
 class BWAdapterConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
     bw_project: str
     # methods: MethodsDataTypesExt
     use_k_bw_distributions: int = Field(
@@ -113,12 +116,12 @@ class BWAdapterConfig(BaseModel):
     store_raw_results: bool = Field(
         False,
         description="If the numpy matrix of brightway should be stored in the adapter. "
-        "Will be stored in `raw_results[scenario.name]`",
+                    "Will be stored in `raw_results[scenario.name]`",
     )
     store_lca_object: bool = Field(
         False,
         description="If the LCA object should be stored. "
-        "Will be stored in `lca_objects[scenario.name]`",
+                    "Will be stored in `lca_objects[scenario.name]`",
     )
     simple_regionalization: RegionalizationConfig = Field(
         description="Generate regionalized LCA", default_factory=RegionalizationConfig

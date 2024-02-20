@@ -187,7 +187,7 @@ def regionalization_setup(experiment_setup: dict):
     bw_adapter = experiment_setup["scenario"]["adapters"][0]
     bw2data.projects.set_current(bw_adapter["config"]["bw_project"])
 
-    cats = json.load((BASE_TEST_DATA_PATH / "catalan_activities.json").open())
+    cats = json.load((BASE_TEST_DATA_PATH / "regio_activities.json").open())
 
     # noinspection PyUnresolvedReferences
     with ActivityDataset._meta.database.atomic():
@@ -268,6 +268,63 @@ def test_regionalization_distribution(experiment_setup):
                     del a.data["enb_location"]
                     a.save()
     pass
+
+
+def test_regionlized_clear_locations(
+        test_network_project_db_name: tuple[str, str], bw_adapter_config: dict, create_test_network):
+    project_name, db_name = test_network_project_db_name
+    db = bw2data.Database(db_name)
+
+    bw_adapter_config["config"]["bw_project"] = project_name
+
+    # simple method
+    method_id = ('IPCC',)
+    ipcc = bw2data.Method(method_id)
+    ipcc.write([
+        (db.get("co2").key, {'amount': 1})
+    ])
+    ipcc.metadata = ipcc.metadata | {"unit": "kg CO2-Eq"}
+
+    bw_adapter_config["methods"] = {"ipcc": ("IPCC",)}
+    bw_adapter_config["config"]["simple_regionalization"] = {
+        "run_regionalization": True,
+        "set_node_regions": {
+            "energy1": ["ES"],
+            "energy2": ["ES"]
+        },
+        "select_regions": ["ES"]
+    }
+    exp_config = {
+        "adapters": [
+            bw_adapter_config
+        ],
+        "hierarchy": {
+            "name": "root",
+            "aggregator": "sum",
+            "children": [
+                {
+                    "name": "product",
+                    "config": {
+                        "code": "product",
+                        "enb_location": ["ES"]
+                    },
+                    "adapter": "bw"
+                }
+            ]
+        }
+    }
+    exp = Experiment(exp_config)
+    exp.run()
+
+    assert 3 == len([a for a in db if a.get("enb_location") != None])
+    # just set 1, and set location clearing.
+    bw_adapter_config["config"]["simple_regionalization"]["set_node_regions"] = {
+        "energy1": ["ES"]
+    }
+    bw_adapter_config["config"]["simple_regionalization"]["clear_all_other_node_regions"] = True
+    exp = Experiment(exp_config)
+    exp.run()
+    assert 2 == len([a for a in db if a.get("enb_location") != None])
 
 
 def test_nonlinear_methods1(experiment_setup: dict,
@@ -424,6 +481,7 @@ def test_regionlized_nonlinear_characterization(test_network_project_db_name: tu
     experiment_data["adapters"][0]["methods"] = {"waste": ['IPCC', 'waste']}
     experiment_data["adapters"][0]["config"]["simple_regionalization"]["select_regions"] = ["CAT", "ES", "ARA", "EU"]
     exp = Experiment(experiment_data)
+
     # res = exp.run()
     # expected_results = {'waste.CAT': 24, 'waste.ES': 132, 'waste.ARA': 104, 'waste.EU': 148}
     # for waste_loc, res in res["default scenario"]["results"].items():

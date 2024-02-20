@@ -8,7 +8,6 @@ An experiment configuration requires the following 3 properties:
 
 Optional properties are:
 
-- bw_default_database: Default database to be used for the project (speeds up search of activities)
 - hierarchy: The technology hierarchy to be used for structuring the results
 - scenarios: The scenarios to be used for the experiment, with different node demands
 
