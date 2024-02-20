@@ -241,7 +241,8 @@ def safe_setup_ecoinvent(
     if project_name in bw2data.projects:
         if delete_project:
             bw2data.projects.delete_project(project_name, True)
-        raise KeyError(f"Project '{project_name}' already exists")
+        else:
+            raise KeyError(f"Project '{project_name}' already exists")
     db_path = Path(ecoinvent_db_path)
     spold_files_glob = db_path.glob("*.spold")
     if not db_path.exists:

@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, Union
 
 from pydantic import BaseModel, Field
 from pyparsing import (
@@ -102,38 +102,39 @@ def _create_link_def() -> ParserElement:
     return _create_node_def("l") + arrow + _create_node_def("r")
 
 
-def _parse_file(file_path: Path) -> list[dict]:
+
+
+def _parse_mermaid_lines(lines: list[str]) -> list[dict]:
     init_def = _create_init_def()
     node_def = _create_node_def()
     link_def = _create_link_def()
     after_init = False
     results = []
-    with open(file_path, encoding="utf-8") as file:
-        for line in file:
-            line = line.strip()
-            if not line:
-                continue
-            if not after_init:
-                init_res = init_def.parse_string(line)
-                results.append(init_res.as_dict())
-                after_init = True
-                continue
-            combined = Or(
-                (
-                    Group(node_def).set_results_name("node"),
-                    Group(link_def).set_results_name("link"),
-                )
-            )
-            try:
-                res = combined.parse_string(line)
-            except ParseException as err:
-                print(f"PARSER ERROR ON LINE: {line}")
-                print(err)
-            print(line)
-            print(res.as_dict())
-            results.append(res.as_dict())
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if not after_init:
+            init_res = init_def.parse_string(line)
+            results.append(init_res.as_dict())
             after_init = True
-        return results
+            continue
+        combined = Or(
+            (
+                Group(node_def).set_results_name("node"),
+                Group(link_def).set_results_name("link"),
+            )
+        )
+        try:
+            res = combined.parse_string(line)
+        except ParseException as err:
+            print(f"PARSER ERROR ON LINE: {line}")
+            print(err)
+        # print(line)
+        # print(res.as_dict())
+        results.append(res.as_dict())
+        after_init = True
+    return results
 
 
 class _Node(BaseModel):
@@ -256,12 +257,21 @@ def _dump_hierarchy(hierarchy: dict, file_path: Path):
     json.dump(hierarchy, file_path.open("w", encoding="utf-8"), indent=4)
 
 
-def convert_file(
+def convert_mermaid_file(
     file_path: PathLike, destination_path: Optional[PathLike] = None
 ) -> dict:
-    p = _parse_file(Path(file_path))
-    tree = _create_tree(p, False)
-    hierarchy = _tree2enbios_hierarchy(tree)
+    with open(file_path, encoding="utf-8") as file:
+        lines = [line for line in file]
+    hierarchy = convert_mermaid_lines(lines)
     if destination_path:
         _dump_hierarchy(hierarchy, Path(destination_path))
+    return hierarchy
+
+
+def convert_mermaid_lines(lines: Union[str,list[str]]) -> dict:
+    if isinstance(lines, str):
+        lines = lines.splitlines()
+    p = _parse_mermaid_lines(lines)
+    tree = _create_tree(p, False)
+    hierarchy = _tree2enbios_hierarchy(tree)
     return hierarchy
