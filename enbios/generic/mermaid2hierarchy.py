@@ -99,7 +99,7 @@ def _create_link_def() -> ParserElement:
     simple_arrow = Or([Literal(s) for s in simple_link_strings])
     # pyparsing_common.real.set_results_name("module_name")
     text_arrow = (
-            Literal("--") + Word(alphas).set_results_name("module_name") + Literal("-->")
+        Literal("--") + Word(alphas).set_results_name("module_name") + Literal("-->")
     )
     arrow = Or((simple_arrow, text_arrow))
     return _create_node_def("l") + arrow + _create_node_def("r")
@@ -260,7 +260,7 @@ def _dump_hierarchy(hierarchy: dict, file_path: Path):
 
 
 def convert_mermaid_file(
-        file_path: PathLike, destination_path: Optional[PathLike] = None
+    file_path: PathLike, destination_path: Optional[PathLike] = None
 ) -> dict:
     with open(file_path, encoding="utf-8") as file:
         lines = [line for line in file]

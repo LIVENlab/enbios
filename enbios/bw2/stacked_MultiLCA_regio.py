@@ -57,9 +57,9 @@ class RegioStackedMultiLCA(BaseStackedMultiLCA):
                         self.non_linear_methods_flags[col],
                         split_inventory(self.lca, activity_ids),
                     )
-                    self.results[
-                        row, col, loc_idx
-                    ] = regional_characterized_inventory.sum()
+                    self.results[row, col, loc_idx] = (
+                        regional_characterized_inventory.sum()
+                    )
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
     def resolve_loc_basemap(self, location_key: str = "enb_location"):
