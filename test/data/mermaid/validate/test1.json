@@ -1,0 +1,12 @@
+{
+  "name": "top",
+  "aggregator": null,
+  "config": null,
+  "children": [
+    {
+      "name": "bottom",
+      "adapter": null,
+      "config": null
+    }
+  ]
+}

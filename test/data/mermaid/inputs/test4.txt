@@ -1,0 +1,3 @@
+graph TB
+    a -- bw --> b
+    b-- sum --> x:::sum

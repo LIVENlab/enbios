@@ -1,0 +1,21 @@
+{
+  "name": "a",
+  "aggregator": null,
+  "config": null,
+  "children": [
+    {
+      "name": "b",
+      "aggregator": "sum",
+      "config": {
+        "method": "non_linear1"
+      },
+      "children": [
+        {
+          "name": "x",
+          "adapter": "bw",
+          "config": null
+        }
+      ]
+    }
+  ]
+}

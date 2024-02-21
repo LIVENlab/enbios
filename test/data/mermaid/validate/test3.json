@@ -1,0 +1,19 @@
+{
+  "name": "x",
+  "aggregator": null,
+  "config": null,
+  "children": [
+    {
+      "name": "b",
+      "aggregator": null,
+      "config": null,
+      "children": [
+        {
+          "name": "a",
+          "adapter": null,
+          "config": null
+        }
+      ]
+    }
+  ]
+}
