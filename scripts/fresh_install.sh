@@ -35,5 +35,5 @@ echo "installing enbios"
 pip install "$absolute_path"
 
 # Copy the file from project_dir/enbios/demo/a.py to this directory
-cp "$project_dir"/enbios/demos/demo_script.py .
+cp "$project_dir"/demos/demo_script.py .
 python3 demo_script.py

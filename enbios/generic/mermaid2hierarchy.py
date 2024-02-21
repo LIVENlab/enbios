@@ -47,7 +47,7 @@ def _create_node_def(group_name: Optional[str] = None) -> ParserElement:
         conf = results.config
         return dict(zip(list(conf.key), list(conf.value)))
 
-    NODE_SHAPES = {
+    node_shapes: dict[str, tuple[str, str]] = {
         "normal": ("[", "]"),
         "round-edge": ("(", ")"),
         "stadium-shape": ("([", "])"),
@@ -65,7 +65,7 @@ def _create_node_def(group_name: Optional[str] = None) -> ParserElement:
     }
     # Define all possible shapes for a node
     all_expressions = [node_name]
-    for shape in NODE_SHAPES.values():
+    for shape in node_shapes.values():
         node_display_name = Word(alphas)  # Assuming this definition is correct
         all_expressions.append(
             node_name + Literal(shape[0]) + node_display_name + Literal(shape[1])
@@ -73,12 +73,15 @@ def _create_node_def(group_name: Optional[str] = None) -> ParserElement:
 
     # Combine the base node definition with optional process type and unit expression
     node_def_base = Or(all_expressions)
-    ada_agg_expression = Word(alphas).set_results_name("module_name")
+    ada_agg_expression = Word(alphas).set_results_name(
+        "module_name"
+    )  # wrapping this in Opt would allow :::,key:code
 
     node_def = Or(
         [
             node_def_base,
-            # todo: should porse the whole thing. otherwise attributes at the like this method:non-linear result in method:non
+            # todo: should parse the whole thing. otherwise attributes at the like
+            #  this method:non-linear result in method:non
             node_def_base
             + Literal(":::")
             + ada_agg_expression
@@ -96,12 +99,10 @@ def _create_link_def() -> ParserElement:
     simple_arrow = Or([Literal(s) for s in simple_link_strings])
     # pyparsing_common.real.set_results_name("module_name")
     text_arrow = (
-        Literal("--") + Word(alphas).set_results_name("module_name") + Literal("-->")
+            Literal("--") + Word(alphas).set_results_name("module_name") + Literal("-->")
     )
     arrow = Or((simple_arrow, text_arrow))
     return _create_node_def("l") + arrow + _create_node_def("r")
-
-
 
 
 def _parse_mermaid_lines(lines: list[str]) -> list[dict]:
@@ -127,12 +128,13 @@ def _parse_mermaid_lines(lines: list[str]) -> list[dict]:
         )
         try:
             res = combined.parse_string(line)
+            results.append(res.as_dict())
         except ParseException as err:
             print(f"PARSER ERROR ON LINE: {line}")
             print(err)
         # print(line)
         # print(res.as_dict())
-        results.append(res.as_dict())
+
         after_init = True
     return results
 
@@ -169,29 +171,29 @@ def _create_tree(results: list[dict], strict_node_def: bool = True) -> _Node:
     # [x] check hierarchy is ok (one parent check)
     # [x] check all node set its module, config (param)
 
-    def add_node(node: _Node) -> _Node:
+    def add_node(node_: _Node) -> _Node:
         node_names = [n.name for n in all_nodes]
-        if node.name not in node_names:
-            all_nodes.append(node)
-            return node
+        if node_.name not in node_names:
+            all_nodes.append(node_)
+            return node_
         else:
-            node_index = node_names.index(node.name)
+            node_index = node_names.index(node_.name)
             existing: _Node = all_nodes[node_index]
-            if node.module_name:
+            if node_.module_name:
                 # check: no duplicate definition
                 if existing.module_name:
-                    raise ValueError(f"error. just one node definition. {node.name}")
+                    raise ValueError(f"error. just one node definition. {node_.name}")
                 else:
-                    existing.set_def(node)
+                    existing.set_def(node_)
             return existing
 
-    def add_nodes(link: _Link) -> tuple[_Node, ...]:
+    def add_nodes(link_: _Link) -> tuple[_Node, ...]:
         node_names = [n.name for n in all_nodes]
         return_nodes: list[_Node] = []
-        for node in (link.left_node, link.right_node):
-            node = add_node(node)
-            return_nodes.append(node)
-            node_names.append(node.name)
+        for node_ in (link_.left_node, link_.right_node):
+            node_ = add_node(node_)
+            return_nodes.append(node_)
+            node_names.append(node_.name)
         return tuple(return_nodes)
 
     for res in results:
@@ -258,7 +260,7 @@ def _dump_hierarchy(hierarchy: dict, file_path: Path):
 
 
 def convert_mermaid_file(
-    file_path: PathLike, destination_path: Optional[PathLike] = None
+        file_path: PathLike, destination_path: Optional[PathLike] = None
 ) -> dict:
     with open(file_path, encoding="utf-8") as file:
         lines = [line for line in file]
@@ -268,7 +270,7 @@ def convert_mermaid_file(
     return hierarchy
 
 
-def convert_mermaid_lines(lines: Union[str,list[str]]) -> dict:
+def convert_mermaid_lines(lines: Union[str, list[str]]) -> dict:
     if isinstance(lines, str):
         lines = lines.splitlines()
     p = _parse_mermaid_lines(lines)

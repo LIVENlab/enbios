@@ -10,12 +10,13 @@ done
 echo "Is --no-update present: $no_update_present"
 
 
-echo "editing pyproject.toml hacking in requirements.txt..."
-cd ..
-. venv_build/bin/activate
-cd scripts || exit 1
-python3 include_dependencies.py
-echo "dependencies included"
+#echo "editing pyproject.toml hacking in requirements.txt..."
+#cd ..
+#. venv_build/bin/activate
+#cd scripts || exit 1
+#python3 include_dependencies.py
+#echo "dependencies included"
+
 
 if [ "$no_update_present" = false ] ; then
   output=$(python3 version_inc.py)
