@@ -4,8 +4,7 @@ import time
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, Optional, Union, Type
-from typing import TypeVar
+from typing import Any, Optional, Union, Type, cast
 
 from python_mermaid.diagram import MermaidDiagram
 from python_mermaid.link import Link
@@ -34,6 +33,7 @@ from enbios.models.experiment_base_models import (
     ExperimentConfig,
     ExperimentScenarioData,
     NodeOutput,
+    ExperimentDataResolved,
 )
 from enbios.models.experiment_models import (
     ScenarioResultNodeData,
@@ -42,47 +42,50 @@ from enbios.models.experiment_models import (
 
 logger = get_logger(__name__)
 
+
 # Define a TypeVar that is bound to EnbiosAdapter
-EnbiosAdapterType = TypeVar("EnbiosAdapterType", bound=EnbiosAdapter)
-EnbiosAggregatorType = TypeVar("EnbiosAggregatorType", bound=EnbiosAggregator)
+# EnbiosAdapterType = TypeVar("EnbiosAdapterType", bound=EnbiosAdapter)
+# EnbiosAggregatorType = TypeVar("EnbiosAggregatorType", bound=EnbiosAggregator)
 
 
 class Experiment:
     DEFAULT_SCENARIO_NAME = "default scenario"
 
-    def __init__(self, data: Optional[Union[dict, str]] = None):
+    def __init__(self, data_input: Optional[Union[dict, str]] = None):
         """
         Initialize the experiment
-        :param data: dictionary or filename to load the data from
+        :param data_input: dictionary or filename to load the data from
         """
         self.env_settings = Settings()
-        if not data:
-            data = self.env_settings.CONFIG_FILE
-            if not isinstance(data, str):
+        if not data_input:
+            data_input = self.env_settings.CONFIG_FILE
+            if not isinstance(data_input, str):
                 raise ValueError(
                     "Experiment config-file-path must be specified as environment "
                     "variable: 'CONFIG_FILE'"
                 )
-        if isinstance(data, str):
-            config_file_path = ReadPath(data)
+        data: dict = {}
+        if isinstance(data_input, str):
+            config_file_path = ReadPath(data_input)
             data = config_file_path.read_data()
-
-        self.raw_data = validate_experiment_data(data)
+        else:
+            data = data_input
+        raw_data = validate_experiment_data(data)
         # resolve hierarchy and scenarios filepaths if present
-        resolve_input_files(self.raw_data)
+        self.resolved_raw_data: ExperimentDataResolved = resolve_input_files(raw_data)
 
         # load and validate adapters and aggregators
-        self._adapters: dict[str, EnbiosAdapter]
-        self.methods: list[str]
-        self._adapters, self.methods = validate_adapters(self.raw_data.adapters)
+        adapters, modules = validate_adapters(raw_data.adapters)
+        self._adapters: dict[str, EnbiosAdapter] = adapters
+        self.methods: list[str] = modules
         self._aggregators: dict[str, EnbiosAggregator] = validate_aggregators(
-            self.raw_data.aggregators
+            raw_data.aggregators
         )
 
         # validate overall hierarchy
-        self.hierarchy_root: BasicTreeNode[
-            TechTreeNodeData
-        ] = validate_experiment_hierarchy(self.raw_data.hierarchy)
+        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = (
+            validate_experiment_hierarchy(self.resolved_raw_data.hierarchy)
+        )
         self._structural_nodes: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
         # validate individual nodes based on their adapter/aggregator
         for node in self.hierarchy_root.iter_all_nodes():
@@ -116,7 +119,7 @@ class Experiment:
         )
 
         self.scenarios: list[Scenario] = validate_scenarios(
-            self.raw_data.scenarios, Experiment.DEFAULT_SCENARIO_NAME, self
+            self.resolved_raw_data.scenarios, Experiment.DEFAULT_SCENARIO_NAME, self
         )
         validate_run_scenario_setting(self.env_settings, self.config, self.scenario_names)
 
@@ -135,40 +138,48 @@ class Experiment:
             raise ValueError(f"Node with name '{name}' not found")
         return node
 
-    def get_node_adapter(
-        self, node: BasicTreeNode[TechTreeNodeData]
-    ) -> EnbiosAdapterType:
+    def get_node_adapter(self, node: BasicTreeNode[TechTreeNodeData]) -> EnbiosAdapter:
         """
         Get the adapter of a node in the experiment hierarchy
 
         :param node:
         :return:
         """
-        return self._get_module_by_name_or_node_indicator(
-            node.data.adapter, EnbiosAdapter, node.name
+        assert node.data.adapter
+        return cast(
+            EnbiosAdapter,
+            self._get_module_by_name_or_node_indicator(
+                node.data.adapter, EnbiosAdapter, node.name
+            ),
         )
 
-    def get_adapter_by_name(self, name: str) -> EnbiosAdapterType:
+    def get_adapter_by_name(self, name: str) -> EnbiosAdapter:
         """
         Get an adapter by its name
         :param name:
         :return:
         """
-        return self._get_module_by_name_or_node_indicator(name, EnbiosAdapter)
+        return cast(
+            EnbiosAdapter, self._get_module_by_name_or_node_indicator(name, EnbiosAdapter)
+        )
 
     def get_node_aggregator(
         self,
         node: Union[
             BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
         ],
-    ) -> EnbiosAggregatorType:
+    ) -> EnbiosAggregator:
         """
         Get the aggregator of a node
         :param node:
         :return:
         """
-        return self._get_module_by_name_or_node_indicator(
-            node.data.aggregator, EnbiosAggregator, node.name
+        assert node.data.aggregator
+        return cast(
+            EnbiosAggregator,
+            self._get_module_by_name_or_node_indicator(
+                node.data.aggregator, EnbiosAggregator, node.name
+            ),
         )
 
     def _get_module_by_name_or_node_indicator(
@@ -330,7 +341,7 @@ class Experiment:
         get the config of the experiment
         :return:
         """
-        return self.raw_data.config
+        return self.resolved_raw_data.config
 
     def __repr__(self):
         return (
@@ -354,7 +365,7 @@ class Experiment:
         return list([s.name for s in self.scenarios])
 
     @property
-    def adapters(self) -> list[EnbiosAdapterType]:
+    def adapters(self) -> list[EnbiosAdapter]:
         """
         Get all adapters in a list
         :return:
@@ -494,9 +505,11 @@ class Experiment:
                     break
             if not found:
                 raise ValueError(f"Method {method} not found")
-        return self._get_module_by_name_or_node_indicator(
-            adapter_indicator, EnbiosAdapter
-        ).get_method_unit(method_name)
+        adapter: EnbiosAdapter = cast(
+            EnbiosAdapter,
+            self._get_module_by_name_or_node_indicator(adapter_indicator, EnbiosAdapter),
+        )
+        return adapter.get_method_unit(method_name)
 
     @property
     def method_names(self) -> list[str]:

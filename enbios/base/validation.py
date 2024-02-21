@@ -1,6 +1,6 @@
 from collections import Counter
 from logging import getLogger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
@@ -24,7 +24,7 @@ logger = getLogger(__name__)
 
 def validate_adapters(
     experiment_adapters: list[AdapterModel],
-) -> tuple[dict[str:EnbiosAdapter], list[str]]:
+) -> tuple[dict[str, EnbiosAdapter], list[str]]:
     """
     Validate the adapters in this experiment data
 
@@ -69,7 +69,7 @@ def validate_aggregators(
 
 
 def validate_scenarios(
-    experiment_scenarios: list[ExperimentScenarioData],
+    experiment_scenarios: Optional[list[ExperimentScenarioData]],
     default_scenario_name: str,
     experiment: "Experiment",
 ) -> list[Scenario]:

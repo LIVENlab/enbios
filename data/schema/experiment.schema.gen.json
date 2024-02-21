@@ -413,6 +413,9 @@
         {
           "format": "path",
           "type": "string"
+        },
+        {
+          "type": "null"
         }
       ],
       "default": null,

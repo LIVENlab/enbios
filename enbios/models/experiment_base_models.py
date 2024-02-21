@@ -10,21 +10,21 @@ StrictInputConfig = ConfigDict(extra="forbid", validate_assignment=True, strict=
 class ExperimentConfig(BaseModel):
     model_config = StrictInputConfig
     warn_default_demand: bool = True  # todo: bring this back
-    auto_aggregate: Optional[
-        bool
-    ] = True  # aggregate, with same indicator, as all children, if given.
+    auto_aggregate: Optional[bool] = (
+        True  # aggregate, with same indicator, as all children, if given.
+    )
     run_adapters_concurrently: bool = True
-    run_scenarios: Optional[
-        list[str]
-    ] = None  # list of scenario-name to run, ALSO AS ENV-VAR
+    run_scenarios: Optional[list[str]] = (
+        None  # list of scenario-name to run, ALSO AS ENV-VAR
+    )
     # only used by ExperimentDataIO
     # base_directory when loading files (activities, methods, ...)
     base_directory: Optional[Union[str, PathLike]] = None
     # those are only used for testing
     debug_test_is_valid: bool = True
-    debug_test_replace_bw_config: Union[
-        bool, list[str]
-    ] = True  # standard replacement, or bw-project, bw-database
+    debug_test_replace_bw_config: Union[bool, list[str]] = (
+        True  # standard replacement, or bw-project, bw-database
+    )
     debug_test_expected_error_code: Optional[int] = None
     debug_test_run: Optional[bool] = False
     note: Optional[str] = None
@@ -33,14 +33,14 @@ class ExperimentConfig(BaseModel):
 class AdapterModel(BaseModel):
     model_config = ConfigDict(extra="allow")
     module_path: Optional[PathLike] = None
-    adapter_name: str = Field(
+    adapter_name: Optional[str] = Field(
         None,
         description="this this is to use inbuilt adapter "
         "(e.g. 'simple-assignment-adapter'",
     )
     config: dict = Field(default_factory=dict)
     methods: dict[str, Any] = Field(default_factory=dict)
-    note: str = Field(None, description="A note for this adapter")
+    note: Optional[str] = Field(None, description="A note for this adapter")
 
     @model_validator(mode="before")
     @classmethod
@@ -115,9 +115,9 @@ class HierarchyNodeReference(BaseModel):
 
 
 class ScenarioConfig(BaseModel):
-    exclude_defaults: Optional[
-        bool
-    ] = False  # will only use on activities that are specified in the scenario
+    exclude_defaults: Optional[bool] = (
+        False  # will only use on activities that are specified in the scenario
+    )
 
 
 class NodeOutput(BaseModel):
@@ -161,7 +161,30 @@ class ExperimentData(BaseModel):
     hierarchy: Union[ExperimentHierarchyNodeData, PathLike] = Field(
         ..., description="The activity hierarchy to be used in the experiment"
     )
-    scenarios: Union[list[ExperimentScenarioData], PathLike] = Field(
+    scenarios: Optional[Union[list[ExperimentScenarioData], PathLike]] = Field(
+        None, description="The scenarios for this experiment"
+    )
+    config: ExperimentConfig = Field(
+        default_factory=ExperimentConfig,
+        description="The configuration of this experiment",
+    )
+
+
+class ExperimentDataResolved(BaseModel):
+    """
+    This class is used to store the data of an experiment.
+    """
+
+    model_config = StrictInputConfig
+
+    adapters: list[AdapterModel] = Field(..., description="The adapters to be used")
+    aggregators: list[AggregationModel] = Field(
+        [], description="The aggregators to be used"
+    )
+    hierarchy: ExperimentHierarchyNodeData = Field(
+        ..., description="The activity hierarchy to be used in the experiment"
+    )
+    scenarios: Optional[list[ExperimentScenarioData]] = Field(
         None, description="The scenarios for this experiment"
     )
     config: ExperimentConfig = Field(

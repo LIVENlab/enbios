@@ -10,6 +10,7 @@ from enbios.models.experiment_base_models import (
     ExperimentData,
     ExperimentHierarchyNodeData,
     ExperimentScenarioData,
+    ExperimentDataResolved,
     # ExperimentMethodData,
 )
 
@@ -60,14 +61,16 @@ def unflatten_data(data: dict, structure_map: dict):
     return unflatten(res, splitter="dot")
 
 
-def get_abs_path(path: Union[str, PathLike], base_dir: Optional[str] = None) -> ReadPath:
+def get_abs_path(
+    path: Union[str, PathLike], base_dir: Optional[Union[str, PathLike]] = None
+) -> ReadPath:
     if base_dir:
         return ReadPath(base_dir) / path
     else:
         return ReadPath(path)
 
 
-def resolve_input_files(raw_input: ExperimentData):
+def resolve_input_files(raw_input: ExperimentData) -> ExperimentDataResolved:
     # hierarchy
     if isinstance(raw_input.hierarchy, str) or isinstance(raw_input.hierarchy, PathLike):
         hierarchy_file: ReadPath = get_abs_path(
@@ -94,3 +97,5 @@ def resolve_input_files(raw_input: ExperimentData):
             ]
         else:
             raise Exception(f"Invalid scenario file: {raw_input.scenarios}")
+
+    return ExperimentDataResolved.model_validate(raw_input.model_dump())

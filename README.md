@@ -110,17 +110,19 @@ For each system function and structure (activity):
 This repository contains a few notebooks (require jupyter notebook) in the demos folder, that can help you get started. 
 We are updating and commenting these. Please bear with us while we do it and feel free to give us feedback on those (thanks).
 
-[Getting started](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/intro.ipynb)
+[Getting started](https://github.com/LIVENlab/enbios/blob/main/demos/intro.ipynb)
 
-[Plotting results](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/plot_results.ipynb)
+[Plotting results](https://github.com/LIVENlab/enbios/blob/main/demos/plot_results.ipynb)
 
-[Sorting the results in alternative hierarchies](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/multiple_hierarchies.ipynb)
+[Sorting the results in alternative hierarchies](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_hierarchies.ipynb)
 
-[Splitting the configuration](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/multiple_config_files.ipynb)
+[Splitting the configuration](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_config_files.ipynb)
 
-[Working with trees](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/trees.ipynb)
+[Working with trees](https://github.com/LIVENlab/enbios/blob/main/demos/trees.ipynb)
 
-[Experiment with uncertainties](https://github.com/LIVENlab/enbios/blob/main/enbios/demos/uncertainty_experiment.ipynb)
+[Experiment with uncertainties](https://github.com/LIVENlab/enbios/blob/main/demos/uncertainty_experiment.ipynb)
+
+[Convert mermaid diagrams to enbios hierarchy](https://github.com/LIVENlab/enbios/blob/main/demos/mermaid.ipynb)
 
 ## People
 

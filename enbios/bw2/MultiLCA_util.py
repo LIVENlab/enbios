@@ -17,8 +17,8 @@ class BaseStackedMultiLCA(ABC):
         calc_setup: BWCalculationSetup,
         results_structure: np.ndarray,
         use_distributions: bool = False,
-        method_activity_func_maps: dict[
-            tuple[str, ...], dict[int, Callable[[float], float]]
+        method_activity_func_maps: Optional[
+            dict[tuple[str, ...], dict[int, Callable[[float], float]]]
         ] = None,
     ):
         self.func_units = calc_setup.inv
@@ -90,9 +90,9 @@ class BaseStackedMultiLCA(ABC):
             # assign the proper function to the cf array
             for activity_id, matrix_idx in self.lca.dicts.biosphere.items():
                 if activity_id in self.lca.characterization_matrix:
-                    func_array[
-                        self.lca.dicts.biosphere[activity_id]
-                    ] = self.lca.characterization_matrix[activity_id]
+                    func_array[self.lca.dicts.biosphere[activity_id]] = (
+                        self.lca.characterization_matrix[activity_id]
+                    )
             result = np.array([])
             for summed_row, function in zip(summed_inventory, func_array):
                 result = np.append(result, function(summed_row))

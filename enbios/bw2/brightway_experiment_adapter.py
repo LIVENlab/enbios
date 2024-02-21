@@ -96,9 +96,9 @@ class BrightwayAdapter(EnbiosAdapter):
         self.config: BWAdapterConfig = BWAdapterConfig(bw_project="")
         self.activityMap: dict[str, BWActivityData] = {}
         self.methods: dict[str, ExperimentMethodPrepData] = {}
-        self.scenario_calc_setups: dict[
-            str, BWCalculationSetup
-        ] = {}  # scenario_alias to BWCalculationSetup
+        self.scenario_calc_setups: dict[str, BWCalculationSetup] = (
+            {}
+        )  # scenario_alias to BWCalculationSetup
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
         self.lca_objects: dict[
             str, list[Union[StackedMultiLCA, RegioStackedMultiLCA]]
@@ -117,7 +117,7 @@ class BrightwayAdapter(EnbiosAdapter):
             set([a.code for a in all_activities])
         ), "It is recommended that all activities have unique codes"
 
-    def validate_config(self, config: dict[str, Any]):
+    def validate_config(self, config: Optional[dict[str, Any]]):
         self.config = BWAdapterConfig(**config)
         if self.config.use_k_bw_distributions < 1:
             raise ValueError(
@@ -131,10 +131,10 @@ class BrightwayAdapter(EnbiosAdapter):
             bd.projects.set_current(self.config.bw_project)
         self.assert_all_codes_unique()
 
-    def validate_methods(self, methods: dict[str, Any]) -> list[str]:
+    def validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]:
         assert methods, "Methods must be defined for brightway adapter"
         # validation
-        BWMethodDefinition(methods)
+        BWMethodDefinition.model_validate(methods)
 
         def validate_method(method_id: Sequence[str]) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
@@ -189,10 +189,10 @@ class BrightwayAdapter(EnbiosAdapter):
             default_output=NodeOutput(unit=bw_unit_fix(bw_activity["unit"]), magnitude=1),
         )
         if "default_output" in node_config:
-            self.activityMap[
-                node_name
-            ].default_output.magnitude = self.validate_node_output(
-                node_name, NodeOutput(**node_config["default_output"])
+            self.activityMap[node_name].default_output.magnitude = (
+                self.validate_node_output(
+                    node_name, NodeOutput(**node_config["default_output"])
+                )
             )
         if self.config.simple_regionalization.run_regionalization:
             if "enb_location" in node_config:
@@ -353,9 +353,11 @@ class BrightwayAdapter(EnbiosAdapter):
                         setattr(
                             method_result,
                             result_field,
-                            method_res_values
-                            if use_distributions
-                            else method_res_values[0],
+                            (
+                                method_res_values
+                                if use_distributions
+                                else method_res_values[0]
+                            ),
                         )
                         result_data[act_alias][f"{method_name}.{region}"] = method_result
                 else:
@@ -385,9 +387,9 @@ class BrightwayAdapter(EnbiosAdapter):
     def prepare_nonlinear_method(
         self, method_name: str, method_config: NonLinearMethodConfig
     ) -> dict[int, Callable[[float], float]]:
-        result_func_map: dict[
-            int, Callable[[float], float]
-        ] = {}  # [None] * prep_lca.biosphere_matrix.shape[0]
+        result_func_map: dict[int, Callable[[float], float]] = (
+            {}
+        )  # [None] * prep_lca.biosphere_matrix.shape[0]
         if method_name not in self.methods:
             raise ValueError(
                 f"Unknown method '{method_name}' specified for nonlinear methods"
