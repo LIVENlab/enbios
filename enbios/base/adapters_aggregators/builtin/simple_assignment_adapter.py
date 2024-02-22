@@ -37,10 +37,10 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
     def name():
         return "simple-assignment-adapter"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.nodes: dict[str, SimpleAssignment] = {}  # name: node
-        self.methods: Optional[dict[str, str]] = None  # name: unit
+        self.methods: dict[str, str] = {}  # name: unit
 
     def validate_definition(self, definition: AdapterModel):
         SimpleAssignmentDefinition(**definition.model_dump())
@@ -49,8 +49,12 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         pass
 
     def validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]:
-        self.methods = methods
-        return list(methods.keys())
+        if methods:
+            self.methods = methods
+        if methods:
+            return list(methods.keys())
+        else:
+            return []
 
     def validate_node_output(self, node_name: str, target_output: NodeOutput) -> float:
         return get_output_in_unit(target_output, self.nodes[node_name].output_unit)
@@ -73,7 +77,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
     #     pass
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
-        result = {}
+        result:dict[str, dict[str, ResultValue]] = {}
         for node, config in self.nodes.items():
             node_results = result.setdefault(node, {})
             for method in self.methods:
