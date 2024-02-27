@@ -11,16 +11,17 @@ from enbios.models.experiment_base_models import (
 
 def validate_experiment_data(data: dict) -> ExperimentData:
     try:
-        return ExperimentData(**data)
+        return ExperimentData.model_validate(data)
     except ValidationError as err:
         print(err)
 
         try:
-            ExperimentHierarchyNodeData(**data.get("hierarchy"))
+            ExperimentHierarchyNodeData.model_validate(data.get("hierarchy"))
             print("\nHierarchy is valid\n")
         except ValidationError as err:
             print(err)
             print(f"!!!\n!!!\nCheck: 'hierarchy': {err.errors()}\n\n")
+            sys.exit(1)
 
         if scenarios := data.get("scenarios"):
             for idx, scenario in enumerate(scenarios):
