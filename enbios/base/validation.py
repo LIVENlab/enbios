@@ -59,9 +59,9 @@ def validate_aggregators(
         aggregators.append(aggregator)
 
     aggregator_names = [a.name() for a in aggregators]
-    for builtin_name, aggregator in BUILTIN_AGGREGATORS.items():
+    for builtin_name, aggregator_class in BUILTIN_AGGREGATORS.items():
         if builtin_name not in aggregator_names:
-            aggregator = aggregator()
+            aggregator = aggregator_class()
 
             aggregators.append(aggregator)
 
@@ -77,7 +77,7 @@ def validate_scenarios(
 
     # undefined scenarios. just one default scenario
     if not experiment_scenarios:
-        experiment_scenarios = [ExperimentScenarioData(name=default_scenario_name)]
+        experiment_scenarios = [ExperimentScenarioData(name=default_scenario_name, nodes={})]
 
     # set names if not given
     for index, scenario_data in enumerate(experiment_scenarios):
@@ -117,7 +117,7 @@ def validate_scenario(
 
             if isinstance(node_output, dict):
                 node_output = NodeOutput(**node_output)
-            result[node_name_] = adapter.validate_node_output(node_name_, node_output)
+            result[node_name_] = adapter.validate_scenario_node(node_name_, node_output)
         return result
 
     scenario_nodes_outputs: dict[str, float] = validate_nodes(scenario_data)

@@ -36,7 +36,7 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def validate_node_output(self, node_name: str, target_output: NodeOutput) -> float:
+    def validate_scenario_node(self, node_name: str, target_output: NodeOutput) -> float:
         pass
 
     @abstractmethod
@@ -65,9 +65,6 @@ class EnbiosAdapter(ABC):
         """
         pass
 
-    def get_logger(self):
-        return get_logger(f"ADAPTER::({self.name()})")
-
     @staticmethod
     @abstractmethod
     def node_indicator() -> str:
@@ -82,3 +79,6 @@ class EnbiosAdapter(ABC):
     @abstractmethod
     def name() -> str:
         pass
+
+    def get_logger(self):
+        return get_logger(f"__name__ ({self.name})")

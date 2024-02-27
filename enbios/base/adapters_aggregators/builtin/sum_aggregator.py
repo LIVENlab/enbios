@@ -5,6 +5,7 @@ from pint.facets.plain import PlainQuantity
 
 import enbios
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
+from enbios.base.unit_registry import ureg
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_base_models import NodeOutput
@@ -40,7 +41,7 @@ class SumAggregator(EnbiosAggregator):
             output_mag: Optional[Quantity] = None
             try:
                 output_mag = (
-                    enbios.get_enbios_ureg().parse_expression(node_output_unit)
+                    ureg.parse_expression(node_output_unit)
                     * child.data.output.magnitude
                 )
                 if not node_output:

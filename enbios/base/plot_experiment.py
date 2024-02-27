@@ -220,7 +220,7 @@ def single_star_plot(
 
     cmap = plt.colormaps.get_cmap("tab10")
     angles = 0
-    for idx, scenario_name in enumerate(scenarios):
+    for idx, scenario_name in enumerate(scenarios or []):
         values = df.loc[df["scenario"] == scenario_name].values.tolist()[0][1:]
         values.append(values[0])
 
@@ -292,8 +292,8 @@ def plot_heatmap(
 
     df = df.set_index("scenario").transpose()
 
+    fig:  Figure
     fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5, len(rs.method_names) * 1.5))
-    fig: Figure = fig
     set_plot_settings(ax, df, rs)
     plot_values_on_grid(ax, df, rs)
     fig.tight_layout()
@@ -401,7 +401,6 @@ def plot_multivalue_results(
     err_method: Optional[Callable[[np.ndarray], float]] = None,
 ):
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
-    experiment = rs.experiment
 
     nodes = rs.validate_node_selection(level, nodes)
 

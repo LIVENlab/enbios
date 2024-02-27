@@ -28,7 +28,7 @@ class TechTreeNodeData(BaseModel):
 
 class ResultValue(NodeOutput):
     model_config = StrictInputConfig
-    magnitude: Optional[float] = None
+    magnitude: Optional[float] = Field(None)
     multi_magnitude: Optional[list[float]] = field(default_factory=list)
 
 

@@ -1,6 +1,7 @@
 from typing import Type
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
+from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.adapters_aggregators.builtin.sum_aggregator import SumAggregator
 from enbios.base.adapters_aggregators.builtin.simple_assignment_adapter import (
     SimpleAssignmentAdapter,
@@ -12,4 +13,4 @@ BUILTIN_ADAPTERS: dict[str, Type[EnbiosAdapter]] = {
     BrightwayAdapter.name(): BrightwayAdapter,
 }
 
-BUILTIN_AGGREGATORS = {SumAggregator.name(): SumAggregator}
+BUILTIN_AGGREGATORS: dict[str, Type[EnbiosAggregator]] = {SumAggregator.name(): SumAggregator}

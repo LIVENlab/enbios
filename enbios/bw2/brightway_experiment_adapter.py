@@ -11,9 +11,10 @@ from pint import Quantity, UndefinedUnitError
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from pydantic_core import core_schema, PydanticOmit
 
-from enbios import get_enbios_ureg
+
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
+from enbios.base.unit_registry import ureg
 from enbios.bw2.bw_models import (
     ExperimentMethodPrepData,
     BWAdapterConfig,
@@ -33,7 +34,6 @@ from enbios.models.experiment_models import (
 
 logger = getLogger(__file__)
 
-ureg = get_enbios_ureg()
 
 
 def _bw_activity_search(activity_id: dict) -> Activity:
@@ -149,7 +149,7 @@ class BrightwayAdapter(EnbiosAdapter):
         }
         return list(self.methods.keys())
 
-    def validate_node_output(
+    def validate_scenario_node(
         self,
         node_name: str,
         target_output: NodeOutput,
@@ -190,7 +190,7 @@ class BrightwayAdapter(EnbiosAdapter):
         )
         if "default_output" in node_config:
             self.activityMap[node_name].default_output.magnitude = (
-                self.validate_node_output(
+                self.validate_scenario_node(
                     node_name, NodeOutput(**node_config["default_output"])
                 )
             )

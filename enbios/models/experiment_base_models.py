@@ -115,7 +115,7 @@ class HierarchyNodeReference(BaseModel):
 
 
 class ScenarioConfig(BaseModel):
-    exclude_defaults: Optional[bool] = (
+    exclude_defaults: Optional[bool] = Field(
         False  # will only use on activities that are specified in the scenario
     )
 
@@ -127,18 +127,18 @@ class NodeOutput(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def transform_value(cls, v: Any) -> "dict":
+    def transform_value(cls, v: Any) -> dict:
         if isinstance(v, dict):
             return v
         elif isinstance(v, tuple) or isinstance(v, list):
             return {"unit": v[0], "magnitude": v[1]}
+        return v
 
 
 class ExperimentScenarioData(BaseModel):
     model_config = StrictInputConfig
     name: Optional[str] = Field(None)
-    nodes: dict[str, NodeOutput] = Field(
-        None, description="name to output, null means default-output (check exists)"
+    nodes: dict[str, NodeOutput] = Field(..., description="name to output, null means default-output (check exists)"
     )
     config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
 
