@@ -1,0 +1,54 @@
+{
+  "n1": {
+    "node_name": "n1",
+    "output_unit": "l",
+    "default_output": {
+      "unit": "l",
+      "magnitude": 1.0
+    },
+    "default_impacts": {},
+    "scenario_outputs": {
+      "sc1": {
+        "unit": "l",
+        "magnitude": 100.0
+      },
+      "sc2": {
+        "unit": "l",
+        "magnitude": 150.0
+      }
+    },
+    "scenario_impacts": {
+      "sc1": {
+        "co2": {
+          "unit": "kg",
+          "magnitude": 5.0,
+          "multi_magnitude": []
+        }
+      },
+      "sc2": {
+        "co2": {
+          "unit": "kg",
+          "magnitude": 7.5,
+          "multi_magnitude": []
+        }
+      }
+    }
+  },
+  "n2": {
+    "node_name": "n2",
+    "output_unit": "m2",
+    "default_output": {
+      "unit": "m2",
+      "magnitude": 100.0
+    },
+    "default_impacts": {
+      "co2": {
+        "unit": "kg",
+        "magnitude": 5.0,
+        "multi_magnitude": []
+      }
+    },
+    "scenario_outputs": {},
+    "scenario_impacts": {}
+  }
+}

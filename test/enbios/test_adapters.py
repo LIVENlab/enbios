@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import cast
 
@@ -64,60 +65,55 @@ def test_simple_assignment_adapter():
 
 
 def simple_assignment_adapter_test_files():
-    for file in (BASE_TEST_DATA_PATH / "simple_assignments_adapter").glob("*.csv"):
+    for file in sorted((BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs").glob("*.csv")):
         yield file
 
 
 def simple_assignment_adapter_test_files_names():
-    for file in (BASE_TEST_DATA_PATH / "simple_assignments_adapter").glob("*.csv"):
-        yield file.name
+    for file in sorted((BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs").glob("*.csv")):
+        yield file.stem
+
+
+def run_test_with_file(adapter_csv_file: Path):
+    data = {
+        "adapters": [
+            {
+                "adapter_name": "simple-assignment-adapter",
+                "config": {
+                    "source_csv_file": adapter_csv_file
+                },
+                "methods": {
+                    "test": "co2"
+                }
+            }
+        ],
+        "hierarchy": {
+            "name": "root",
+            "aggregator": "sum",
+            "children": [
+                {
+                    "name": "n1",
+                    "adapter": "assign",
+                    "config": {}
+                }
+            ]
+        }
+    }
+
+    if adapter_csv_file.stem.endswith("_x"):
+        with pytest.raises(Exception):
+            exp = Experiment(data)
+    else:
+        exp = Experiment(data)
+        nodes = cast(SimpleAssignmentAdapter, exp.get_adapter_by_name("simple-assignment-adapter")).nodes
+        print(json.dumps({n:v.model_dump() for n,v in nodes.items()}, indent=2))
 
 
 @pytest.mark.parametrize('adapter_csv_file', argvalues=simple_assignment_adapter_test_files(),
                          ids=simple_assignment_adapter_test_files_names())
 def test_simple_assignment_adapter_csv(adapter_csv_file: Path):
-    for i in range(1, 3):
-        data = {
-            "adapters": [
-                {
-                    "adapter_name": "simple-assignment-adapter",
-                    "config": {
-                        "source_csv_file": adapter_csv_file
-                    },
-                    "methods": {
-                        "test": "co2"
-                    }
-                }
-            ],
-            "hierarchy": {
-                "name": "root",
-                "aggregator": "sum",
-                "children": [
-                    {
-                        "name": "n1",
-                        "adapter": "assign",
-                        "config": {}
-                    }
-                ]
-            }
-        }
+    run_test_with_file(adapter_csv_file)
 
-        exp = Experiment(data)
-        print(cast(SimpleAssignmentAdapter, exp.get_adapter_by_name("simple-assignment-adapter")).nodes)
 
-    # res = exp.run()
-    # rearrange = exp.scenarios[0].result_to_dict(alternative_hierarchy={
-    #     "name": "root",
-    #     "children": [
-    #         {
-    #             "name": "middle",
-    #             "aggregator":"sum",
-    #             "children": [
-    #                 {
-    #                     "name": "test",
-    #                 }]
-    #         }
-    #     ]
-    # })
-    # print(rearrange)
-    # assert rearrange
+def test_simple_assignment_adapter_with_csv():
+    run_test_with_file(BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs/simple_assignment6.csv")

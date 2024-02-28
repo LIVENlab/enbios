@@ -109,7 +109,7 @@ def validate_scenario(
 
     def validate_nodes(scenario_: ExperimentScenarioData) -> dict[str, float]:
         nodes = scenario_.nodes or {}
-        result: dict[str, float] = {}
+        outputs: dict[str, float] = {}
 
         for node_name_, node_output in nodes.items():
             node_ = experiment.get_structural_node(node_name_)
@@ -117,8 +117,8 @@ def validate_scenario(
 
             if isinstance(node_output, dict):
                 node_output = NodeOutput(**node_output)
-            result[node_name_] = adapter.validate_scenario_node(node_name_, node_output)
-        return result
+            outputs[node_name_] = adapter.validate_scenario_node(node_name_, node_output)
+        return outputs
 
     scenario_nodes_outputs: dict[str, float] = validate_nodes(scenario_data)
     defined_nodes = list(scenario_nodes_outputs.keys())
@@ -131,7 +131,7 @@ def validate_scenario(
                 scenario_nodes_outputs[node_name] = experiment.get_node_adapter(
                     node
                 ).get_default_output_value(node.name)
-
+    assert scenario_data.name
     return Scenario(
         experiment=experiment,  # type: ignore
         name=scenario_data.name,

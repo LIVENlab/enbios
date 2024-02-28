@@ -1,0 +1,18 @@
+{
+  "n1": {
+    "node_name": "n1",
+    "output_unit": "l",
+    "default_output": {
+      "unit": "l",
+      "magnitude": 100.0
+    },
+    "default_impacts": {
+      "co2": {
+        "unit": "kg",
+        "magnitude": 5.0
+      }
+    },
+    "scenario_outputs": {},
+    "scenario_impacts": {}
+  }
+}

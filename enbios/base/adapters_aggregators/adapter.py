@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from logging import Logger
 from typing import Any, Optional
 
 from enbios.base.scenario import Scenario
@@ -80,5 +81,5 @@ class EnbiosAdapter(ABC):
     def name() -> str:
         pass
 
-    def get_logger(self):
-        return get_logger(f"__name__ ({self.name})")
+    def get_logger(self) -> Logger:
+        return get_logger(f"({self.name()})")
