@@ -117,7 +117,7 @@ def validate_scenario(
 
             if isinstance(node_output, dict):
                 node_output = NodeOutput(**node_output)
-            outputs[node_name_] = adapter.validate_scenario_node(node_name_, node_output)
+            outputs[node_name_] = adapter.validate_scenario_node_output(node_name_, node_output)
         return outputs
 
     scenario_nodes_outputs: dict[str, float] = validate_nodes(scenario_data)

@@ -11,7 +11,6 @@ from pint import Quantity, UndefinedUnitError
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from pydantic_core import core_schema, PydanticOmit
 
-
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.base.unit_registry import ureg
@@ -33,7 +32,6 @@ from enbios.models.experiment_models import (
 )
 
 logger = getLogger(__file__)
-
 
 
 def _bw_activity_search(activity_id: dict) -> Activity:
@@ -149,11 +147,11 @@ class BrightwayAdapter(EnbiosAdapter):
         }
         return list(self.methods.keys())
 
-    def validate_scenario_node(
-        self,
-        node_name: str,
-        target_output: NodeOutput,
-    ) -> float:
+    def validate_scenario_node_output(
+            self,
+            node_name: str,
+            target_output: NodeOutput,
+    )-> float:
         """
         validate and convert to the bw-activity unit
         :param node_name:
@@ -162,10 +160,10 @@ class BrightwayAdapter(EnbiosAdapter):
         """
         try:
             target_quantity: Quantity = (
-                ureg.parse_expression(
-                    bw_unit_fix(target_output.unit), case_sensitive=False
-                )
-                * target_output.magnitude
+                    ureg.parse_expression(
+                        bw_unit_fix(target_output.unit), case_sensitive=False
+                    )
+                    * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -190,7 +188,7 @@ class BrightwayAdapter(EnbiosAdapter):
         )
         if "default_output" in node_config:
             self.activityMap[node_name].default_output.magnitude = (
-                self.validate_scenario_node(
+                self.validate_scenario_node_output(
                     node_name, NodeOutput(**node_config["default_output"])
                 )
             )
@@ -226,8 +224,8 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup.register()
         self.scenario_calc_setups[scenario.name] = calculation_setup
         if (
-            self.config.simple_regionalization.run_regionalization
-            and not self.all_regions_set
+                self.config.simple_regionalization.run_regionalization
+                and not self.all_regions_set
         ):
             # memorize nodes from the tree in order to not delete their location
             keep_locations_of_activities: list[str] = []
@@ -244,14 +242,14 @@ class BrightwayAdapter(EnbiosAdapter):
                 )
 
                 for range_start in range(
-                    math.ceil(len(activities_to_reset) / range_length)
+                        math.ceil(len(activities_to_reset) / range_length)
                 ):
                     # noinspection PyUnresolvedReferences
                     # noinspection PyProtectedMember
                     with ActivityDataset._meta.database.atomic():
                         for a in activities_to_reset[
-                            range_start * range_length : (range_start + 1) * range_length
-                        ]:
+                                 range_start * range_length: (range_start + 1) * range_length
+                                 ]:
                             a.data["enb_location"] = None
                             a.save()
 
@@ -324,11 +322,11 @@ class BrightwayAdapter(EnbiosAdapter):
         )
 
     def _assign_results2nodes(
-        self,
-        raw_results: list[ndarray],
-        scenario: Scenario,
-        use_distributions: bool,
-        has_regionalization: bool,
+            self,
+            raw_results: list[ndarray],
+            scenario: Scenario,
+            use_distributions: bool,
+            has_regionalization: bool,
     ):
         result_data: dict[str, Any] = {}
         for act_idx, act_alias in enumerate(self.activityMap.keys()):
@@ -344,7 +342,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 method_name, method_data = method
                 if has_regionalization:
                     for region_idx, region in enumerate(
-                        self.config.simple_regionalization.select_regions
+                            self.config.simple_regionalization.select_regions
                     ):
                         method_result = ResultValue(unit=method_data.bw_method_unit)
                         method_res_values = [
@@ -385,7 +383,7 @@ class BrightwayAdapter(EnbiosAdapter):
         return method_activity2func_maps
 
     def prepare_nonlinear_method(
-        self, method_name: str, method_config: NonLinearMethodConfig
+            self, method_name: str, method_config: NonLinearMethodConfig
     ) -> dict[int, Callable[[float], float]]:
         result_func_map: dict[int, Callable[[float], float]] = (
             {}
@@ -427,7 +425,7 @@ class BrightwayAdapter(EnbiosAdapter):
 
         class MyGenerateJsonSchema(GenerateJsonSchema):
             def handle_invalid_for_json_schema(
-                self, schema: core_schema.CoreSchema, error_info: str
+                    self, schema: core_schema.CoreSchema, error_info: str
             ) -> JsonSchemaValue:
                 if schema["type"] == "callable":
                     logger.warning("Ignoring callable during schema generation...")
@@ -444,7 +442,7 @@ class BrightwayAdapter(EnbiosAdapter):
         }
 
     def activities_keys_id_map(
-        self, keys: list[tuple[str, str]]
+            self, keys: list[tuple[str, str]]
     ) -> ReversibleRemappableDictionary:
         codes = [code for _, code in keys]
         biosphere_activities = list(
