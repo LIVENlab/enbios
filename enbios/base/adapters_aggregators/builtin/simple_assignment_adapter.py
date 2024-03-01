@@ -74,7 +74,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                 **{**{"node_name": node_name} | node_config}
             )
 
-    def validate_scenario_node_output(self, node_name: str, target_output: NodeOutput) -> float:
+    def validate_scenario_node(self, node_name: str, target_output: Any) -> float:
         return get_output_in_unit(target_output, self.nodes[node_name].output_unit)
 
     def get_node_output_unit(self, node_name: str) -> str:

@@ -147,10 +147,10 @@ class BrightwayAdapter(EnbiosAdapter):
         }
         return list(self.methods.keys())
 
-    def validate_scenario_node_output(
+    def validate_scenario_node(
             self,
             node_name: str,
-            target_output: NodeOutput,
+            target_output: Any,
     )-> float:
         """
         validate and convert to the bw-activity unit
@@ -158,18 +158,19 @@ class BrightwayAdapter(EnbiosAdapter):
         :param target_output:
         :return:
         """
+        target_output_: NodeOutput = NodeOutput.model_validate(target_output)
         try:
             target_quantity: Quantity = (
                     ureg.parse_expression(
-                        bw_unit_fix(target_output.unit), case_sensitive=False
+                        bw_unit_fix(target_output_.unit), case_sensitive=False
                     )
-                    * target_output.magnitude
+                    * target_output_.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
         except UndefinedUnitError as err:
             logger.error(
-                f"Cannot parse output unit '{target_output.unit}'- "
+                f"Cannot parse output unit '{target_output_.unit}'- "
                 f"of activity {node_name}. {err}. "
                 f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
             )
@@ -188,7 +189,7 @@ class BrightwayAdapter(EnbiosAdapter):
         )
         if "default_output" in node_config:
             self.activityMap[node_name].default_output.magnitude = (
-                self.validate_scenario_node_output(
+                self.validate_scenario_node(
                     node_name, NodeOutput(**node_config["default_output"])
                 )
             )
