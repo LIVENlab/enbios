@@ -83,7 +83,7 @@ def run_test_with_file(adapter_csv_file: Path):
                     "source_csv_file": adapter_csv_file
                 },
                 "methods": {
-                    "test": "co2"
+                    "co2": "kg"
                 }
             }
         ],
@@ -97,7 +97,11 @@ def run_test_with_file(adapter_csv_file: Path):
                     "config": {}
                 }
             ]
-        }
+        },
+        "scenarios": [
+            {"name": "sc1", "nodes": {}},
+            {"name": "sc2", "nodes": {}}
+        ]
     }
 
     if adapter_csv_file.stem.endswith("_x"):
@@ -106,7 +110,14 @@ def run_test_with_file(adapter_csv_file: Path):
     else:
         exp = Experiment(data)
         nodes = cast(SimpleAssignmentAdapter, exp.get_adapter_by_name("simple-assignment-adapter")).nodes
-        print(json.dumps({n:v.model_dump() for n,v in nodes.items()}, indent=2))
+        result_dict = {n: v.model_dump() for n, v in nodes.items()}
+        print(json.dumps(result_dict, indent=2))
+        comparisson_file = Path(
+            BASE_TEST_DATA_PATH / f"simple_assignments_adapter/validate/{adapter_csv_file.stem}.json")
+        comparisson_data = json.load(comparisson_file.open())
+        assert result_dict == comparisson_data
+        results = exp.run()
+        pass
 
 
 @pytest.mark.parametrize('adapter_csv_file', argvalues=simple_assignment_adapter_test_files(),
@@ -116,4 +127,4 @@ def test_simple_assignment_adapter_csv(adapter_csv_file: Path):
 
 
 def test_simple_assignment_adapter_with_csv():
-    run_test_with_file(BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs/simple_assignment6.csv")
+    run_test_with_file(BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs/simple_assignment7.csv")

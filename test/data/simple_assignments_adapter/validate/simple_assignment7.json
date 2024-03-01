@@ -3,8 +3,8 @@
     "node_name": "n1",
     "output_unit": "l",
     "default_output": {
-      "unit": "l",
-      "magnitude": 100.0
+      "unit": "Ml",
+      "magnitude": 2.0
     },
     "default_impacts": {
       "co2": {

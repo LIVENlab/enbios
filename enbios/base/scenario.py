@@ -39,7 +39,7 @@ class Scenario:
     structural_nodes_outputs: dict[str, float] = field(default_factory=dict)
     # methods: Optional[dict[str, ExperimentMethodPrepData]] = None
     _execution_time: float = float("NaN")
-    config: ScenarioConfig = field(default_factory=ScenarioConfig)
+    config: ScenarioConfig = field(default_factory=ScenarioConfig)  # type: ignore
 
     def prepare_tree(self):
         """Prepare the result tree for calculating scenario outputs.
@@ -69,7 +69,7 @@ class Scenario:
         if self.config.exclude_defaults:
 
             def remove_empty_nodes(
-                node: BasicTreeNode[ScenarioResultNodeData], cancel_parents_of: set[str]
+                    node: BasicTreeNode[ScenarioResultNodeData], cancel_parents_of: set[str]
             ):
                 # aggregators without children are not needed
                 if node.is_leaf and node.data.aggregator:
@@ -94,7 +94,7 @@ class Scenario:
 
     @staticmethod
     def _propagate_results_upwards(
-        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"
+            node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"
     ):
         if node.is_leaf:
             return
@@ -104,7 +104,7 @@ class Scenario:
             ).aggregate_node_result(node)
 
     def run(
-        self, results_as_dict: bool = True
+            self, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         # if not self._get_methods():
         #     raise ValueError(f"Scenario '{self.name}' has no methods")
@@ -118,7 +118,7 @@ class Scenario:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 # Use a list comprehension to start a thread for each adapter
                 futures = [
-                    executor.submit(adapter.run_scenario, self)
+                    executor.submit(adapter.run_scenario, self)  # type: ignore
                     for adapter in self.experiment.adapters
                 ]
                 # As each future completes, set the results
@@ -128,11 +128,11 @@ class Scenario:
         else:
             for adapter in self.experiment.adapters:
                 # run in parallel:
-                result_data = adapter.run_scenario(self)
+                result_data = adapter.run_scenario(self)  # type: ignore
                 self.set_results(result_data)
 
         self.result_tree.recursive_apply(
-            Scenario._propagate_results_upwards,
+            Scenario._propagate_results_upwards,  # type: ignore
             experiment=self.experiment,
             depth_first=True,
         )
@@ -168,7 +168,7 @@ class Scenario:
 
     @staticmethod
     def wrapper_data_serializer(
-        include_output: bool = True, expand_results: bool = False
+            include_output: bool = True, expand_results: bool = False
     ) -> Callable[[ScenarioResultNodeData], dict]:
         def _expand_results(results: dict[str, ResultValue]) -> dict:
             """
@@ -189,10 +189,11 @@ class Scenario:
             return expanded_results
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
+            result: dict[str, Any]
             if expand_results:
-                result: dict[str, Any] = _expand_results(data.results)
+                result = _expand_results(data.results)
             else:
-                result: dict[str, Any] = {
+                result = {
                     "results": {
                         method_name: result_value.model_dump(exclude_defaults=True)
                         for method_name, result_value in data.results.items()
@@ -214,12 +215,12 @@ class Scenario:
         return data_serializer
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: Optional[dict] = None,
+            self,
+            file_path: PathLike,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: Optional[dict] = None,
     ):
         """
         Save the results (as tree) to a csv file
@@ -249,10 +250,10 @@ class Scenario:
         )
 
     def result_to_dict(
-        self,
-        include_output: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: dict = None,
+            self,
+            include_output: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: Optional[dict] = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
@@ -283,7 +284,7 @@ class Scenario:
             return recursive_transform(self.result_tree.copy())
 
     def _rearrange_results(
-        self, hierarchy: dict
+            self, hierarchy: dict
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         hierarchy_obj = HierarchyNodeReference(**hierarchy)
 
@@ -296,12 +297,12 @@ class Scenario:
         )
 
         def recursive_convert(
-            node_: BasicTreeNode[TechTreeNodeData],
+                node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: Optional[NodeOutput] = None
-            results = {}
+            results: dict = {}
             if node_.is_leaf:
-                calc_data = self.result_tree.find_subnode_by_name(node_.name).data
+                calc_data = self.result_tree.find_subnode_by_name(node_.name).data  # type: ignore
                 output = calc_data.output
                 results = calc_data.results
             return BasicTreeNode(
@@ -322,14 +323,14 @@ class Scenario:
         from enbios.base.tree_operations import recursive_resolve_outputs
 
         result_tree.recursive_apply(
-            recursive_resolve_outputs,
+            recursive_resolve_outputs,  # type: ignore
             experiment=self.experiment,
             depth_first=True,
             cancel_parents_of=set(),
         )
 
         result_tree.recursive_apply(
-            Scenario._propagate_results_upwards,
+            Scenario._propagate_results_upwards,  # type: ignore
             experiment=self.experiment,
             depth_first=True,
         )

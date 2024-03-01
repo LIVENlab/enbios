@@ -125,6 +125,7 @@ def validate_scenario(
 
     # fill up the missing activities with default values
     if not scenario_data.config.exclude_defaults:
+        # todo make the data come from the adapter
         for node_name in experiment.structural_nodes_names:
             if node_name not in defined_nodes:
                 node = experiment.get_structural_node(node_name)

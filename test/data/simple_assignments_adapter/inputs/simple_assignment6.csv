@@ -2,4 +2,4 @@ node_name,output_unit,default_output_unit,default_output_magnitude,default_impac
 n1,l,,,,,sc1,,100,kg,5
 n1,,,,,,sc2,,150,kg,7.5
 n2,l,,10,kg,50
-n2,,,,,,sc1,,60,,12
+n2,,,,,,sc1,,60,kg,12

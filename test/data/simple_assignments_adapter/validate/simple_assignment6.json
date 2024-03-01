@@ -36,19 +36,32 @@
   },
   "n2": {
     "node_name": "n2",
-    "output_unit": "m^2",
+    "output_unit": "l",
     "default_output": {
-      "unit": "m^2",
-      "magnitude": 100.0
+      "unit": "l",
+      "magnitude": 10.0
     },
     "default_impacts": {
       "co2": {
         "unit": "kg",
-        "magnitude": 5.0,
+        "magnitude": 50.0,
         "multi_magnitude": []
       }
     },
-    "scenario_outputs": {},
-    "scenario_impacts": {}
+    "scenario_outputs": {
+      "sc1": {
+        "unit": "l",
+        "magnitude": 60.0
+      }
+    },
+    "scenario_impacts": {
+      "sc1": {
+        "co2": {
+          "unit": "kg",
+          "magnitude": 12.0,
+          "multi_magnitude": []
+        }
+      }
+    }
   }
 }

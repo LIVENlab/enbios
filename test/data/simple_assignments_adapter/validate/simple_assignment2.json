@@ -12,7 +12,8 @@
       "sc1": {
         "co2": {
           "unit": "kg",
-          "magnitude": 5.0
+          "magnitude": 5.0,
+          "multi_magnitude": []
         }
       }
     }
