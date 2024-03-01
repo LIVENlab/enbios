@@ -2,7 +2,7 @@ import math
 from logging import getLogger
 from typing import Optional, Any, Union, Sequence, Callable
 
-import bw2data
+from bw2data import Method as Bw2Method
 import bw2data as bd
 from bw2calc.dictionary_manager import ReversibleRemappableDictionary
 from bw2data.backends import Activity, ActivityDataset
@@ -89,9 +89,9 @@ class BrightwayAdapter(EnbiosAdapter):
     def validate_definition(self, definition: AdapterModel):
         pass
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(BrightwayAdapter, self).__init__()
-        self.config: BWAdapterConfig = BWAdapterConfig(bw_project="")
+        self.config = BWAdapterConfig.model_validate({"bw_project": ""})
         self.activityMap: dict[str, BWActivityData] = {}
         self.methods: dict[str, ExperimentMethodPrepData] = {}
         self.scenario_calc_setups: dict[str, BWCalculationSetup] = (
@@ -116,7 +116,7 @@ class BrightwayAdapter(EnbiosAdapter):
         ), "It is recommended that all activities have unique codes"
 
     def validate_config(self, config: Optional[dict[str, Any]]):
-        self.config = BWAdapterConfig(**config)
+        self.config = BWAdapterConfig.model_validate(config)
         if self.config.use_k_bw_distributions < 1:
             raise ValueError(
                 f"config.use_k_bw_distributions must be greater than 0, "
@@ -142,7 +142,7 @@ class BrightwayAdapter(EnbiosAdapter):
             unit = bw_method.get("unit", "undefined method unit")
             return ExperimentMethodPrepData(id=tuple(method_id), bw_method_unit=unit)
 
-        self.methods: dict[str, ExperimentMethodPrepData] = {
+        self.methods = {
             name: validate_method(method) for name, method in methods.items()
         }
         return list(self.methods.keys())
@@ -150,15 +150,16 @@ class BrightwayAdapter(EnbiosAdapter):
     def validate_scenario_node(
             self,
             node_name: str,
-            target_output: Any,
+            scenario_name: str,
+            scenario_node_data: Any,
     )-> float:
         """
         validate and convert to the bw-activity unit
         :param node_name:
-        :param target_output:
+        :param scenario_node_data:
         :return:
         """
-        target_output_: NodeOutput = NodeOutput.model_validate(target_output)
+        target_output_: NodeOutput = NodeOutput.model_validate(scenario_node_data)
         try:
             target_quantity: Quantity = (
                     ureg.parse_expression(
@@ -190,7 +191,7 @@ class BrightwayAdapter(EnbiosAdapter):
         if "default_output" in node_config:
             self.activityMap[node_name].default_output.magnitude = (
                 self.validate_scenario_node(
-                    node_name, NodeOutput(**node_config["default_output"])
+                    node_name, "", NodeOutput(**node_config["default_output"])
                 )
             )
         if self.config.simple_regionalization.run_regionalization:
@@ -345,7 +346,7 @@ class BrightwayAdapter(EnbiosAdapter):
                     for region_idx, region in enumerate(
                             self.config.simple_regionalization.select_regions
                     ):
-                        method_result = ResultValue(unit=method_data.bw_method_unit)
+                        method_result = ResultValue.model_validate({"unit": method_data.bw_method_unit})
                         method_res_values = [
                             res[act_idx, m_idx, region_idx] for res in raw_results
                         ]
@@ -360,7 +361,7 @@ class BrightwayAdapter(EnbiosAdapter):
                         )
                         result_data[act_alias][f"{method_name}.{region}"] = method_result
                 else:
-                    method_result = ResultValue(unit=method_data.bw_method_unit)
+                    method_result = ResultValue.model_validate({"unit": method_data.bw_method_unit})
                     method_res_values = [res[act_idx, m_idx] for res in raw_results]
                     setattr(
                         method_result,
@@ -397,7 +398,7 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_method_id: tuple[str, ...] = self.methods[method_name].id
         if method_config.module_path_function_name:
             module_path, func_name = method_config.module_path_function_name
-            func: Callable = get_module_functions(load_module(module_path)).get(func_name)
+            func: Optional[Callable] = get_module_functions(load_module(module_path)).get(func_name)
             if not func:
                 raise ValueError(
                     f"Could not find function: '{func_name} in module: {module_path}, which is defined for"
@@ -411,7 +412,7 @@ class BrightwayAdapter(EnbiosAdapter):
         for key, id_ in biosphere_keys2ids.items():
             result_func_map[id_] = method_config.functions[key]
         if method_config.get_defaults_from_original:
-            bw_method_data = bw2data.Method(bw_method_id).load()
+            bw_method_data = Bw2Method(bw_method_id).load()
             bw_cf_activity_key2ids = self.activities_keys_id_map(
                 [tuple[str, str](method_key) for method_key, _ in bw_method_data]
             )

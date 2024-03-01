@@ -64,7 +64,6 @@ class Experiment:
                     "Experiment config-file-path must be specified as environment "
                     "variable: 'CONFIG_FILE'"
                 )
-        data: dict = {}
         if isinstance(data_input, str):
             config_file_path = ReadPath(data_input)
             data = config_file_path.read_data()
@@ -188,9 +187,10 @@ class Experiment:
             module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
             node_name: Optional[str] = None,
     ) -> Union[EnbiosAdapter, EnbiosAggregator]:
-        modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = cast(dict[str, Union[EnbiosAdapter, EnbiosAggregator]],(
-            self._adapters if module_type == EnbiosAdapter else self._aggregators
-        ))
+        modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = cast(
+            dict[str, Union[EnbiosAdapter, EnbiosAggregator]], (
+                self._adapters if module_type == EnbiosAdapter else self._aggregators
+            ))
         module = modules.get(name_or_indicator)
         if module:
             return module
@@ -382,6 +382,7 @@ class Experiment:
         Run a scenario from a config dictionary. Scenario will be validated and run. An
         :param scenario_config:
         :param result_as_dict:
+        :param append_scenario:
         :return:
         """
         scenario_data = ExperimentScenarioData(**scenario_config)

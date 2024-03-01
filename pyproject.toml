@@ -42,6 +42,9 @@ test = [
     "pytest==7.3.2", "Deprecated>=1.2.14"
 ]
 
+[tool.mypy]
+ignore_missing_imports = true
+
 
 [tool.setuptools]
 package-dir = { "enbios" = "enbios" }

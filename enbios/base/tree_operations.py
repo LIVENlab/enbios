@@ -63,8 +63,9 @@ def validate_experiment_reference_hierarchy(
                     get_node_aggregator_fcn(node).validate_node(
                         node.name, node.data.config
                     )
+                else:
                     # raise ValueError(f"Node '{node.name}' not found in original hierarchy")
-                node.set_data(orig_node.data)
+                    node.set_data(orig_node.data)
         return True
 
     tech_tree.recursive_apply(validate_node_data, depth_first=True)  # type: ignore

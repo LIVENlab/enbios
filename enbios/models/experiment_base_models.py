@@ -43,8 +43,7 @@ class AdapterModel(BaseModel):
     note: Optional[str] = Field(None, description="A note for this adapter")
 
     @model_validator(mode="before")
-    @classmethod
-    def module_specified(cls, data: Any) -> Any:
+    def module_specified(data: Any):
         # either module_path or module_class must be specified
         if not ("module_path" in data or "adapter_name" in data):
             raise ValueError("Either module_path or adapter_name must be specified")
@@ -62,7 +61,6 @@ class AggregationModel(BaseModel):
     note: Optional[str] = None
 
     @model_validator(mode="before")
-    @classmethod
     def module_specified(cls, data: Any) -> Any:
         # either module_path or module_class must be specified
         if not ("module_path" in data or "aggregator_name" in data):
@@ -98,7 +96,7 @@ class HierarchyNodeReference(BaseModel):
 
     name: str
     config: Optional[Any] = Field(
-        None, description="setup data (id, outputs, ... arbitrary data"
+        default=None, description="setup data (id, outputs, ... arbitrary data"
     )
     aggregator: Optional[str] = None
     children: Optional[list["HierarchyNodeReference"]] = None
@@ -126,7 +124,6 @@ class NodeOutput(BaseModel):
     magnitude: float = 1.0
 
     @model_validator(mode="before")
-    @classmethod
     def transform_value(cls, v: Any) -> dict:
         if isinstance(v, dict):
             return v
@@ -140,7 +137,7 @@ class ExperimentScenarioData(BaseModel):
     name: Optional[str] = Field(None)
     nodes: dict[str, Any] = Field(..., description="name to output, null means default-output (check exists)"
     )
-    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)
+    config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)  # type: ignore
 
     def name_factory(self, index: int):
         if not self.name:

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Optional, Literal
 
@@ -11,22 +12,26 @@ from enbios.models.experiment_base_models import AdapterModel, NodeOutput
 from enbios.models.experiment_models import ResultValue
 
 
-class SimpleAssignment(BaseModel):
+class SimpleAssignmentNodeConfig(BaseModel):
     node_name: str
     output_unit: str
     default_output: NodeOutput
-    default_impacts: Optional[dict[str, ResultValue]] = Field(default_factory=dict)
-    scenario_outputs: Optional[dict[str, NodeOutput]] = Field(default_factory=dict)
-    scenario_impacts: Optional[dict[str, dict[str, ResultValue]]] = Field(default_factory=dict)
+    default_impacts: dict[str, ResultValue] = Field(default_factory=dict)
+    scenario_data: dict[str, "SimpleAssignmentNodeScenarioData"] = Field(default_factory=dict)
 
-    @model_validator(mode="before")
-    @classmethod
-    def validator(cls, data: Any) -> Any:
+    @model_validator(mode="before")  # type: ignore
+    def validator(data: Any):
         if "default_output" not in data:
             data["default_output"] = {"unit": data["output_unit"], "magnitude": 1}
-        if "default_impacts" not in data and "scenario_impacts" not in data:
-            raise ValueError("Either default_impacts or scenario_impacts must be defined")
+        if "default_impacts" not in data:
+            if "scenario_data" not in data or "impacts" not in data["scenario_data"]:
+                raise ValueError("Either default_impacts or scenario_data.impacts must be defined")
         return data
+
+
+class SimpleAssignmentNodeScenarioData(BaseModel):
+    outputs: NodeOutput = Field(default=None)
+    impacts: dict[str, ResultValue] = Field(default_factory=dict)
 
 
 class SimpleAssignmentConfig(BaseModel):
@@ -45,7 +50,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     def __init__(self) -> None:
         super().__init__()
-        self.nodes: dict[str, SimpleAssignment] = {}  # name: node
+        self.nodes: dict[str, SimpleAssignmentNodeConfig] = {}  # name: node
         self.methods: dict[str, str] = {}  # name: unit
         self.definition: SimpleAssignmentDefinition = SimpleAssignmentDefinition(methods={})  # placeholder
         self.from_csv_file: bool = False
@@ -70,12 +75,25 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     def validate_node(self, node_name: str, node_config: Any):
         if not self.from_csv_file:
-            self.nodes[node_name] = SimpleAssignment(
+            self.nodes[node_name] = SimpleAssignmentNodeConfig(
                 **{**{"node_name": node_name} | node_config}
             )
 
-    def validate_scenario_node(self, node_name: str, target_output: Any) -> float:
-        return get_output_in_unit(target_output, self.nodes[node_name].output_unit)
+    def validate_scenario_node(self, node_name: str, scenario_name: str, scenario_node_data: Any) -> float:
+        if self.from_csv_file:
+            scenario_output: Optional[NodeOutput] = None
+            node_data = self.nodes[node_name]
+            if scenario_name in node_data.scenario_data:
+                scenario_data = node_data.scenario_data[scenario_name]
+                if scenario_data.outputs:
+                    scenario_output = scenario_data.outputs
+            if not scenario_output:
+                scenario_output = node_data.default_output
+            pass
+            return get_output_in_unit(scenario_output,node_data.output_unit)
+
+        self.get_logger().warning("fix node output")
+        return get_output_in_unit(scenario_node_data, self.nodes[node_name].output_unit)
 
     def get_node_output_unit(self, node_name: str) -> str:
         return self.nodes[node_name].output_unit
@@ -88,17 +106,11 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         result: dict[str, dict[str, ResultValue]] = {}
-        for node, config in self.nodes.items():
-            node_results = result.setdefault(node, {})
-            for method in self.methods:
-                if config.scenario_impacts:
-                    if scenario.name in config.scenario_impacts:
-                        node_results[method] = config.scenario_impacts[scenario.name][
-                            method
-                        ]
-                elif config.default_impacts:
-                    if method in config.default_impacts:
-                        node_results[method] = config.default_impacts[method]
+        for node, node_data in self.nodes.items():
+            result[node] = deepcopy(node_data.default_impacts)
+            if scenario.name in node_data.scenario_data:
+                scenario_data = node_data.scenario_data[scenario.name]
+                result[node].update(scenario_data.impacts)
         return result
 
     @staticmethod
@@ -107,7 +119,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     @staticmethod
     def get_config_schemas() -> dict:
-        return {"node_name": SimpleAssignment.model_json_schema()}
+        return {"node_name": SimpleAssignmentNodeConfig.model_json_schema()}
 
     def read_nodes_from_csv(self, file_path: Path):
         """
@@ -137,9 +149,9 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
         scenario_output_magnitude
 
-        scenario_impacts_XXX_unit
+        # scenario_impacts_XXX_unit
 
-        scenario_impacts_XXX_magnitude
+        # scenario_impacts_XXX_magnitude
 
         :param file_path:
         :return:
@@ -191,7 +203,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         if scenario_impacts:
             assert "scenario" in headers, f"header: 'scenario' is missing"
 
-        node_map: dict[str, SimpleAssignment] = {}
+        node_map: dict[str, SimpleAssignmentNodeConfig] = {}
 
         def get_impacts(row_: dict, type_: Literal["default", "scenario"]) -> dict[str, ResultValue]:
             coll = default_impacts_header if type_ == "default" else scenario_impacts
@@ -208,23 +220,22 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             node_name = row.get("node_name")
             try:
                 row = {k.strip(): (v.strip() if v else v) for k, v in row.items()}
-                node: SimpleAssignment
+                node: SimpleAssignmentNodeConfig
                 # new node
                 if node_name not in node_map:
                     assert row["output_unit"], f"First row defining '{node_name}' must include 'output_unit'"
                     unit = row.get(default_out_unit_header) if row.get(default_out_unit_header) else row["output_unit"]
-                    magnitude = float(row.get(def_out_mag_header)) if row.get(def_out_mag_header) else 1
+                    magnitude = float(row.get(def_out_mag_header)) if row.get(def_out_mag_header) else 0
                     default_output = NodeOutput(unit=unit, magnitude=magnitude)
                     assert unit_match(unit, row["output_unit"])
                     default_impacts: dict[str, ResultValue] = get_impacts(row, "default")
                     for impact_name, result in default_impacts.items():
                         assert unit_match(result.unit, self.methods[impact_name])
-                    node = SimpleAssignment(node_name=node_name,
-                                            output_unit=row["output_unit"],
-                                            default_output=default_output,
-                                            scenario_outputs={},
-                                            default_impacts=default_impacts,
-                                            scenario_impacts={})
+                    node = SimpleAssignmentNodeConfig(node_name=node_name,
+                                                      output_unit=row["output_unit"],
+                                                      default_output=default_output,
+                                                      scenario_data={},
+                                                      default_impacts=default_impacts)
                     node_map[node_name] = node
                 else:
                     node = node_map[node_name]
@@ -236,21 +247,22 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                                    None), f"For each scenario row, a new output needs to be defined"
 
                 scenario: str = row.get("scenario")
-                assert scenario not in node.scenario_outputs, (  # type: ignore
+                assert scenario not in node.scenario_data, (  # type: ignore
                     f"Redefinition of scenario impacts for '{node_name}'")
-                if row.get(scenario_out_mag_header):
+                if scenario:
+                    assert row.get(scenario_out_mag_header)
                     unit = row.get(scenario_out_unit_header) if row.get(scenario_out_unit_header) else node.output_unit
                     assert unit_match(unit, node.output_unit)
-                    node.scenario_outputs[scenario] = NodeOutput(  # type: ignore
-                        unit=unit,
-                        magnitude=float(row[scenario_out_mag_header]))
-                if scenario:
+
                     row_impacts = get_impacts(row, "scenario")
                     for impact_name, result in row_impacts.items():
                         assert unit_match(result.unit, self.methods[impact_name])
-                    node.scenario_impacts[scenario] = row_impacts  # type: ignore
-                    assert node.scenario_impacts.get(scenario, {}), (  # type: ignore
-                        f"Rows with scenarios must define scenario impacts")
+                    node.scenario_data[scenario] = SimpleAssignmentNodeScenarioData(
+                        outputs=NodeOutput(  # type: ignore
+                            unit=unit,
+                            magnitude=float(row[scenario_out_mag_header])),
+                        impacts=row_impacts)
+
             except Exception as err:
                 logger = self.get_logger()
                 logger.error(f"Error in row {idx} of '{node_name}'")

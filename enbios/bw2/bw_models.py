@@ -26,8 +26,7 @@ class RegionalizationConfig(BaseModel):
     )
 
     @model_validator(mode="before")
-    @classmethod
-    def validate(cls, data: Any) -> Any:
+    def validate(cls, data: Any):
         if data.get("run_regionalization", False):
             if data.get("select_regions") is None:
                 raise ValueError(
@@ -54,7 +53,6 @@ class NonLinearMethodConfig(BaseModel):
     )
 
     @model_validator(mode="before")
-    @classmethod
     def check_defaults(self, data: dict):
         has_default_function = data.get("default_function")
         has_get_defaults_from_original = data.get("get_defaults_from_original", False)
@@ -100,7 +98,6 @@ class NonLinearCharacterizationConfig(BaseModel):
     )
 
     @model_validator(mode="before")
-    @classmethod
     def add_method_names(cls, data):
         for method_name, method_config in data["methods"].items():
             method_config["name"] = method_name
@@ -125,7 +122,7 @@ class BWAdapterConfig(BaseModel):
         "Will be stored in `lca_objects[scenario.name]`",
     )
     simple_regionalization: RegionalizationConfig = Field(
-        description="Generate regionalized LCA", default_factory=RegionalizationConfig
+        description="Generate regionalized LCA", default_factory=RegionalizationConfig  # type: ignore
     )
     nonlinear_characterization: Optional[NonLinearCharacterizationConfig] = Field(
         None, description="Nonlinear characterization"

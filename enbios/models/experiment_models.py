@@ -15,7 +15,6 @@ class TechTreeNodeData(BaseModel):
     )
 
     @model_validator(mode="before")
-    @classmethod
     def check_model(cls, data: Any) -> Any:
         if isinstance(data, dict):
             leaf_node = "adapter" in data and "config" in data
@@ -28,7 +27,7 @@ class TechTreeNodeData(BaseModel):
 
 class ResultValue(NodeOutput):
     model_config = StrictInputConfig
-    magnitude: Optional[float] = Field(None)
+    magnitude: Optional[float] = None  # type: ignore
     multi_magnitude: Optional[list[float]] = field(default_factory=list)
 
 

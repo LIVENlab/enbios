@@ -3,17 +3,22 @@
     "node_name": "n1",
     "output_unit": "l",
     "default_output": {
-      "unit": "l",
-      "magnitude": 100.0
+      "magnitude": 0.0,
+      "unit": "l"
     },
     "default_impacts": {},
-    "scenario_outputs": {},
-    "scenario_impacts": {
+    "scenario_data": {
       "sc1": {
-        "co2": {
-          "unit": "kg",
-          "magnitude": 5.0,
-          "multi_magnitude": []
+        "outputs": {
+          "unit": "l",
+          "magnitude": 100.0
+        },
+        "impacts": {
+          "co2": {
+            "unit": "kg",
+            "magnitude": 5.0,
+            "multi_magnitude": []
+          }
         }
       }
     }

@@ -1,0 +1,50 @@
+{
+  "sc1": {
+    "children": [
+      {
+        "name": "n1",
+        "output": {
+          "magnitude": 100.0,
+          "unit": "l"
+        },
+        "results": {
+          "co2": {
+            "magnitude": 5.0,
+            "unit": "kg"
+          }
+        }
+      }
+    ],
+    "name": "root",
+    "output": {
+      "magnitude": 100.0,
+      "unit": "liter"
+    },
+    "results": {
+      "co2": {
+        "magnitude": 5.0,
+        "unit": "kg"
+      }
+    }
+  },
+  "sc2": {
+    "children": [
+      {
+        "name": "n1",
+        "output": {
+          "magnitude": 0.0,
+          "unit": "l"
+        },
+        "results": {
+        }
+      }
+    ],
+    "name": "root",
+    "output": {
+      "magnitude": 0.0,
+      "unit": "liter"
+    },
+    "results": {
+    }
+  }
+}
