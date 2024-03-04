@@ -11,7 +11,6 @@ from enbios.models.environment_model import Settings
 from enbios.models.experiment_base_models import (
     ExperimentConfig,
     ExperimentScenarioData,
-    NodeOutput,
     AdapterModel,
     AggregationModel,
 )
@@ -77,7 +76,9 @@ def validate_scenarios(
 
     # undefined scenarios. just one default scenario
     if not experiment_scenarios:
-        experiment_scenarios = [ExperimentScenarioData(name=default_scenario_name, nodes={})]
+        experiment_scenarios = [
+            ExperimentScenarioData(name=default_scenario_name, nodes={})
+        ]
 
     # set names if not given
     for index, scenario_data in enumerate(experiment_scenarios):
@@ -114,7 +115,9 @@ def validate_scenario(
         for node_name_, node_output in nodes.items():
             node_ = experiment.get_structural_node(node_name_)
             adapter = experiment.get_node_adapter(node_)
-            outputs[node_name_] = adapter.validate_scenario_node(node_name_, str(scenario_.name), node_output)
+            outputs[node_name_] = adapter.validate_scenario_node(
+                node_name_, str(scenario_.name), node_output
+            )
         return outputs
 
     scenario_nodes_outputs: dict[str, float] = validate_nodes(scenario_data)

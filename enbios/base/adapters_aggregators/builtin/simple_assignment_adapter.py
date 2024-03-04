@@ -17,7 +17,9 @@ class SimpleAssignmentNodeConfig(BaseModel):
     output_unit: str
     default_output: NodeOutput
     default_impacts: dict[str, ResultValue] = Field(default_factory=dict)
-    scenario_data: dict[str, "SimpleAssignmentNodeScenarioData"] = Field(default_factory=dict)
+    scenario_data: dict[str, "SimpleAssignmentNodeScenarioData"] = Field(
+        default_factory=dict
+    )
 
     @model_validator(mode="before")  # type: ignore
     def validator(data: Any):
@@ -25,7 +27,9 @@ class SimpleAssignmentNodeConfig(BaseModel):
             data["default_output"] = {"unit": data["output_unit"], "magnitude": 1}
         if "default_impacts" not in data:
             if "scenario_data" not in data or "impacts" not in data["scenario_data"]:
-                raise ValueError("Either default_impacts or scenario_data.impacts must be defined")
+                raise ValueError(
+                    "Either default_impacts or scenario_data.impacts must be defined"
+                )
         return data
 
 
@@ -52,7 +56,9 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         super().__init__()
         self.nodes: dict[str, SimpleAssignmentNodeConfig] = {}  # name: node
         self.methods: dict[str, str] = {}  # name: unit
-        self.definition: SimpleAssignmentDefinition = SimpleAssignmentDefinition(methods={})  # placeholder
+        self.definition: SimpleAssignmentDefinition = SimpleAssignmentDefinition(
+            methods={}
+        )  # placeholder
         self.from_csv_file: bool = False
 
     def validate_definition(self, definition: AdapterModel):
@@ -79,7 +85,9 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                 **{**{"node_name": node_name} | node_config}
             )
 
-    def validate_scenario_node(self, node_name: str, scenario_name: str, scenario_node_data: Any) -> float:
+    def validate_scenario_node(
+        self, node_name: str, scenario_name: str, scenario_node_data: Any
+    ) -> float:
         if self.from_csv_file:
             scenario_output: Optional[NodeOutput] = None
             node_data = self.nodes[node_name]
@@ -90,7 +98,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             if not scenario_output:
                 scenario_output = node_data.default_output
             pass
-            return get_output_in_unit(scenario_output,node_data.output_unit)
+            return get_output_in_unit(scenario_output, node_data.output_unit)
 
         self.get_logger().warning("fix node output")
         return get_output_in_unit(scenario_node_data, self.nodes[node_name].output_unit)
@@ -160,20 +168,27 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         # one default output and multiple different scenario impacts would be weird...
         rows = ReadPath(file_path).read_data()
         headers = list(h.strip() for h in rows[0].keys())
-        assert (
-            all(k in headers for k in ["node_name", "output_unit"])), f"'node_name' and 'node_output' must be defined"
-        assert ("default_output_unit" in headers) == ("default_output_magnitude" in headers), (
-            f"'default_output_unit' and 'default_output_magnitude' must both be defined or absent")
+        assert all(
+            k in headers for k in ["node_name", "output_unit"]
+        ), "'node_name' and 'node_output' must be defined"
+        assert ("default_output_unit" in headers) == (
+            "default_output_magnitude" in headers
+        ), "'default_output_unit' and 'default_output_magnitude' must both be defined or absent"
 
         default_out_unit_header = "default_output_unit"
         def_out_mag_header = "default_output_magnitude"
         scenario_out_unit_header = "scenario_output_unit"
         scenario_out_mag_header = "scenario_output_magnitude"
         # Either default outputs or scenario outputs must be included
-        assert ((default_out_unit_header in headers) and (def_out_mag_header in headers) or
-                (scenario_out_unit_header in headers) and (scenario_out_mag_header in headers)), (
-            f"Header must contain either 'default_output_unit' and 'default_output_magnitude' or"
-            f"'scenario_output_unit' and 'scenario_output_magnitude'")
+        assert (
+            (default_out_unit_header in headers)
+            and (def_out_mag_header in headers)
+            or (scenario_out_unit_header in headers)
+            and (scenario_out_mag_header in headers)
+        ), (
+            "Header must contain either 'default_output_unit' and 'default_output_magnitude' or"
+            "'scenario_output_unit' and 'scenario_output_magnitude'"
+        )
 
         has_scenario_outputs = scenario_out_unit_header in headers
 
@@ -187,32 +202,40 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                 continue
             # we just check for ..._unit and check if magnitude exists too
             if parts[1] == "impacts" and parts[3] == "unit":
-                for type_, collection in zip(types_, [default_impacts_header, scenario_impacts]):
+                for type_, collection in zip(
+                    types_, [default_impacts_header, scenario_impacts]
+                ):
                     if parts[0] == type_:
                         mag_header = f"{type_}_impacts_{parts[2]}_magnitude"
-                        assert mag_header in headers, (
-                            f"magnitude header missing for {header}")
+                        assert (
+                            mag_header in headers
+                        ), f"magnitude header missing for {header}"
                         collection[parts[2]] = (header, mag_header)
 
         for impact in list(default_impacts_header.keys()) + list(scenario_impacts.keys()):
             if impact not in self.methods.keys():
                 raise ValueError(
                     f"Header includes undefined impact: '{impact}'."
-                    f"Options are {self.methods.values()}")
+                    f"Options are {self.methods.values()}"
+                )
 
         if scenario_impacts:
-            assert "scenario" in headers, f"header: 'scenario' is missing"
+            assert "scenario" in headers, "header: 'scenario' is missing"
 
         node_map: dict[str, SimpleAssignmentNodeConfig] = {}
 
-        def get_impacts(row_: dict, type_: Literal["default", "scenario"]) -> dict[str, ResultValue]:
+        def get_impacts(
+            row_: dict, type_: Literal["default", "scenario"]
+        ) -> dict[str, ResultValue]:
             coll = default_impacts_header if type_ == "default" else scenario_impacts
             result: dict[str, ResultValue] = {}
             for impact_name, (impact_unit_header, impact_mag_header) in coll.items():
                 if row_[impact_mag_header] or row_[impact_unit_header]:
                     assert row_[impact_unit_header] and float(row_[impact_mag_header])
-                    result[impact_name] = ResultValue(unit=row_[impact_unit_header],
-                                                      magnitude=float(row_[impact_mag_header]))
+                    result[impact_name] = ResultValue(
+                        unit=row_[impact_unit_header],
+                        magnitude=float(row_[impact_mag_header]),
+                    )
             return result
 
         for idx, row in enumerate(rows):
@@ -223,35 +246,57 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                 node: SimpleAssignmentNodeConfig
                 # new node
                 if node_name not in node_map:
-                    assert row["output_unit"], f"First row defining '{node_name}' must include 'output_unit'"
-                    unit = row.get(default_out_unit_header) if row.get(default_out_unit_header) else row["output_unit"]
-                    magnitude = float(row.get(def_out_mag_header)) if row.get(def_out_mag_header) else 0
+                    assert row[
+                        "output_unit"
+                    ], f"First row defining '{node_name}' must include 'output_unit'"
+                    unit = (
+                        row.get(default_out_unit_header)
+                        if row.get(default_out_unit_header)
+                        else row["output_unit"]
+                    )
+                    magnitude = (
+                        float(row.get(def_out_mag_header))
+                        if row.get(def_out_mag_header)
+                        else 0
+                    )
                     default_output = NodeOutput(unit=unit, magnitude=magnitude)
                     assert unit_match(unit, row["output_unit"])
                     default_impacts: dict[str, ResultValue] = get_impacts(row, "default")
                     for impact_name, result in default_impacts.items():
                         assert unit_match(result.unit, self.methods[impact_name])
-                    node = SimpleAssignmentNodeConfig(node_name=node_name,
-                                                      output_unit=row["output_unit"],
-                                                      default_output=default_output,
-                                                      scenario_data={},
-                                                      default_impacts=default_impacts)
+                    node = SimpleAssignmentNodeConfig(
+                        node_name=node_name,
+                        output_unit=row["output_unit"],
+                        default_output=default_output,
+                        scenario_data={},
+                        default_impacts=default_impacts,
+                    )
                     node_map[node_name] = node
                 else:
                     node = node_map[node_name]
-                    assert not row.get("output_unit", None), f"Redefinition of output_unit for '{node_name}'"
-                    assert has_scenario_outputs, (f"Multiple rows per node, means header '{scenario_out_mag_header}' "
-                                                  f"needs to be included")
-                    assert row.get("scenario", None), f"No scenario defined"
-                    assert row.get(scenario_out_mag_header,
-                                   None), f"For each scenario row, a new output needs to be defined"
+                    assert not row.get(
+                        "output_unit", None
+                    ), f"Redefinition of output_unit for '{node_name}'"
+                    assert has_scenario_outputs, (
+                        f"Multiple rows per node, means header '{scenario_out_mag_header}' "
+                        f"needs to be included"
+                    )
+                    assert row.get("scenario", None), "No scenario defined"
+                    assert row.get(
+                        scenario_out_mag_header, None
+                    ), "For each scenario row, a new output needs to be defined"
 
                 scenario: str = row.get("scenario")
                 assert scenario not in node.scenario_data, (  # type: ignore
-                    f"Redefinition of scenario impacts for '{node_name}'")
+                    f"Redefinition of scenario impacts for '{node_name}'"
+                )
                 if scenario:
                     assert row.get(scenario_out_mag_header)
-                    unit = row.get(scenario_out_unit_header) if row.get(scenario_out_unit_header) else node.output_unit
+                    unit = (
+                        row.get(scenario_out_unit_header)
+                        if row.get(scenario_out_unit_header)
+                        else node.output_unit
+                    )
                     assert unit_match(unit, node.output_unit)
 
                     row_impacts = get_impacts(row, "scenario")
@@ -259,9 +304,10 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                         assert unit_match(result.unit, self.methods[impact_name])
                     node.scenario_data[scenario] = SimpleAssignmentNodeScenarioData(
                         outputs=NodeOutput(  # type: ignore
-                            unit=unit,
-                            magnitude=float(row[scenario_out_mag_header])),
-                        impacts=row_impacts)
+                            unit=unit, magnitude=float(row[scenario_out_mag_header])
+                        ),
+                        impacts=row_impacts,
+                    )
 
             except Exception as err:
                 logger = self.get_logger()

@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 def create_module_object(
-        model_data: Union[AdapterModel, AggregationModel], base_class: Type
+    model_data: Union[AdapterModel, AggregationModel], base_class: Type
 ) -> Union[EnbiosAdapter, EnbiosAggregator]:
     if model_data.module_path:
         assert model_data.module_path
@@ -25,7 +25,9 @@ def create_module_object(
         # validator makes sure there is no other case
         for inspect_clazz in inspect.getmembers(adapter_module, inspect.isclass):
             # check if cl is subclass of EnbiosAdapter/EnbiosAggregation
-            clazz: Optional[Type[Union[EnbiosAdapter, EnbiosAggregator]]] = inspect_clazz[1]
+            clazz: Optional[Type[Union[EnbiosAdapter, EnbiosAggregator]]] = inspect_clazz[
+                1
+            ]
             assert clazz
             if any(base.__name__ == base_class.__name__ for base in clazz.__bases__):
                 return clazz()
@@ -34,7 +36,10 @@ def create_module_object(
         )
     else:
         if base_class.__name__ == EnbiosAdapter.__name__:
-            assert hasattr(model_data, "adapter_name") and model_data.adapter_name is not None
+            assert (
+                hasattr(model_data, "adapter_name")
+                and model_data.adapter_name is not None
+            )
             clazz = BUILTIN_ADAPTERS.get(model_data.adapter_name)
             if not clazz:
                 raise ValueError(
@@ -61,4 +66,6 @@ def load_adapter(adapter_model: AdapterModel) -> EnbiosAdapter:
 
 
 def load_aggregator(aggregator_model: AggregationModel) -> EnbiosAggregator:
-    return cast(EnbiosAggregator, create_module_object(aggregator_model, EnbiosAggregator))
+    return cast(
+        EnbiosAggregator, create_module_object(aggregator_model, EnbiosAggregator)
+    )

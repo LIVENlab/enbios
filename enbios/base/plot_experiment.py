@@ -292,7 +292,7 @@ def plot_heatmap(
 
     df = df.set_index("scenario").transpose()
 
-    fig:  Figure
+    fig: Figure
     fig, ax = plt.subplots(figsize=(len(rs.scenarios) * 1.5, len(rs.method_names) * 1.5))
     set_plot_settings(ax, df, rs)
     plot_values_on_grid(ax, df, rs)

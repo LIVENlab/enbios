@@ -5,7 +5,6 @@ from typing import Any, Optional
 from enbios.base.scenario import Scenario
 from enbios.generic.enbios2_logging import get_logger
 from enbios.models.experiment_base_models import (
-    NodeOutput,
     AdapterModel,
 )
 from enbios.models.experiment_models import ResultValue
@@ -37,7 +36,9 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def validate_scenario_node(self, node_name: str, scenario_name: str, scenario_node_data: Any) -> float:
+    def validate_scenario_node(
+        self, node_name: str, scenario_name: str, scenario_node_data: Any
+    ) -> float:
         pass
 
     @abstractmethod

@@ -40,8 +40,7 @@ class SumAggregator(EnbiosAggregator):
             output_mag: Optional[Quantity] = None
             try:
                 output_mag = (
-                    ureg.parse_expression(node_output_unit)
-                    * child.data.output.magnitude
+                    ureg.parse_expression(node_output_unit) * child.data.output.magnitude
                 )
                 if not node_output:
                     node_output = output_mag

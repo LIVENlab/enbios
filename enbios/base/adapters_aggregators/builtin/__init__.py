@@ -13,4 +13,6 @@ BUILTIN_ADAPTERS: dict[str, Type[EnbiosAdapter]] = {
     BrightwayAdapter.name(): BrightwayAdapter,
 }
 
-BUILTIN_AGGREGATORS: dict[str, Type[EnbiosAggregator]] = {SumAggregator.name(): SumAggregator}
+BUILTIN_AGGREGATORS: dict[str, Type[EnbiosAggregator]] = {
+    SumAggregator.name(): SumAggregator
+}

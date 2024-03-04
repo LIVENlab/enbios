@@ -1,4 +1,4 @@
-from pint import Quantity, DimensionalityError, UndefinedUnitError
+from pint import Quantity
 
 from enbios.base.unit_registry import ureg
 from enbios.models.experiment_base_models import NodeOutput
@@ -27,11 +27,13 @@ def get_output_in_unit(output: NodeOutput, target_unit: str) -> float:
     :param target_unit:
     :return:
     """
-    conversion_quant = (
-        (ureg.parse_expression(output.unit) * output.magnitude).to(target_unit)
+    conversion_quant = (ureg.parse_expression(output.unit) * output.magnitude).to(
+        target_unit
     )
     # experiment to avoid something like 1ML converted to 1000000.00000001
-    if (ureg.parse_expression(output.unit) / ureg(target_unit)).to_base_units().magnitude > 1e6:
+    if (
+        ureg.parse_expression(output.unit) / ureg(target_unit)
+    ).to_base_units().magnitude > 1e6:
         return round(conversion_quant.magnitude, 0)
     else:
         return conversion_quant.magnitude

@@ -142,17 +142,15 @@ class BrightwayAdapter(EnbiosAdapter):
             unit = bw_method.get("unit", "undefined method unit")
             return ExperimentMethodPrepData(id=tuple(method_id), bw_method_unit=unit)
 
-        self.methods = {
-            name: validate_method(method) for name, method in methods.items()
-        }
+        self.methods = {name: validate_method(method) for name, method in methods.items()}
         return list(self.methods.keys())
 
     def validate_scenario_node(
-            self,
-            node_name: str,
-            scenario_name: str,
-            scenario_node_data: Any,
-    )-> float:
+        self,
+        node_name: str,
+        scenario_name: str,
+        scenario_node_data: Any,
+    ) -> float:
         """
         validate and convert to the bw-activity unit
         :param node_name:
@@ -162,10 +160,10 @@ class BrightwayAdapter(EnbiosAdapter):
         target_output_: NodeOutput = NodeOutput.model_validate(scenario_node_data)
         try:
             target_quantity: Quantity = (
-                    ureg.parse_expression(
-                        bw_unit_fix(target_output_.unit), case_sensitive=False
-                    )
-                    * target_output_.magnitude
+                ureg.parse_expression(
+                    bw_unit_fix(target_output_.unit), case_sensitive=False
+                )
+                * target_output_.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -226,8 +224,8 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup.register()
         self.scenario_calc_setups[scenario.name] = calculation_setup
         if (
-                self.config.simple_regionalization.run_regionalization
-                and not self.all_regions_set
+            self.config.simple_regionalization.run_regionalization
+            and not self.all_regions_set
         ):
             # memorize nodes from the tree in order to not delete their location
             keep_locations_of_activities: list[str] = []
@@ -244,14 +242,14 @@ class BrightwayAdapter(EnbiosAdapter):
                 )
 
                 for range_start in range(
-                        math.ceil(len(activities_to_reset) / range_length)
+                    math.ceil(len(activities_to_reset) / range_length)
                 ):
                     # noinspection PyUnresolvedReferences
                     # noinspection PyProtectedMember
                     with ActivityDataset._meta.database.atomic():
                         for a in activities_to_reset[
-                                 range_start * range_length: (range_start + 1) * range_length
-                                 ]:
+                            range_start * range_length : (range_start + 1) * range_length
+                        ]:
                             a.data["enb_location"] = None
                             a.save()
 
@@ -324,11 +322,11 @@ class BrightwayAdapter(EnbiosAdapter):
         )
 
     def _assign_results2nodes(
-            self,
-            raw_results: list[ndarray],
-            scenario: Scenario,
-            use_distributions: bool,
-            has_regionalization: bool,
+        self,
+        raw_results: list[ndarray],
+        scenario: Scenario,
+        use_distributions: bool,
+        has_regionalization: bool,
     ):
         result_data: dict[str, Any] = {}
         for act_idx, act_alias in enumerate(self.activityMap.keys()):
@@ -344,9 +342,11 @@ class BrightwayAdapter(EnbiosAdapter):
                 method_name, method_data = method
                 if has_regionalization:
                     for region_idx, region in enumerate(
-                            self.config.simple_regionalization.select_regions
+                        self.config.simple_regionalization.select_regions
                     ):
-                        method_result = ResultValue.model_validate({"unit": method_data.bw_method_unit})
+                        method_result = ResultValue.model_validate(
+                            {"unit": method_data.bw_method_unit}
+                        )
                         method_res_values = [
                             res[act_idx, m_idx, region_idx] for res in raw_results
                         ]
@@ -361,7 +361,9 @@ class BrightwayAdapter(EnbiosAdapter):
                         )
                         result_data[act_alias][f"{method_name}.{region}"] = method_result
                 else:
-                    method_result = ResultValue.model_validate({"unit": method_data.bw_method_unit})
+                    method_result = ResultValue.model_validate(
+                        {"unit": method_data.bw_method_unit}
+                    )
                     method_res_values = [res[act_idx, m_idx] for res in raw_results]
                     setattr(
                         method_result,
@@ -385,7 +387,7 @@ class BrightwayAdapter(EnbiosAdapter):
         return method_activity2func_maps
 
     def prepare_nonlinear_method(
-            self, method_name: str, method_config: NonLinearMethodConfig
+        self, method_name: str, method_config: NonLinearMethodConfig
     ) -> dict[int, Callable[[float], float]]:
         result_func_map: dict[int, Callable[[float], float]] = (
             {}
@@ -398,7 +400,9 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_method_id: tuple[str, ...] = self.methods[method_name].id
         if method_config.module_path_function_name:
             module_path, func_name = method_config.module_path_function_name
-            func: Optional[Callable] = get_module_functions(load_module(module_path)).get(func_name)
+            func: Optional[Callable] = get_module_functions(load_module(module_path)).get(
+                func_name
+            )
             if not func:
                 raise ValueError(
                     f"Could not find function: '{func_name} in module: {module_path}, which is defined for"
@@ -427,7 +431,7 @@ class BrightwayAdapter(EnbiosAdapter):
 
         class MyGenerateJsonSchema(GenerateJsonSchema):
             def handle_invalid_for_json_schema(
-                    self, schema: core_schema.CoreSchema, error_info: str
+                self, schema: core_schema.CoreSchema, error_info: str
             ) -> JsonSchemaValue:
                 if schema["type"] == "callable":
                     logger.warning("Ignoring callable during schema generation...")
@@ -444,7 +448,7 @@ class BrightwayAdapter(EnbiosAdapter):
         }
 
     def activities_keys_id_map(
-            self, keys: list[tuple[str, str]]
+        self, keys: list[tuple[str, str]]
     ) -> ReversibleRemappableDictionary:
         codes = [code for _, code in keys]
         biosphere_activities = list(

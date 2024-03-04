@@ -135,7 +135,8 @@ class NodeOutput(BaseModel):
 class ExperimentScenarioData(BaseModel):
     model_config = StrictInputConfig
     name: Optional[str] = Field(None)
-    nodes: dict[str, Any] = Field(..., description="name to output, null means default-output (check exists)"
+    nodes: dict[str, Any] = Field(
+        ..., description="name to output, null means default-output (check exists)"
     )
     config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)  # type: ignore
 
