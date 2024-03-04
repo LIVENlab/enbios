@@ -42,7 +42,7 @@ class AdapterModel(BaseModel):
     methods: dict[str, Any] = Field(default_factory=dict)
     note: Optional[str] = Field(None, description="A note for this adapter")
 
-    @model_validator(mode="before")
+    @model_validator(mode="before")  # type: ignore
     def module_specified(data: Any):
         # either module_path or module_class must be specified
         if not ("module_path" in data or "adapter_name" in data):

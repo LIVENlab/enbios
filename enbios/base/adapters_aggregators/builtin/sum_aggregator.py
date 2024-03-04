@@ -3,7 +3,6 @@ from typing import Optional, Any, Union
 from pint import Quantity, UndefinedUnitError, DimensionalityError
 from pint.facets.plain import PlainQuantity
 
-import enbios
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.unit_registry import ureg
 from enbios.generic.enbios2_logging import get_logger

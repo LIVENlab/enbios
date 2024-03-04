@@ -12,6 +12,7 @@ from typing import Union, Type, Any, Callable
 
 from enbios.const import BASE_DATA_PATH
 from enbios.generic.enbios2_logging import get_logger
+from enbios.generic.files import PathLike
 
 logger = get_logger(__name__)
 
@@ -130,7 +131,7 @@ def timed():
         print(f"({time() - start:.2f}s)")
 
 
-def load_module(module_path: str) -> ModuleType:
+def load_module(module_path: Union[str, PathLike]) -> ModuleType:
     _path = Path(module_path)
     if not _path.exists():
         raise ValueError(f"Module path '{module_path}' does not exist")

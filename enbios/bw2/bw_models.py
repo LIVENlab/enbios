@@ -26,7 +26,7 @@ class RegionalizationConfig(BaseModel):
     )
 
     @model_validator(mode="before")
-    def validate(cls, data: Any):
+    def validate(data: Any):
         if data.get("run_regionalization", False):
             if data.get("select_regions") is None:
                 raise ValueError(
@@ -53,7 +53,7 @@ class NonLinearMethodConfig(BaseModel):
     )
 
     @model_validator(mode="before")
-    def check_defaults(self, data: dict):
+    def check_defaults(data: dict):
         has_default_function = data.get("default_function")
         has_get_defaults_from_original = data.get("get_defaults_from_original", False)
         if has_default_function and has_get_defaults_from_original:
