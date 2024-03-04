@@ -17,15 +17,7 @@ def compact_all_to(quantities: list[Quantity], use_min: bool = True) -> list[Qua
 
 
 def unit_match(unit1: str, unit2: str) -> bool:
-    try:
-        # Attempt to convert 1 unit of the first type to the second type
-        (1 * ureg(unit1)).to(ureg(unit2))
-        return True
-    except UndefinedUnitError as err:
-        return False
-    except DimensionalityError:
-        # Conversion failed due to incompatible units
-        return False
+    return ureg(unit1).is_compatible_with(unit2)
 
 
 def get_output_in_unit(output: NodeOutput, target_unit: str) -> float:
@@ -35,6 +27,11 @@ def get_output_in_unit(output: NodeOutput, target_unit: str) -> float:
     :param target_unit:
     :return:
     """
-    return (
-        (ureg.parse_expression(output.unit) * output.magnitude).to(target_unit).magnitude
+    conversion_quant = (
+        (ureg.parse_expression(output.unit) * output.magnitude).to(target_unit)
     )
+    # experiment to avoid something like 1ML converted to 1000000.00000001
+    if (ureg.parse_expression(output.unit) / ureg(target_unit)).to_base_units().magnitude > 1e6:
+        return round(conversion_quant.magnitude, 0)
+    else:
+        return conversion_quant.magnitude

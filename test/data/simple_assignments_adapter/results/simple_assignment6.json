@@ -1,0 +1,84 @@
+{
+  "sc1": {
+    "children": [
+      {
+        "name": "n1",
+        "output": {
+          "magnitude": 100.0,
+          "unit": "l"
+        },
+        "results": {
+          "co2": {
+            "magnitude": 5.0,
+            "unit": "kg"
+          }
+        }
+      },
+      {
+        "name": "n2",
+        "output": {
+          "magnitude": 60.0,
+          "unit": "l"
+        },
+        "results": {
+          "co2": {
+            "magnitude": 12.0,
+            "unit": "kg"
+          }
+        }
+      }
+    ],
+    "output": {
+      "magnitude": 160.0,
+      "unit": "liter"
+    },
+    "name": "root",
+    "results": {
+      "co2": {
+        "magnitude": 17.0,
+        "unit": "kg"
+      }
+    }
+  },
+  "sc2": {
+    "children": [
+      {
+        "name": "n1",
+        "output": {
+          "magnitude": 150.0,
+          "unit": "l"
+        },
+        "results": {
+          "co2": {
+            "magnitude": 7.5,
+            "unit": "kg"
+          }
+        }
+      },
+      {
+        "name": "n2",
+        "output": {
+          "magnitude": 10.0,
+          "unit": "l"
+        },
+        "results": {
+          "co2": {
+            "magnitude": 50.0,
+            "unit": "kg"
+          }
+        }
+      }
+    ],
+    "name": "root",
+    "output": {
+      "magnitude": 160.0,
+      "unit": "liter"
+    },
+    "results": {
+      "co2": {
+        "magnitude": 57.5,
+        "unit": "kg"
+      }
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import csv
 import json
 from pathlib import Path
 from typing import cast
@@ -91,19 +92,15 @@ def run_test_with_file(adapter_csv_file: Path):
             "name": "root",
             "aggregator": "sum",
             "children": [
-                {
-                    "name": "n1",
-                    "adapter": "assign",
-                    "config": {}
-                }
+
             ]
         },
         "scenarios": [
+            # nodes are added below
             {"name": "sc1", "nodes": {
-                "n1": {}
+
             }},
             {"name": "sc2", "nodes": {
-                "n1": {}
             }}
         ]
     }
@@ -112,6 +109,22 @@ def run_test_with_file(adapter_csv_file: Path):
         with pytest.raises(Exception):
             exp = Experiment(data)
     else:
+        pass
+        # add n2 to the hierarchy & scenarios, if it exists
+        # to keep the insertion order, we first do a list, then a set,
+        # and turn back to sorted list (based on initial index)
+        all_nodes = list(r['node_name'] for r in list(csv.DictReader(adapter_csv_file.open())))
+        all_nodes = list(sorted(set(all_nodes), key=all_nodes.index))
+        for node in all_nodes:
+            data["hierarchy"]["children"].append(  # type: ignore
+                {
+                    "name": node,
+                    "adapter": "assign",
+                    "config": {}
+                })
+        for scenario in data['scenarios']:
+            scenario["nodes"].update({n: {} for n in all_nodes})  # type: ignore
+
         exp = Experiment(data)
         nodes = cast(SimpleAssignmentAdapter, exp.get_adapter_by_name("simple-assignment-adapter")).nodes
         result_dict = {n: v.model_dump() for n, v in nodes.items()}
@@ -134,4 +147,4 @@ def test_simple_assignment_adapter_csv(adapter_csv_file: Path):
 
 
 def test_simple_assignment_adapter_with_csv():
-    run_test_with_file(BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs/simple_assignment2.csv")
+    run_test_with_file(BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs/simple_assignment7.csv")
