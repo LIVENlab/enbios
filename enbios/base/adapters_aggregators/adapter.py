@@ -5,7 +5,7 @@ from typing import Any, Optional
 from enbios.base.scenario import Scenario
 from enbios.generic.enbios2_logging import get_logger
 from enbios.models.experiment_base_models import (
-    AdapterModel,
+    AdapterModel, NodeOutput,
 )
 from enbios.models.experiment_models import ResultValue
 
@@ -42,8 +42,12 @@ class EnbiosAdapter(ABC):
         pass
 
     @abstractmethod
-    def get_node_output_unit(self, node_name: str) -> str:
+    def get_node_output(self, node_name: str, scenario: str) -> list[NodeOutput]:
         pass
+
+    # @abstractmethod
+    # def get_node_output_unit(self, node_name: str) -> str:
+    #     pass
 
     @abstractmethod
     def get_method_unit(self, method_name: str) -> str:

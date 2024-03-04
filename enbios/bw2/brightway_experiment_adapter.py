@@ -145,35 +145,6 @@ class BrightwayAdapter(EnbiosAdapter):
         self.methods = {name: validate_method(method) for name, method in methods.items()}
         return list(self.methods.keys())
 
-    def validate_scenario_node(
-        self,
-        node_name: str,
-        scenario_name: str,
-        scenario_node_data: Any,
-    ) -> float:
-        """
-        validate and convert to the bw-activity unit
-        :param node_name:
-        :param scenario_node_data:
-        :return:
-        """
-        target_output_: NodeOutput = NodeOutput.model_validate(scenario_node_data)
-        try:
-            target_quantity: Quantity = (
-                ureg.parse_expression(
-                    bw_unit_fix(target_output_.unit), case_sensitive=False
-                )
-                * target_output_.magnitude
-            )
-            bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
-            return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
-        except UndefinedUnitError as err:
-            logger.error(
-                f"Cannot parse output unit '{target_output_.unit}'- "
-                f"of activity {node_name}. {err}. "
-                f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
-            )
-            raise UndefinedUnitError(f"Unit error, {err}; For activity: {node_name}")
 
     def validate_node(self, node_name: str, node_config: Any):
         assert isinstance(
@@ -200,8 +171,47 @@ class BrightwayAdapter(EnbiosAdapter):
     def get_default_output_value(self, node_name: str) -> float:
         return self.activityMap[node_name].default_output.magnitude
 
+    def validate_scenario_node(
+        self,
+        node_name: str,
+        scenario_name: str,
+        scenario_node_data: Any,
+    ) -> float:
+        """
+        validate and convert to the bw-activity unit
+        :param node_name:
+        :param scenario_node_data:
+        :return:
+        """
+        target_output_: NodeOutput = NodeOutput.model_validate(scenario_node_data)
+        try:
+            target_quantity: Quantity = (
+                ureg.parse_expression(
+                    bw_unit_fix(target_output_.unit), case_sensitive=False
+                )
+                * target_output_.magnitude
+            )
+            bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
+            self.activityMap[node_name].scenario_outputs[scenario_name] = target_output_
+            return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
+        except UndefinedUnitError as err:
+            logger.error(
+                f"Cannot parse output unit '{target_output_.unit}'- "
+                f"of activity {node_name}. {err}. "
+                f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
+            )
+            raise UndefinedUnitError(f"Unit error, {err}; For activity: {node_name}")
+
     def get_node_output_unit(self, node_name: str) -> str:
         return bw_unit_fix(self.activityMap[node_name].bw_activity["unit"])
+
+    def get_node_output(self, node_name: str, scenario: str) -> list[NodeOutput]:
+        # unit = bw_unit_fix(self.activityMap[node_name].bw_activity["unit"])
+        node_data = self.activityMap[node_name]
+        if scenario in self.activityMap[node_name].scenario_outputs:
+            return [node_data.scenario_outputs[scenario]]
+        else:
+            return [node_data.default_output]
 
     def get_method_unit(self, method_name: str) -> str:
         return self.methods[method_name].bw_method_unit

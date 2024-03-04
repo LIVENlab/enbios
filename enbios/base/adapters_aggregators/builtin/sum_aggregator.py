@@ -1,4 +1,4 @@
-from typing import Optional, Any, Union
+from typing import Optional, Any, Union, Tuple
 
 from pint import Quantity, UndefinedUnitError, DimensionalityError
 from pint.facets.plain import PlainQuantity
@@ -25,59 +25,29 @@ class SumAggregator(EnbiosAggregator):
         self,
         node: BasicTreeNode[ScenarioResultNodeData],
         scenario_name: Optional[str] = "",
-    ) -> Optional[NodeOutput]:
-        node_output: Optional[Union[Quantity, PlainQuantity]] = None
-        for child in node.children:
-            # if not child._data:
-            #     raise ValueError(f"Node {child.name} has no data")
-            if not child.data.output:
-                continue
-            node_output_unit = child.data.output.unit
-            if node_output_unit is None:
-                node_output = None
-                self.logger.warning(f"No output unit of node '{child.name}'.")
-                break
-            output_mag: Optional[Quantity] = None
-            try:
-                output_mag = (
-                    ureg.parse_expression(node_output_unit) * child.data.output.magnitude
-                )
-                if not node_output:
-                    node_output = output_mag
+    ) -> list[NodeOutput]:
+        node_outputs: list[tuple[NodeOutput, Quantity]] = []
+
+        def find_node_output_index(given_output: NodeOutput) -> Optional[int]:
+            for idx, out_q in enumerate(node_outputs):
+                out, quant = out_q
+                if given_output.label and out.label == given_output.label:
+                        return idx
                 else:
-                    node_output += output_mag
-            except UndefinedUnitError as err:
-                self.logger.error(
-                    f"Cannot parse output unit '{node_output_unit}' of node "
-                    f"{child.name}. {err}. "
-                    f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
-                )
-                node_output = None
-                break
-            except DimensionalityError as err:
-                set_base_unit = node_output.to_base_units().units if node_output else ""
-                self.logger.warning(
-                    f"Cannot aggregate output to parent: '{node.name}'. "
-                    f"From earlier children the base unit is '{set_base_unit}'"
-                    f"and from '{child.name}' it is '{output_mag.units}'."
-                    f" {err}"
-                )
-                node_output = None
-                break
-        if node_output is not None:
-            node_output = node_output.to_compact()
-            result_node_output = NodeOutput(
-                unit=str(node_output.units), magnitude=node_output.magnitude
-            )
-            return result_node_output
-        else:
-            # node.set_data(TechTreeNodeData())
-            self.logger.warning(
-                f"Scenario: '{scenario_name}': No output for node: '{node.name}' "
-                f"(lvl: {node.level}). "
-                f"Not calculating any upper nodes."
-            )
+                    if not out.label and ureg(out.unit).units.is_compatible_with(ureg(given_output.unit).units):
+                        return idx
             return None
+
+        for child in node.children:
+            for output in child.data.output:
+                assign_to: Optional[int] = find_node_output_index(output)
+                if assign_to:
+                    node_outputs[assign_to][1] += ureg(output.unit) * output.magnitude
+                else:
+                    node_outputs.append((output.model_copy(),ureg.parse_expression(output.unit) * output.magnitude))
+
+        return [n[0] for n in node_outputs]
+
 
     def aggregate_node_result(
         self, node: BasicTreeNode[ScenarioResultNodeData]

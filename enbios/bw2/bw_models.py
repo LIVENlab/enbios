@@ -165,10 +165,11 @@ class BWMethodDefinition(RootModel):
     root: dict[str, Sequence[str]]
 
 
-@dataclass
-class BWActivityData:
+class BWActivityData(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     bw_activity: Activity
     default_output: NodeOutput
+    scenario_outputs: dict[str, NodeOutput] = Field(default_factory=dict)
 
 
 @dataclass

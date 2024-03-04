@@ -94,7 +94,7 @@ def test_env_config(tempfolder: Path):
         Experiment()
 
     import os
-    experiment_data = ReadPath(BASE_TEST_DATA_PATH / "experiment_instances/hierarchy2.json").read_data()
+    experiment_data = ReadPath(BASE_TEST_DATA_PATH / "experiment_instances/a.json").read_data()
     fix_experiment_data(experiment_data, TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH)
     temp_env_file = Path(tempfolder / "env_config.json")
     json.dump(experiment_data, temp_env_file.open("w", encoding="utf-8"))

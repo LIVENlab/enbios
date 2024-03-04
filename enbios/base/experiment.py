@@ -97,12 +97,9 @@ class Experiment:
         def recursive_convert(
             node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
-            output: Optional[NodeOutput] = None
-            if node_.is_leaf:
-                output = NodeOutput(
-                    unit=self.get_node_adapter(node_).get_node_output_unit(node_.name),
-                    magnitude=0,
-                )
+            output: list[NodeOutput] = []
+            # if node_.is_leaf:
+            #     output = self.get_node_adapter(node_).get_node_output(node_.name, "")
             return BasicTreeNode(
                 name=node_.name,
                 data=ScenarioResultNodeData(

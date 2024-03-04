@@ -56,12 +56,15 @@ class Scenario:
                 raise ValueError(f"Node {node_name} not found in result tree")
             structural_node = self.experiment.get_structural_node(node_name)
             # todo: should be dealt returned by the adapter...
-            structural_result_node.data.output = NodeOutput(
-                unit=self.experiment.get_node_adapter(
+            structural_result_node.data.output = self.experiment.get_node_adapter(
                     structural_node
-                ).get_node_output_unit(node_name),
-                magnitude=self.structural_nodes_outputs[node_name],
-            )
+                ).get_node_output(structural_node.name, self.name)
+            # structural_result_node.data.output = NodeOutput(
+            #     unit=self.experiment.get_node_adapter(
+            #         structural_node
+            #     ).get_node_output_unit(node_name),
+            #     magnitude=self.structural_nodes_outputs[node_name],
+            # )
             # todo adapter/aggregator specific additional data
             # if self.experiment.config.include_bw_activity_in_nodes:
             #     node_node.data.bw_activity = bw_activity

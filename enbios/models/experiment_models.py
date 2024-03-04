@@ -33,7 +33,7 @@ class ResultValue(NodeOutput):
 
 class ScenarioResultNodeData(BaseModel):
     model_config = StrictInputConfig
-    output: Optional[NodeOutput] = None
-    results: dict[str, ResultValue] = field(default_factory=dict)
+    output: list[NodeOutput] = Field(default_factory=dict)
+    results: dict[str, ResultValue] = Field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
