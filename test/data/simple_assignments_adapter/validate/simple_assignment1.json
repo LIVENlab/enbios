@@ -1,13 +1,19 @@
 {
   "n1": {
     "node_name": "n1",
-    "output_unit": "l",
-    "default_output": {
-      "unit": "l",
-      "magnitude": 100.0
-    },
+    "output_units": [
+      "l"
+    ],
+    "default_output": [
+      {
+        "label": null,
+        "unit": "l",
+        "magnitude": 100.0
+      }
+    ],
     "default_impacts": {
       "co2": {
+        "label": null,
         "unit": "kg",
         "multi_magnitude": [],
         "magnitude": 5.0

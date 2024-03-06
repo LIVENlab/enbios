@@ -36,7 +36,7 @@ class Scenario:
 
     _has_run: bool = False
     # this should be a simpler type - just str: float
-    structural_nodes_outputs: dict[str, float] = field(default_factory=dict)
+    # structural_nodes_outputs: dict[str, float] = field(default_factory=dict)
     # methods: Optional[dict[str, ExperimentMethodPrepData]] = None
     _execution_time: float = float("NaN")
     config: ScenarioConfig = field(default_factory=ScenarioConfig)  # type: ignore
@@ -48,7 +48,8 @@ class Scenario:
         If config is set, it also stores the BW node dict with the node.
         """
 
-        structural_nodes_names = list(self.structural_nodes_outputs.keys())
+        structural_nodes_names = list(n.name for n in self.result_tree.iter_leaves())
+
         for result_index, node_name in enumerate(structural_nodes_names):
             try:
                 structural_result_node = self.result_tree.find_subnode_by_name(node_name)
@@ -205,10 +206,12 @@ class Scenario:
             # there might be no output, when the units dont match
             if include_output and data.output:
                 if expand_results:
-                    result["output_unit"] = data.output.unit
-                    result["output_magnitude"] = data.output.magnitude
+                    for idx, output in enumerate(data.output):
+                        result[f"output_{idx}_unit"] = output.unit
+                        result[f"output_{idx}_magnitude"] = output.magnitude
                 else:
-                    result["output"] = data.output.model_dump()
+                    for idx, output in enumerate(data.output):
+                        result[f"output_{idx}"] = output.model_dump()
             # todo: adapter specific additional data
             # if data.bw_activity:
             #     result["bw_activity"] = data.bw_activity["code"]
@@ -302,7 +305,7 @@ class Scenario:
         def recursive_convert(
             node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
-            output: Optional[NodeOutput] = None
+            output: list[NodeOutput] = []
             results: dict = {}
             if node_.is_leaf:
                 calc_data = self.result_tree.find_subnode_by_name(node_.name).data  # type: ignore
@@ -348,6 +351,6 @@ class Scenario:
 
     def describe(self):
         output = f"Scenario '{self.name}'\n"
-        output += json.dumps(self.structural_nodes_outputs, indent=2)
+        # output += json.dumps(self.structural_nodes_outputs, indent=2)
         # todo: the tree instead...
         return output

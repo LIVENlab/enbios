@@ -3,10 +3,12 @@
     "children": [
       {
         "name": "n1",
-        "output": {
-          "magnitude": 100.0,
-          "unit": "l"
-        },
+        "output": [
+          {
+            "label": null,
+            "magnitude": 100.0,
+            "unit": "l"
+          }],
         "results": {
           "co2": {
             "magnitude": 5.0,
@@ -16,10 +18,12 @@
       }
     ],
     "name": "root",
-    "output": {
-      "magnitude": 100.0,
-      "unit": "liter"
-    },
+    "output": [
+      {
+        "label": null,
+        "magnitude": 100.0,
+        "unit": "liter"
+      }],
     "results": {
       "co2": {
         "magnitude": 5.0,

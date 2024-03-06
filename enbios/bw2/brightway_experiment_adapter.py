@@ -158,11 +158,7 @@ class BrightwayAdapter(EnbiosAdapter):
             default_output=NodeOutput(unit=bw_unit_fix(bw_activity["unit"]), magnitude=1),
         )
         if "default_output" in node_config:
-            self.activityMap[node_name].default_output.magnitude = (
-                self.validate_scenario_node(
-                    node_name, "", NodeOutput(**node_config["default_output"])
-                )
-            )
+            self.activityMap[node_name].default_output.magnitude = NodeOutput(**node_config["default_output"]).magnitude
         if self.config.simple_regionalization.run_regionalization:
             if "enb_location" in node_config:
                 bw_activity["enb_location"] = node_config["enb_location"]
@@ -176,7 +172,7 @@ class BrightwayAdapter(EnbiosAdapter):
         node_name: str,
         scenario_name: str,
         scenario_node_data: Any,
-    ) -> float:
+    ):
         """
         validate and convert to the bw-activity unit
         :param node_name:
@@ -193,7 +189,7 @@ class BrightwayAdapter(EnbiosAdapter):
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             self.activityMap[node_name].scenario_outputs[scenario_name] = target_output_
-            return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
+            #return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
         except UndefinedUnitError as err:
             logger.error(
                 f"Cannot parse output unit '{target_output_.unit}'- "

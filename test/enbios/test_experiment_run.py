@@ -2,7 +2,7 @@ import csv
 import json
 import pickle
 from pathlib import Path
-from typing import Generator
+from typing import Generator, cast
 
 import pytest
 from bw2data.backends import Activity
@@ -113,7 +113,7 @@ def test_single_lca_compare(run_basic_experiment: Experiment,
                             default_method_tuple):
     expected_value = experiment_setup["expected_result_tree"]["data"].results[default_bw_method_name]
     activity = run_basic_experiment.get_structural_node("single_activity")
-    bw_adapter: BrightwayAdapter = run_basic_experiment.get_node_adapter(activity)
+    bw_adapter: BrightwayAdapter = cast(BrightwayAdapter, run_basic_experiment.get_node_adapter(activity))
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
     assert regular_score == pytest.approx(expected_value.magnitude, abs=0)  # abs=1e-6

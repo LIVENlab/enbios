@@ -38,7 +38,7 @@ class EnbiosAdapter(ABC):
     @abstractmethod
     def validate_scenario_node(
         self, node_name: str, scenario_name: str, scenario_node_data: Any
-    ) -> float:
+    ):
         pass
 
     @abstractmethod

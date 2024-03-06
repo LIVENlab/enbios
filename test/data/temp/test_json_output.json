@@ -6,9 +6,10 @@
       "magnitude": 1.5707658207925896
     }
   },
-  "output": {
+  "output_0": {
     "unit": "kilowatt_hour",
-    "magnitude": 1.0
+    "magnitude": 1.0,
+    "label": null
   },
   "children": [
     {
@@ -19,9 +20,10 @@
           "magnitude": 1.5707658207925896
         }
       },
-      "output": {
+      "output_0": {
         "unit": "kilowatt_hour",
-        "magnitude": 1.0
+        "magnitude": 1.0,
+        "label": null
       }
     }
   ]

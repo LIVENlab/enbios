@@ -120,8 +120,8 @@ def validate_scenario(
             )
         return outputs
 
-    scenario_nodes_outputs: dict[str, float] = validate_nodes(scenario_data)
-    defined_nodes = list(scenario_nodes_outputs.keys())
+    validate_nodes(scenario_data)
+    defined_nodes = list(scenario_data.nodes.keys())
 
     # fill up the missing activities with default values
     if not scenario_data.config.exclude_defaults:
@@ -129,14 +129,14 @@ def validate_scenario(
         for node_name in experiment.structural_nodes_names:
             if node_name not in defined_nodes:
                 node = experiment.get_structural_node(node_name)
-                scenario_nodes_outputs[node_name] = experiment.get_node_adapter(
-                    node
-                ).get_default_output_value(node.name)
+                # scenario_nodes_outputs[node_name] = experiment.get_node_adapter(
+                #     node
+                # ).get_default_output_value(node.name)
     assert scenario_data.name
     return Scenario(
         experiment=experiment,  # type: ignore
         name=scenario_data.name,
-        structural_nodes_outputs=scenario_nodes_outputs,
+        # structural_nodes_outputs=scenario_nodes_outputs,
         config=scenario_data.config,
         result_tree=experiment.base_result_tree.copy(),
     )

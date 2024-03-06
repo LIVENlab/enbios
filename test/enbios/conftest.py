@@ -105,16 +105,16 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                       'children': [],
                                       'data':
                                           ScenarioResultNodeData(
-                                              output=NodeOutput(
-                                                  unit="kilowatt_hour", magnitude=1.0),
+                                              output=[NodeOutput(
+                                                  unit="kilowatt_hour", magnitude=1.0)],
                                               adapter="bw",
                                               aggregator=None,
                                               results={
                                                   default_bw_method_name: ResultValue(unit="kg CO2-Eq",
                                                                                       magnitude=_impact)})}],
                                  'data': ScenarioResultNodeData(
-                                     output=NodeOutput(
-                                         unit="kilowatt_hour", magnitude=1.0),
+                                     output=[NodeOutput(
+                                         unit="kilowatt_hour", magnitude=1.0)],
                                      adapter=None,
                                      aggregator="sum",
                                      results={
