@@ -25,15 +25,16 @@ class TechTreeNodeData(BaseModel):
         return data
 
 
-class ResultValue(NodeOutput):
+class ResultValue(BaseModel):
     model_config = StrictInputConfig
+    unit: str
     magnitude: Optional[float] = None  # type: ignore
     multi_magnitude: Optional[list[float]] = field(default_factory=list)
 
 
 class ScenarioResultNodeData(BaseModel):
     model_config = StrictInputConfig
-    output: list[NodeOutput] = Field(default_factory=dict)
+    output: list[NodeOutput] = Field(default_factory=list)
     results: dict[str, ResultValue] = Field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None

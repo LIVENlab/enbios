@@ -3,10 +3,12 @@
     "children": [
       {
         "name": "n1",
-        "output": {
-          "magnitude": 100.0,
-          "unit": "l"
-        },
+        "output": [
+          {
+            "magnitude": 100.0,
+            "unit": "liter"
+          }
+        ],
         "results": {
           "co2": {
             "magnitude": 5.0,
@@ -16,10 +18,12 @@
       },
       {
         "name": "n2",
-        "output": {
-          "magnitude": 100.0,
-          "unit": "m^2"
-        },
+        "output": [
+          {
+            "magnitude": 100.0,
+            "unit": "meter ** 2"
+          }
+        ],
         "results": {
           "co2": {
             "magnitude": 5.0,
@@ -34,16 +38,28 @@
         "magnitude": 10.0,
         "unit": "kg"
       }
-    }
+    },
+    "output": [
+      {
+        "magnitude": 100.0,
+        "unit": "liter"
+      },
+      {
+        "magnitude": 100.0,
+        "unit": "meter ** 2"
+      }
+    ]
   },
   "sc2": {
     "children": [
       {
         "name": "n1",
-        "output": {
-          "magnitude": 150.0,
-          "unit": "l"
-        },
+        "output": [
+          {
+            "magnitude": 150.0,
+            "unit": "liter"
+          }
+        ],
         "results": {
           "co2": {
             "magnitude": 7.5,
@@ -53,10 +69,12 @@
       },
       {
         "name": "n2",
-        "output": {
-          "magnitude": 100.0,
-          "unit": "m^2"
-        },
+        "output": [
+          {
+            "magnitude": 100.0,
+            "unit": "meter ** 2"
+          }
+        ],
         "results": {
           "co2": {
             "magnitude": 5.0,
@@ -66,6 +84,16 @@
       }
     ],
     "name": "root",
+    "output": [
+      {
+        "magnitude": 150.0,
+        "unit": "liter"
+      },
+      {
+        "magnitude": 100.0,
+        "unit": "meter ** 2"
+      }
+    ],
     "results": {
       "co2": {
         "magnitude": 12.5,

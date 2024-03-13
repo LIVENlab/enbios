@@ -7,13 +7,12 @@
     "default_output": [
       {
         "label": null,
-        "unit": "l",
+        "unit": "liter",
         "magnitude": 100.0
       }
     ],
     "default_impacts": {
       "co2": {
-        "label": null,
         "unit": "kg",
         "multi_magnitude": [],
         "magnitude": 5.0

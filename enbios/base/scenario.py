@@ -1,5 +1,4 @@
 import concurrent.futures
-import json
 import math
 import time
 from dataclasses import dataclass, field
@@ -60,12 +59,7 @@ class Scenario:
             structural_result_node.data.output = self.experiment.get_node_adapter(
                     structural_node
                 ).get_node_output(structural_node.name, self.name)
-            # structural_result_node.data.output = NodeOutput(
-            #     unit=self.experiment.get_node_adapter(
-            #         structural_node
-            #     ).get_node_output_unit(node_name),
-            #     magnitude=self.structural_nodes_outputs[node_name],
-            # )
+
             # todo adapter/aggregator specific additional data
             # if self.experiment.config.include_bw_activity_in_nodes:
             #     node_node.data.bw_activity = bw_activity
@@ -204,14 +198,11 @@ class Scenario:
                     }
                 }
             # there might be no output, when the units dont match
-            if include_output and data.output:
+            if include_output:
                 if expand_results:
-                    for idx, output in enumerate(data.output):
-                        result[f"output_{idx}_unit"] = output.unit
-                        result[f"output_{idx}_magnitude"] = output.magnitude
+                    result["output"] = [{"unit": output.unit, "magnitude": output.magnitude} for output in data.output]
                 else:
-                    for idx, output in enumerate(data.output):
-                        result[f"output_{idx}"] = output.model_dump()
+                    result["output"] = [o.model_dump(exclude_defaults=True) for o in data.output]
             # todo: adapter specific additional data
             # if data.bw_activity:
             #     result["bw_activity"] = data.bw_activity["code"]

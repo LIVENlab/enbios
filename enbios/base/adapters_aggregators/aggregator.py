@@ -21,7 +21,7 @@ class EnbiosAggregator(ABC):
         self,
         node: BasicTreeNode[ScenarioResultNodeData],
         scenario_name: Optional[str] = "",
-    ) -> Optional[NodeOutput]:
+    ) ->  list[NodeOutput]:
         pass
 
     @abstractmethod

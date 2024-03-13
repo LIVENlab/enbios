@@ -13,7 +13,7 @@ from pydantic_core import core_schema, PydanticOmit
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
-from enbios.base.unit_registry import ureg
+from enbios.base.unit_registry import ureg_decimal
 from enbios.bw2.bw_models import (
     ExperimentMethodPrepData,
     BWAdapterConfig,
@@ -182,10 +182,10 @@ class BrightwayAdapter(EnbiosAdapter):
         target_output_: NodeOutput = NodeOutput.model_validate(scenario_node_data)
         try:
             target_quantity: Quantity = (
-                ureg.parse_expression(
+                    ureg_decimal.parse_expression(
                     bw_unit_fix(target_output_.unit), case_sensitive=False
                 )
-                * target_output_.magnitude
+                    * target_output_.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             self.activityMap[node_name].scenario_outputs[scenario_name] = target_output_

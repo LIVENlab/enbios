@@ -1,14 +1,20 @@
-from typing import Optional, Any, Union, Tuple
+from dataclasses import dataclass
+from typing import Optional, Any
 
-from pint import Quantity, UndefinedUnitError, DimensionalityError
-from pint.facets.plain import PlainQuantity
+from pint import Quantity
 
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
-from enbios.base.unit_registry import ureg
+from enbios.base.unit_registry import ureg_decimal, flexible_parse
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_base_models import NodeOutput
 from enbios.models.experiment_models import ScenarioResultNodeData, ResultValue
+
+
+@dataclass
+class LabeledQuantity():
+    quantity: Quantity
+    label: Optional[str] = None
 
 
 class SumAggregator(EnbiosAggregator):
@@ -22,35 +28,35 @@ class SumAggregator(EnbiosAggregator):
         pass
 
     def aggregate_node_output(
-        self,
-        node: BasicTreeNode[ScenarioResultNodeData],
-        scenario_name: Optional[str] = "",
+            self,
+            node: BasicTreeNode[ScenarioResultNodeData],
+            scenario_name: Optional[str] = "",
     ) -> list[NodeOutput]:
-        node_outputs: list[tuple[NodeOutput, Quantity]] = []
+        node_outputs: list[LabeledQuantity] = []
 
         def find_node_output_index(given_output: NodeOutput) -> Optional[int]:
-            for idx, out_q in enumerate(node_outputs):
-                out, quant = out_q
-                if given_output.label and out.label == given_output.label:
-                        return idx
+            for idx, labeled_q in enumerate(node_outputs):
+                if given_output.label and labeled_q.label == given_output.label:
+                    return idx
                 else:
-                    if not out.label and ureg(out.unit).units.is_compatible_with(ureg(given_output.unit).units):
+                    if not labeled_q.label and labeled_q.quantity.is_compatible_with(given_output.unit):
                         return idx
             return None
 
         for child in node.children:
             for output in child.data.output:
                 assign_to: Optional[int] = find_node_output_index(output)
-                if assign_to:
-                    node_outputs[assign_to][1] += ureg(output.unit) * output.magnitude
+                if assign_to is not None:
+                    node_outputs[assign_to].quantity += ureg_decimal(output.unit) * output.magnitude
                 else:
-                    node_outputs.append((output.model_copy(),ureg.parse_expression(output.unit) * output.magnitude))
+                    node_outputs.append(LabeledQuantity(
+                        quantity=flexible_parse(output.unit, output.magnitude),
+                        label=output.label))
 
-        return [n[0] for n in node_outputs]
-
+        return [NodeOutput(unit=str(n.quantity.units), magnitude=n.quantity.magnitude, label=n.label) for n in node_outputs]
 
     def aggregate_node_result(
-        self, node: BasicTreeNode[ScenarioResultNodeData]
+            self, node: BasicTreeNode[ScenarioResultNodeData]
     ) -> dict[str, ResultValue]:
         result: dict[str, ResultValue] = {}
         for child in node.children:

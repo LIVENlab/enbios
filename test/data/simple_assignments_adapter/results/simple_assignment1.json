@@ -5,9 +5,40 @@
         "name": "n1",
         "output": [
           {
-            "label": null,
             "magnitude": 100.0,
-            "unit": "l"
+            "unit": "liter"
+          }
+        ],
+        "results": {
+          "co2": {
+            "magnitude": 5.0,
+            "unit": "kg"
+          }
+        }
+      }
+    ],
+    "name": "root",
+    "output": [
+      {
+        "magnitude": 100.0,
+        "unit": "liter"
+      }
+    ],
+    "results": {
+      "co2": {
+        "magnitude": 5.0,
+        "unit": "kg"
+      }
+    }
+  },
+  "sc2": {
+    "children": [
+      {
+        "name": "n1",
+        "output": [
+          {
+            "magnitude": 100.0,
+            "unit": "liter"
           }],
         "results": {
           "co2": {
@@ -20,38 +51,9 @@
     "name": "root",
     "output": [
       {
-        "label": null,
         "magnitude": 100.0,
         "unit": "liter"
       }],
-    "results": {
-      "co2": {
-        "magnitude": 5.0,
-        "unit": "kg"
-      }
-    }
-  },
-  "sc2": {
-    "children": [
-      {
-        "name": "n1",
-        "output": {
-          "magnitude": 100.0,
-          "unit": "l"
-        },
-        "results": {
-          "co2": {
-            "magnitude": 5.0,
-            "unit": "kg"
-          }
-        }
-      }
-    ],
-    "name": "root",
-    "output": {
-      "magnitude": 100.0,
-      "unit": "liter"
-    },
     "results": {
       "co2": {
         "magnitude": 5.0,

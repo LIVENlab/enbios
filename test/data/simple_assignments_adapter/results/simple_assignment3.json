@@ -3,10 +3,11 @@
     "children": [
       {
         "name": "n1",
-        "output": {
-          "magnitude": 100.0,
-          "unit": "l"
-        },
+        "output": [
+          {
+            "magnitude": 100.0,
+            "unit": "liter"
+          }],
         "results": {
           "co2": {
             "magnitude": 5.0,
@@ -16,10 +17,11 @@
       }
     ],
     "name": "root",
-    "output": {
-      "magnitude": 100.0,
-      "unit": "liter"
-    },
+    "output": [
+      {
+        "magnitude": 100.0,
+        "unit": "liter"
+      }],
     "results": {
       "co2": {
         "magnitude": 5.0,
@@ -31,19 +33,13 @@
     "children": [
       {
         "name": "n1",
-        "output": {
-          "magnitude": 0.0,
-          "unit": "l"
-        },
+        "output": [],
         "results": {
         }
       }
     ],
     "name": "root",
-    "output": {
-      "magnitude": 0.0,
-      "unit": "liter"
-    },
+    "output": [],
     "results": {
     }
   }
