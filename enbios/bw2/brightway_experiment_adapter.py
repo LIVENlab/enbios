@@ -2,9 +2,9 @@ import math
 from logging import getLogger
 from typing import Optional, Any, Union, Sequence, Callable
 
-from bw2data import Method as Bw2Method
 import bw2data as bd
 from bw2calc.dictionary_manager import ReversibleRemappableDictionary
+from bw2data import Method as Bw2Method
 from bw2data.backends import Activity, ActivityDataset
 from numpy import ndarray
 from pint import Quantity, UndefinedUnitError
@@ -13,7 +13,7 @@ from pydantic_core import core_schema, PydanticOmit
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
-from enbios.base.unit_registry import ureg_decimal
+from enbios.base.unit_registry import ureg_decimal, flexible_parse
 from enbios.bw2.bw_models import (
     ExperimentMethodPrepData,
     BWAdapterConfig,
@@ -145,20 +145,22 @@ class BrightwayAdapter(EnbiosAdapter):
         self.methods = {name: validate_method(method) for name, method in methods.items()}
         return list(self.methods.keys())
 
-
     def validate_node(self, node_name: str, node_config: Any):
         assert isinstance(
             node_config, dict
         ), f"Activity id (type: dict) must be defined for activity {node_name}"
         # get the brightway activity
         bw_activity = _bw_activity_search(node_config)
-
+        bw_unit = bw_unit_fix(bw_activity["unit"])
         self.activityMap[node_name] = BWActivityData(
             bw_activity=bw_activity,
-            default_output=NodeOutput(unit=bw_unit_fix(bw_activity["unit"]), magnitude=1),
+            default_output=NodeOutput(unit=bw_unit, magnitude=1)
         )
         if "default_output" in node_config:
-            self.activityMap[node_name].default_output.magnitude = NodeOutput(**node_config["default_output"]).magnitude
+            default_out = node_config["default_output"]
+            unit = bw_unit_fix(default_out["unit"])
+            base_q: Quantity = flexible_parse(unit, default_out["magnitude"])
+            self.activityMap[node_name].default_output = base_q.to(bw_unit)
         if self.config.simple_regionalization.run_regionalization:
             if "enb_location" in node_config:
                 bw_activity["enb_location"] = node_config["enb_location"]
