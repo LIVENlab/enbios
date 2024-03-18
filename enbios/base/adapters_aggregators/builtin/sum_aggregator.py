@@ -4,7 +4,7 @@ from typing import Optional, Any
 from pint import Quantity
 
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
-from enbios.base.unit_registry import ureg_decimal, flexible_parse
+from enbios.base.unit_registry import ureg
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.experiment_base_models import NodeOutput
@@ -47,10 +47,10 @@ class SumAggregator(EnbiosAggregator):
             for output in child.data.output:
                 assign_to: Optional[int] = find_node_output_index(output)
                 if assign_to is not None:
-                    node_outputs[assign_to].quantity += ureg_decimal(output.unit) * output.magnitude
+                    node_outputs[assign_to].quantity += ureg(output.unit) * output.magnitude
                 else:
                     node_outputs.append(LabeledQuantity(
-                        quantity=flexible_parse(output.unit, output.magnitude),
+                        quantity=ureg.parse_expression(output.unit) * output.magnitude,
                         label=output.label))
 
         return [NodeOutput(unit=str(n.quantity.units), magnitude=n.quantity.magnitude, label=n.label) for n in node_outputs]

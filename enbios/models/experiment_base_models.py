@@ -1,5 +1,6 @@
 from typing import Optional, Union, Any
 
+from pint.facets.plain import PlainQuantity
 from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict
 
 from enbios.generic.files import PathLike
@@ -131,6 +132,10 @@ class NodeOutput(BaseModel):
         elif isinstance(v, tuple) or isinstance(v, list):
             return {"unit": v[0], "magnitude": v[1]}
         return v
+
+    def from_quantity(self, q: PlainQuantity):
+        self.unit = str(q.units)
+        self.magnitude = q.magnitude
 
 
 class ExperimentScenarioData(BaseModel):

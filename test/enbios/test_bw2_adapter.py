@@ -1,5 +1,6 @@
 import json
 import math
+from typing import cast
 
 import bw2data
 import pytest
@@ -346,7 +347,7 @@ def test_nonlinear_methods1(experiment_setup: dict,
     result = experiment.run()["default scenario"]['results']
     assert result[default_bw_method_name]["magnitude"] == result[no_nonlinear_method_name]["magnitude"]
     # compare with bw LCA
-    bw_adapter: BrightwayAdapter = experiment.adapters[0]
+    bw_adapter: BrightwayAdapter = cast(BrightwayAdapter,experiment.adapters[0])
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
     assert result[default_bw_method_name]["magnitude"] == pytest.approx(regular_score, abs=1e-7)
@@ -372,7 +373,7 @@ def test_nonlinear_methods2(set_bw_default_project,
     experiment = Experiment(experiment_setup["scenario"])
     result = experiment.run()["default scenario"]['results']
 
-    bw_adapter: BrightwayAdapter = experiment.adapters[0]
+    bw_adapter: BrightwayAdapter = cast(BrightwayAdapter,experiment.adapters[0])
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     lca = bw_activity.lca(default_method_tuple, 2)
     double_score = lca.score
@@ -406,7 +407,7 @@ def test_nonlinear_methods3(set_bw_default_project,
     experiment = Experiment(experiment_setup["scenario"])
     result = experiment.run()["default scenario"]['results']
 
-    bw_adapter: BrightwayAdapter = experiment.adapters[0]
+    bw_adapter: BrightwayAdapter = cast(BrightwayAdapter,experiment.adapters[0])
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     lca = LCA({bw_activity: 1}, method=default_method_tuple)
     lca.lci()

@@ -14,5 +14,5 @@ from enbios.models.experiment_models import (
 )
 
 def get_enbios_ureg() -> UnitRegistry:
-    from enbios.base.unit_registry import ureg_decimal
-    return ureg_decimal
+    from enbios.base.unit_registry import ureg
+    return ureg

@@ -6,11 +6,11 @@
       "magnitude": 1.5707658207925896
     }
   },
-  "output_0": {
-    "unit": "kilowatt_hour",
-    "magnitude": 1.0,
-    "label": null
-  },
+  "output": [
+    {
+      "unit": "kilowatt_hour"
+    }
+  ],
   "children": [
     {
       "name": "single_activity",
@@ -20,11 +20,11 @@
           "magnitude": 1.5707658207925896
         }
       },
-      "output_0": {
-        "unit": "kilowatt_hour",
-        "magnitude": 1.0,
-        "label": null
-      }
+      "output": [
+        {
+          "unit": "kilowatt_hour"
+        }
+      ]
     }
   ]
 }

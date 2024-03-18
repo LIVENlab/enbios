@@ -163,7 +163,18 @@ class Scenario:
                     logger.error(f"Node '{node_name}' not found in result tree")
                 continue
             node.data.results = node_result
-
+        if self.config.exclude_defaults:
+            for leave in self.result_tree.iter_leaves():
+                if not leave.data.results:
+                    parent = leave.parent
+                    leave.remove_self()
+                    while parent:
+                        if parent.get_num_children() == 0:
+                            node = parent
+                            parent = parent.parent
+                            node.remove_self()
+                        else:
+                            break
     @staticmethod
     def wrapper_data_serializer(
         include_output: bool = True, expand_results: bool = False

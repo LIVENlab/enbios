@@ -27,7 +27,7 @@
           "location": "DK",
           "unit": "kilowatt hour",
           "default_output": {
-            "unit": "Mwh",
+            "unit": "MWh",
             "magnitude": 30
           }
         }
@@ -40,7 +40,7 @@
           "location": "DK",
           "unit": "kilowatt hour",
           "default_output": {
-            "unit": "Mwh",
+            "unit": "MWh",
             "magnitude": 30
           }
         }
@@ -57,7 +57,7 @@
               "location": "DK",
               "unit": "kilowatt hour",
               "default_output": {
-                "unit": "Mwh",
+                "unit": "MWh",
                 "magnitude": 30
               }
             }
@@ -70,7 +70,7 @@
               "location": "DK",
               "unit": "kilowatt hour",
               "default_output": {
-                "unit": "Mwh",
+                "unit": "MWh",
                 "magnitude": 30
               }
             }

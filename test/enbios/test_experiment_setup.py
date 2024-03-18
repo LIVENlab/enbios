@@ -69,7 +69,7 @@ def test_experiment_data(experiment_data):
 
 
 def test_one_experiment_data():
-    filename = "hierarchy2.json"
+    filename = "a2x.json"
     experiment_data = ReadPath(BASE_TEST_DATA_PATH / "experiment_instances" / filename).read_data()
     if replace_conf := experiment_data.get("config", {}).get("debug_test_replace_bw_config", True):
         if isinstance(replace_conf, list):

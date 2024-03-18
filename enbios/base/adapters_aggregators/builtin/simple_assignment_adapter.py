@@ -7,7 +7,7 @@ from pydantic import BaseModel, model_validator, Field
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
-from enbios.base.unit_registry import ureg_decimal
+from enbios.base.unit_registry import ureg
 from enbios.generic.files import ReadPath
 from enbios.generic.unit_util import unit_match
 from enbios.models.experiment_base_models import AdapterModel, NodeOutput
@@ -273,7 +273,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                         f"Unit of output at index [{id_}]/{type_} do not match '{unit}' does not match '{out_unit}' "
                         f"for row {row_}")
                     result.append(NodeOutput(
-                        unit=str(ureg_decimal(unit).units),
+                        unit=str(ureg(unit).units),
                         magnitude=float(row_[mag_header]),
                     ))
 

@@ -1,6 +1,6 @@
 from pint import Quantity
 
-from enbios.base.unit_registry import ureg_decimal
+from enbios.base.unit_registry import ureg
 from enbios.models.experiment_base_models import NodeOutput
 
 
@@ -17,7 +17,7 @@ def compact_all_to(quantities: list[Quantity], use_min: bool = True) -> list[Qua
 
 
 def unit_match(unit1: str, unit2: str) -> bool:
-    return ureg_decimal(unit1).is_compatible_with(unit2)
+    return ureg(unit1).is_compatible_with(unit2)
 
 
 def get_output_in_unit(output: NodeOutput, target_unit: str) -> float:
@@ -27,12 +27,12 @@ def get_output_in_unit(output: NodeOutput, target_unit: str) -> float:
     :param target_unit:
     :return:
     """
-    conversion_quant = (ureg_decimal.parse_expression(output.unit) * output.magnitude).to(
+    conversion_quant = (ureg.parse_expression(output.unit) * output.magnitude).to(
         target_unit
     )
     # experiment to avoid something like 1ML converted to 1000000.00000001
     if (
-            ureg_decimal.parse_expression(output.unit) / ureg_decimal(target_unit)
+            ureg.parse_expression(output.unit) / ureg(target_unit)
     ).to_base_units().magnitude > 1e6:
         return round(conversion_quant.magnitude, 0)
     else:
