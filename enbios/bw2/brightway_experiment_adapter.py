@@ -154,8 +154,7 @@ class BrightwayAdapter(EnbiosAdapter):
         bw_activity = _bw_activity_search(node_config)
         bw_unit = bw_unit_fix(bw_activity["unit"])
         self.activityMap[node_name] = BWActivityData(
-            bw_activity=bw_activity,
-            default_output=NodeOutput(unit=bw_unit, magnitude=1)
+            bw_activity=bw_activity, default_output=NodeOutput(unit=bw_unit, magnitude=1)
         )
         if "default_output" in node_config:
             default_out = node_config["default_output"]
@@ -172,10 +171,10 @@ class BrightwayAdapter(EnbiosAdapter):
         return self.activityMap[node_name].default_output.magnitude
 
     def validate_scenario_node(
-            self,
-            node_name: str,
-            scenario_name: str,
-            scenario_node_data: Any,
+        self,
+        node_name: str,
+        scenario_name: str,
+        scenario_node_data: Any,
     ):
         """
         validate and convert to the bw-activity unit
@@ -186,11 +185,13 @@ class BrightwayAdapter(EnbiosAdapter):
         target_output_: NodeOutput = NodeOutput.model_validate(scenario_node_data)
         try:
             target_quantity: Quantity = (
-                    ureg.parse_expression(bw_unit_fix(target_output_.unit))
-                    * target_output_.magnitude
+                ureg.parse_expression(bw_unit_fix(target_output_.unit))
+                * target_output_.magnitude
             )
             bw_activity_unit = self.get_node_output_unit(node_name)
-            scaled_quantity: PlainQuantity = target_quantity.to(bw_unit_fix(bw_activity_unit))
+            scaled_quantity: PlainQuantity = target_quantity.to(
+                bw_unit_fix(bw_activity_unit)
+            )
             target_output_.from_quantity(scaled_quantity)
             self.activityMap[node_name].scenario_outputs[scenario_name] = target_output_
             #
@@ -225,7 +226,9 @@ class BrightwayAdapter(EnbiosAdapter):
                     inventory.append({activity.bw_activity: act_output})
                 else:
                     if not scenario.config.exclude_defaults:
-                        inventory.append({activity.bw_activity: activity.default_output.magnitude})
+                        inventory.append(
+                            {activity.bw_activity: activity.default_output.magnitude}
+                        )
 
             except KeyError:
                 # todo not sure if that ever happens..
@@ -239,8 +242,8 @@ class BrightwayAdapter(EnbiosAdapter):
         calculation_setup.register()
         self.scenario_calc_setups[scenario.name] = calculation_setup
         if (
-                self.config.simple_regionalization.run_regionalization
-                and not self.all_regions_set
+            self.config.simple_regionalization.run_regionalization
+            and not self.all_regions_set
         ):
             # memorize nodes from the tree in order to not delete their location
             keep_locations_of_activities: list[str] = []
@@ -257,14 +260,14 @@ class BrightwayAdapter(EnbiosAdapter):
                 )
 
                 for range_start in range(
-                        math.ceil(len(activities_to_reset) / range_length)
+                    math.ceil(len(activities_to_reset) / range_length)
                 ):
                     # noinspection PyUnresolvedReferences
                     # noinspection PyProtectedMember
                     with ActivityDataset._meta.database.atomic():
                         for a in activities_to_reset[
-                                 range_start * range_length: (range_start + 1) * range_length
-                                 ]:
+                            range_start * range_length : (range_start + 1) * range_length
+                        ]:
                             a.data["enb_location"] = None
                             a.save()
 
@@ -338,15 +341,18 @@ class BrightwayAdapter(EnbiosAdapter):
         )
 
     def _assign_results2nodes(
-            self,
-            raw_results: list[ndarray],
-            scenario: Scenario,
-            use_distributions: bool,
-            has_regionalization: bool,
+        self,
+        raw_results: list[ndarray],
+        scenario: Scenario,
+        use_distributions: bool,
+        has_regionalization: bool,
     ):
         result_data: dict[str, Any] = {}
         for act_idx, act_alias in enumerate(self.activityMap.keys()):
-            if scenario.name not in self.activityMap[act_alias].scenario_outputs and scenario.config.exclude_defaults:
+            if (
+                scenario.name not in self.activityMap[act_alias].scenario_outputs
+                and scenario.config.exclude_defaults
+            ):
                 continue
             result_data[act_alias] = {}
             result_field = "multi_magnitude" if use_distributions else "magnitude"
@@ -354,7 +360,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 method_name, method_data = method
                 if has_regionalization:
                     for region_idx, region in enumerate(
-                            self.config.simple_regionalization.select_regions
+                        self.config.simple_regionalization.select_regions
                     ):
                         method_result = ResultValue.model_validate(
                             {"unit": method_data.bw_method_unit}
@@ -399,7 +405,7 @@ class BrightwayAdapter(EnbiosAdapter):
         return method_activity2func_maps
 
     def prepare_nonlinear_method(
-            self, method_name: str, method_config: NonLinearMethodConfig
+        self, method_name: str, method_config: NonLinearMethodConfig
     ) -> dict[int, Callable[[float], float]]:
         result_func_map: dict[int, Callable[[float], float]] = (
             {}
@@ -443,7 +449,7 @@ class BrightwayAdapter(EnbiosAdapter):
 
         class MyGenerateJsonSchema(GenerateJsonSchema):
             def handle_invalid_for_json_schema(
-                    self, schema: core_schema.CoreSchema, error_info: str
+                self, schema: core_schema.CoreSchema, error_info: str
             ) -> JsonSchemaValue:
                 if schema["type"] == "callable":
                     logger.warning("Ignoring callable during schema generation...")
@@ -460,7 +466,7 @@ class BrightwayAdapter(EnbiosAdapter):
         }
 
     def activities_keys_id_map(
-            self, keys: list[tuple[str, str]]
+        self, keys: list[tuple[str, str]]
     ) -> ReversibleRemappableDictionary:
         codes = [code for _, code in keys]
         biosphere_activities = list(

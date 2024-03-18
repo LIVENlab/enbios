@@ -57,8 +57,8 @@ class Scenario:
             structural_node = self.experiment.get_structural_node(node_name)
             # todo: should be dealt returned by the adapter...
             structural_result_node.data.output = self.experiment.get_node_adapter(
-                    structural_node
-                ).get_node_output(structural_node.name, self.name)
+                structural_node
+            ).get_node_output(structural_node.name, self.name)
 
             # todo adapter/aggregator specific additional data
             # if self.experiment.config.include_bw_activity_in_nodes:
@@ -175,6 +175,7 @@ class Scenario:
                             node.remove_self()
                         else:
                             break
+
     @staticmethod
     def wrapper_data_serializer(
         include_output: bool = True, expand_results: bool = False
@@ -211,9 +212,14 @@ class Scenario:
             # there might be no output, when the units dont match
             if include_output:
                 if expand_results:
-                    result["output"] = [{"unit": output.unit, "magnitude": output.magnitude} for output in data.output]
+                    result["output"] = [
+                        {"unit": output.unit, "magnitude": output.magnitude}
+                        for output in data.output
+                    ]
                 else:
-                    result["output"] = [o.model_dump(exclude_defaults=True) for o in data.output]
+                    result["output"] = [
+                        o.model_dump(exclude_defaults=True) for o in data.output
+                    ]
             # todo: adapter specific additional data
             # if data.bw_activity:
             #     result["bw_activity"] = data.bw_activity["code"]

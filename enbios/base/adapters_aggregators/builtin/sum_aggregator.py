@@ -12,7 +12,7 @@ from enbios.models.experiment_models import ScenarioResultNodeData, ResultValue
 
 
 @dataclass
-class LabeledQuantity():
+class LabeledQuantity:
     quantity: Quantity
     label: Optional[str] = None
 
@@ -28,9 +28,9 @@ class SumAggregator(EnbiosAggregator):
         pass
 
     def aggregate_node_output(
-            self,
-            node: BasicTreeNode[ScenarioResultNodeData],
-            scenario_name: Optional[str] = "",
+        self,
+        node: BasicTreeNode[ScenarioResultNodeData],
+        scenario_name: Optional[str] = "",
     ) -> list[NodeOutput]:
         node_outputs: list[LabeledQuantity] = []
 
@@ -39,7 +39,9 @@ class SumAggregator(EnbiosAggregator):
                 if given_output.label and labeled_q.label == given_output.label:
                     return idx
                 else:
-                    if not labeled_q.label and labeled_q.quantity.is_compatible_with(given_output.unit):
+                    if not labeled_q.label and labeled_q.quantity.is_compatible_with(
+                        given_output.unit
+                    ):
                         return idx
             return None
 
@@ -47,16 +49,27 @@ class SumAggregator(EnbiosAggregator):
             for output in child.data.output:
                 assign_to: Optional[int] = find_node_output_index(output)
                 if assign_to is not None:
-                    node_outputs[assign_to].quantity += ureg(output.unit) * output.magnitude
+                    node_outputs[assign_to].quantity += (
+                        ureg(output.unit) * output.magnitude
+                    )
                 else:
-                    node_outputs.append(LabeledQuantity(
-                        quantity=ureg.parse_expression(output.unit) * output.magnitude,
-                        label=output.label))
+                    node_outputs.append(
+                        LabeledQuantity(
+                            quantity=ureg.parse_expression(output.unit)
+                            * output.magnitude,
+                            label=output.label,
+                        )
+                    )
 
-        return [NodeOutput(unit=str(n.quantity.units), magnitude=n.quantity.magnitude, label=n.label) for n in node_outputs]
+        return [
+            NodeOutput(
+                unit=str(n.quantity.units), magnitude=n.quantity.magnitude, label=n.label
+            )
+            for n in node_outputs
+        ]
 
     def aggregate_node_result(
-            self, node: BasicTreeNode[ScenarioResultNodeData]
+        self, node: BasicTreeNode[ScenarioResultNodeData]
     ) -> dict[str, ResultValue]:
         result: dict[str, ResultValue] = {}
         for child in node.children:

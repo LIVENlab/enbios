@@ -1,4 +1,3 @@
-
 from pint import UnitRegistry
 
 from enbios.generic.files import DataPath
@@ -19,5 +18,3 @@ ureg.load_definitions(ecoinvent_units_file_path)
 
 
 # print("loaded ecoinvent units")
-
-

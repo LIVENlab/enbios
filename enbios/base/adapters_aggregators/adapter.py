@@ -5,7 +5,8 @@ from typing import Any, Optional
 from enbios.base.scenario import Scenario
 from enbios.generic.enbios2_logging import get_logger
 from enbios.models.experiment_base_models import (
-    AdapterModel, NodeOutput,
+    AdapterModel,
+    NodeOutput,
 )
 from enbios.models.experiment_models import ResultValue
 

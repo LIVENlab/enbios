@@ -121,17 +121,18 @@ def validate_scenario(
         return outputs
 
     validate_nodes(scenario_data)
-    defined_nodes = list(scenario_data.nodes.keys())
 
     # fill up the missing activities with default values
     if not scenario_data.config.exclude_defaults:
+        # todo. something to do here?
+        pass
         # todo make the data come from the adapter
-        for node_name in experiment.structural_nodes_names:
-            if node_name not in defined_nodes:
-                node = experiment.get_structural_node(node_name)
-                # scenario_nodes_outputs[node_name] = experiment.get_node_adapter(
-                #     node
-                # ).get_default_output_value(node.name)
+        # for node_name in experiment.structural_nodes_names:
+        #     if node_name not in defined_nodes:
+        #         node = experiment.get_structural_node(node_name)
+        # scenario_nodes_outputs[node_name] = experiment.get_node_adapter(
+        #     node
+        # ).get_default_output_value(node.name)
     assert scenario_data.name
     return Scenario(
         experiment=experiment,  # type: ignore
