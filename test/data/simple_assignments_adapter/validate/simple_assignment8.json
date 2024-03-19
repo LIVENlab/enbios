@@ -1,0 +1,180 @@
+{
+  "n1": {
+    "node_name": "n1",
+    "output_units": [
+      "l"
+    ],
+    "default_output": [],
+    "default_impacts": {},
+    "scenario_data": {
+      "sc1": {
+        "impacts": {
+          "co2": {
+            "magnitude": 5.0,
+            "multi_magnitude": [],
+            "unit": "kg"
+          }
+        },
+        "outputs": [
+          {
+            "label": null,
+            "magnitude": 100.0,
+            "unit": "liter"
+          }
+        ]
+      }
+    }
+  },
+  "n2": {
+    "node_name": "n2",
+    "output_units": [
+      "l"
+    ],
+    "default_output": [
+      {
+        "label": null,
+        "unit": "liter",
+        "magnitude": 10.0
+      }
+    ],
+    "default_impacts": {
+      "co2": {
+        "unit": "kg",
+        "magnitude": 50.0,
+        "multi_magnitude": []
+      }
+    },
+    "scenario_data": {
+      "sc1": {
+        "impacts": {
+          "co2": {
+            "magnitude": 12.0,
+            "multi_magnitude": [],
+            "unit": "kg"
+          }
+        },
+        "outputs": [
+          {
+            "label": null,
+            "magnitude": 60.0,
+            "unit": "liter"
+          }
+        ]
+      }
+    }
+  },
+  "n3": {
+    "node_name": "n3",
+    "output_units": [
+      "l"
+    ],
+    "default_output": [
+      {
+        "label": null,
+        "unit": "liter",
+        "magnitude": 10.0
+      }
+    ],
+    "default_impacts": {
+      "co2": {
+        "unit": "kg",
+        "magnitude": 50.0,
+        "multi_magnitude": []
+      }
+    },
+    "scenario_data": {
+      "sc1": {
+        "impacts": {
+          "co2": {
+            "magnitude": 12.0,
+            "multi_magnitude": [],
+            "unit": "kg"
+          }
+        },
+        "outputs": [
+          {
+            "label": "amount",
+            "magnitude": 60.0,
+            "unit": "liter"
+          }
+        ]
+      }
+    }
+  },
+  "n4": {
+    "node_name": "n4",
+    "output_units": [
+      "l"
+    ],
+    "default_output": [
+      {
+        "label": null,
+        "unit": "liter",
+        "magnitude": 10.0
+      }
+    ],
+    "default_impacts": {
+      "co2": {
+        "unit": "kg",
+        "magnitude": 50.0,
+        "multi_magnitude": []
+      }
+    },
+    "scenario_data": {
+      "sc1": {
+        "impacts": {
+          "co2": {
+            "magnitude": 12.0,
+            "multi_magnitude": [],
+            "unit": "kg"
+          }
+        },
+        "outputs": [
+          {
+            "label": "unit-weight",
+            "magnitude": 60.0,
+            "unit": "liter"
+          }
+        ]
+      }
+    }
+  },
+  "n5": {
+    "node_name": "n5",
+    "output_units": [
+      "l"
+    ],
+    "default_output": [
+      {
+        "label": null,
+        "unit": "liter",
+        "magnitude": 10.0
+      }
+    ],
+    "default_impacts": {
+      "co2": {
+        "unit": "kg",
+        "magnitude": 50.0,
+        "multi_magnitude": []
+      }
+    },
+    "scenario_data": {
+      "sc1": {
+        "impacts": {
+          "co2": {
+            "magnitude": 1.0,
+            "multi_magnitude": [],
+            "unit": "kg"
+          }
+        },
+        "outputs": [
+          {
+            "label": "unit-weight",
+            "magnitude": 40.0,
+            "unit": "liter"
+          }
+        ]
+      }
+    }
+  }
+}

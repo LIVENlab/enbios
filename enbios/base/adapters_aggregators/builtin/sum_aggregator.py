@@ -36,13 +36,13 @@ class SumAggregator(EnbiosAggregator):
 
         def find_node_output_index(given_output: NodeOutput) -> Optional[int]:
             for idx, labeled_q in enumerate(node_outputs):
-                if given_output.label and labeled_q.label == given_output.label:
-                    return idx
-                else:
-                    if not labeled_q.label and labeled_q.quantity.is_compatible_with(
+                if given_output.label:
+                    if labeled_q.label == given_output.label:
+                        return idx
+                elif not labeled_q.label and labeled_q.quantity.is_compatible_with(
                         given_output.unit
                     ):
-                        return idx
+                    return idx
             return None
 
         for child in node.children:

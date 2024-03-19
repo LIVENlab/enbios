@@ -88,7 +88,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             )
 
     def validate_scenario_node(
-        self, node_name: str, scenario_name: str, scenario_node_data: Any
+            self, node_name: str, scenario_name: str, scenario_node_data: Any
     ):
         if self.from_csv_file:
             scenario_output: list[NodeOutput] = []
@@ -176,21 +176,25 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         __impacts = "impacts"
         __unit = "unit"
         __magnitude = "magnitude"
+        __label = "label"
 
-        id_re_p = "[1-9a-zA-Z][0-9a-z-A-Z]*"
+        id_re_str = "[1-9a-zA-Z][0-9a-z-A-Z]*"
+        id_re_pat = re.compile(f"^{id_re_str}$")
 
         # TODO validate output and impacts units
         # one default output and multiple different scenario impacts would be weird...
         rows = ReadPath(file_path).read_data()
         headers = list(h.strip() for h in rows[0].keys())
-        output_unit_re = re.compile(f"^{__output}_{id_re_p}_{__unit}$")
+        output_unit_re = re.compile(f"^{__output}_{id_re_str}_{__unit}$")
         assert all(
-            any((output_unit_re.match(h) for h in headers))
+            any((k.match(h) for h in headers))
             for k in [re.compile("node_name"), output_unit_re]
         ), "'node_name' and 'node_{i}_output' must be defined"
 
         output_units: dict[str, str] = {}
 
+        # dicts for headers. keys: ids [strings for outputs/impacts ids]
+        # value:dict: [str:str] : "unit","magnitude" : <full-header> (e.g. default_output_1_unit)
         default_output_headers: dict[str, dict[str, str]] = {}
         scenario_output_headers: dict[str, dict[str, str]] = {}
         default_impacts_headers: dict[str, dict[str, str]] = {}
@@ -203,23 +207,16 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             scenario_impacts_headers,
         ]
 
-        group_regexes = [[col, []] for col in collections]
-        for def_o_sce in (__default, __scenario):
-            for out_o_impact in [__output, __impacts]:
-                for unit_o_mag in [__unit, __magnitude]:
-                    reg_ = re.compile(
-                        f"^{def_o_sce}_{out_o_impact}_{id_re_p}_{unit_o_mag}$"
-                    )
-                    if def_o_sce == __default:
-                        if out_o_impact == __output:
-                            group_regexes[0][1].append(reg_)
-                        else:
-                            group_regexes[2][1].append(reg_)
-                    else:
-                        if out_o_impact == __output:
-                            group_regexes[1][1].append(reg_)
-                        else:
-                            group_regexes[3][1].append(reg_)
+        collections2 = {
+            __default: {
+                __output: default_output_headers,
+                __impacts: default_impacts_headers
+            },
+            __scenario: {
+                __output: scenario_output_headers,
+                __impacts: scenario_impacts_headers
+            }
+        }
 
         for header in headers:
             parts = header.split("_")
@@ -230,26 +227,21 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                 continue
             if len(parts) != 4:
                 continue
-            for idx, (group, regexes) in enumerate(group_regexes):
-                for reg, unit_o_mag in zip(tuple(regexes), [__unit, __magnitude]):
-                    match_ = reg.match(header)
-                    if match_:
-                        id_: str = parts[2]  # number or impact name
-                        # u_m: str = parts[3]
-                        if id_ in group:
-                            if group[id_].get(unit_o_mag):
-                                raise ValueError(f"already set {parts}")
-                        else:
-                            group[id_] = {}
-                        group[id_][unit_o_mag] = header
+            def_o_sce, out_o_impact, id_, unit_o_mag = tuple(parts)
+            assert def_o_sce in [__default, __scenario]
+            assert out_o_impact in [__output, __impacts]
+            col = collections2[def_o_sce][out_o_impact]
+            assert id_re_pat.match(id_)
+            assert unit_o_mag in [__unit, __magnitude] + ([__label] if out_o_impact == __output else [])
+            col.setdefault(id_, {})[unit_o_mag] = header
 
         for col in collections:
             for col_id_headers in col.values():
-                assert len(col_id_headers) == 2, f"row not complete: {headers}"
+                assert len(col_id_headers) >= 2, f"row not complete: {headers}"
 
         # check if the impacts exists in the methods
         for impact in list(default_impacts_headers.keys()) + list(
-            scenario_impacts_headers.keys()
+                scenario_impacts_headers.keys()
         ):
             if impact not in self.methods.keys():
                 raise ValueError(
@@ -263,18 +255,19 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         node_map: dict[str, SimpleAssignmentNodeConfig] = {}
 
         def get_outputs(
-            row_: dict,
-            type_: Literal[__default, __scenario],
-            node: Optional[SimpleAssignmentNodeConfig] = None,
+                row_: dict,
+                type_: Literal[__default, __scenario],
+                node: Optional[SimpleAssignmentNodeConfig] = None,
         ) -> list[NodeOutput]:
             coll = (
                 scenario_output_headers if type_ == __scenario else default_output_headers
             )
             result: list[NodeOutput] = []
             for idx, (id_, id_out_headers) in enumerate(coll.items()):
-                unit_header, mag_header = (
+                unit_header, mag_header, label_header = (
                     id_out_headers["unit"],
                     id_out_headers["magnitude"],
+                    id_out_headers.get("label")
                 )
                 if row_[unit_header] or row_[mag_header]:
                     # todo not sure about this assert, we could just use output_{i}_unit
@@ -289,17 +282,21 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                         f"Unit of output at index [{id_}]/{type_} do not match '{unit}' does not match '{out_unit}' "
                         f"for row {row_}"
                     )
+                    label = row.get(label_header)
+                    if not label:
+                        label = None
                     result.append(
                         NodeOutput(
                             unit=str(ureg(unit).units),
                             magnitude=float(row_[mag_header]),
+                            label=label
                         )
                     )
 
             return result
 
         def get_impacts(
-            row_: dict, type_: Literal["default", "scenario"]
+                row_: dict, type_: Literal["default", "scenario"]
         ) -> dict[str, ResultValue]:
             coll = (
                 default_impacts_headers

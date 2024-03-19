@@ -74,9 +74,9 @@ class Experiment:
         self.resolved_raw_data: ExperimentDataResolved = resolve_input_files(raw_data)
 
         # load and validate adapters and aggregators
-        adapters, modules = validate_adapters(raw_data.adapters)
+        adapters, methods = validate_adapters(raw_data.adapters)
         self._adapters: dict[str, EnbiosAdapter] = adapters
-        self.methods: list[str] = modules
+        self.methods: list[str] = methods
         self._aggregators: dict[str, EnbiosAggregator] = validate_aggregators(
             raw_data.aggregators
         )
