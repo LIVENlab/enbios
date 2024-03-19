@@ -1,8 +1,9 @@
 import math
 from logging import getLogger
-from typing import Optional, Any, Union, Sequence, Callable
+from typing import Optional, Any, Sequence, Callable
 
 import bw2data as bd
+import numpy as np
 from bw2calc.dictionary_manager import ReversibleRemappableDictionary
 from bw2data import Method as Bw2Method
 from bw2data.backends import Activity, ActivityDataset
@@ -15,16 +16,15 @@ from pydantic_core import core_schema, PydanticOmit
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.base.unit_registry import ureg
+from enbios.bw2.MultiLCA_util import BaseStackedMultiLCA
 from enbios.bw2.bw_models import (
     ExperimentMethodPrepData,
     BWAdapterConfig,
     BrightwayActivityConfig,
     BWMethodDefinition,
     BWActivityData,
-    NonLinearMethodConfig,
+    NonLinearMethodConfig, BWCalculationSetup,
 )
-from enbios.bw2.stacked_MultiLCA import StackedMultiLCA, BWCalculationSetup
-from enbios.bw2.stacked_MultiLCA_regio import RegioStackedMultiLCA
 from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.generic.util import load_module, get_module_functions
 from enbios.models.experiment_base_models import NodeOutput, AdapterModel
@@ -35,35 +35,37 @@ from enbios.models.experiment_models import (
 logger = getLogger(__file__)
 
 
-def _bw_activity_search(activity_id: dict) -> Activity:
+def _bw_activity_search(config: BrightwayActivityConfig) -> Activity:
     """
     Search for the activity in the brightway project
-    :param activity_id:
+    :param config:
     :return: brightway activity
     """
-    id_ = BrightwayActivityConfig(**activity_id)
+
     bw_activity: Optional[Activity] = None
-    if id_.code:
-        if id_.database:
-            bw_activity = bd.Database(id_.database).get(id_.code)
+    if config.code:
+        if config.database:
+            bw_activity = bd.Database(config.database).get(config.code)
         else:
-            bw_activity = get_activity(id_.code)
-    elif id_.name:
+            bw_activity = get_activity(config.code)
+    elif config.name:
         filters = {}
-        search_in_dbs = [id_.database] if id_.database else bd.databases
+        search_in_dbs = [config.database] if config.database else bd.databases
         for db in search_in_dbs:
-            if id_.location:
-                filters["location"] = id_.location
-                search_results = bd.Database(db).search(id_.name, filter=filters)
+            if config.location:
+                filters["location"] = config.location
+                search_results = bd.Database(db).search(config.name, filter=filters)
             else:
-                search_results = bd.Database(db).search(id_.name)
+                search_results = bd.Database(db).search(config.name)
                 # filter exact name
                 search_results = list(
-                    filter(lambda a: a["name"] == id_.name, search_results)
+                    filter(lambda a: a["name"] == config.name, search_results)
                 )
-            if id_.unit:
+            if not search_results:
+                continue
+            if config.unit:
                 search_results = list(
-                    filter(lambda a: a["unit"] == id_.unit, search_results)
+                    filter(lambda a: a["unit"] == config.unit, search_results)
                 )
             if len(search_results) == 1:
                 bw_activity = search_results[0]
@@ -78,7 +80,7 @@ def _bw_activity_search(activity_id: dict) -> Activity:
                     f"the code of the activity you want to use:\n{activities_str}"
                 )
     if not bw_activity:
-        raise ValueError(f"No activity found for {activity_id}")
+        raise ValueError(f"No activity found for {config}")
     return bw_activity
 
 
@@ -99,9 +101,9 @@ class BrightwayAdapter(EnbiosAdapter):
             {}
         )  # scenario_alias to BWCalculationSetup
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
-        self.lca_objects: dict[
-            str, list[Union[StackedMultiLCA, RegioStackedMultiLCA]]
-        ] = {}  # scenario_alias to lca objects
+        self.lca_objects: dict[str, list[BaseStackedMultiLCA]] = (
+            {}
+        )  # scenario_alias to lca objects
         self.all_regions_set: bool = (
             False  # as part of first run_scenario, go through set_node_regions
         )
@@ -140,32 +142,75 @@ class BrightwayAdapter(EnbiosAdapter):
             bw_method = bd.methods.get(method_id)
             if not bw_method:
                 raise ValueError(f"Method with id: {method_id} does not exist")
-            unit = bw_method.get("unit", "undefined method unit")
+            unit = bw_method.get("unit", None)
+            if not unit:
+                logger.warning(
+                    f"Brightway adapter: No Unit specified for method: {method_id}. "
+                    f"Setting it to: 'undefined method unit'"
+                )
+                unit = "undefined method unit"
             return ExperimentMethodPrepData(id=tuple(method_id), bw_method_unit=unit)
 
-        self.methods = {name: validate_method(method) for name, method in methods.items()}
+        self.methods: dict[str, ExperimentMethodPrepData] = {
+            name: validate_method(method) for name, method in methods.items()
+        }
+
         return list(self.methods.keys())
+
+    def validate_node_output(
+        self,
+        node_name: str,
+        target_output: NodeOutput,
+    ) -> float:
+        """
+        validate and convert to the bw-activity unit
+        :param node_name:
+        :param target_output:
+        :return:
+        """
+        try:
+            target_quantity: Quantity = (
+                ureg.parse_expression(
+                    bw_unit_fix(target_output.unit), case_sensitive=False
+                )
+                * target_output.magnitude
+            )
+            bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
+            return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
+        except UndefinedUnitError as err:
+            logger.error(
+                f"Cannot parse output unit '{target_output.unit}'- "
+                f"of activity {node_name}. {err}. "
+                f"Consider the unit definition to 'enbios2/base/unit_registry.py'"
+            )
+            raise UndefinedUnitError(f"Unit error, {err}; For activity: {node_name}")
 
     def validate_node(self, node_name: str, node_config: Any):
         assert isinstance(
             node_config, dict
         ), f"Activity id (type: dict) must be defined for activity {node_name}"
+        parsed_config = BrightwayActivityConfig(**node_config)
         # get the brightway activity
-        bw_activity = _bw_activity_search(node_config)
+        bw_activity = _bw_activity_search(parsed_config)
         bw_unit = bw_unit_fix(bw_activity["unit"])
         self.activityMap[node_name] = BWActivityData(
             bw_activity=bw_activity, default_output=NodeOutput(unit=bw_unit, magnitude=1)
         )
-        if "default_output" in node_config:
-            default_out = node_config["default_output"]
-            unit = bw_unit_fix(default_out["unit"])
-            base_q: Quantity = ureg.parse_expression(unit) * default_out["magnitude"]
+        if default_out := parsed_config.default_output:
+            unit = bw_unit_fix(default_out.unit)
+            base_q: Quantity = ureg.parse_expression(unit) * default_out.magnitude
             conv_q: PlainQuantity = base_q.to(bw_unit)
             self.activityMap[node_name].default_output.from_quantity(conv_q)
         if self.config.simple_regionalization.run_regionalization:
             if "enb_location" in node_config:
                 bw_activity["enb_location"] = node_config["enb_location"]
                 bw_activity.save()
+        # todo, selective methods?
+        # if parsed_config.methods:
+        #     for m in parsed_config.methods:
+        #         if m not in self.methods:
+        #             raise ValueError(f"Brightway-Adapter: node {node_name} specifies a method that "
+        #                              f"was not defined for the adapter: {m}")
 
     def get_default_output_value(self, node_name: str) -> float:
         return self.activityMap[node_name].default_output.magnitude
@@ -304,6 +349,7 @@ class BrightwayAdapter(EnbiosAdapter):
         raw_results: list[ndarray] = []
         self.lca_objects[scenario.name] = []
         run_regionalization = self.config.simple_regionalization.run_regionalization
+        # non-linear methods
         method_activity_func_maps: Optional[
             dict[tuple[str, ...], dict[int, Callable[[float], float]]]
         ] = None
@@ -314,22 +360,26 @@ class BrightwayAdapter(EnbiosAdapter):
                 self.get_logger().info(
                     f"Brightway adapter: Run distribution {i + 1}/{self.config.use_k_bw_distributions}"
                 )
-            _lca: Union[RegioStackedMultiLCA, StackedMultiLCA]
+            calc_setup = self.scenario_calc_setups[scenario.name]
+            result_structure = np.zeros((len(calc_setup.inv), len(calc_setup.ia)))
+            subset_labels: Optional[set[str]] = None
+            activity_label_key: Optional[str] = None
             if run_regionalization:
-                _lca = RegioStackedMultiLCA(
-                    self.scenario_calc_setups[scenario.name],
-                    self.config.simple_regionalization.select_regions,
-                    use_distributions=use_distributions,
-                    method_activity_func_maps=method_activity_func_maps,
+                subset_labels = list(self.config.simple_regionalization.select_regions)
+                result_structure = np.zeros(
+                    (len(calc_setup.inv), len(calc_setup.ia), len(subset_labels))
                 )
-                raw_results.append(_lca.results)
-            else:
-                _lca = StackedMultiLCA(
-                    self.scenario_calc_setups[scenario.name],
-                    use_distributions,
-                    method_activity_func_maps=method_activity_func_maps,
-                )
-                raw_results.append(_lca.results)
+                activity_label_key = "enb_location"
+
+            _lca = BaseStackedMultiLCA(
+                self.scenario_calc_setups[scenario.name],
+                result_structure,
+                subset_labels,
+                activity_label_key,
+                use_distributions=use_distributions,
+                method_activity_func_maps=method_activity_func_maps,
+            )
+            raw_results.append(_lca.results)
             if self.config.store_lca_object:
                 self.lca_objects[scenario.name].append(_lca)
 

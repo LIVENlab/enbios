@@ -19,7 +19,7 @@ class ExperimentMethodPrepData(BaseModel):
 class RegionalizationConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
     run_regionalization: bool = Field(False)
-    select_regions: set = Field(None, description="regions to store the results for")
+    select_regions: set[str] = Field(None, description="regions to store the results for")
     set_node_regions: dict[str, Sequence[str]] = Field({}, description="Set node regions")
     clear_all_other_node_regions: Optional[bool] = Field(
         False, description="Delete all regions not in 'hierarchy' and 'set_node_regions'"
@@ -78,16 +78,6 @@ class NonLinearMethodConfig(BaseModel):
                 "Either 'functions' or 'module_path_function_name' must be present."
             )
         return data
-
-    # @classmethod
-    # def model_json_schema(cls):
-    #     # Generate the default schema
-    #     schema = super().model_json_schema()
-    #
-    #     # Modify the schema for the 'functions' field
-    #     # For example, represent it as a dictionary of strings
-    #     schema['properties']['functions'] = {'type': 'object', 'additionalProperties': {'type': 'string'}}
-    #     return schema
 
 
 class NonLinearCharacterizationConfig(BaseModel):
@@ -150,6 +140,7 @@ class BrightwayActivityConfig(BaseModel):
     default_output: NodeOutput = Field(
         None, description="Default output of the activity for all scenarios"
     )
+    methods: list[str] = Field(None, description="Subset of all methods")
 
 
 class BWMethodModel(BaseModel):

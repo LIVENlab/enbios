@@ -24,7 +24,7 @@ from enbios.base.validation import (
     validate_adapters,
     validate_aggregators,
 )
-from enbios.bw2.stacked_MultiLCA import StackedMultiLCA
+from enbios.bw2.MultiLCA_util import BaseStackedMultiLCA
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike, ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
@@ -114,7 +114,7 @@ class Experiment:
         )
         validate_run_scenario_setting(self.env_settings, self.config, self.scenario_names)
 
-        self._lca: Optional[StackedMultiLCA] = None
+        self._lca: Optional[BaseStackedMultiLCA] = None
         self._execution_time: float = float("NaN")
 
     def get_structural_node(self, name: str) -> BasicTreeNode[TechTreeNodeData]:

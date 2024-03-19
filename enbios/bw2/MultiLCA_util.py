@@ -1,14 +1,15 @@
 import logging
 from abc import ABC
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Sequence
 
 import numpy as np
 from bw2calc import LCA
 from bw2calc.multi_lca import InventoryMatrices
 from bw2data import get_activity
-from bw2data.backends import Activity
+from bw2data.backends import Activity, ActivityDataset
 
 from enbios.bw2.bw_models import BWCalculationSetup
+from enbios.bw2.util import split_inventory
 
 
 class BaseStackedMultiLCA(ABC):
@@ -16,10 +17,12 @@ class BaseStackedMultiLCA(ABC):
         self,
         calc_setup: BWCalculationSetup,
         results_structure: np.ndarray,
+        subset_labels: Optional[set[str]] = None,
+        activity_label_key: Optional[str] = None,
         use_distributions: bool = False,
-        method_activity_func_maps: Optional[
-            dict[tuple[str, ...], dict[int, Callable[[float], float]]]
-        ] = None,
+        method_activity_func_maps: dict[
+            tuple[str, ...], dict[int, Callable[[float], float]]
+        ] = {},
     ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
@@ -35,7 +38,7 @@ class BaseStackedMultiLCA(ABC):
         self.lca.lci()
         self.non_linear_methods_flags: list[bool] = []
         self.method_matrices = []
-        self.supply_arrays:list = []
+        self.supply_arrays: list = []
         self.inventory = None
 
         for method in self.methods:
@@ -48,6 +51,17 @@ class BaseStackedMultiLCA(ABC):
                 self.method_matrices.append(self.lca.characterization_matrix)
                 self.non_linear_methods_flags.append(False)
 
+        if subset_labels:
+            self.subset_labels = subset_labels
+            self.calc_subsets_results = True
+            assert activity_label_key is not None
+            self.subset_label_map: dict[str, list[int]] = self.resolve_subsets(
+                activity_label_key
+            )
+            self.subset_mainloop()
+        else:
+            self.main_loop()
+
     def main_loop(self):
         for row, func_unit in enumerate(self.func_units):
             self.prep_demand(row, func_unit)
@@ -58,6 +72,24 @@ class BaseStackedMultiLCA(ABC):
                 self.lcia_calculation(self.non_linear_methods_flags[col])
                 self.results[row, col] = self.lca.score
 
+        self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
+
+    def subset_mainloop(self):
+        for row, func_unit in enumerate(self.func_units):
+            self.prep_demand(row, func_unit)
+            for col, cf_matrix in enumerate(self.method_matrices):
+                self.lca.characterization_matrix = cf_matrix
+
+                for loc_idx, subset in enumerate(self.subset_labels):
+                    activity_ids = self.subset_label_map[subset]
+                    # todo, this is a bw_utils method split_inventory
+                    regional_characterized_inventory = self.lcia_calculation(
+                        self.non_linear_methods_flags[col],
+                        split_inventory(self.lca, activity_ids),
+                    )
+                    self.results[row, col, loc_idx] = (
+                        regional_characterized_inventory.sum()
+                    )
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
     def prep_demand(self, row: int, func_unit: dict[Activity, float]):
@@ -105,3 +137,32 @@ class BaseStackedMultiLCA(ABC):
                 self.lca.characterization_matrix * inventory
             )
         return self.lca.characterized_inventory
+
+    def resolve_subsets(self, activity_label_key: str):
+        # final location -> id
+        base_loc_map: dict[str, list[int]] = {}
+        # all other indices to last locs
+        loc_tree: list[dict] = []
+        for a in ActivityDataset.select(ActivityDataset).where(
+            ActivityDataset.type == "process"
+        ):
+            # if a.type == "process":
+            loc: Sequence[str] = a.data.get(activity_label_key)
+            if not isinstance(loc, tuple) and not isinstance(loc, list):
+                continue
+            final_loc = loc[-1]
+            base_loc_map.setdefault(final_loc, []).append(a.id)
+            # make tree list at least as long as length
+            for idx, rest in enumerate(loc[:-1]):
+                if len(loc_tree) <= idx:
+                    loc_tree.append({})
+                # set location default and add location
+                loc_tree[idx].setdefault(rest, set()).add(loc[idx + 1])
+        loc_tree.reverse()
+        for level in loc_tree:
+            for loc_, sub_locs in level.items():
+                base_loc_map.setdefault(loc_, [])
+                for sub_loc in sub_locs:
+                    base_loc_map[loc_].extend(base_loc_map[sub_loc])
+
+        return base_loc_map

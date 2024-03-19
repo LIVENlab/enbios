@@ -13,10 +13,10 @@ logger = get_logger(__name__)
 
 class ResultsSelector:
     def __init__(
-            self,
-            experiment: Experiment,
-            scenarios: Optional[list[str]] = None,
-            methods: Optional[list[str]] = None,
+        self,
+        experiment: Experiment,
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
     ):
         """
         Initialize the object with experiment, scenarios, and methods.
@@ -57,9 +57,9 @@ class ResultsSelector:
 
     @staticmethod
     def get_result_selector(
-            result_selector: Union[Experiment, "ResultsSelector"],
-            scenarios: Optional[list[str]] = None,
-            methods: Optional[list[str]] = None,
+        result_selector: Union[Experiment, "ResultsSelector"],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
     ) -> "ResultsSelector":
         if isinstance(result_selector, Experiment):
             return ResultsSelector(result_selector, scenarios=scenarios, methods=methods)
@@ -130,8 +130,8 @@ class ResultsSelector:
     def method_label_names(self, include_unit: bool = True) -> list[str]:
         return [
             (
-                    method
-                    + ("\n" + self.experiment.get_method_unit(method) if include_unit else "")
+                method
+                + ("\n" + self.experiment.get_method_unit(method) if include_unit else "")
             )
             for method in self.methods
         ]
@@ -177,9 +177,9 @@ class ResultsSelector:
         return nodes
 
     def collect_tech_results(
-            self,
-            nodes: list[str],
-            value_name: Literal["magnitude", "multi_magnitude"] = "magnitude",
+        self,
+        nodes: list[str],
+        value_name: Literal["magnitude", "multi_magnitude"] = "magnitude",
     ):
         df = DataFrame()
         for scenario in self.scenarios:

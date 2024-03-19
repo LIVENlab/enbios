@@ -1,6 +1,8 @@
 import json
 import math
 from typing import cast
+from csv import DictReader
+from uuid import uuid4
 
 import bw2data
 import pytest
@@ -9,6 +11,7 @@ from bw2data.backends import ActivityDataset
 from pint import UndefinedUnitError
 
 from bw_tools import mermaid_diagram
+from bw_tools.network_build import build_network
 from enbios.base.experiment import Experiment
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.const import BASE_TEST_DATA_PATH
@@ -516,3 +519,79 @@ def test_regionlized_nonlinear_characterization(test_network_project_db_name: tu
     expected_results = {'waste.CAT': 24, 'waste.ES': 396, 'waste.ARA': 156.0, 'waste.EU': 444}
     for waste_loc, res in res["default scenario"]["results"].items():
         assert expected_results[waste_loc] == pytest.approx(res["magnitude"], abs=1e-10)
+
+
+@pytest.fixture()
+def random_test_project() -> str:
+    project_name = str(uuid4())
+    bw2data.projects.create_project(project_name)
+    bw2data.projects.set_current(project_name)
+    yield project_name
+    bw2data.projects.delete_project(project_name, True)
+
+
+def test_indendent_node_methods(random_test_project: str):
+    db = bw2data.Database("test-db")
+    db.register()
+    nw = """name,code,unit,type
+product,product,unit,process
+energy,energy,MW,process
+co2,co2,kg,emission"""
+
+    con = """input,output,type,amount
+product,energy,technosphere,2
+product,co2,biosphere,4
+energy,co2,biosphere,1"""
+    build_network(db, {
+        "activities": list(DictReader(nw.split("\n"))),
+        "exchanges": list(DictReader(con.split("\n")))
+    })
+
+    method1 = ('method1',)
+    bw_method1 = bw2data.Method(method1)
+    bw_method1.write([
+        (db.get("co2").key, {'amount': 1})
+    ])
+    bw_method1.metadata = bw_method1.metadata | {"unit": "kg"}
+
+    method2 = ('method2',)
+    bw_method2 = bw2data.Method(method2)
+    bw_method2.write([
+        (db.get("co2").key, {'amount': 2})
+    ])
+    bw_method2.metadata = bw_method2.metadata | {"unit": "kg"}
+
+    lca: LCA = LCA({db.get("product"): 1}, method1)
+    lca.lci()
+    lca.lcia()
+    assert 6 == lca.score
+
+    exp = Experiment({
+        "adapters": [
+            {
+                "adapter_name": "brightway-adapter",
+                "config": {"bw_project": random_test_project},
+                "methods": {
+                    "method1": ("method1",),
+                    "method2": ("method2",)
+                },
+            }
+        ],
+        "hierarchy": {
+            "name": "root",
+            "aggregator": "sum",
+            "children": [
+                {
+                    "name": "product",
+                    "adapter": "bw",
+                    "config": {"code": "product"}
+                },
+                {
+                    "name": "energy",
+                    "adapter": "bw",
+                    "config": {"code": "energy", "default_output": ["MW",2]}
+                }
+            ]
+        }
+    })
+    res = exp.run()
