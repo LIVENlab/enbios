@@ -40,8 +40,8 @@ class SumAggregator(EnbiosAggregator):
                     if labeled_q.label == given_output.label:
                         return idx
                 elif not labeled_q.label and labeled_q.quantity.is_compatible_with(
-                        given_output.unit
-                    ):
+                    given_output.unit
+                ):
                     return idx
             return None
 

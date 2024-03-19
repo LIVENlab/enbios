@@ -20,10 +20,17 @@
           "title": "Module Path"
         },
         "adapter_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "description": "this this is to use inbuilt adapter (e.g. 'simple-assignment-adapter'",
-          "title": "Adapter Name",
-          "type": "string"
+          "title": "Adapter Name"
         },
         "config": {
           "title": "Config",
@@ -34,10 +41,17 @@
           "type": "object"
         },
         "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
           "default": null,
           "description": "A note for this adapter",
-          "title": "Note",
-          "type": "string"
+          "title": "Note"
         }
       },
       "title": "AdapterModel",
@@ -303,10 +317,6 @@
           "title": "Name"
         },
         "nodes": {
-          "additionalProperties": {
-            "$ref": "#/$defs/NodeOutput"
-          },
-          "default": null,
           "description": "name to output, null means default-output (check exists)",
           "title": "Nodes",
           "type": "object"
@@ -322,26 +332,10 @@
           ]
         }
       },
-      "title": "ExperimentScenarioData",
-      "type": "object"
-    },
-    "NodeOutput": {
-      "additionalProperties": false,
-      "properties": {
-        "unit": {
-          "title": "Unit",
-          "type": "string"
-        },
-        "magnitude": {
-          "default": 1.0,
-          "title": "Magnitude",
-          "type": "number"
-        }
-      },
       "required": [
-        "unit"
+        "nodes"
       ],
-      "title": "NodeOutput",
+      "title": "ExperimentScenarioData",
       "type": "object"
     },
     "ScenarioConfig": {

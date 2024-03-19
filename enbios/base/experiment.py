@@ -43,11 +43,6 @@ from enbios.models.experiment_models import (
 logger = get_logger(__name__)
 
 
-# Define a TypeVar that is bound to EnbiosAdapter
-# EnbiosAdapterType = TypeVar("EnbiosAdapterType", bound=EnbiosAdapter)
-# EnbiosAggregatorType = TypeVar("EnbiosAggregatorType", bound=EnbiosAggregator)
-
-
 class Experiment:
     DEFAULT_SCENARIO_NAME = "default scenario"
 

@@ -35,7 +35,7 @@ class BaseStackedMultiLCA(ABC):
         self.lca.lci()
         self.non_linear_methods_flags: list[bool] = []
         self.method_matrices = []
-        self.supply_arrays = []
+        self.supply_arrays:list = []
         self.inventory = None
 
         for method in self.methods:

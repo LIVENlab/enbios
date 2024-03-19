@@ -88,7 +88,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             )
 
     def validate_scenario_node(
-            self, node_name: str, scenario_name: str, scenario_node_data: Any
+        self, node_name: str, scenario_name: str, scenario_node_data: Any
     ):
         if self.from_csv_file:
             scenario_output: list[NodeOutput] = []
@@ -210,12 +210,12 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         collections2 = {
             __default: {
                 __output: default_output_headers,
-                __impacts: default_impacts_headers
+                __impacts: default_impacts_headers,
             },
             __scenario: {
                 __output: scenario_output_headers,
-                __impacts: scenario_impacts_headers
-            }
+                __impacts: scenario_impacts_headers,
+            },
         }
 
         for header in headers:
@@ -232,7 +232,9 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             assert out_o_impact in [__output, __impacts]
             col = collections2[def_o_sce][out_o_impact]
             assert id_re_pat.match(id_)
-            assert unit_o_mag in [__unit, __magnitude] + ([__label] if out_o_impact == __output else [])
+            assert unit_o_mag in [__unit, __magnitude] + (
+                [__label] if out_o_impact == __output else []
+            )
             col.setdefault(id_, {})[unit_o_mag] = header
 
         for col in collections:
@@ -241,7 +243,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
         # check if the impacts exists in the methods
         for impact in list(default_impacts_headers.keys()) + list(
-                scenario_impacts_headers.keys()
+            scenario_impacts_headers.keys()
         ):
             if impact not in self.methods.keys():
                 raise ValueError(
@@ -255,9 +257,9 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         node_map: dict[str, SimpleAssignmentNodeConfig] = {}
 
         def get_outputs(
-                row_: dict,
-                type_: Literal[__default, __scenario],
-                node: Optional[SimpleAssignmentNodeConfig] = None,
+            row_: dict,
+            type_: Literal[__default, __scenario],
+            node: Optional[SimpleAssignmentNodeConfig] = None,
         ) -> list[NodeOutput]:
             coll = (
                 scenario_output_headers if type_ == __scenario else default_output_headers
@@ -267,7 +269,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                 unit_header, mag_header, label_header = (
                     id_out_headers["unit"],
                     id_out_headers["magnitude"],
-                    id_out_headers.get("label")
+                    id_out_headers.get("label"),
                 )
                 if row_[unit_header] or row_[mag_header]:
                     # todo not sure about this assert, we could just use output_{i}_unit
@@ -289,14 +291,14 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                         NodeOutput(
                             unit=str(ureg(unit).units),
                             magnitude=float(row_[mag_header]),
-                            label=label
+                            label=label,
                         )
                     )
 
             return result
 
         def get_impacts(
-                row_: dict, type_: Literal["default", "scenario"]
+            row_: dict, type_: Literal["default", "scenario"]
         ) -> dict[str, ResultValue]:
             coll = (
                 default_impacts_headers

@@ -71,16 +71,17 @@ class BasicTreeNode(Generic[T]):
         self.parent: Optional[BasicTreeNode[T]] = None
         self.temp_data: dict[str, Any] = temp_data if temp_data else {}
         self._id: bytes = self.generate_id()
+        self._data: Optional[Union[dict,T]]
         if data:
             if isinstance(data, dict):
                 if dataclass:
                     self._data = dataclass(**data)
                 else:
-                    self._data: dict = data
+                    self._data = data
             else:
-                self._data: T = data
+                self._data = data
         elif data_factory:
-            self._data: T = data_factory(temp_data)
+            self._data = data_factory(self.temp_data)
         else:
             self._data = None
 
@@ -226,7 +227,7 @@ class BasicTreeNode(Generic[T]):
         :param data_factory:
         :return: a node containing the whole tree
         """
-        name = data.get("name")
+        name = data.get("name","")
         children = data.get("children")
         if dataclass:
             return BasicTreeNode(name, children, data=data, dataclass=dataclass)
