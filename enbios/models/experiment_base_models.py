@@ -70,6 +70,7 @@ class AggregationModel(BaseModel):
 
 
 class ExperimentHierarchyNodeData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     name: str
     aggregator: str = Field(..., description="name or node-indicator of the aggregator")
     config: Optional[Any] = Field(
@@ -84,7 +85,7 @@ class ExperimentActivityData(BaseModel):
     """
     This is the dataclass for the activities in the experiment.
     """
-
+    model_config = ConfigDict(extra="forbid")
     name: str
     config: Any = Field(..., description="setup data (id, outputs, ... arbitrary data")
     adapter: str = Field(..., description="The adapter to be used")

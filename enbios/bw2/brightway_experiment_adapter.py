@@ -222,6 +222,7 @@ class BrightwayAdapter(EnbiosAdapter):
         """
         validate and convert to the bw-activity unit
         :param node_name:
+        :param scenario_name:
         :param scenario_node_data:
         :return:
         """
@@ -289,7 +290,6 @@ class BrightwayAdapter(EnbiosAdapter):
             and not self.all_regions_set
         ):
             # memorize nodes from the tree in order to not delete their location
-            keep_locations_of_activities: list[str] = []
             if self.config.simple_regionalization.clear_all_other_node_regions:
                 keep_locations_of_activities = [
                     a.bw_activity["code"] for a in self.activityMap.values()
@@ -363,7 +363,7 @@ class BrightwayAdapter(EnbiosAdapter):
             subset_labels: Optional[set[str]] = None
             activity_label_key: Optional[str] = None
             if run_regionalization:
-                subset_labels = list(self.config.simple_regionalization.select_regions)
+                subset_labels = self.config.simple_regionalization.select_regions
                 result_structure = np.zeros(
                     (len(calc_setup.inv), len(calc_setup.ia), len(subset_labels))
                 )
