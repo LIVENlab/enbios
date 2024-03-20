@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Optional, Literal
 
-from pydantic import BaseModel, model_validator, Field
+from pydantic import BaseModel, model_validator, Field, ConfigDict
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
@@ -11,10 +11,11 @@ from enbios.base.unit_registry import ureg
 from enbios.generic.files import ReadPath
 from enbios.generic.unit_util import unit_match
 from enbios.models.experiment_base_models import AdapterModel, NodeOutput
-from enbios.models.experiment_models import ResultValue
+from enbios.models.experiment_models import ResultValue, EnbiosValidationException
 
 
 class SimpleAssignmentNodeConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     node_name: str
     output_units: list[str]
     default_output: list[NodeOutput] = Field(default_factory=list)
@@ -30,10 +31,24 @@ class SimpleAssignmentNodeConfig(BaseModel):
                 raise ValueError(
                     "Either default_impacts or scenario_data.impacts must be defined"
                 )
+        if (default_output := data.get("default_output")) is not None:
+            if not len(data["output_units"]) == len(default_output):
+                raise EnbiosValidationException(
+                    "Length of 'default_output' and 'output_units' do not match",
+                    "SimpleAssignmentNodeConfig-unequal unit length",
+                )
+            for idx, (unit, def_out) in enumerate(
+                zip(data["output_units"], default_output)
+            ):
+                assert unit_match(
+                    unit, def_out["unit"]
+                ), f"unit of 'defualt_output' : {default_output}, does not match specified unit: '{unit}' (index: {idx})"
+
         return data
 
 
 class SimpleAssignmentNodeScenarioData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     outputs: list[NodeOutput] = Field(default_factory=list)
     impacts: dict[str, ResultValue] = Field(default_factory=dict)
 
@@ -68,7 +83,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         self.validate_methods(self.definition.methods)
         assert self.definition.config  # that's just for mypy
         if self.definition.config.source_csv_file:
-            self.read_nodes_from_csv(self.definition.config.source_csv_file)
+            self.nodes = self.read_nodes_from_csv(self.definition.config.source_csv_file)
             self.from_csv_file = True
 
     def validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]:
@@ -79,7 +94,25 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         else:
             return []
 
+    def _validate_impact(self, method_name, result) -> tuple[bool, bool]:
+        method_name_valid = method_name in self.methods.keys()
+        unit_valid = unit_match(self.methods[method_name], result.unit)
+        return method_name_valid, unit_valid
+
     def validate_node(self, node_name: str, node_config: Any):
+        if self.from_csv_file:
+            node = self.nodes[node_name]
+            for method, result in node.default_impacts.items():
+                method_name_valid, unit_valid = self._validate_impact(method, result)
+                if not method_name_valid:
+                    raise EnbiosValidationException(
+                        f"Node {node_name} specifies undefined default-impact method: '{method}'"
+                    )
+                if not unit_valid:
+                    raise EnbiosValidationException(
+                        f"Node specifies a default-impact '{method}' with unit: '{result.unit}' "
+                        f"that does not match unit specified in adapter '{self.methods[method]}'"
+                    )
         if not self.from_csv_file:
             self.nodes[node_name] = SimpleAssignmentNodeConfig(
                 **{**{"node_name": node_name} | node_config}
@@ -89,19 +122,26 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         self, node_name: str, scenario_name: str, scenario_node_data: Any
     ):
         if self.from_csv_file:
-            scenario_output: list[NodeOutput] = []
             node_data = self.nodes[node_name]
-            if scenario_name in node_data.scenario_data:
-                scenario_data = node_data.scenario_data[scenario_name]
-                if scenario_data.outputs:
-                    scenario_output = scenario_data.outputs
-            if not scenario_output:
-                scenario_output = node_data.default_output
-            # return get_output_in_unit(scenario_output, node_data.output_units)
-
-        self.get_logger().warning("fix node output")
-        # TODO
-        # return get_output_in_unit(scenario_node_data, self.nodes[node_name].output_unit)
+            if scenario_data := node_data.scenario_data.get(scenario_name):
+                for method, result in scenario_data.impacts.items():
+                    method_name_valid, unit_valid = self._validate_impact(method, result)
+                    if not method_name_valid:
+                        raise EnbiosValidationException(
+                            f"Node {node_name} specifies undefined scenario-impact method: '{method}' "
+                            f"for scenario '{scenario_name}'"
+                        )
+                    if not unit_valid:
+                        raise EnbiosValidationException(
+                            f"Node specifies a scenario-impact '{method}' with unit: '{result.unit}' "
+                            f"that does not match unit specified in adapter '{self.methods[method]}'"
+                            f"for scenario '{scenario_name}'"
+                        )
+        else:
+            node = self.nodes[node_name]
+            node.scenario_data[
+                scenario_name
+            ] = SimpleAssignmentNodeScenarioData.model_validate(scenario_node_data)
 
     def get_node_output(self, node_name: str, scenario_name: str) -> list[NodeOutput]:
         node_data = self.nodes[node_name]
@@ -129,7 +169,9 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
     def get_config_schemas() -> dict:
         return {"node_name": SimpleAssignmentNodeConfig.model_json_schema()}
 
-    def read_nodes_from_csv(self, file_path: Path):
+    def read_nodes_from_csv(
+        self, file_path: Path
+    ) -> dict[str, SimpleAssignmentNodeConfig]:
         """
         Read nodes default, scenario outputs and impacts from a csv file. Is used when config includes path to
         csv file in
@@ -236,16 +278,6 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             for col_id_headers in col.values():
                 assert len(col_id_headers) >= 2, f"row not complete: {headers}"
 
-        # check if the impacts exists in the methods
-        for impact in list(default_impacts_headers.keys()) + list(
-            scenario_impacts_headers.keys()
-        ):
-            if impact not in self.methods.keys():
-                raise ValueError(
-                    f"Header includes undefined impact: '{impact}'."
-                    f"Options are {self.methods.values()}"
-                )
-
         if scenario_impacts_headers:
             assert "scenario" in headers, "header: 'scenario' is missing"
 
@@ -254,7 +286,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         def get_outputs(
             row_: dict,
             type_: Literal[__default, __scenario],
-            node: Optional[SimpleAssignmentNodeConfig] = None,
+            node_: Optional[SimpleAssignmentNodeConfig] = None,
         ) -> list[NodeOutput]:
             coll = (
                 scenario_output_headers if type_ == __scenario else default_output_headers
@@ -271,10 +303,13 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                     assert float(row_[mag_header])
                     unit = row_.get(unit_header)
                     if not unit:
-                        unit = node.output_units[idx] if node else None
+                        unit = node_.output_units[idx] if node_ else None
                     assert unit, f"No unit defined for row: {row_} unit id: '{id_}'"
                     # todo: always use node?
-                    out_unit = node.output_units[idx] if node else row[output_units[id_]]
+                    out_unit = (
+                        node_.output_units[idx] if node_ else row[output_units[id_]]
+                    )
+                    # todo check if this can be replaced by new validator implementation...
                     assert unit_match(unit, out_unit), (
                         f"Unit of output at index [{id_}]/{type_} do not match '{unit}' does not match '{out_unit}' "
                         f"for row {row_}"
@@ -336,8 +371,6 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                     ), f"First row defining '{node_name}' must include 'output_units' {row_out_units}"
 
                     default_impacts: dict[str, ResultValue] = get_impacts(row, "default")
-                    #             for impact_name, result in default_impacts.items():
-                    #                 assert unit_match(result.unit, self.methods[impact_name])
                     node = SimpleAssignmentNodeConfig(
                         node_name=node_name,
                         output_units=list(row_out_units.values()),
@@ -385,5 +418,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                 logger.error(row)
                 logger.error(err)
                 raise err
-        self.nodes = node_map
-        return self.nodes
+        return node_map
+
+    def __repr__(self):
+        return "Enbios builtin Simple-Assignment Adapter"

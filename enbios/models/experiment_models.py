@@ -9,7 +9,6 @@ from enbios.models.experiment_base_models import StrictInputConfig, NodeOutput
 class TechTreeNodeData(BaseModel):
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
-    # for
     config: Optional[Any] = Field(
         None, description="The identifies (method to find) a node"
     )
@@ -38,3 +37,10 @@ class ScenarioResultNodeData(BaseModel):
     results: dict[str, ResultValue] = Field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
+
+
+class EnbiosValidationException(Exception):
+    def __init__(self, message, exc_name=None, code: Optional[int] = None):
+        super().__init__(message)
+        self.exc_name = exc_name
+        self.code = code

@@ -188,14 +188,14 @@ class Scenario:
             """
             expanded_results = {}
             for method_name, result_value in results.items():
-                expanded_results[f"{method_name}_magnitude ({result_value.unit})"] = (
-                    result_value.magnitude
-                )
+                expanded_results[
+                    f"{method_name}_magnitude ({result_value.unit})"
+                ] = result_value.magnitude
                 if result_value.multi_magnitude:
                     for idx, magnitude in enumerate(result_value.multi_magnitude):
-                        expanded_results[f"{method_name}_{result_value.unit}_{idx}"] = (
-                            magnitude
-                        )
+                        expanded_results[
+                            f"{method_name}_{result_value.unit}_{idx}"
+                        ] = magnitude
             return expanded_results
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
@@ -218,7 +218,7 @@ class Scenario:
                     ]
                 else:
                     result["output"] = [
-                        o.model_dump(exclude_defaults=True) for o in data.output
+                        o.model_dump(exclude_none=True) for o in data.output
                     ]
             # todo: adapter specific additional data
             # if data.bw_activity:
@@ -302,12 +302,12 @@ class Scenario:
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         hierarchy_obj = HierarchyNodeReference(**hierarchy)
 
-        hierarchy_root: BasicTreeNode[TechTreeNodeData] = (
-            validate_experiment_reference_hierarchy(
-                hierarchy_obj,
-                self.experiment.hierarchy_root,
-                self.experiment.get_node_aggregator,
-            )
+        hierarchy_root: BasicTreeNode[
+            TechTreeNodeData
+        ] = validate_experiment_reference_hierarchy(
+            hierarchy_obj,
+            self.experiment.hierarchy_root,
+            self.experiment.get_node_aggregator,
         )
 
         def recursive_convert(

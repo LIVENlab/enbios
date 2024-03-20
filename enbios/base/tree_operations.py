@@ -10,7 +10,11 @@ if TYPE_CHECKING:
 
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import TechTreeNodeData, ScenarioResultNodeData
+from enbios.models.experiment_models import (
+    TechTreeNodeData,
+    ScenarioResultNodeData,
+    EnbiosValidationException,
+)
 
 logger = get_logger(__name__)
 
@@ -24,13 +28,15 @@ def validate_experiment_hierarchy(
     )
 
     def validate_node_data(node: BasicTreeNode[TechTreeNodeData]) -> Any:
-        good_leaf = node.is_leaf and node.data.adapter
-        good_internal = not node.is_leaf and node.data.aggregator
-        assert good_leaf or good_internal, (
-            f"Node should have the leaf properties (id, adapter) "
-            f"or non-leaf properties (children, aggregator): "
-            f"{node.location_names()})"
-        )
+        good_leaf = node.is_leaf and node.data.adapter is not None
+        good_internal = not node.is_leaf and node.data.aggregator is not None
+        if not (good_leaf or good_internal):
+            raise EnbiosValidationException(
+                f"Node should have the leaf properties (adapter) "
+                f"or non-leaf properties (children, aggregator): "
+                f"{node.location_names()} {node.data})",
+                "Treenode-error",
+            )
         return True
 
     tech_tree.recursive_apply(validate_node_data, depth_first=True)  # type: ignore

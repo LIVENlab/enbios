@@ -77,9 +77,9 @@ class Experiment:
         )
 
         # validate overall hierarchy
-        self.hierarchy_root: BasicTreeNode[TechTreeNodeData] = (
-            validate_experiment_hierarchy(self.resolved_raw_data.hierarchy)
-        )
+        self.hierarchy_root: BasicTreeNode[
+            TechTreeNodeData
+        ] = validate_experiment_hierarchy(self.resolved_raw_data.hierarchy)
         self._structural_nodes: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
         # validate individual nodes based on their adapter/aggregator
         for node in self.hierarchy_root.iter_all_nodes():

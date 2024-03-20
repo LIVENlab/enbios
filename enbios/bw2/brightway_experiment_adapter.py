@@ -98,13 +98,13 @@ class BrightwayAdapter(EnbiosAdapter):
         self.config = BWAdapterConfig.model_validate({"bw_project": ""})
         self.activityMap: dict[str, BWActivityData] = {}
         self.methods: dict[str, ExperimentMethodPrepData] = {}
-        self.scenario_calc_setups: dict[str, BWCalculationSetup] = (
-            {}
-        )  # scenario_alias to BWCalculationSetup
+        self.scenario_calc_setups: dict[
+            str, BWCalculationSetup
+        ] = {}  # scenario_alias to BWCalculationSetup
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
-        self.lca_objects: dict[str, list[BaseStackedMultiLCA]] = (
-            {}
-        )  # scenario_alias to lca objects
+        self.lca_objects: dict[
+            str, list[BaseStackedMultiLCA]
+        ] = {}  # scenario_alias to lca objects
         self.all_regions_set: bool = (
             False  # as part of first run_scenario, go through set_node_regions
         )
@@ -455,9 +455,9 @@ class BrightwayAdapter(EnbiosAdapter):
     def prepare_nonlinear_method(
         self, method_name: str, method_config: NonLinearMethodConfig
     ) -> dict[int, Callable[[float], float]]:
-        result_func_map: dict[int, Callable[[float], float]] = (
-            {}
-        )  # [None] * prep_lca.biosphere_matrix.shape[0]
+        result_func_map: dict[
+            int, Callable[[float], float]
+        ] = {}  # [None] * prep_lca.biosphere_matrix.shape[0]
         if method_name not in self.methods:
             raise ValueError(
                 f"Unknown method '{method_name}' specified for nonlinear methods"

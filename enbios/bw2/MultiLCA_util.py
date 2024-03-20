@@ -87,9 +87,9 @@ class BaseStackedMultiLCA(ABC):
                         self.non_linear_methods_flags[col],
                         split_inventory(self.lca, activity_ids),
                     )
-                    self.results[row, col, loc_idx] = (
-                        regional_characterized_inventory.sum()
-                    )
+                    self.results[
+                        row, col, loc_idx
+                    ] = regional_characterized_inventory.sum()
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
     def prep_demand(self, row: int, func_unit: dict[Activity, float]):
@@ -122,9 +122,9 @@ class BaseStackedMultiLCA(ABC):
             # assign the proper function to the cf array
             for activity_id, matrix_idx in self.lca.dicts.biosphere.items():
                 if activity_id in self.lca.characterization_matrix:
-                    func_array[self.lca.dicts.biosphere[activity_id]] = (
-                        self.lca.characterization_matrix[activity_id]
-                    )
+                    func_array[
+                        self.lca.dicts.biosphere[activity_id]
+                    ] = self.lca.characterization_matrix[activity_id]
             result = np.array([])
             for summed_row, function in zip(summed_inventory, func_array):
                 result = np.append(result, function(summed_row))

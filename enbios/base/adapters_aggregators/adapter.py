@@ -50,7 +50,6 @@ class EnbiosAdapter(ABC):
     def get_method_unit(self, method_name: str) -> str:
         pass
 
-
     @abstractmethod
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         """

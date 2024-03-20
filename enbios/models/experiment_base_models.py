@@ -11,21 +11,21 @@ StrictInputConfig = ConfigDict(extra="forbid", validate_assignment=True, strict=
 class ExperimentConfig(BaseModel):
     model_config = StrictInputConfig
     warn_default_demand: bool = True  # todo: bring this back
-    auto_aggregate: Optional[bool] = (
-        True  # aggregate, with same indicator, as all children, if given.
-    )
+    auto_aggregate: Optional[
+        bool
+    ] = True  # aggregate, with same indicator, as all children, if given.
     run_adapters_concurrently: bool = True
-    run_scenarios: Optional[list[str]] = (
-        None  # list of scenario-name to run, ALSO AS ENV-VAR
-    )
+    run_scenarios: Optional[
+        list[str]
+    ] = None  # list of scenario-name to run, ALSO AS ENV-VAR
     # only used by ExperimentDataIO
     # base_directory when loading files (activities, methods, ...)
     base_directory: Optional[Union[str, PathLike]] = None
     # those are only used for testing
     debug_test_is_valid: bool = True
-    debug_test_replace_bw_config: Union[bool, list[str]] = (
-        True  # standard replacement, or bw-project, bw-database
-    )
+    debug_test_replace_bw_config: Union[
+        bool, list[str]
+    ] = True  # standard replacement, or bw-project, bw-database
     debug_test_expected_error_code: Optional[int] = None
     debug_test_run: Optional[bool] = False
     note: Optional[str] = None
@@ -85,6 +85,7 @@ class ExperimentActivityData(BaseModel):
     """
     This is the dataclass for the activities in the experiment.
     """
+
     model_config = ConfigDict(extra="forbid")
     name: str
     config: Any = Field(..., description="setup data (id, outputs, ... arbitrary data")
