@@ -43,7 +43,7 @@ test = [
 ]
 
 dev = [
-  "build==0.10.0", "twine==4.0.2","jupyter==1.0.0"
+  "build==0.10.0", "twine==4.0.2","jupyter==1.0.0", "ruff==0.3.3","black==23.12.1", "tokenize-rt"
 ]
 
 [tool.mypy]
