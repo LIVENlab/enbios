@@ -46,17 +46,10 @@ class EnbiosAdapter(ABC):
     def get_node_output(self, node_name: str, scenario: str) -> list[NodeOutput]:
         pass
 
-    # @abstractmethod
-    # def get_node_output_unit(self, node_name: str) -> str:
-    #     pass
-
     @abstractmethod
     def get_method_unit(self, method_name: str) -> str:
         pass
 
-    @abstractmethod
-    def get_default_output_value(self, node_name: str) -> float:
-        pass
 
     @abstractmethod
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:

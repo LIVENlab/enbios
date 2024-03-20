@@ -25,8 +25,6 @@ class SimpleAssignmentNodeConfig(BaseModel):
 
     @model_validator(mode="before")  # type: ignore
     def validator(data: Any):
-        # if "default_output" not in data:
-        #     data["default_output"] = {"unit": data["output_unit"], "magnitude": 1}
         if "default_impacts" not in data:
             if "scenario_data" not in data or "impacts" not in data["scenario_data"]:
                 raise ValueError(
@@ -113,9 +111,6 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     def get_method_unit(self, method_name: str) -> str:
         return self.methods[method_name]
-
-    def get_default_output_value(self, node_name: str) -> float:
-        return self.nodes[node_name].default_output.magnitude
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         result: dict[str, dict[str, ResultValue]] = {}

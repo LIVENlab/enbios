@@ -213,9 +213,6 @@ class BrightwayAdapter(EnbiosAdapter):
         #             raise ValueError(f"Brightway-Adapter: node {node_name} specifies a method that "
         #                              f"was not defined for the adapter: {m}")
 
-    def get_default_output_value(self, node_name: str) -> float:
-        return self.activityMap[node_name].default_output.magnitude
-
     def validate_scenario_node(
         self,
         node_name: str,
