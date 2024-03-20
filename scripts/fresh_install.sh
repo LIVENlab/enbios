@@ -29,8 +29,8 @@ mkdir enbios_install
 cd enbios_install || exit
 #cp $absolute_path .
 echo "creating venv"
-python3 -m venv venv
-. venv/bin/activate
+python3.11 -m venv .venv
+. .venv/bin/activate
 echo "installing enbios"
 pip install "$absolute_path"
 

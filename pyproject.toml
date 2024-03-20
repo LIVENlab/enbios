@@ -39,7 +39,11 @@ requires-python = ">=3.9,<3.12"
 
 [project.optional-dependencies]
 test = [
-    "pytest==7.3.2", "Deprecated>=1.2.14"
+    "pytest==7.3.2"
+]
+
+dev = [
+  "build==0.10.0", "twine==4.0.2","jupyter==1.0.0"
 ]
 
 [tool.mypy]
