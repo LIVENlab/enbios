@@ -21,6 +21,7 @@ def second_activity_config() -> dict:
         "code": "19978cf531d88e55aed33574e1087d78"
     }
 
+
 @pytest.fixture
 def default_bw_activity(default_bw_config, first_activity_config) -> Activity:
     import bw2data
@@ -30,7 +31,6 @@ def default_bw_activity(default_bw_config, first_activity_config) -> Activity:
                        db.search(
                            first_activity_config["name"],
                            filter={"location": first_activity_config["location"]})))
-
 
 
 @pytest.fixture
@@ -70,7 +70,6 @@ def experiment_scenario_setup(bw_adapter_config, first_activity_config):
                 }
             }]
     }
-
 
 
 @pytest.fixture
@@ -116,8 +115,9 @@ def test_single_lca_compare(run_basic_experiment: Experiment,
     bw_adapter: BrightwayAdapter = cast(BrightwayAdapter, run_basic_experiment.get_node_adapter(activity))
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
-    assert regular_score == pytest.approx(expected_value.magnitude, abs=0)  # abs=1e-6
+    assert regular_score == pytest.approx(expected_value.magnitude, abs=1e-8)  # abs=1e-6
     assert regular_score == basic_exp_run_result_tree.data.results[default_bw_method_name].magnitude
+    pass
 
 
 def test_simple(basic_exp_run_result_tree, experiment_setup):

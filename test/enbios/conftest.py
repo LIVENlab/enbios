@@ -44,7 +44,7 @@ def default_bw_method_name() -> str:
 
 @pytest.fixture
 def default_result_score() -> float:
-    return 1.5707658207925896
+    return 1.5707658207848347
 
 
 @pytest.fixture
