@@ -123,6 +123,14 @@ This repository contains a few notebooks (require jupyter notebook) in the demos
 We are updating and commenting these. Please bear with us while we do it and feel free to give us feedback on those (
 thanks).
 
+You can copy the demos into your project like this:
+```python
+from enbios import copy_demos
+
+copy_demos("<destination_path>")
+```
+
+
 [Getting started](https://github.com/LIVENlab/enbios/blob/main/demos/intro.ipynb)
 
 [Plotting results](https://github.com/LIVENlab/enbios/blob/main/demos/plot_results.ipynb)
