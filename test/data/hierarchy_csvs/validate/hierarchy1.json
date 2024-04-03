@@ -1,0 +1,13 @@
+{
+  "name": "root",
+  "aggregator": "sum",
+  "children": [
+    {
+      "name": "biomass",
+      "adapter": "bw",
+      "config": {
+        "code": "4a9e1a0ac89a66b2fe1565cbf2628d9c"
+      }
+    }
+  ]
+}
