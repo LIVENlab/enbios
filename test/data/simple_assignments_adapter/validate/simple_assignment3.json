@@ -1,9 +1,12 @@
 {
   "n1": {
     "node_name": "n1",
-    "output_units": [
-      "l"
-    ],
+    "outputs": {
+      "1": {
+        "label": null,
+        "unit": "l"
+      }
+    },
     "default_output": [],
     "default_impacts": {},
     "scenario_data": {
