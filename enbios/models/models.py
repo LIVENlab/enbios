@@ -78,11 +78,11 @@ class ExperimentHierarchyNodeData(BaseModel):
         None, description="setup data (id, outputs, ... arbitrary data"
     )
     children: Optional[
-        list[Union["ExperimentHierarchyNodeData", "ExperimentActivityData"]]
+        list[Union["ExperimentHierarchyNodeData", "HierarchyStructuralNodeData"]]
     ] = None
 
 
-class ExperimentActivityData(BaseModel):
+class HierarchyStructuralNodeData(BaseModel):
     """
     This is the dataclass for the activities in the experiment.
     """

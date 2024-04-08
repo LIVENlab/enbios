@@ -5,6 +5,7 @@ from flatten_dict import unflatten
 from frictionless import Schema
 from frictionless.fields import NumberField, StringField
 
+from enbios.base.tree_operations import csv2hierarchy
 from enbios.generic.files import ReadPath
 from enbios.models.models import (
     ExperimentData,
@@ -77,8 +78,8 @@ def resolve_input_files(raw_input: ExperimentData) -> ExperimentDataResolved:
         )
         if hierarchy_file.suffix == ".json":
             hierarchy_data = hierarchy_file.read_data()
-        # elif hierarchy_file.suffix == ".csv":
-        #     hierarchy_data = csv_tree2dict(hierarchy_file, False)
+        elif hierarchy_file.suffix == ".csv":
+            hierarchy_data = csv2hierarchy(hierarchy_file)
         else:
             raise Exception(f"Invalid hierarchy file: {raw_input.hierarchy}")
 
