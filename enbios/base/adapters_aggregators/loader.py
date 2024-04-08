@@ -8,7 +8,7 @@ from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.adapters_aggregators.builtin import BUILTIN_ADAPTERS, BUILTIN_AGGREGATORS
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.util import load_module
-from enbios.models.experiment_base_models import AdapterModel, AggregationModel
+from enbios.models.models import AdapterModel, AggregationModel
 
 logger = get_logger(__name__)
 

@@ -6,12 +6,11 @@ from frictionless import Schema
 from frictionless.fields import NumberField, StringField
 
 from enbios.generic.files import ReadPath
-from enbios.models.experiment_base_models import (
+from enbios.models.models import (
     ExperimentData,
     ExperimentHierarchyNodeData,
     ExperimentScenarioData,
-    ExperimentDataResolved,
-    # ExperimentMethodData,
+    ExperimentDataResolved
 )
 
 activities_schema = Schema(

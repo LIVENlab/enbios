@@ -598,7 +598,7 @@ they should raise an Exception. In the case some validation is not required, it 
 `validate_definition(self, definition: AdapterModel)`
 
 Validates the whole adapter definition, which is the whole dictionary (parse
-as `enbios.models.experiment_base_models.AdapterModel`)
+as `enbios.models.models.AdapterModel`)
 
 `validate_config(self, config: Optional[dict[str, Any]])`
 

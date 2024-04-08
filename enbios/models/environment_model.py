@@ -1,7 +1,6 @@
 from typing import Optional
 
-from pydantic.v1 import BaseSettings
-
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     CONFIG_FILE: Optional[str] = None

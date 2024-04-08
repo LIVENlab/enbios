@@ -1,3 +1,4 @@
+from dataclasses import field
 from typing import Optional, Union, Any
 
 from pint.facets.plain import PlainQuantity
@@ -197,3 +198,43 @@ class ExperimentDataResolved(BaseModel):
         default_factory=ExperimentConfig,
         description="The configuration of this experiment",
     )
+
+
+class TechTreeNodeData(BaseModel):
+    adapter: Optional[str] = None
+    aggregator: Optional[str] = None
+    config: Optional[Any] = Field(
+        None, description="The identifies (method to find) a node"
+    )
+
+    @model_validator(mode="before")
+    def check_model(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            leaf_node = "adapter" in data and "config" in data
+            non_leaf_node = "aggregator" in data
+            assert leaf_node or non_leaf_node, (
+                "Node must be either leaf ('id', 'adapter`) " "or non-leaf ('aggregator')"
+            )
+        return data
+
+
+class ResultValue(BaseModel):
+    model_config = StrictInputConfig
+    unit: str
+    magnitude: Optional[float] = None  # type: ignore
+    multi_magnitude: Optional[list[float]] = field(default_factory=list)
+
+
+class ScenarioResultNodeData(BaseModel):
+    model_config = StrictInputConfig
+    output: list[NodeOutput] = Field(default_factory=list)
+    results: dict[str, ResultValue] = Field(default_factory=dict)
+    adapter: Optional[str] = None
+    aggregator: Optional[str] = None
+
+
+class EnbiosValidationException(Exception):
+    def __init__(self, message, exc_name=None, code: Optional[int] = None):
+        super().__init__(message)
+        self.exc_name = exc_name
+        self.code = code

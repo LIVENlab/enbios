@@ -13,7 +13,7 @@ from enbios.base.result_select import ResultsSelector
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import ScenarioResultNodeData
+from enbios import ScenarioResultNodeData
 
 logger = get_logger(__name__)
 

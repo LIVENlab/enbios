@@ -3,8 +3,7 @@ from typing import Optional, Any
 
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_base_models import NodeOutput
-from enbios.models.experiment_models import ScenarioResultNodeData
+from enbios.models.models import NodeOutput, ScenarioResultNodeData
 
 
 class EnbiosAggregator(ABC):

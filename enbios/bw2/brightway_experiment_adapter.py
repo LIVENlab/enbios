@@ -28,10 +28,7 @@ from enbios.bw2.bw_models import (
 )
 from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.generic.util import load_module, get_module_functions
-from enbios.models.experiment_base_models import NodeOutput, AdapterModel
-from enbios.models.experiment_models import (
-    ResultValue,
-)
+from enbios.models.models import NodeOutput, AdapterModel, ResultValue
 
 logger = getLogger(__file__)
 

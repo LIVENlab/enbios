@@ -4,9 +4,10 @@ from pathlib import Path
 from typing import Any, TYPE_CHECKING, Callable, Optional, Iterator
 
 from enbios import PathLike
-from enbios.models.experiment_base_models import (
+from enbios.models.models import (
     ExperimentHierarchyNodeData,
-    HierarchyNodeReference,
+    HierarchyNodeReference, EnbiosValidationException,
+    TechTreeNodeData, ScenarioResultNodeData
 )
 
 if TYPE_CHECKING:
@@ -14,17 +15,12 @@ if TYPE_CHECKING:
 
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.experiment_models import (
-    TechTreeNodeData,
-    ScenarioResultNodeData,
-    EnbiosValidationException,
-)
 
 logger = get_logger(__name__)
 
 
 def validate_experiment_hierarchy(
-    hierarchy: ExperimentHierarchyNodeData,
+        hierarchy: ExperimentHierarchyNodeData,
 ) -> BasicTreeNode[TechTreeNodeData]:
     # todo allow no output only when there are scenarios...
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
@@ -48,9 +44,9 @@ def validate_experiment_hierarchy(
 
 
 def validate_experiment_reference_hierarchy(
-    hierarchy: HierarchyNodeReference,
-    original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
-    get_node_aggregator_fcn: Callable,
+        hierarchy: HierarchyNodeReference,
+        original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
+        get_node_aggregator_fcn: Callable,
 ) -> BasicTreeNode[TechTreeNodeData]:
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
         hierarchy.model_dump(), dataclass=TechTreeNodeData
@@ -83,7 +79,7 @@ def validate_experiment_reference_hierarchy(
 
 
 def recursive_resolve_outputs(
-    node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
+        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
 ):
     # todo, does this takes default values when an node is not defined
     #  in the scenario?
@@ -102,8 +98,8 @@ def recursive_resolve_outputs(
 
 
 def csv2hierarchy(csv_file: PathLike,
-                      level_cols: Optional[list[str]] = (),
-                      levels_regex: Optional[str] = "^level_\d+$") -> dict:
+                  level_cols: Optional[list[str]] = (),
+                  levels_regex: Optional[str] = "^level_\d+$") -> dict:
     tree: dict = {}
     reader: Iterator[dict[str, str]] = DictReader(Path(csv_file).open())
     current_node = tree

@@ -12,11 +12,8 @@ from enbios.base.experiment import Experiment
 from enbios.base.scenario import Scenario
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.bw2.util import report
-from enbios.models.experiment_models import (
-    ScenarioResultNodeData,
-    ResultValue,
-    TechTreeNodeData,
-)
+from enbios.models.models import TechTreeNodeData, ResultValue, ScenarioResultNodeData
+
 
 def get_enbios_ureg() -> UnitRegistry:
     from enbios.base.unit_registry import ureg

@@ -7,19 +7,11 @@ from typing import Generator, cast
 import pytest
 from bw2data.backends import Activity
 
-from enbios.base.experiment import Experiment, ScenarioResultNodeData
+from enbios import Experiment, ScenarioResultNodeData
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.generic.files import ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from test.enbios.conftest import tempfolder
-
-
-@pytest.fixture
-def second_activity_config() -> dict:
-    return {
-        "name": "concentrated solar power plant construction, solar tower power plant, 20 MW",
-        "code": "19978cf531d88e55aed33574e1087d78"
-    }
 
 
 @pytest.fixture
@@ -180,7 +172,7 @@ def test_scaled_demand_unit(experiment_setup, default_bw_method_name: str):
         expected_value, abs=1e-7)
 
 
-def test_stacked_lca(bw_adapter_config, first_activity_config, second_activity_config):
+def test_stacked_lca(bw_adapter_config, first_activity_config):
     # todo this test should be vigorous
     experiment = {
         "adapters": [
@@ -192,19 +184,18 @@ def test_stacked_lca(bw_adapter_config, first_activity_config, second_activity_c
             "children": [{
                 "name": "single_activity",
                 "config": first_activity_config,
-                "adapter": "bw",
-                "output": {
-                    "unit": "kWh",
-                    "magnitude": 1
-                }
+                "adapter": "bw"
             }, {
                 "name": "2nd",
-                "config": second_activity_config,
-                "adapter": "bw",
-                "output": {
-                    "unit": "unit",
-                    "magnitude": 1
-                }
+                "config": {
+                    "name": "concentrated solar power plant construction, solar tower power plant, 20 MW",
+                    "code": "19978cf531d88e55aed33574e1087d78",
+                    "default_output": {
+                        "unit": "unit",
+                        "magnitude": 1
+                    }
+                },
+                "adapter": "bw"
             }]
         },
         "scenarios": [
@@ -334,8 +325,7 @@ def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: di
 
 
 def test_lca_distribution(experiment_setup,
-                          first_activity_config: dict,
-                          second_activity_config):
+                          first_activity_config: dict):
     scenario_data = experiment_setup["scenario"]
     scenario_data["adapters"][0]["config"]["use_k_bw_distributions"] = 3
     experiment = Experiment(scenario_data)

@@ -8,7 +8,7 @@ from enbios.base.adapters_aggregators.builtin import BUILTIN_AGGREGATORS
 from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.scenario import Scenario
 from enbios.models.environment_model import Settings
-from enbios.models.experiment_base_models import (
+from enbios.models.models import (
     ExperimentConfig,
     ExperimentScenarioData,
     AdapterModel,

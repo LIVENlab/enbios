@@ -10,8 +10,7 @@ from enbios.base.scenario import Scenario
 from enbios.base.unit_registry import ureg
 from enbios.generic.files import ReadPath
 from enbios.generic.unit_util import unit_match
-from enbios.models.experiment_base_models import AdapterModel, NodeOutput
-from enbios.models.experiment_models import ResultValue, EnbiosValidationException
+from enbios.models.models import AdapterModel, NodeOutput, EnbiosValidationException, ResultValue
 
 
 class SimpleAssignmentNodeConfig(BaseModel):
@@ -405,7 +404,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                     assert row.get("scenario"), "No scenario defined"
                 scenario: str = row.get("scenario")
                 if scenario:
-                    scenario_outputs = get_outputs_values(row, __scenario, node)
+                    scenario_outputs = get_outputs_values(row, Literal[__scenario], node)
                     assert (
                         scenario_outputs
                     ), "For each scenario row, a new output needs to be defined"

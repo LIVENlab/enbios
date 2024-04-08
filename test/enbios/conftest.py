@@ -6,8 +6,7 @@ import pytest
 
 from enbios.base.experiment import Experiment
 from enbios.const import BASE_TEST_DATA_PATH
-from enbios.models.experiment_base_models import NodeOutput
-from enbios.models.experiment_models import ScenarioResultNodeData, ResultValue
+from enbios.models.models import NodeOutput, ResultValue, ScenarioResultNodeData
 from test.enbios.test_project_fixture import TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH, TEST_ECOINVENT_DB
 
 
