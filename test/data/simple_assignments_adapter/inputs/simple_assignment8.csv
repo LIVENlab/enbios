@@ -1,10 +1,10 @@
-node_name,output_1_unit,default_output_1_unit,default_output_1_label,default_output_1_magnitude,default_impacts_co2_unit, default_impacts_co2_magnitude,scenario, scenario_output_1_unit, scenario_output_1_label,scenario_output_1_magnitude,scenario_impacts_co2_unit,scenario_impacts_co2_magnitude
-n1,l,,,,,,sc1,,,100,kg,5
-n2,l,,,10,kg,50,,,,,,
-n2,,,,,,,sc1,,,60,kg,12
-n3,l,,,10,kg,50,,,,,,
-n3,,,,,,,sc1,,amount,60,kg,12
-n4,l,,,10,kg,50,,,,,,
-n4,,,,,,,sc1,,unit-weight,60,kg,12
-n5,l,,,10,kg,50,,,,,,
-n5,,,,,,,sc1,,unit-weight,40,kg,1
+node_name,output_1_unit,default_output_1_unit,output_1_label,default_output_1_magnitude,default_impacts_co2_unit, default_impacts_co2_magnitude,scenario, scenario_output_1_unit,scenario_output_1_magnitude,scenario_impacts_co2_unit,scenario_impacts_co2_magnitude
+n1,l,,,,,,sc1,,100,kg,5
+n2,l,,,10,kg,50,,,,,
+n2,,,,,,,sc1,,60,kg,12
+n3,l,,amount,10,kg,50,,,,,
+n3,,,,,,,sc1,,60,kg,12
+n4,l,,unit-weight,10,kg,50,,,,,
+n4,,,,,,,sc1,,60,kg,12
+n5,l,,unit-weight,10,kg,50,,,,,
+n5,,,,,,,sc1,,40,kg,1

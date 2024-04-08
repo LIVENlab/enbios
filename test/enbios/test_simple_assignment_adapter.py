@@ -83,9 +83,9 @@ def run_test_with_file(adapter_csv_file: Path):
         nodes_comparison_data = json.load(nodes_comparison_file.open())
         assert result_dict == nodes_comparison_data
         results = exp.run()
-        results_comparisson_file = Path(
+        results_comparison_file = Path(
             BASE_TEST_DATA_PATH / f"simple_assignments_adapter/results/{adapter_csv_file.stem}.json")
-        result_comparison_data = json.load(results_comparisson_file.open())
+        result_comparison_data = json.load(results_comparison_file.open())
         assert results == result_comparison_data
 
 

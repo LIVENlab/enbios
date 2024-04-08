@@ -1,15 +1,19 @@
 {
   "n1": {
     "node_name": "n1",
-    "output_units": [
-      "kl"
-    ],
+    "outputs": {
+      "1": {
+        "unit": "kl",
+        "label": null
+      }
+    },
     "default_output": [
       {
         "label": null,
         "unit": "megaliter",
         "magnitude": 2.0
-      }],
+      }
+    ],
     "default_impacts": {
       "co2": {
         "unit": "kg",

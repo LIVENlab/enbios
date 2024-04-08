@@ -31,13 +31,13 @@ class SimpleAssignmentNodeConfig(BaseModel):
                     "Either default_impacts or scenario_data.impacts must be defined"
                 )
         if (default_output := data.get("default_output")) is not None:
-            if not len(data["output_units"]) == len(default_output):
+            if not len(data["outputs"]) == len(default_output):
                 raise EnbiosValidationException(
                     "Length of 'default_output' and 'output_units' do not match",
                     "SimpleAssignmentNodeConfig-unequal unit length",
                 )
             for idx, (unit, def_out) in enumerate(
-                    zip(data["output_units"], default_output)
+                    zip(data["outputs"], default_output)
             ):
                 assert unit_match(
                     unit, def_out["unit"]
@@ -55,6 +55,13 @@ class SimpleAssignmentNodeScenarioData(BaseModel):
 class SimpleAssignmentNodeOutput(BaseModel):
     unit: str
     label: Optional[str] = None
+
+    @model_validator(mode="before")
+    def transform_value(cls, v: Any) -> dict:
+        if isinstance(v, dict):
+            if v.get("label") == "":
+                v["label"] = None
+        return v
 
 
 class SimpleAssignmentConfig(BaseModel):
@@ -150,9 +157,15 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     def get_node_output(self, node_name: str, scenario_name: str) -> list[NodeOutput]:
         node_data = self.nodes[node_name]
+        outputs: list[NodeOutput]
         if scenario_name in self.nodes[node_name].scenario_data:
-            return node_data.scenario_data[scenario_name].outputs
-        return node_data.default_output
+            outputs = node_data.scenario_data[scenario_name].outputs
+        else:
+            outputs = node_data.default_output
+        for idx, output in enumerate(outputs):
+            # todo, maybe just make a list all together...
+            output.label = list(node_data.outputs.values())[idx].label
+        return outputs
 
     def get_method_unit(self, method_name: str) -> str:
         return self.methods[method_name]
@@ -244,14 +257,14 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         default_impacts_headers: dict[str, dict[str, str]] = {}
         scenario_impacts_headers: dict[str, dict[str, str]] = {}
 
-        collections = [
+        flat_collections = [
             default_output_headers,
             scenario_output_headers,
             default_impacts_headers,
             scenario_impacts_headers,
         ]
 
-        collections2 = {
+        struct_collections = {
             __default: {
                 __output: default_output_headers,
                 __impacts: default_impacts_headers,
@@ -275,12 +288,12 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             def_o_sce, out_o_impact, id_, unit_o_mag = tuple(parts)
             assert def_o_sce in [__default, __scenario]
             assert out_o_impact in [__output, __impacts]
-            col = collections2[def_o_sce][out_o_impact]
+            col = struct_collections[def_o_sce][out_o_impact]
             assert id_re_pat.match(id_)
             assert unit_o_mag in [__unit, __magnitude]
             col.setdefault(id_, {})[unit_o_mag] = header
 
-        for col in collections:
+        for col in flat_collections:
             for col_id_headers in col.values():
                 assert len(col_id_headers) >= 2, f"row not complete: {headers}"
 
@@ -288,6 +301,12 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             assert "scenario" in headers, "header: 'scenario' is missing"
 
         node_map: dict[str, SimpleAssignmentNodeConfig] = {}
+
+        # check if the keys for the default/scenario outputs match outputs and put them in the same order as
+        outputs_order = list(outputs_headers.keys())
+        for type_,type_values in struct_collections.items():
+            assert set(type_values["output"].keys()) == set(outputs_order)
+            type_values["output"] = {id_: type_values["output"][id_] for id_ in outputs_order }
 
         def get_outputs(row_: dict) -> dict[str, SimpleAssignmentNodeOutput]:
             return {
@@ -327,12 +346,10 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                         f"Unit of output at index [{id_}]/{type_} do not match '{unit}' does not match '{out_unit}' "
                         f"for row {row_}"
                     )
-                    label: Optional[str] = node.outputs[id_].label
                     result.append(
                         NodeOutput(
                             unit=str(ureg(unit).units),
-                            magnitude=float(row_[mag_header]),
-                            label=label,
+                            magnitude=float(row_[mag_header])
                         )
                     )
 
@@ -372,7 +389,6 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                 node: SimpleAssignmentNodeConfig
                 # new node
                 if node_name not in node_map:
-
                     node_outputs: dict[str, SimpleAssignmentNodeOutput] = get_outputs(row)
                     assert all(
                         node_outputs.values()
@@ -389,7 +405,6 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                     node_map[node_name] = node
                 else:
                     node = node_map[node_name]
-
                     assert all(
                         [
                             row.get(k, "") == ""
@@ -404,7 +419,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                     assert row.get("scenario"), "No scenario defined"
                 scenario: str = row.get("scenario")
                 if scenario:
-                    scenario_outputs = get_outputs_values(row, Literal[__scenario], node)
+                    scenario_outputs = get_outputs_values(row, "scenario", node)
                     assert (
                         scenario_outputs
                     ), "For each scenario row, a new output needs to be defined"

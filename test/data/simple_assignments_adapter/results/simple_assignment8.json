@@ -131,7 +131,8 @@
         "output": [
           {
             "magnitude": 10.0,
-            "unit": "liter"
+            "unit": "liter",
+            "label": "amount"
           }
         ],
         "results": {
@@ -146,7 +147,8 @@
         "output": [
           {
             "magnitude": 10.0,
-            "unit": "liter"
+            "unit": "liter",
+            "label": "unit-weight"
           }
         ],
         "results": {
@@ -161,7 +163,8 @@
         "output": [
           {
             "magnitude": 10.0,
-            "unit": "liter"
+            "unit": "liter",
+            "label": "unit-weight"
           }
         ],
         "results": {
@@ -175,8 +178,18 @@
     "name": "root",
     "output": [
       {
-        "magnitude": 40.0,
+        "magnitude": 10.0,
         "unit": "liter"
+      },
+      {
+        "magnitude": 10.0,
+        "unit": "liter",
+        "label": "amount"
+      },
+      {
+        "magnitude": 20.0,
+        "unit": "liter",
+        "label": "unit-weight"
       }
     ],
     "results": {

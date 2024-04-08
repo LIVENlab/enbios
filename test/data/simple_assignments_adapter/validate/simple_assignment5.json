@@ -1,10 +1,13 @@
 {
   "n1": {
     "node_name": "n1",
-    "output_units": ["l"],
-    "default_output": [
-
-    ],
+    "outputs": {
+      "1": {
+        "label": null,
+        "unit": "l"
+      }
+    },
+    "default_output": [],
     "default_impacts": {},
     "scenario_data": {
       "sc1": {
@@ -43,7 +46,12 @@
   },
   "n2": {
     "node_name": "n2",
-    "output_units":[ "m^2"],
+    "outputs": {
+      "1": {
+        "label": null,
+        "unit": "m^2"
+      }
+    },
     "default_output": [
       {
         "label": null,
