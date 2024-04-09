@@ -1,7 +1,6 @@
 from os import PathLike
 from typing import Union, Optional
 
-from flatten_dict import unflatten
 from frictionless import Schema
 from frictionless.fields import NumberField, StringField
 
@@ -11,8 +10,9 @@ from enbios.models.models import (
     ExperimentData,
     ExperimentHierarchyNodeData,
     ExperimentScenarioData,
-    ExperimentDataResolved
+    ExperimentDataResolved,
 )
+from enbios.util.flatten_dict.flatten_dict import unflatten
 
 activities_schema = Schema(
     fields=[

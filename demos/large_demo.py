@@ -1,5 +1,7 @@
-from enbios.base.experiment import Experiment
+import json
 import pickle
+
+from enbios import Experiment
 
 demo_config = {
     "adapters": [
@@ -133,8 +135,8 @@ demo_config = {
     ],
 }
 
-exp = Experiment(demo_config)
-results = exp.run()
-
-
-pickle.dump(exp, open("exp.pickle", "wb"))
+if __name__ == "__main__":
+    exp = Experiment(demo_config)
+    results = exp.run()
+    print(json.dumps(results, indent=2))
+    pickle.dump(exp, open("exp.pickle", "wb"))

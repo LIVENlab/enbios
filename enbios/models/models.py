@@ -38,7 +38,7 @@ class AdapterModel(BaseModel):
     adapter_name: Optional[str] = Field(
         None,
         description="this this is to use inbuilt adapter "
-                    "(e.g. 'simple-assignment-adapter'",
+        "(e.g. 'simple-assignment-adapter'",
     )
     config: dict = Field(default_factory=dict)
     methods: dict[str, Any] = Field(default_factory=dict)
@@ -57,7 +57,7 @@ class AggregationModel(BaseModel):
     aggregator_name: str = Field(
         None,
         description="this this is to use inbuilt aggregator "
-                    "(e.g. 'simple-assignment-adapter'",
+        "(e.g. 'simple-assignment-adapter'",
     )
     config: Optional[dict] = Field(default_factory=dict)
     note: Optional[str] = None
@@ -108,7 +108,7 @@ class HierarchyNodeReference(BaseModel):
     @field_validator("children", mode="before")
     @classmethod
     def transform_simple_string_children(
-            cls, v: list[str]
+        cls, v: list[str]
     ) -> list[Union["HierarchyNodeReference", str]]:
         return [
             HierarchyNodeReference(name=child) if isinstance(child, str) else child

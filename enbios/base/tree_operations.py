@@ -6,9 +6,12 @@ from typing import Any, TYPE_CHECKING, Callable, Optional, Iterator
 from enbios import PathLike
 from enbios.models.models import (
     ExperimentHierarchyNodeData,
-    HierarchyNodeReference, EnbiosValidationException,
-    TechTreeNodeData, ScenarioResultNodeData
+    HierarchyNodeReference,
+    EnbiosValidationException,
+    TechTreeNodeData,
+    ScenarioResultNodeData,
 )
+from enbios.util.flatten_dict.flatten_dict import unflatten
 
 if TYPE_CHECKING:
     from enbios.base.experiment import Experiment
@@ -97,9 +100,11 @@ def recursive_resolve_outputs(
         node.data.output = node_output
 
 
-def csv2hierarchy(csv_file: PathLike,
-                  level_cols: Optional[list[str]] = (),
-                  levels_regex: Optional[str] = "^level_\d+$") -> dict:
+def csv2hierarchy(
+        csv_file: PathLike,
+        level_cols: Optional[list[str]] = (),
+        levels_regex: Optional[str] = "^level_\d+$",
+) -> dict:
     tree: dict = {}
     reader: Iterator[dict[str, str]] = DictReader(Path(csv_file).open())
     current_node = tree
@@ -112,19 +117,13 @@ def csv2hierarchy(csv_file: PathLike,
         if name in all_node_names:
             raise ValueError(f"Node '{name}' already exists")
         all_node_names.add(name)
-        node = {
-            "name": name,
-            "module": row["module"],
-            "config": {},
-            "children": []
-        }
+        node = {"name": name, "module": row["module"], "config": {}, "children": []}
         all_node_names.add(name)
         if not row["module"]:
             raise ValueError(f"Module is not specified for node '{name}'")
-        for col, val in _row.items():
-            if col.startswith("config.") and val:
-                conf = col.strip().split(".", 1)[1]
-                node["config"][conf] = val.strip()
+        config_cols = {col: val.strip() for col, val in _row.items() if col.startswith("config.") and val}
+        config = unflatten(config_cols, splitter="dot")
+        node.update(config)
         return node
 
     def insert(_row: dict, _cell: str, _current_node: dict):
@@ -138,7 +137,7 @@ def csv2hierarchy(csv_file: PathLike,
     if not level_cols:
         if levels_regex:
             levels_re = re.compile(levels_regex)
-            level_cols = [fn for fn in reader.fieldnames if levels_re.match(fn)]
+            level_cols = sorted([fn for fn in reader.fieldnames if levels_re.match(fn)])
 
     for row in reader:
         row_added = False
@@ -147,8 +146,7 @@ def csv2hierarchy(csv_file: PathLike,
             if not cell:
                 continue
             if row_added:
-                raise ValueError(
-                    f"row: {row} has duplicate level indicators: '{cell}'")
+                raise ValueError(f"row: {row} has duplicate level indicators: '{cell}'")
             if _path is None:  # root node
                 tree = create_mode(row, cell)
                 _path = []
@@ -157,7 +155,7 @@ def csv2hierarchy(csv_file: PathLike,
                 if depth - 1 == len(_path):
                     current_node = insert(row, cell, current_node)
                 elif depth - 1 < len(_path):
-                    _path = _path[:depth - 1]
+                    _path = _path[: depth - 1]
                     current_node = tree
                     for p in _path:
                         current_node = current_node["children"][p]

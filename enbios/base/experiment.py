@@ -1,4 +1,5 @@
 import csv
+import json
 import math
 import time
 from datetime import timedelta
@@ -34,7 +35,8 @@ from enbios.models.models import (
     ExperimentScenarioData,
     NodeOutput,
     ExperimentDataResolved,
-    TechTreeNodeData, ScenarioResultNodeData
+    TechTreeNodeData,
+    ScenarioResultNodeData,
 )
 
 logger = get_logger(__name__)
@@ -313,14 +315,15 @@ class Experiment:
                 writer.writeheader()
                 writer.writerows(all_rows)
 
-    def result_to_dict(self, include_output: bool = True) -> list[dict[str, Any]]:
+    def result_to_dict(self, include_output: bool = True, alternative_hierarchy: Optional[dict] = None) -> list[
+        dict[str, Any]]:
         """
         Get the results of all scenarios as a list of dictionaries as dictionaries
         :param include_output: Include the output of each node in the tree
         :return:
         """
         return [
-            scenario.result_to_dict(include_output=include_output)
+            scenario.result_to_dict(include_output=include_output, alternative_hierarchy=alternative_hierarchy)
             for scenario in self.scenarios
         ]
 
@@ -519,3 +522,18 @@ class Experiment:
             for child in node.children:
                 links.append(Link(mm_node, mm_nodes_map[child.name]))
         return str(MermaidDiagram(nodes=nodes, links=links, orientation="top-down"))
+
+    def get_simplified_hierarchy(self, print_it: bool = False) -> dict[str, Optional[dict[str, Any]]]:
+        def rec_nodes(node: BasicTreeNode) -> dict[str, Optional[dict[str, Any]]]:
+            res = {}
+            if node.children:
+                for child in node.children:
+                    res.update(rec_nodes(child))
+                return {node.name: res}
+            else:
+                return {node.name: None}
+
+        result = rec_nodes(self.hierarchy_root)
+        if print_it:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        return result

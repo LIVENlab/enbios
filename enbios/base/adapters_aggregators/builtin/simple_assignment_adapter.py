@@ -10,7 +10,12 @@ from enbios.base.scenario import Scenario
 from enbios.base.unit_registry import ureg
 from enbios.generic.files import ReadPath
 from enbios.generic.unit_util import unit_match
-from enbios.models.models import AdapterModel, NodeOutput, EnbiosValidationException, ResultValue
+from enbios.models.models import (
+    AdapterModel,
+    NodeOutput,
+    EnbiosValidationException,
+    ResultValue,
+)
 
 
 class SimpleAssignmentNodeConfig(BaseModel):
@@ -36,9 +41,7 @@ class SimpleAssignmentNodeConfig(BaseModel):
                     "Length of 'default_output' and 'output_units' do not match",
                     "SimpleAssignmentNodeConfig-unequal unit length",
                 )
-            for idx, (unit, def_out) in enumerate(
-                    zip(data["outputs"], default_output)
-            ):
+            for idx, (unit, def_out) in enumerate(zip(data["outputs"], default_output)):
                 assert unit_match(
                     unit, def_out["unit"]
                 ), f"unit of 'defualt_output' : {default_output}, does not match specified unit: '{unit}' (index: {idx})"
@@ -130,7 +133,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             )
 
     def validate_scenario_node(
-            self, node_name: str, scenario_name: str, scenario_node_data: Any
+        self, node_name: str, scenario_name: str, scenario_node_data: Any
     ):
         if self.from_csv_file:
             # todo validate output...
@@ -188,7 +191,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         return {"node_name": SimpleAssignmentNodeConfig.model_json_schema()}
 
     def read_nodes_from_csv(
-            self, file_path: Path
+        self, file_path: Path
     ) -> dict[str, SimpleAssignmentNodeConfig]:
         """
         Read nodes default, scenario outputs and impacts from a csv file. Is used when config includes path to
@@ -304,22 +307,30 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
         # check if the keys for the default/scenario outputs match outputs and put them in the same order as
         outputs_order = list(outputs_headers.keys())
-        for type_,type_values in struct_collections.items():
-            assert set(type_values["output"].keys()) == set(outputs_order)
-            type_values["output"] = {id_: type_values["output"][id_] for id_ in outputs_order }
+        for type_, type_values in struct_collections.items():
+            assert (set(type_values["output"].keys()) == set(outputs_order),
+                    (f"{set(type_values['output'].keys())}, {set(type_values['output'].keys())}, {set(outputs_order)}"))
+            type_values["output"] = {
+                id_: type_values["output"][id_] for id_ in outputs_order
+            }
 
         def get_outputs(row_: dict) -> dict[str, SimpleAssignmentNodeOutput]:
             return {
-                id_: SimpleAssignmentNodeOutput(unit=row_.get(output_headers[__unit]),
-                                                label=row_.get(output_headers.get(__label)
-                                                               if output_headers.get(__label) else None)
-                                                )
-                for (id_, output_headers) in outputs_headers.items()}
+                id_: SimpleAssignmentNodeOutput(
+                    unit=row_.get(output_headers[__unit]),
+                    label=row_.get(
+                        output_headers.get(__label)
+                        if output_headers.get(__label)
+                        else None
+                    ),
+                )
+                for (id_, output_headers) in outputs_headers.items()
+            }
 
         def get_outputs_values(
-                row_: dict,
-                type_: Literal["default", "scenario"],
-                node_: Optional[SimpleAssignmentNodeConfig] = None,
+            row_: dict,
+            type_: Literal["default", "scenario"],
+            node_: Optional[SimpleAssignmentNodeConfig] = None,
         ) -> list[NodeOutput]:
             coll = (
                 scenario_output_headers if type_ == __scenario else default_output_headers
@@ -328,7 +339,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             for idx, (id_, id_out_headers) in enumerate(coll.items()):
                 unit_header, mag_header = (
                     id_out_headers["unit"],
-                    id_out_headers["magnitude"]
+                    id_out_headers["magnitude"],
                 )
                 if row_[unit_header] or row_[mag_header]:
                     # todo not sure about this assert, we could just use output_{i}_unit
@@ -348,15 +359,14 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                     )
                     result.append(
                         NodeOutput(
-                            unit=str(ureg(unit).units),
-                            magnitude=float(row_[mag_header])
+                            unit=str(ureg(unit).units), magnitude=float(row_[mag_header])
                         )
                     )
 
             return result
 
         def get_impacts(
-                row_: dict, type_: Literal["default", "scenario"]
+            row_: dict, type_: Literal["default", "scenario"]
         ) -> dict[str, ResultValue]:
             coll = (
                 default_impacts_headers

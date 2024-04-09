@@ -27,9 +27,9 @@ class SumAggregator(EnbiosAggregator):
         pass
 
     def aggregate_node_output(
-            self,
-            node: BasicTreeNode[ScenarioResultNodeData],
-            scenario_name: Optional[str] = "",
+        self,
+        node: BasicTreeNode[ScenarioResultNodeData],
+        scenario_name: Optional[str] = "",
     ) -> list[NodeOutput]:
         node_outputs: list[LabeledQuantity] = []
 
@@ -39,7 +39,7 @@ class SumAggregator(EnbiosAggregator):
                     if labeled_q.label == given_output.label:
                         return idx
                 elif not labeled_q.label and labeled_q.quantity.is_compatible_with(
-                        given_output.unit
+                    given_output.unit
                 ):
                     return idx
             return None
@@ -49,13 +49,13 @@ class SumAggregator(EnbiosAggregator):
                 assign_to: Optional[int] = find_node_output_index(output)
                 if assign_to is not None:
                     node_outputs[assign_to].quantity += (
-                            ureg(output.unit) * output.magnitude
+                        ureg(output.unit) * output.magnitude
                     )
                 else:
                     node_outputs.append(
                         LabeledQuantity(
                             quantity=ureg.parse_expression(output.unit)
-                                     * output.magnitude,
+                            * output.magnitude,
                             label=output.label,
                         )
                     )
@@ -68,7 +68,7 @@ class SumAggregator(EnbiosAggregator):
         ]
 
     def aggregate_node_result(
-            self, node: BasicTreeNode[ScenarioResultNodeData]
+        self, node: BasicTreeNode[ScenarioResultNodeData]
     ) -> dict[str, ResultValue]:
         result: dict[str, ResultValue] = {}
         for child in node.children:
