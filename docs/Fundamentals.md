@@ -309,7 +309,7 @@ E.g. get_builtin_adapters
 
 ```json
 {
-  "simple-assignment-adapter": {
+  "assignment-adapter": {
     "activity_indicator": "assign",
     "config": {
       "activity": {

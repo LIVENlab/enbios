@@ -6,18 +6,18 @@ from typing import cast
 
 import pytest
 
-from enbios.base.adapters_aggregators.builtin import SimpleAssignmentAdapter
+from enbios.base.adapters_aggregators.builtin.assignment_adapter import AssignmentAdapter
 from enbios.base.experiment import Experiment
 from enbios.const import BASE_TEST_DATA_PATH
 
 
-def simple_assignment_adapter_test_files():
-    for file in sorted((BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs").glob("*.csv")):
+def assignment_adapter_test_files():
+    for file in sorted((BASE_TEST_DATA_PATH / "assignment_adapter/inputs").glob("*.csv")):
         yield file
 
 
-def simple_assignment_adapter_test_files_names():
-    for file in sorted((BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs").glob("*.csv")):
+def assignment_adapter_test_files_names():
+    for file in sorted((BASE_TEST_DATA_PATH / "assignment_adapter/inputs").glob("*.csv")):
         yield file.stem
 
 
@@ -25,7 +25,7 @@ def run_test_with_file(adapter_csv_file: Path):
     data = {
         "adapters": [
             {
-                "adapter_name": "simple-assignment-adapter",
+                "adapter_name": "assignment-adapter",
                 "config": {
                     "source_csv_file": adapter_csv_file
                 },
@@ -75,25 +75,25 @@ def run_test_with_file(adapter_csv_file: Path):
     else:
 
         exp = Experiment(data)
-        nodes = cast(SimpleAssignmentAdapter, exp.get_adapter_by_name("simple-assignment-adapter")).nodes
+        nodes = cast(AssignmentAdapter, exp.get_adapter_by_name("assignment-adapter")).nodes
         result_dict = {n: v.model_dump() for n, v in nodes.items()}
         print(json.dumps(result_dict, indent=2))
         nodes_comparison_file = Path(
-            BASE_TEST_DATA_PATH / f"simple_assignments_adapter/validate/{adapter_csv_file.stem}.json")
+            BASE_TEST_DATA_PATH / f"assignment_adapter/validate/{adapter_csv_file.stem}.json")
         nodes_comparison_data = json.load(nodes_comparison_file.open())
         assert result_dict == nodes_comparison_data
         results = exp.run()
         results_comparison_file = Path(
-            BASE_TEST_DATA_PATH / f"simple_assignments_adapter/results/{adapter_csv_file.stem}.json")
+            BASE_TEST_DATA_PATH / f"assignment_adapter/results/{adapter_csv_file.stem}.json")
         result_comparison_data = json.load(results_comparison_file.open())
         assert results == result_comparison_data
 
 
-@pytest.mark.parametrize('adapter_csv_file', argvalues=simple_assignment_adapter_test_files(),
-                         ids=simple_assignment_adapter_test_files_names())
-def test_simple_assignment_adapter_csv(adapter_csv_file: Path):
+@pytest.mark.parametrize('adapter_csv_file', argvalues=assignment_adapter_test_files(),
+                         ids=assignment_adapter_test_files_names())
+def test_assignment_adapter_csv(adapter_csv_file: Path):
     run_test_with_file(adapter_csv_file)
 
 
-def test_simple_assignment_adapter_with_csv():
-    run_test_with_file(BASE_TEST_DATA_PATH / "simple_assignments_adapter/inputs/simple_assignment8.csv")
+def test_assignment_adapter_with_csv():
+    run_test_with_file(BASE_TEST_DATA_PATH / "assignment_adapter/inputs/simple_assignment8.csv")

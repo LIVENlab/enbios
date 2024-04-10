@@ -17,51 +17,26 @@ from enbios.models.models import (
     ResultValue,
 )
 
-# class SimpleAssignmentNode(BaseModel):
-#     model_config = ConfigDict(extra="forbid")
-#     node_name: str
-#     # outputs: dict[str, "SimpleAssignmentNodeOutput"]
-#     outputs: list["SimpleAssignmentNodeOutput"]
-#     default_outputs: list[NodeOutput] = Field(default_factory=list)
-#     default_impacts: dict[str, ResultValue] = Field(default_factory=dict)
-#     scenario_data: dict[str, "SimpleAssignmentNodeScenarioData"] = Field(
-#         default_factory=dict
-#     )
-#
-#     @model_validator(mode="before")  # type: ignore
-#     def validator(data: Any):
-#         if "default_impacts" not in data:
-#             if "scenario_data" not in data or "impacts" not in data["scenario_data"]:
-#                 raise ValueError(
-#                     "Either default_impacts or scenario_data.impacts must be defined"
-#                 )
-#         if (default_outputs := data.get("default_outputs")) is not None:
-#             if not len(data["outputs"]) == len(default_outputs):
-#                 raise EnbiosValidationException(
-#                     "Length of 'default_output' and 'output_units' do not match",
-#                     "SimpleAssignmentNodeConfig-unequal unit length",
-#                 )
-#             outputs_units = [o.get("unit") for o in data["outputs"]]
-#             for idx, (unit, def_out) in enumerate(zip(outputs_units, default_outputs)):
-#                 def_out_unit = def_out.get("unit")
-#                 if not def_out_unit:
-#                     def_out["unit"] = unit
-#                 else:
-#                     assert unit_match(
-#                         unit, def_out.get("unit", unit)
-#                     ), f"unit of 'default_output' : {default_outputs}, does not match specified unit: '{unit}' (index: {idx})"
-#
-#         return data
+
+class AssignmentNodeOutputConfig(BaseModel):
+    unit: str
+    label: Optional[str] = None
+
+    @model_validator(mode="before")
+    def transform_value(cls, v: Any) -> dict:
+        if isinstance(v, dict):
+            if v.get("label") == "":
+                v["label"] = None
+        return v
 
 
-class SimpleAssignmentNode(BaseModel):
+class AssignmentNode(BaseModel):
     model_config = ConfigDict(extra="forbid")
     node_name: str
-    # outputs: dict[str, "SimpleAssignmentNodeOutput"]
-    outputs: list["NodeOutput"]
+    outputs: list["AssignmentNodeOutputConfig"]
     default_outputs: list[NodeOutput] = Field(default_factory=list)
     default_impacts: dict[str, ResultValue] = Field(default_factory=dict)
-    scenario_data: dict[str, "SimpleAssignmentNodeScenarioData"] = Field(
+    scenario_data: dict[str, "AssignmentNodeScenarioData"] = Field(
         default_factory=dict
     )
 
@@ -86,42 +61,43 @@ class SimpleAssignmentNode(BaseModel):
                 else:
                     assert unit_match(
                         unit, def_out.get("unit", unit)
-                    ), f"unit of 'default_output' : {default_outputs}, does not match specified unit: '{unit}' (index: {idx})"
+                    ), (f"unit of 'default_output' : {default_outputs}, "
+                        f"does not match specified unit: '{unit}' (index: {idx})")
 
         return data
 
 
-class SimpleAssignmentNodeScenarioData(BaseModel):
+class AssignmentNodeScenarioData(BaseModel):
     model_config = ConfigDict(extra="forbid")
     outputs: list[NodeOutput] = Field(default_factory=list)
     impacts: dict[str, ResultValue] = Field(default_factory=dict)
 
 
-class SimpleAssignmentConfig(BaseModel):
+class AssignmentAdapterConfig(BaseModel):
     source_csv_file: Optional[Path] = Field(None)
 
 
-class SimpleAssignmentDefinition(BaseModel):
+class AssignmentAdapterDefinition(BaseModel):
     methods: dict[str, str]  # name: unit
-    config: Optional["SimpleAssignmentConfig"] = Field(default_factory=SimpleAssignmentConfig)  # type: ignore
+    config: Optional["AssignmentAdapterConfig"] = Field(default_factory=AssignmentAdapterConfig)  # type: ignore
 
 
-class SimpleAssignmentAdapter(EnbiosAdapter):
+class AssignmentAdapter(EnbiosAdapter):
     @staticmethod
     def name():
-        return "simple-assignment-adapter"
+        return "assignment-adapter"
 
     def __init__(self) -> None:
         super().__init__()
-        self.nodes: dict[str, SimpleAssignmentNode] = {}  # name: node
+        self.nodes: dict[str, AssignmentNode] = {}  # name: node
         self.methods: dict[str, str] = {}  # name: unit
-        self.definition: SimpleAssignmentDefinition = SimpleAssignmentDefinition(
+        self.definition: AssignmentAdapterDefinition = AssignmentAdapterDefinition(
             methods={}
         )  # placeholder
         self.from_csv_file: bool = False
 
     def validate_definition(self, definition: AdapterModel):
-        self.definition = SimpleAssignmentDefinition(**definition.model_dump())
+        self.definition = AssignmentAdapterDefinition(**definition.model_dump())
 
     def validate_config(self, config: Optional[dict[str, Any]]):
         self.validate_methods(self.definition.methods)
@@ -158,7 +134,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                         f"that does not match unit specified in adapter '{self.methods[method]}'"
                     )
         if not self.from_csv_file:
-            self.nodes[node_name] = SimpleAssignmentNode(
+            self.nodes[node_name] = AssignmentNode(
                 **{**{"node_name": node_name} | node_config}
             )
 
@@ -186,7 +162,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             node = self.nodes[node_name]
             node.scenario_data[
                 scenario_name
-            ] = SimpleAssignmentNodeScenarioData.model_validate(scenario_node_data)
+            ] = AssignmentNodeScenarioData.model_validate(scenario_node_data)
 
     def get_node_output(self, node_name: str, scenario_name: str) -> list[NodeOutput]:
         node_data = self.nodes[node_name]
@@ -217,11 +193,11 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
 
     @staticmethod
     def get_config_schemas() -> dict:
-        return {"node_name": SimpleAssignmentNode.model_json_schema()}
+        return {"node_name": AssignmentNode.model_json_schema()}
 
     def read_nodes_from_csv(
             self, file_path: Path
-    ) -> dict[str, SimpleAssignmentNode]:
+    ) -> dict[str, AssignmentNode]:
         """
         Read nodes default, scenario outputs and impacts from a csv file. Is used when config includes path to
         csv file in
@@ -309,7 +285,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         if scenario_impacts_headers:
             assert "scenario" in headers, "header: 'scenario' is missing"
 
-        node_map: dict[str, SimpleAssignmentNode] = {}
+        node_map: dict[str, AssignmentNode] = {}
 
         # check if the keys for the default/scenario outputs match outputs and put them in the same order as
         outputs_order = list(outputs_headers.keys())
@@ -322,8 +298,8 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                     id_: type_values[__outputs][id_] for id_ in outputs_order
                 }
 
-        def get_outputs(row_: dict) -> list[tuple[str, NodeOutput]]:
-            return [(id_, NodeOutput(
+        def get_outputs(row_: dict) -> list[tuple[str, AssignmentNodeOutputConfig]]:
+            return [(id_, AssignmentNodeOutputConfig(
                 unit=row_.get(output_headers[__unit]),
                 label=row_.get(
                     output_headers.get(__label)
@@ -335,7 +311,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         def get_outputs_values(
                 row_: dict,
                 type_: Literal["default", "scenario"],
-                node_: Optional[SimpleAssignmentNode] = None,
+                node_: Optional[AssignmentNode] = None,
         ) -> list[NodeOutput]:
             coll = (
                 scenario_output_headers if type_ == __scenario else default_output_headers
@@ -401,17 +377,17 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
             node_name = row.get("node_name")
             try:
                 row = {k.strip(): (v.strip() if v else v) for k, v in row.items()}
-                node: SimpleAssignmentNode
+                node: AssignmentNode
                 # new node
                 if node_name not in node_map:
-                    node_outputs: list[tuple[str, NodeOutput]] = get_outputs(row)
+                    node_outputs: list[tuple[str, AssignmentNodeOutputConfig]] = get_outputs(row)
 
                     assert all(
                         n[1] for n in node_outputs
                     ), f"First row defining '{node_name}' must include 'output' {node_outputs}"
 
                     default_impacts: dict[str, ResultValue] = get_impacts(row, "default")
-                    node = SimpleAssignmentNode(
+                    node = AssignmentNode(
                         node_name=node_name,
                         outputs=[n[1] for n in node_outputs],
                         scenario_data={},
@@ -429,7 +405,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                         ]
                     ), f"Redefinition of output_unit for '{node_name}'"
                     assert scenario_output_headers, (
-                        "Multiple rows per node, means header scenario_output_<i>_mangintude"
+                        "Multiple rows per node, means header scenario_output_<i>_magnitude"
                         "needs to be included"
                     )
                     assert row.get("scenario"), "No scenario defined"
@@ -447,7 +423,7 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
                     row_impacts = get_impacts(row, "scenario")
                     for impact_name, result in row_impacts.items():
                         assert unit_match(result.unit, self.methods[impact_name])
-                    node.scenario_data[scenario] = SimpleAssignmentNodeScenarioData(
+                    node.scenario_data[scenario] = AssignmentNodeScenarioData(
                         outputs=scenario_outputs,
                         impacts=row_impacts,
                     )
@@ -461,4 +437,4 @@ class SimpleAssignmentAdapter(EnbiosAdapter):
         return node_map
 
     def __repr__(self):
-        return "Enbios builtin Simple-Assignment Adapter"
+        return "Enbios builtin Assignment Adapter"
