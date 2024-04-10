@@ -1,9 +1,12 @@
 import re
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional, Literal
+from typing import Any, Optional, Literal, Iterator
 
-from pydantic import BaseModel, model_validator, Field, ConfigDict
+from pydantic import BaseModel, model_validator, Field, ConfigDict, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
@@ -34,7 +37,7 @@ class AssignmentNode(BaseModel):
     model_config = ConfigDict(extra="forbid")
     node_name: str
     outputs: list["AssignmentNodeOutputConfig"]
-    default_outputs: list[NodeOutput] = Field(default_factory=list)
+    default_outputs: list[Optional[NodeOutput]] = Field(default_factory=list)
     default_impacts: dict[str, ResultValue] = Field(default_factory=dict)
     scenario_data: dict[str, "AssignmentNodeScenarioData"] = Field(
         default_factory=dict
@@ -55,14 +58,15 @@ class AssignmentNode(BaseModel):
                 )
             outputs_units = [o.get("unit") for o in data["outputs"]]
             for idx, (unit, def_out) in enumerate(zip(outputs_units, default_outputs)):
-                def_out_unit = def_out.get("unit")
-                if not def_out_unit:
-                    def_out["unit"] = unit
-                else:
-                    assert unit_match(
-                        unit, def_out.get("unit", unit)
-                    ), (f"unit of 'default_output' : {default_outputs}, "
-                        f"does not match specified unit: '{unit}' (index: {idx})")
+                if def_out:
+                    def_out_unit = def_out.get("unit")
+                    if not def_out_unit:
+                        def_out["unit"] = unit
+                    else:
+                        assert unit_match(
+                            unit, def_out.get("unit", unit)
+                        ), (f"unit of 'default_output' : {default_outputs}, "
+                            f"does not match specified unit: '{unit}' (index: {idx})")
 
         return data
 
@@ -72,6 +76,24 @@ class AssignmentNodeScenarioData(BaseModel):
     outputs: list[NodeOutput] = Field(default_factory=list)
     impacts: dict[str, ResultValue] = Field(default_factory=dict)
 
+    def __init__(self, /, **data: Any) -> None:
+        self.__pydantic_validator__.validate_python(
+            data,
+            self_instance=self,
+            context=_init_context_var.get(),
+        )
+
+    @field_validator('outputs', mode="before")
+    @classmethod
+    def multiply_with_context(cls, value: list[NodeOutput], info: ValidationInfo) -> list[NodeOutput]:
+        if info.context:
+            node = info.context.get('node')
+            outputs = node.outputs
+            for idx, output in enumerate(value):
+                if output:
+                    if "unit" not in output:
+                        output["unit"] = outputs[idx].unit
+        return value
 
 class AssignmentAdapterConfig(BaseModel):
     source_csv_file: Optional[Path] = Field(None)
@@ -80,6 +102,18 @@ class AssignmentAdapterConfig(BaseModel):
 class AssignmentAdapterDefinition(BaseModel):
     methods: dict[str, str]  # name: unit
     config: Optional["AssignmentAdapterConfig"] = Field(default_factory=AssignmentAdapterConfig)  # type: ignore
+
+
+_init_context_var = ContextVar('_init_context_var', default=None)
+
+
+@contextmanager
+def init_node_context(value: dict[str, Any]) -> Iterator[None]:
+    token = _init_context_var.set(value)
+    try:
+        yield
+    finally:
+        _init_context_var.reset(token)
 
 
 class AssignmentAdapter(EnbiosAdapter):
@@ -160,9 +194,10 @@ class AssignmentAdapter(EnbiosAdapter):
                         )
         else:
             node = self.nodes[node_name]
-            node.scenario_data[
-                scenario_name
-            ] = AssignmentNodeScenarioData.model_validate(scenario_node_data)
+            with init_node_context({'node': node}):
+                node.scenario_data[
+                    scenario_name
+                ] = AssignmentNodeScenarioData(**scenario_node_data)
 
     def get_node_output(self, node_name: str, scenario_name: str) -> list[NodeOutput]:
         node_data = self.nodes[node_name]
@@ -423,10 +458,12 @@ class AssignmentAdapter(EnbiosAdapter):
                     row_impacts = get_impacts(row, "scenario")
                     for impact_name, result in row_impacts.items():
                         assert unit_match(result.unit, self.methods[impact_name])
-                    node.scenario_data[scenario] = AssignmentNodeScenarioData(
-                        outputs=scenario_outputs,
-                        impacts=row_impacts,
-                    )
+
+                    with init_node_context({'node': node}):
+                        node.scenario_data[scenario] = AssignmentNodeScenarioData(
+                            outputs=scenario_outputs,
+                            impacts=row_impacts,
+                        )
             #
             except Exception as err:
                 logger = self.get_logger()
