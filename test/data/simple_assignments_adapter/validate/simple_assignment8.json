@@ -1,13 +1,13 @@
 {
   "n1": {
     "node_name": "n1",
-    "outputs": {
-      "1": {
+    "outputs": [
+      {
         "unit": "l",
         "label": null
       }
-    },
-    "default_output": [],
+    ],
+    "default_outputs": [],
     "default_impacts": {},
     "scenario_data": {
       "sc1": {
@@ -30,13 +30,13 @@
   },
   "n2": {
     "node_name": "n2",
-    "outputs": {
-      "1": {
+    "outputs": [
+      {
         "unit": "l",
         "label": null
       }
-    },
-    "default_output": [
+    ],
+    "default_outputs": [
       {
         "label": null,
         "unit": "liter",
@@ -71,15 +71,14 @@
   },
   "n3": {
     "node_name": "n3",
-    "outputs": {
-      "1": {
+    "outputs": [
+      {
         "unit": "l",
         "label": "amount"
-      }
-    },
-    "default_output": [
+      }],
+    "default_outputs": [
       {
-              "label": "amount",
+        "label": "amount",
         "unit": "liter",
         "magnitude": 10.0
       }
@@ -112,13 +111,13 @@
   },
   "n4": {
     "node_name": "n4",
-    "outputs": {
-      "1": {
+    "outputs": [
+      {
         "unit": "l",
         "label": "unit-weight"
       }
-    },
-    "default_output": [
+    ],
+    "default_outputs": [
       {
         "label": "unit-weight",
         "unit": "liter",
@@ -153,13 +152,13 @@
   },
   "n5": {
     "node_name": "n5",
-    "outputs": {
-      "1": {
+    "outputs": [
+      {
         "unit": "l",
         "label": "unit-weight"
       }
-    },
-    "default_output": [
+    ],
+    "default_outputs": [
       {
         "label": "unit-weight",
         "unit": "liter",

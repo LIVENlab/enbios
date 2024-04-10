@@ -1,13 +1,12 @@
 {
   "n1": {
     "node_name": "n1",
-    "outputs": {
-      "1": {
+    "outputs": [{
         "unit": "kl",
         "label": null
       }
-    },
-    "default_output": [
+    ],
+    "default_outputs": [
       {
         "label": null,
         "unit": "megaliter",

@@ -1,4 +1,4 @@
-node_name,output_1_unit,default_output_1_unit,default_output_1_magnitude,default_impacts_co2_unit, default_impacts_co2_magnitude,scenario, scenario_output_1_unit,scenario_output_1_magnitude,scenario_impacts_co2_unit,scenario_impacts_co2_magnitude
+node_name,outputs_1_unit,default_outputs_1_unit,default_outputs_1_magnitude,default_impacts_co2_unit, default_impacts_co2_magnitude,scenario,scenario_outputs_1_unit,scenario_outputs_1_magnitude,scenario_impacts_co2_unit,scenario_impacts_co2_magnitude
 n1,l,,,,,sc1,,100,kg,5
 n1,,,,,,sc2,,150,kg,7.5
 n2,l,,10,kg,50,,,,,

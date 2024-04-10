@@ -89,7 +89,7 @@ class Experiment:
                 self.get_node_aggregator(node).validate_node(node.name, node.data.config)
 
         def recursive_convert(
-                node_: BasicTreeNode[TechTreeNodeData],
+            node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: list[NodeOutput] = []
             # if node_.is_leaf:
@@ -154,10 +154,10 @@ class Experiment:
         )
 
     def get_node_aggregator(
-            self,
-            node: Union[
-                BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
-            ],
+        self,
+        node: Union[
+            BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
+        ],
     ) -> EnbiosAggregator:
         """
         Get the aggregator of a node
@@ -173,10 +173,10 @@ class Experiment:
         )
 
     def _get_module_by_name_or_node_indicator(
-            self,
-            name_or_indicator: str,
-            module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
-            node_name: Optional[str] = None,
+        self,
+        name_or_indicator: str,
+        module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
+        node_name: Optional[str] = None,
     ) -> Union[EnbiosAdapter, EnbiosAggregator]:
         modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = cast(
             dict[str, Union[EnbiosAdapter, EnbiosAggregator]],
@@ -208,7 +208,7 @@ class Experiment:
         raise ValueError(f"Scenario '{scenario_name}' not found")
 
     def run_scenario(
-            self, scenario_name: str, results_as_dict: bool = True
+        self, scenario_name: str, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a specific scenario
@@ -219,7 +219,7 @@ class Experiment:
         return self.get_scenario(scenario_name).run(results_as_dict)
 
     def run(
-            self, results_as_dict: bool = True
+        self, results_as_dict: bool = True
     ) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
         """
         Run all scenarios. Returns a dict with the scenario name as key
@@ -265,11 +265,11 @@ class Experiment:
                 return "not run"
 
     def results_to_csv(
-            self,
-            file_path: PathLike,
-            scenario_name: Optional[str] = None,
-            level_names: Optional[list[str]] = None,
-            include_method_units: bool = True,
+        self,
+        file_path: PathLike,
+        scenario_name: Optional[str] = None,
+        level_names: Optional[list[str]] = None,
+        include_method_units: bool = True,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -315,15 +315,18 @@ class Experiment:
                 writer.writeheader()
                 writer.writerows(all_rows)
 
-    def result_to_dict(self, include_output: bool = True, alternative_hierarchy: Optional[dict] = None) -> list[
-        dict[str, Any]]:
+    def result_to_dict(
+        self, include_output: bool = True, alternative_hierarchy: Optional[dict] = None
+    ) -> list[dict[str, Any]]:
         """
         Get the results of all scenarios as a list of dictionaries as dictionaries
         :param include_output: Include the output of each node in the tree
         :return:
         """
         return [
-            scenario.result_to_dict(include_output=include_output, alternative_hierarchy=alternative_hierarchy)
+            scenario.result_to_dict(
+                include_output=include_output, alternative_hierarchy=alternative_hierarchy
+            )
             for scenario in self.scenarios
         ]
 
@@ -365,10 +368,10 @@ class Experiment:
         return list(self._adapters.values())
 
     def run_scenario_config(
-            self,
-            scenario_config: dict,
-            result_as_dict: bool = True,
-            append_scenario: bool = True,
+        self,
+        scenario_config: dict,
+        result_as_dict: bool = True,
+        append_scenario: bool = True,
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An
@@ -421,10 +424,10 @@ class Experiment:
 
     @staticmethod
     def get_module_definition(
-            clazz: Union[
-                Type[EnbiosAdapter], EnbiosAdapter, Type[EnbiosAggregator], EnbiosAggregator
-            ],
-            details: bool = True,
+        clazz: Union[
+            Type[EnbiosAdapter], EnbiosAdapter, Type[EnbiosAggregator], EnbiosAggregator
+        ],
+        details: bool = True,
     ) -> dict[str, Any]:
         result: dict = {
             "node_indicator": clazz.node_indicator(),
@@ -452,7 +455,7 @@ class Experiment:
         return result
 
     def get_all_configs(
-            self, include_all_builtin_configs: bool = True
+        self, include_all_builtin_configs: bool = True
     ) -> dict[str, dict[str, dict[str, Any]]]:
         """
         Result structure:
@@ -469,15 +472,15 @@ class Experiment:
             "adapters": {
                 name: Experiment.get_module_definition(adapter, True)
                 for name, adapter in (
-                        self._adapters
-                        | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
+                    self._adapters
+                    | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
                 ).items()
             },
             "aggregators": {
                 name: Experiment.get_module_definition(aggregator, True)
                 for name, aggregator in (
-                        self._aggregators
-                        | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
+                    self._aggregators
+                    | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
                 ).items()
             },
         }
@@ -488,7 +491,7 @@ class Experiment:
         adapter_indicator, method_name = "", ""
         if "." in method:
             assert (
-                    method in self.methods
+                method in self.methods
             ), f"Method {method} missing. Candidates: {', '.join(self.methods)}"
             adapter_indicator, method_name = method.split(".")
         else:
@@ -523,7 +526,9 @@ class Experiment:
                 links.append(Link(mm_node, mm_nodes_map[child.name]))
         return str(MermaidDiagram(nodes=nodes, links=links, orientation="top-down"))
 
-    def get_simplified_hierarchy(self, print_it: bool = False) -> dict[str, Optional[dict[str, Any]]]:
+    def get_simplified_hierarchy(
+        self, print_it: bool = False
+    ) -> dict[str, Optional[dict[str, Any]]]:
         def rec_nodes(node: BasicTreeNode) -> dict[str, Optional[dict[str, Any]]]:
             res = {}
             if node.children:

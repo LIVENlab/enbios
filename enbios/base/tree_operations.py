@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 
 def validate_experiment_hierarchy(
-        hierarchy: ExperimentHierarchyNodeData,
+    hierarchy: ExperimentHierarchyNodeData,
 ) -> BasicTreeNode[TechTreeNodeData]:
     # todo allow no output only when there are scenarios...
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
@@ -47,9 +47,9 @@ def validate_experiment_hierarchy(
 
 
 def validate_experiment_reference_hierarchy(
-        hierarchy: HierarchyNodeReference,
-        original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
-        get_node_aggregator_fcn: Callable,
+    hierarchy: HierarchyNodeReference,
+    original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
+    get_node_aggregator_fcn: Callable,
 ) -> BasicTreeNode[TechTreeNodeData]:
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
         hierarchy.model_dump(), dataclass=TechTreeNodeData
@@ -82,7 +82,7 @@ def validate_experiment_reference_hierarchy(
 
 
 def recursive_resolve_outputs(
-        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
+    node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
 ):
     # todo, does this takes default values when an node is not defined
     #  in the scenario?
@@ -101,9 +101,9 @@ def recursive_resolve_outputs(
 
 
 def csv2hierarchy(
-        csv_file: PathLike,
-        level_cols: Optional[list[str]] = (),
-        levels_regex: Optional[str] = "^level_\d+$",
+    csv_file: PathLike,
+    level_cols: Optional[list[str]] = (),
+    levels_regex: Optional[str] = "^level_\d+$",
 ) -> dict:
     tree: dict = {}
     reader: Iterator[dict[str, str]] = DictReader(Path(csv_file).open())
@@ -121,7 +121,11 @@ def csv2hierarchy(
         all_node_names.add(name)
         if not row["module"]:
             raise ValueError(f"Module is not specified for node '{name}'")
-        config_cols = {col: val.strip() for col, val in _row.items() if col.startswith("config.") and val}
+        config_cols = {
+            col: val.strip()
+            for col, val in _row.items()
+            if col.startswith("config.") and val
+        }
         config = unflatten(config_cols, splitter="dot")
         node.update(config)
         return node

@@ -1,13 +1,13 @@
 {
   "n1": {
     "node_name": "n1",
-    "outputs": {
-      "1": {
+    "outputs": [
+      {
         "label": null,
         "unit": "l"
       }
-    },
-    "default_output": [],
+    ],
+    "default_outputs": [],
     "default_impacts": {},
     "scenario_data": {
       "sc1": {
