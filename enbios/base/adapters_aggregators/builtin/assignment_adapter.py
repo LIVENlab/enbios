@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional, Literal, Iterator
+from typing import Any, Optional, Literal, Iterator, Union
 
 from pydantic import BaseModel, model_validator, Field, ConfigDict, field_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -20,6 +20,7 @@ from enbios.models.models import (
     ResultValue,
 )
 
+unit_ = "unit"
 
 class AssignmentNodeOutputConfig(BaseModel):
     unit: str
@@ -45,28 +46,32 @@ class AssignmentNode(BaseModel):
 
     @model_validator(mode="before")  # type: ignore
     def validator(data: Any):
-        if "default_impacts" not in data:
-            if "scenario_data" not in data or "impacts" not in data["scenario_data"]:
-                raise ValueError(
-                    "Either default_impacts or scenario_data.impacts must be defined"
-                )
+        # if "default_impacts" not in data:
+        #     if "scenario_data" not in data or "impacts" not in data["scenario_data"]:
+        #         raise ValueError(
+        #             "Either default_impacts or scenario_data.impacts must be defined"
+        #         )
         if (default_outputs := data.get("default_outputs")) is not None:
             if not len(data["outputs"]) == len(default_outputs):
                 raise EnbiosValidationException(
                     "Length of 'default_output' and 'output_units' do not match",
                     "SimpleAssignmentNodeConfig-unequal unit length",
                 )
-            outputs_units = [o.get("unit") for o in data["outputs"]]
+
+            outputs = data["outputs"]
+            outputs_units = [o.get(unit_) for o in outputs]
             for idx, (unit, def_out) in enumerate(zip(outputs_units, default_outputs)):
                 if def_out:
-                    def_out_unit = def_out.get("unit")
+                    def_out_unit = def_out.get(unit_)
                     if not def_out_unit:
-                        def_out["unit"] = unit
+                        def_out[unit_] = unit
                     else:
                         assert unit_match(
-                            unit, def_out.get("unit", unit)
+                            unit, def_out.get(unit_, unit)
                         ), (f"unit of 'default_output' : {default_outputs}, "
                             f"does not match specified unit: '{unit}' (index: {idx})")
+
+                    def_out["label"] = outputs[idx].get("label", None)
 
         return data
 
@@ -85,15 +90,31 @@ class AssignmentNodeScenarioData(BaseModel):
 
     @field_validator('outputs', mode="before")
     @classmethod
-    def multiply_with_context(cls, value: list[NodeOutput], info: ValidationInfo) -> list[NodeOutput]:
-        if info.context:
-            node = info.context.get('node')
-            outputs = node.outputs
-            for idx, output in enumerate(value):
-                if output:
-                    if "unit" not in output:
-                        output["unit"] = outputs[idx].unit
+    def output_with_context(cls, value: list[Union[NodeOutput,dict]], info: ValidationInfo) -> list[NodeOutput]:
+        if not info.context:
+            raise ValueError("Always call AssignmentNodeScenarioData with node as context. Should not happen..")
+
+        node = info.context.get('node')
+        outputs = node.outputs
+        output_len = len(outputs)
+        # check length
+        if len(value) != output_len:
+            raise EnbiosValidationException(f"Length of scenario output must match ouputs: {output_len}. "
+                                            f"Found length: {len(value)}")
+
+        # set unit if missing
+        for idx, output in enumerate(value):
+            if output:
+                node_out_unit = outputs[idx].unit
+                if isinstance(output, NodeOutput):
+                    output = output.model_dump()
+                if not output.get(unit_):
+                    output[unit_] = node_out_unit
+
+                output["label"] = outputs[idx].label
+                value[idx] = output
         return value
+
 
 class AssignmentAdapterConfig(BaseModel):
     source_csv_file: Optional[Path] = Field(None)
@@ -205,9 +226,9 @@ class AssignmentAdapter(EnbiosAdapter):
         if scenario_name in self.nodes[node_name].scenario_data:
             outputs = node_data.scenario_data[scenario_name].outputs
         else:
+            if not node_data.default_outputs:
+                self.get_logger().warning(f"Node '{node_name}' has no default outputs. Output will be empty")
             outputs = node_data.default_outputs
-        for idx, output in enumerate(outputs):
-            output.label = node_data.outputs[idx].label
         return outputs
 
     def get_method_unit(self, method_name: str) -> str:
@@ -249,7 +270,7 @@ class AssignmentAdapter(EnbiosAdapter):
         __scenario = "scenario"
         __outputs = "outputs"
         __impacts = "impacts"
-        __unit = "unit"
+        __unit = unit_
         __magnitude = "magnitude"
         __label = "label"
 
@@ -354,8 +375,8 @@ class AssignmentAdapter(EnbiosAdapter):
             result: list[NodeOutput] = []
             for idx, (id_, id_out_headers) in enumerate(coll.items()):
                 unit_header, mag_header = (
-                    id_out_headers["unit"],
-                    id_out_headers["magnitude"],
+                    id_out_headers[unit_],
+                    id_out_headers[__magnitude],
                 )
                 if row_[unit_header] or row_[mag_header]:
                     # todo not sure about this assert, we could just use output_{i}_unit
@@ -375,7 +396,9 @@ class AssignmentAdapter(EnbiosAdapter):
                     )
                     result.append(
                         NodeOutput(
-                            unit=str(ureg(unit).units), magnitude=float(row_[mag_header])
+                            unit=str(ureg(unit).units),
+                            magnitude=float(row_[mag_header]),
+                            label=node.outputs[idx].label
                         )
                     )
 
@@ -392,8 +415,8 @@ class AssignmentAdapter(EnbiosAdapter):
             result: dict[str, ResultValue] = {}
             for id_, id_impact_headers in coll.items():
                 unit_header, mag_header = (
-                    id_impact_headers["unit"],
-                    id_impact_headers["magnitude"],
+                    id_impact_headers[unit_],
+                    id_impact_headers[__magnitude],
                 )
                 if row_[unit_header] or row_[mag_header]:
                     # todo not sure about this assert, we could just use output_{i}_unit
