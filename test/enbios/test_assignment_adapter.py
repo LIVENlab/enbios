@@ -1,5 +1,6 @@
 import csv
 import json
+import shutil
 import traceback
 from pathlib import Path
 from typing import cast
@@ -88,7 +89,6 @@ def run_test_with_file(adapter_csv_file: Path):
         result_comparison_data = json.load(results_comparison_file.open())
         assert results == result_comparison_data
 
-
 @pytest.mark.parametrize('adapter_csv_file', argvalues=assignment_adapter_test_files(),
                          ids=assignment_adapter_test_files_names())
 def test_assignment_adapter_csv(adapter_csv_file: Path):
@@ -96,4 +96,4 @@ def test_assignment_adapter_csv(adapter_csv_file: Path):
 
 
 def test_assignment_adapter_with_csv():
-    run_test_with_file(BASE_TEST_DATA_PATH / "assignment_adapter/inputs/simple_assignment8.csv")
+    run_test_with_file(BASE_TEST_DATA_PATH / "assignment_adapter/inputs/assignment8.csv")
