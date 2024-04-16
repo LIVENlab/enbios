@@ -1,6 +1,5 @@
 import csv
 import json
-import shutil
 import traceback
 from pathlib import Path
 from typing import cast
@@ -41,40 +40,44 @@ def run_test_with_file(adapter_csv_file: Path):
             "children": [
 
             ]
-        },
-        "scenarios": [
-            # nodes are added below
-            {"name": "sc1", "nodes": {
-
-            }},
-            {"name": "sc2", "nodes": {
-            }}
-        ]
+        }
     }
 
     # add n2 to the hierarchy & scenarios, if it exists
     # to keep the insertion order, we first do a list, then a set,
     # and turn back to sorted list (based on initial index)
-    all_nodes = list(r['node_name'] for r in list(csv.DictReader(adapter_csv_file.open())))
+    reader = csv.DictReader(adapter_csv_file.open())
+    csv_lines = list(reader)
+    all_nodes = list(r['node_name'] for r in csv_lines)
     all_nodes = list(sorted(set(all_nodes), key=all_nodes.index))
+
     for node in all_nodes:
         data["hierarchy"]["children"].append(  # type: ignore
             {
                 "name": node,
-                "adapter": "assign",
-                "config": {}
+                "adapter": "assign"
             })
-    for scenario in data['scenarios']:
-        scenario["nodes"].update({n: {} for n in all_nodes})  # type: ignore
+        # unique scenario names
+    if "scenario" in reader.fieldnames:
+        all_scenarios = list(dict.fromkeys(list(r['scenario'] for r in csv_lines if r["scenario"] != "")).keys())
+        data['scenarios'] = [
+            {
+                "name": scenario,
+                "nodes": {
+                    node: {} for node in all_nodes
+                }
+            }
+            for scenario in all_scenarios
+        ]
     if adapter_csv_file.stem.endswith("_x"):
         with pytest.raises(Exception):
             try:
-                exp = Experiment(data)
+                AssignmentAdapter().read_nodes_from_csv(adapter_csv_file)
+                Experiment(data)
             except Exception as err:
                 traceback.print_exc()
                 raise err
     else:
-
         exp = Experiment(data)
         nodes = cast(AssignmentAdapter, exp.get_adapter_by_name("assignment-adapter")).nodes
         result_dict = {n: v.model_dump() for n, v in nodes.items()}
@@ -89,6 +92,7 @@ def run_test_with_file(adapter_csv_file: Path):
         result_comparison_data = json.load(results_comparison_file.open())
         assert results == result_comparison_data
 
+
 @pytest.mark.parametrize('adapter_csv_file', argvalues=assignment_adapter_test_files(),
                          ids=assignment_adapter_test_files_names())
 def test_assignment_adapter_csv(adapter_csv_file: Path):
@@ -96,4 +100,4 @@ def test_assignment_adapter_csv(adapter_csv_file: Path):
 
 
 def test_assignment_adapter_with_csv():
-    run_test_with_file(BASE_TEST_DATA_PATH / "assignment_adapter/inputs/assignment8.csv")
+    run_test_with_file(BASE_TEST_DATA_PATH / "assignment_adapter/inputs/assignment2_x.csv")

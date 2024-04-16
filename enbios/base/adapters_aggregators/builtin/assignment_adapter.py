@@ -1,7 +1,7 @@
 import re
 from contextlib import contextmanager
 from contextvars import ContextVar
-from copy import deepcopy
+from copy import deepcopy, copy
 from pathlib import Path
 from typing import Any, Optional, Literal, Iterator, Union
 
@@ -11,7 +11,7 @@ from pydantic_core.core_schema import ValidationInfo
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.scenario import Scenario
 from enbios.base.unit_registry import ureg
-from enbios.generic.files import ReadPath
+from enbios.generic.files import ReadPath, PathLike
 from enbios.generic.unit_util import unit_match
 from enbios.models.models import (
     AdapterModel,
@@ -21,6 +21,7 @@ from enbios.models.models import (
 )
 
 unit_ = "unit"
+
 
 class AssignmentNodeOutputConfig(BaseModel):
     unit: str
@@ -40,9 +41,7 @@ class AssignmentNode(BaseModel):
     outputs: list["AssignmentNodeOutputConfig"]
     default_outputs: list[Optional[NodeOutput]] = Field(default_factory=list)
     default_impacts: dict[str, ResultValue] = Field(default_factory=dict)
-    scenario_data: dict[str, "AssignmentNodeScenarioData"] = Field(
-        default_factory=dict
-    )
+    scenario_data: dict[str, "AssignmentNodeScenarioData"] = Field(default_factory=dict)
 
     @model_validator(mode="before")  # type: ignore
     def validator(data: Any):
@@ -66,10 +65,10 @@ class AssignmentNode(BaseModel):
                     if not def_out_unit:
                         def_out[unit_] = unit
                     else:
-                        assert unit_match(
-                            unit, def_out.get(unit_, unit)
-                        ), (f"unit of 'default_output' : {default_outputs}, "
-                            f"does not match specified unit: '{unit}' (index: {idx})")
+                        assert unit_match(unit, def_out.get(unit_, unit)), (
+                            f"unit of 'default_output' : {default_outputs}, "
+                            f"does not match specified unit: '{unit}' (index: {idx})"
+                        )
 
                     def_out["label"] = outputs[idx].get("label", None)
 
@@ -88,19 +87,27 @@ class AssignmentNodeScenarioData(BaseModel):
             context=_init_context_var.get(),
         )
 
-    @field_validator('outputs', mode="before")
+    @field_validator("outputs", mode="before")
     @classmethod
-    def output_with_context(cls, value: list[Union[NodeOutput,dict]], info: ValidationInfo) -> list[NodeOutput]:
+    def output_with_context(
+        cls, value: list[Union[NodeOutput, dict]], info: ValidationInfo
+    ) -> list[NodeOutput]:
         if not info.context:
-            raise ValueError("Always call AssignmentNodeScenarioData with node as context. Should not happen..")
+            raise ValueError(
+                "Always call AssignmentNodeScenarioData with node as context. Should not happen.."
+            )
 
-        node = info.context.get('node')
+        node = info.context.get("node")
         outputs = node.outputs
         output_len = len(outputs)
         # check length
-        if len(value) != output_len:
-            raise EnbiosValidationException(f"Length of scenario output must match ouputs: {output_len}. "
-                                            f"Found length: {len(value)}")
+        if len(value) != output_len and len(node.default_outputs) != output_len:
+            # todo a bit to conservative, but we do not know the specific outputs anymore.
+            # maybe their are None, and default + scenario can be merged
+            raise EnbiosValidationException(
+                f"Length of scenario output (or default output) must match ouputs: {output_len}. "
+                f"Found length: {len(value)}"
+            )
 
         # set unit if missing
         for idx, output in enumerate(value):
@@ -117,7 +124,7 @@ class AssignmentNodeScenarioData(BaseModel):
 
 
 class AssignmentAdapterConfig(BaseModel):
-    source_csv_file: Optional[Path] = Field(None)
+    source_csv_file: Optional[Union[str, Path]] = Field(None)
 
 
 class AssignmentAdapterDefinition(BaseModel):
@@ -125,7 +132,7 @@ class AssignmentAdapterDefinition(BaseModel):
     config: Optional["AssignmentAdapterConfig"] = Field(default_factory=AssignmentAdapterConfig)  # type: ignore
 
 
-_init_context_var = ContextVar('_init_context_var', default=None)
+_init_context_var = ContextVar("_init_context_var", default=None)
 
 
 @contextmanager
@@ -194,7 +201,7 @@ class AssignmentAdapter(EnbiosAdapter):
             )
 
     def validate_scenario_node(
-            self, node_name: str, scenario_name: str, scenario_node_data: Any
+        self, node_name: str, scenario_name: str, scenario_node_data: Any
     ):
         if self.from_csv_file:
             # todo validate output...
@@ -215,20 +222,26 @@ class AssignmentAdapter(EnbiosAdapter):
                         )
         else:
             node = self.nodes[node_name]
-            with init_node_context({'node': node}):
-                node.scenario_data[
-                    scenario_name
-                ] = AssignmentNodeScenarioData(**scenario_node_data)
+            with init_node_context({"node": node}):
+                node.scenario_data[scenario_name] = AssignmentNodeScenarioData(
+                    **scenario_node_data
+                )
 
     def get_node_output(self, node_name: str, scenario_name: str) -> list[NodeOutput]:
-        node_data = self.nodes[node_name]
-        outputs: list[NodeOutput]
-        if scenario_name in self.nodes[node_name].scenario_data:
-            outputs = node_data.scenario_data[scenario_name].outputs
-        else:
-            if not node_data.default_outputs:
-                self.get_logger().warning(f"Node '{node_name}' has no default outputs. Output will be empty")
-            outputs = node_data.default_outputs
+        outputs: list[NodeOutput] = []
+        node = self.nodes[node_name]
+        scenario_outputs: list[NodeOutput] = []
+        if scenario_name in node.scenario_data:
+            scenario_outputs = node.scenario_data[scenario_name].outputs
+        for output_idx in range(len(node.outputs)):
+            if len(scenario_outputs) > output_idx:
+                outputs.append(scenario_outputs[output_idx])
+            elif len(node.default_outputs) > output_idx:
+                outputs.append(node.default_outputs[output_idx])
+            else:
+                raise EnbiosValidationException(
+                    f"Node '{node_name}' has no default output for output index {output_idx} (for '{scenario_name}')"
+                )
         return outputs
 
     def get_method_unit(self, method_name: str) -> str:
@@ -251,9 +264,7 @@ class AssignmentAdapter(EnbiosAdapter):
     def get_config_schemas() -> dict:
         return {"node_name": AssignmentNode.model_json_schema()}
 
-    def read_nodes_from_csv(
-            self, file_path: Path
-    ) -> dict[str, AssignmentNode]:
+    def read_nodes_from_csv(self, file_path: PathLike) -> dict[str, AssignmentNode]:
         """
         Read nodes default, scenario outputs and impacts from a csv file. Is used when config includes path to
         csv file in
@@ -274,19 +285,21 @@ class AssignmentAdapter(EnbiosAdapter):
         __magnitude = "magnitude"
         __label = "label"
 
-        id_re_str = "[1-9a-zA-Z][0-9a-z-A-Z]*"
+        id_re_str = r"\w+"
         id_re_pat = re.compile(f"^{id_re_str}$")
 
         # TODO validate output and impacts units
         # one default output and multiple different scenario impacts would be weird...
         rows = ReadPath(file_path).read_data()
         headers = list(h.strip() for h in rows[0].keys())
+        unknown_headers = copy(headers)
         output_unit_re = re.compile(f"^{__outputs}_{id_re_str}_{__unit}$")
         output_label_re = re.compile(f"^{__outputs}_{id_re_str}_{__label}$")
         assert all(
             any((k.match(h) for h in headers))
             for k in [re.compile("node_name"), output_unit_re]
         ), "'node_name' and 'node_{i}_output' must be defined"
+        unknown_headers.remove("node_name")
 
         # rename to outputs_units_labels str: idx/name: dict. keys: unit, label, value: header
         outputs_headers: dict[str, dict[str, str]] = {}
@@ -297,13 +310,6 @@ class AssignmentAdapter(EnbiosAdapter):
         scenario_output_headers: dict[str, dict[str, str]] = {}
         default_impacts_headers: dict[str, dict[str, str]] = {}
         scenario_impacts_headers: dict[str, dict[str, str]] = {}
-
-        flat_collections = [
-            default_output_headers,
-            scenario_output_headers,
-            default_impacts_headers,
-            scenario_impacts_headers,
-        ]
 
         struct_collections = {
             __default: {
@@ -321,8 +327,10 @@ class AssignmentAdapter(EnbiosAdapter):
             if len(parts) == 3:
                 if output_unit_re.match(header):
                     outputs_headers.setdefault(parts[1], {})[__unit] = header
+                    unknown_headers.remove(header)
                 elif output_label_re.match(header):
                     outputs_headers.setdefault(parts[1], {})[__label] = header
+                    unknown_headers.remove(header)
                 continue
             if len(parts) != 4:
                 continue
@@ -330,16 +338,26 @@ class AssignmentAdapter(EnbiosAdapter):
             assert def_o_sce in [__default, __scenario]
             assert out_o_impact in [__outputs, __impacts]
             col = struct_collections[def_o_sce][out_o_impact]
-            assert id_re_pat.match(id_)
+            assert id_re_pat.match(id_)  # todo required?
             assert unit_o_mag in [__unit, __magnitude]
             col.setdefault(id_, {})[unit_o_mag] = header
+            unknown_headers.remove(header)
 
-        for col in flat_collections:
-            for col_id_headers in col.values():
-                assert len(col_id_headers) >= 2, f"row not complete: {headers}"
+        for impact in [default_impacts_headers, scenario_impacts_headers]:
+            for method, value_headers in impact.items():
+                assert (
+                    __unit in value_headers
+                ), f"Header not complete. 'unit' missing for: {method}"
+                assert (
+                    __magnitude in value_headers
+                ), f"Header not complete. 'magnitude' missing for: {method}"
 
         if scenario_impacts_headers:
             assert "scenario" in headers, "header: 'scenario' is missing"
+            unknown_headers.remove("scenario")
+
+        if unknown_headers:
+            raise ValueError(f"Unknown headers: {unknown_headers}")
 
         node_map: dict[str, AssignmentNode] = {}
 
@@ -347,27 +365,34 @@ class AssignmentAdapter(EnbiosAdapter):
         outputs_order = list(outputs_headers.keys())
         for type_, type_values in struct_collections.items():
             if set(type_values[__outputs].keys()):
-                assert set(type_values[__outputs].keys()) == set(outputs_order), (
-                    f"{set(type_values[__outputs].keys())}, {set(type_values[__outputs].keys())}, {set(outputs_order)}")
+                assert set(type_values[__outputs].keys()) == set(
+                    outputs_order
+                ), f"{set(type_values[__outputs].keys())}, {set(type_values[__outputs].keys())}, {set(outputs_order)}"
 
                 type_values[__outputs] = {
                     id_: type_values[__outputs][id_] for id_ in outputs_order
                 }
 
         def get_outputs(row_: dict) -> list[tuple[str, AssignmentNodeOutputConfig]]:
-            return [(id_, AssignmentNodeOutputConfig(
-                unit=row_.get(output_headers[__unit]),
-                label=row_.get(
-                    output_headers.get(__label)
-                    if output_headers.get(__label)
-                    else None
-                ),
-            )) for (id_, output_headers) in outputs_headers.items()]
+            return [
+                (
+                    id_,
+                    AssignmentNodeOutputConfig(
+                        unit=row_.get(output_headers[__unit]),
+                        label=row_.get(
+                            output_headers.get(__label)
+                            if output_headers.get(__label)
+                            else None
+                        ),
+                    ),
+                )
+                for (id_, output_headers) in outputs_headers.items()
+            ]
 
         def get_outputs_values(
-                row_: dict,
-                type_: Literal["default", "scenario"],
-                node_: Optional[AssignmentNode] = None,
+            row_: dict,
+            type_: Literal["default", "scenario"],
+            node_: Optional[AssignmentNode] = None,
         ) -> list[NodeOutput]:
             coll = (
                 scenario_output_headers if type_ == __scenario else default_output_headers
@@ -375,37 +400,36 @@ class AssignmentAdapter(EnbiosAdapter):
             result: list[NodeOutput] = []
             for idx, (id_, id_out_headers) in enumerate(coll.items()):
                 unit_header, mag_header = (
-                    id_out_headers[unit_],
+                    id_out_headers.get(unit_),
                     id_out_headers[__magnitude],
                 )
-                if row_[unit_header] or row_[mag_header]:
+                if row_.get(unit_header) or row_[mag_header]:
                     # todo not sure about this assert, we could just use output_{i}_unit
                     assert float(row_[mag_header])
                     unit = row_.get(unit_header)
                     if not unit:
                         unit = node_.outputs[idx].unit if node_ else None
                     assert unit, f"No unit defined for row: {row_} unit id: '{id_}'"
-                    # todo: always use node?
                     out_unit = (
                         node_.outputs[idx].unit if node_ else row[outputs_headers[id_]]
                     )
                     # todo check if this can be replaced by new validator implementation...
                     assert unit_match(unit, out_unit), (
-                        f"Unit of output at index [{id_}]/{type_} do not match '{unit}' does not match '{out_unit}' "
+                        f"Unit of output at index {type_}/[{id_}]: '{unit}' does not match putput unit:'{out_unit}' "
                         f"for row {row_}"
                     )
                     result.append(
                         NodeOutput(
                             unit=str(ureg(unit).units),
                             magnitude=float(row_[mag_header]),
-                            label=node.outputs[idx].label
+                            label=node.outputs[idx].label,
                         )
                     )
 
             return result
 
         def get_impacts(
-                row_: dict, type_: Literal["default", "scenario"]
+            row_: dict, type_: Literal["default", "scenario"]
         ) -> dict[str, ResultValue]:
             coll = (
                 default_impacts_headers
@@ -438,7 +462,9 @@ class AssignmentAdapter(EnbiosAdapter):
                 node: AssignmentNode
                 # new node
                 if node_name not in node_map:
-                    node_outputs: list[tuple[str, AssignmentNodeOutputConfig]] = get_outputs(row)
+                    node_outputs: list[
+                        tuple[str, AssignmentNodeOutputConfig]
+                    ] = get_outputs(row)
 
                     assert all(
                         n[1] for n in node_outputs
@@ -468,25 +494,30 @@ class AssignmentAdapter(EnbiosAdapter):
                     )
                     assert row.get("scenario"), "No scenario defined"
                 scenario: str = row.get("scenario")
+                scenario_outputs = get_outputs_values(row, "scenario", node)
+                scenario_impacts = get_impacts(row, "scenario")
                 if scenario:
-                    scenario_outputs = get_outputs_values(row, "scenario", node)
                     assert (
-                        scenario_outputs
-                    ), "For each scenario row, a new output needs to be defined"
+                        scenario_outputs or node.default_outputs
+                    ), f"For each scenario row, a new output needs to be defined. row: {row}"
 
                     assert scenario not in node.scenario_data, (  # type: ignore
                         f"Redefinition of scenario impacts for '{node_name}'"
                     )
-                    #
-                    row_impacts = get_impacts(row, "scenario")
-                    for impact_name, result in row_impacts.items():
+                    for impact_name, result in scenario_impacts.items():
                         assert unit_match(result.unit, self.methods[impact_name])
 
-                    with init_node_context({'node': node}):
+                    with init_node_context({"node": node}):
                         node.scenario_data[scenario] = AssignmentNodeScenarioData(
                             outputs=scenario_outputs,
-                            impacts=row_impacts,
+                            impacts=scenario_impacts,
                         )
+                else:
+                    if scenario_outputs or scenario_impacts:
+                        raise ValueError(
+                            "Scenario name needs to be defined for a scenario row"
+                        )
+
             #
             except Exception as err:
                 logger = self.get_logger()

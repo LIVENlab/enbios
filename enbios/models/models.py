@@ -37,8 +37,7 @@ class AdapterModel(BaseModel):
     module_path: Optional[PathLike] = None
     adapter_name: Optional[str] = Field(
         None,
-        description="this this is to use inbuilt adapter "
-        "(e.g. 'assignment-adapter'",
+        description="this this is to use inbuilt adapter " "(e.g. 'assignment-adapter'",
     )
     config: dict = Field(default_factory=dict)
     methods: dict[str, Any] = Field(default_factory=dict)
@@ -75,7 +74,7 @@ class ExperimentHierarchyNodeData(BaseModel):
     name: str
     aggregator: str = Field(..., description="name or node-indicator of the aggregator")
     config: Optional[Any] = Field(
-        None, description="setup data (id, outputs, ... arbitrary data"
+        default_factory=dict, description="setup data (id, outputs, ... arbitrary data"
     )
     children: Optional[
         list[Union["ExperimentHierarchyNodeData", "HierarchyStructuralNodeData"]]
@@ -89,7 +88,9 @@ class HierarchyStructuralNodeData(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     name: str
-    config: Any = Field(..., description="setup data (id, outputs, ... arbitrary data")
+    config: Any = Field(
+        default_factory=dict, description="setup data (id, outputs, ... arbitrary data"
+    )
     adapter: str = Field(..., description="The adapter to be used")
 
 
@@ -147,7 +148,8 @@ class ExperimentScenarioData(BaseModel):
     model_config = StrictInputConfig
     name: Optional[str] = Field(None)
     nodes: dict[str, Any] = Field(
-        ..., description="name to output, null means default-output (check exists)"
+        default_factory=dict,
+        description="name to output, null means default-output (check exists)",
     )
     config: Optional[ScenarioConfig] = Field(default_factory=ScenarioConfig)  # type: ignore
 

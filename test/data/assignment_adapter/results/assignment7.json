@@ -1,5 +1,5 @@
 {
-  "sc1": {
+  "default scenario": {
     "children": [
       {
         "name": "n1",
@@ -20,38 +20,6 @@
     "output": [
       {
         "magnitude": 2,
-        "unit": "megaliter"
-      }
-    ],
-    "name": "root",
-    "results": {
-      "co2": {
-        "magnitude": 5.0,
-        "unit": "kg"
-      }
-    }
-  },
-  "sc2": {
-    "children": [
-      {
-        "name": "n1",
-        "output": [
-          {
-            "magnitude": 2.0,
-            "unit": "megaliter"
-          }
-        ],
-        "results": {
-          "co2": {
-            "magnitude": 5.0,
-            "unit": "kg"
-          }
-        }
-      }
-    ],
-    "output": [
-      {
-        "magnitude": 2.0,
         "unit": "megaliter"
       }
     ],
