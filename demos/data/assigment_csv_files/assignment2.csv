@@ -1,0 +1,3 @@
+node_name,outputs_1_unit,scenario,scenario_outputs_1_magnitude,scenario_impacts_co2_unit,scenario_impacts_co2_magnitude
+n1,l,sc1,100,kg,5
+n1,,sc2,150,kg,7.5
