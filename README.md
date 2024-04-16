@@ -110,7 +110,6 @@ For each system function and structure (activity):
 ### Features
 
 - Integration of LCA and MuSIASEM evaluation methods
-- Import of .spold LCA inventory data to a multi-level tree-like setting
 - Library of impact assessment methods based on LCIA
 - New impact assessment methods developed for raw materials and circularity
 - Consideration of externalized environmental impacts
@@ -124,18 +123,29 @@ We are updating and commenting these. Please bear with us while we do it and fee
 thanks).
 
 You can copy the demos into your project like this:
+
 ```python
 from enbios import copy_demos
 
 copy_demos("<destination_path>")
 ```
 
-
 [Getting started](https://github.com/LIVENlab/enbios/blob/main/demos/intro.ipynb)
 
 [Plotting results](https://github.com/LIVENlab/enbios/blob/main/demos/plot_results.ipynb)
 
 [Sorting the results in alternative hierarchies](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_hierarchies.ipynb)
+
+Reevaluate the experiment with alternative hierarchies. For alternative hierarchies the structural nodes (none bottom
+nodes) can be changed/added.
+
+[Assignment Adapter](https://github.com/LIVENlab/enbios/blob/main/demos/assignment_adapter_demo.ipynb)
+
+The Simple Assignment Adapter does not any specific calculations.
+Instead, it allows the user to introduce fixed values, that should come from some external source into the enbios tree
+calculation. This includes not just the outputs of structural nodes, but in particular their impact results.
+These values can be either in the experiment configuration file or for convenience in a referenced csv file. The values
+can be specified in such a way, that scenario outputs and result values have consistent and valid units.
 
 [Splitting the configuration](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_config_files.ipynb)
 
@@ -146,6 +156,8 @@ copy_demos("<destination_path>")
 [Convert mermaid diagrams to enbios hierarchy](https://github.com/LIVENlab/enbios/blob/main/demos/mermaid.ipynb)
 
 [A complete Brightway adaoter configuration object](https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb)
+
+[Specifying the hierarchy in a csv file](https://github.com/LIVENlab/enbios/blob/main/demos/csv_hierarchy.ipynb)
 
 ## People
 
