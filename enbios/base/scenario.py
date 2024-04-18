@@ -176,7 +176,7 @@ class Scenario:
 
     @staticmethod
     def wrapper_data_serializer(
-        include_output: bool = True, expand_results: bool = False
+        include_output: bool = True,
     ) -> Callable[[ScenarioResultNodeData], dict]:
         def _expand_results(results: dict[str, ResultValue]) -> dict:
             """
@@ -198,26 +198,12 @@ class Scenario:
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
             result: dict[str, Any]
-            if expand_results:
-                result = _expand_results(data.results)
-            else:
-                result = {
-                    "results": {
-                        method_name: result_value.model_dump(exclude_defaults=True)
-                        for method_name, result_value in data.results.items()
-                    }
-                }
-            # there might be no output, when the units dont match
+            result = _expand_results(data.results)
+            # there might be no output, when the units don't match
             if include_output:
-                if expand_results:
-                    result["output"] = [
-                        {"unit": output.unit, "magnitude": output.magnitude}
-                        for output in data.output
-                    ]
-                else:
-                    result["output"] = [
-                        o.model_dump(exclude_none=True) for o in data.output
-                    ]
+                for idx, output in enumerate(data.output):
+                    result[f"output_{idx}_unit"] = output.unit
+                    result[f"output_{idx}_magnitude"] = output.magnitude
             # todo: adapter specific additional data
             # if data.bw_activity:
             #     result["bw_activity"] = data.bw_activity["code"]
@@ -233,6 +219,7 @@ class Scenario:
         include_method_units: bool = True,
         warn_no_results: bool = True,
         alternative_hierarchy: Optional[dict] = None,
+        flat_hierarchy: Optional[bool] = False,
     ):
         """
         Save the results (as tree) to a csv file
@@ -258,7 +245,8 @@ class Scenario:
             file_path,
             include_data=True,
             level_names=level_names,
-            data_serializer=self.wrapper_data_serializer(include_method_units, True),
+            data_serializer=self.wrapper_data_serializer(include_method_units),
+            flat_hierarchy=flat_hierarchy,
         )
 
     def result_to_dict(
