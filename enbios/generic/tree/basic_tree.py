@@ -474,6 +474,7 @@ class BasicTreeNode(Generic[T]):
         level_names: Optional[list[str]] = None,
         merge_first_sub_row: bool = False,
         repeat_parent_name: bool = False,
+        flat_hierarchy: Optional[bool] = False,
     ):
         # Calculate max_depth based on root if not provided
         if include_data and not isinstance(self._data, dict) and not data_serializer:
@@ -539,12 +540,44 @@ class BasicTreeNode(Generic[T]):
                         sub_row[level_name(current_level)] = node.name
             return [row] + _sub_rows
 
+        def rec_add_flat_node_row(
+            node: "BasicTreeNode[T]",
+            include_data_: Optional[bool] = False,
+            current_level: int = 0,
+        ) -> list[dict[str, Union[str, float]]]:
+            row = {}
+            if include_data_ and node._data:
+                node_data: dict[str, Any] = {}
+                if data_serializer:
+                    node_data = data_serializer(node._data)
+                elif isinstance(node._data, dict):
+                    node_data = node._data
+                else:
+                    logger.warning(
+                        "Data is not a dict and no data_serializer provided, "
+                        "skipping data"
+                    )
+                for data_key in include_data_keys:
+                    row[data_key] = node_data.get(data_key, "")
+            row["node_name"] = node.name
+            row["level"] = node.level
+            rows = [row]
+            for child in node.children:
+                rows.extend(
+                    rec_add_flat_node_row(child, include_data_, current_level + 1)
+                )
+            return rows
+
         # Write rows to csv
         if isinstance(csv_file, bytes):
             csv_file = csv_file.decode()
         with Path(csv_file).open("w", newline="") as csvfile:
-            rows = rec_add_node_row(self, include_data)
-            headers = _total_level_names + include_data_keys
+            if flat_hierarchy:
+                rows = rec_add_flat_node_row(self, include_data)
+                headers = ["node_name", "level"] + include_data_keys
+            else:
+                rows = rec_add_node_row(self, include_data)
+                headers = _total_level_names + include_data_keys
             writer = csv.DictWriter(csvfile, headers)
             writer.writeheader()
             writer.writerows(rows)
