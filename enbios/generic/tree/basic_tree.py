@@ -529,18 +529,15 @@ class BasicTreeNode(Generic[T]):
         ) -> list[dict[str, Union[str, float]]]:
             row = {}
             if include_data_ and node._data:
-                node_data: dict[str, Any] = {}
                 if data_serializer:
-                    node_data = data_serializer(node._data)
+                    row = data_serializer(node._data)
                 elif isinstance(node._data, dict):
-                    node_data = node._data
+                    row = node._data
                 else:
                     logger.warning(
                         "Data is not a dict and no data_serializer provided, "
                         "skipping data"
                     )
-                for data_key in include_data_keys:
-                    row[data_key] = node_data.get(data_key, "")
             row["node_name"] = node.name
             row["level"] = node.level
             rows = [row]
