@@ -270,6 +270,7 @@ class Experiment:
         scenario_name: Optional[str] = None,
         level_names: Optional[list[str]] = None,
         include_method_units: bool = True,
+        flat_hierarchy: Optional[bool] = False,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -300,9 +301,11 @@ class Experiment:
                     temp_file_name,
                     level_names=level_names,
                     include_method_units=include_method_units,
+                    flat_hierarchy=flat_hierarchy,
                 )
                 rows = ReadPath(temp_file_name).read_data()
-                rows[0]["scenario"] = scenario.name
+                for row in rows:
+                    row["scenario"] = scenario.name
                 if not all_rows:
                     header = list(rows[0].keys())
                     header.remove("scenario")
