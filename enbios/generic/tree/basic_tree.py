@@ -472,10 +472,11 @@ class BasicTreeNode(Generic[T]):
         data_serializer: Optional[Callable[[T], dict]] = None,
         exclude_data_keys: Optional[list[str]] = None,
         level_names: Optional[list[str]] = None,
-        merge_first_sub_row: bool = False,
         repeat_parent_name: bool = False,
         flat_hierarchy: Optional[bool] = False,
     ):
+        if not exclude_data_keys:
+            exclude_data_keys = []
         # Calculate max_depth based on root if not provided
         if include_data and not isinstance(self._data, dict) and not data_serializer:
             raise ValueError(
@@ -483,22 +484,6 @@ class BasicTreeNode(Generic[T]):
                 "data_serializer must be provided"
             )
 
-        if include_data and merge_first_sub_row:
-            logger.warning(
-                "Merging first sub-row and including data is often not recommended, "
-                "as sub-row data will overwrite parent data"
-            )
-
-        include_data_keys = []
-        if include_data and self._data:
-            # todo, this will probably be enough to get diverse results...
-            if data_serializer:
-                include_data_keys = list(data_serializer(self._data).keys())
-            else:
-                if isinstance(self._data, dict):
-                    include_data_keys = list(self._data.keys())
-            if exclude_data_keys:
-                include_data_keys = list(set(include_data_keys) - set(exclude_data_keys))
         _total_level_names = level_names if level_names else []
 
         def level_name(level: int) -> str:
@@ -513,18 +498,18 @@ class BasicTreeNode(Generic[T]):
         ) -> list[dict[str, Union[str, float]]]:
             row = {}
             if include_data_ and node._data:
-                node_data: dict[str, Any] = {}
+                row: dict[str, Any] = {}
                 if data_serializer:
-                    node_data = data_serializer(node._data)
+                    row = data_serializer(node._data)
                 elif isinstance(node._data, dict):
-                    node_data = node._data
+                    row = node._data
                 else:
                     logger.warning(
                         "Data is not a dict and no data_serializer provided, "
                         "skipping data"
                     )
-                for data_key in include_data_keys:
-                    row[data_key] = node_data.get(data_key, "")
+                for delete in exclude_data_keys:
+                    row.pop(delete, None)
             row[level_name(current_level)] = node.name
             _sub_rows = []
             for child in node.children:
@@ -532,9 +517,6 @@ class BasicTreeNode(Generic[T]):
                     rec_add_node_row(child, include_data_, current_level + 1)
                 )
             if _sub_rows:
-                if merge_first_sub_row:
-                    row = {**row, **_sub_rows[0]}
-                    _sub_rows = _sub_rows[1:]
                 if repeat_parent_name:
                     for sub_row in _sub_rows:
                         sub_row[level_name(current_level)] = node.name
@@ -571,13 +553,19 @@ class BasicTreeNode(Generic[T]):
         # Write rows to csv
         if isinstance(csv_file, bytes):
             csv_file = csv_file.decode()
+
         with Path(csv_file).open("w", newline="") as csvfile:
             if flat_hierarchy:
                 rows = rec_add_flat_node_row(self, include_data)
-                headers = ["node_name", "level"] + include_data_keys
+                headers = ["node_name", "level"]
             else:
                 rows = rec_add_node_row(self, include_data)
-                headers = _total_level_names + include_data_keys
+                headers = _total_level_names
+
+            for row in rows:
+                for k in row:
+                    if k not in headers:
+                        headers.append(k)
             writer = csv.DictWriter(csvfile, headers)
             writer.writeheader()
             writer.writerows(rows)

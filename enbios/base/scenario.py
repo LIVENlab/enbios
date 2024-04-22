@@ -3,7 +3,7 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Optional, Union, TYPE_CHECKING, Any, Callable
+from typing import Optional, Union, TYPE_CHECKING, Any, Callable, cast
 
 from enbios.base.tree_operations import validate_experiment_reference_hierarchy
 from enbios.generic.enbios2_logging import get_logger
@@ -58,10 +58,6 @@ class Scenario:
                 structural_node
             ).get_node_output(structural_node.name, self.name)
 
-            # todo adapter/aggregator specific additional data
-            # if self.experiment.config.include_bw_activity_in_nodes:
-            #     node_node.data.bw_activity = bw_activity
-
         if self.config.exclude_defaults:
 
             def remove_empty_nodes(
@@ -90,17 +86,21 @@ class Scenario:
 
     @staticmethod
     def _propagate_results_upwards(
-        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment"
+        node: BasicTreeNode[ScenarioResultNodeData],
+        experiment: "Experiment",
+        *,
+        include_extras: bool = True,
     ):
         if node.is_leaf:
             return
         else:
-            node.data.results = experiment.get_node_aggregator(
-                node
-            ).aggregate_node_result(node)
+            aggregator = experiment.get_node_aggregator(node)
+            node.data.results = aggregator.aggregate_node_result(node)
+            if include_extras:
+                node.data.extras = aggregator.result_extras(node.name)
 
     def run(
-        self, results_as_dict: bool = True
+        self, results_as_dict: bool = True, include_extras: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         # if not self._get_methods():
         #     raise ValueError(f"Scenario '{self.name}' has no methods")
@@ -120,16 +120,17 @@ class Scenario:
                 # As each future completes, set the results
                 for future in concurrent.futures.as_completed(futures):
                     result_data = future.result()
-                    self.set_results(result_data)
+                    self.set_results(result_data, include_extras)
         else:
             for adapter in self.experiment.adapters:
                 # run in parallel:
                 result_data = adapter.run_scenario(self)  # type: ignore
-                self.set_results(result_data)
+                self.set_results(result_data, include_extras)
 
         self.result_tree.recursive_apply(
             Scenario._propagate_results_upwards,  # type: ignore
             experiment=self.experiment,
+            include_extras=include_extras,
             depth_first=True,
         )
 
@@ -147,7 +148,9 @@ class Scenario:
     def reset_execution_time(self):
         self._execution_time = float("NaN")
 
-    def set_results(self, result_data: dict[str, Any]):
+    def set_results(self, result_data: dict[str, Any], include_extras: bool = True):
+        from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
+
         for node_name, node_result in result_data.items():
             node = self.result_tree.find_subnode_by_name(node_name)
             if not node:
@@ -161,6 +164,10 @@ class Scenario:
                     logger.error(f"Node '{node_name}' not found in result tree")
                 continue
             node.data.results = node_result
+            if include_extras:
+                node.data.extras = cast(
+                    EnbiosAdapter, self.experiment.get_node_adapter(node)
+                ).result_extras(node.name)
         if self.config.exclude_defaults:
             for leave in self.result_tree.iter_leaves():
                 if not leave.data.results:
@@ -176,7 +183,7 @@ class Scenario:
 
     @staticmethod
     def wrapper_data_serializer(
-        include_output: bool = True,
+        include_output: bool = True, include_extras: bool = True
     ) -> Callable[[ScenarioResultNodeData], dict]:
         def _expand_results(results: dict[str, ResultValue]) -> dict:
             """
@@ -186,31 +193,44 @@ class Scenario:
             """
             expanded_results = {}
             for method_name, result_value in results.items():
-                expanded_results[
-                    f"{method_name}_magnitude ({result_value.unit})"
-                ] = result_value.magnitude
-                if result_value.multi_magnitude:
-                    for idx, magnitude in enumerate(result_value.multi_magnitude):
-                        expanded_results[
-                            f"{method_name}_{result_value.unit}_{idx}"
-                        ] = magnitude
+                expanded_results[method_name] = result_value.model_dump(
+                    exclude_defaults=True, exclude_unset=True
+                )
             return expanded_results
 
         def data_serializer(data: ScenarioResultNodeData) -> dict:
-            result: dict[str, Any]
-            result = _expand_results(data.results)
+            result: dict[str, Any] = {}
+            result["results"] = _expand_results(data.results)
             # there might be no output, when the units don't match
             if include_output:
-                for idx, output in enumerate(data.output):
-                    result[f"output_{idx}_unit"] = output.unit
-                    result[f"output_{idx}_magnitude"] = output.magnitude
-            # todo: adapter specific additional data
-            # if data.bw_activity:
-            #     result["bw_activity"] = data.bw_activity["code"]
-
+                result["output"] = [
+                    output.model_dump(exclude_unset=True, exclude_defaults=True)
+                    for output in data.output
+                ]
+            if include_extras and data.extras:
+                extras: dict[str, Any] = data.extras
+                for k in ["name", "results", "output"]:
+                    if k in extras:
+                        logger.warning(
+                            f"node result extras contain key '{k}', which is reserved for the scenario result"
+                        )
+                        extras.pop(k)
+                result.update(extras)
             return result
 
         return data_serializer
+
+    @staticmethod
+    def wrapped_flat_output_list_serializer(
+        serializer: Callable[[ScenarioResultNodeData], dict]
+    ) -> Callable[[ScenarioResultNodeData], dict]:
+        import flatten_dict
+
+        def flattened_wrap(result_data: ScenarioResultNodeData) -> dict:
+            res = serializer(result_data)
+            return flatten_dict.flatten(res, reducer="underscore", enumerate_types={list})
+
+        return flattened_wrap
 
     def results_to_csv(
         self,
@@ -245,7 +265,9 @@ class Scenario:
             file_path,
             include_data=True,
             level_names=level_names,
-            data_serializer=self.wrapper_data_serializer(include_method_units),
+            data_serializer=self.wrapped_flat_output_list_serializer(
+                self.wrapper_data_serializer(include_method_units)
+            ),
             flat_hierarchy=flat_hierarchy,
         )
 

@@ -100,4 +100,4 @@ def test_assignment_adapter_csv(adapter_csv_file: Path):
 
 
 def test_assignment_adapter_with_csv():
-    run_test_with_file(BASE_TEST_DATA_PATH / "assignment_adapter/inputs/assignment2_x.csv")
+    run_test_with_file(BASE_TEST_DATA_PATH / "assignment_adapter/inputs/assignment1.csv")

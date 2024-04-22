@@ -42,5 +42,8 @@ class EnbiosAggregator(ABC):
     def get_config_schemas() -> dict:
         pass
 
+    def result_extras(self, node_name: str) -> dict[str, Any]:
+        return {}
+
     def get_logger(self):
         return get_logger(f"__name__ ({self.name})")

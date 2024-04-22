@@ -306,10 +306,13 @@ class Experiment:
                 rows = ReadPath(temp_file_name).read_data()
                 for row in rows:
                     row["scenario"] = scenario.name
-                if not all_rows:
-                    header = list(rows[0].keys())
-                    header.remove("scenario")
-                    header.insert(0, "scenario")
+                # if not all_rows:
+                for row in rows:
+                    for k in row.keys():
+                        if k not in header:
+                            header.append(k)
+                    # header.remove("scenario")
+                    # header.insert(0, "scenario")
                 all_rows.extend(rows)
                 if (temp_file := Path(temp_file_name)).exists():
                     temp_file.unlink()

@@ -235,6 +235,7 @@ class ScenarioResultNodeData(BaseModel):
     results: dict[str, ResultValue] = Field(default_factory=dict)
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
+    extras: Optional[dict[str, Any]] = None
 
 
 class EnbiosValidationException(Exception):

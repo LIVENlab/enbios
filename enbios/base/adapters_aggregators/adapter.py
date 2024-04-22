@@ -77,3 +77,6 @@ class EnbiosAdapter(ABC):
 
     def get_logger(self) -> Logger:
         return get_logger(f"({self.name()})")
+
+    def result_extras(self, node_name: str) -> dict[str, Any]:
+        return {}

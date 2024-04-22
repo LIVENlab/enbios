@@ -332,25 +332,29 @@ def test_to_csv(csv_file_path):
     node1.to_csv(csv_file_path, level_names=["main", "sub"])
     assert [{'main': 'node1', 'sub': ''}, {'main': '', 'sub': 'node2'}] == list(DictReader(csv_file_path.open()))
 
-    node1.to_csv(csv_file_path, merge_first_sub_row=True)
-    assert [{'lvl_0': 'node1', 'lvl_1': 'node2'}] == list(DictReader(csv_file_path.open()))
-
     node1.to_csv(csv_file_path, repeat_parent_name=True)
     assert [{'lvl_0': 'node1', 'lvl_1': ''}, {'lvl_0': 'node1', 'lvl_1': 'node2'}] == list(
         DictReader(csv_file_path.open()))
 
+def test_to_csv2(csv_file_path):
+    node1 = BasicTreeNode("node1", data={"a": 1, "b": 2})
+    node2 = BasicTreeNode("node2", data={"a": 5, "b": 8})
+    node1.add_child(node2)
     node1.to_csv(csv_file_path, include_data=True)
     assert [{'lvl_0': 'node1', 'lvl_1': '', "a": "1", "b": "2"},
             {'lvl_0': '', 'lvl_1': 'node2', "a": "5", "b": "8"}] == list(
         DictReader(csv_file_path.open()))
 
+
+def test_to_csv3(csv_file_path):
+    node1 = BasicTreeNode("node1", data={"a": 1, "b": 2})
+    node2 = BasicTreeNode("node2", data={"a": 5, "b": 8})
+    node1.add_child(node2)
+
     node1.to_csv(csv_file_path, include_data=True, exclude_data_keys=["b"])
     assert [{'lvl_0': 'node1', 'lvl_1': '', "a": "1"}, {'lvl_0': '', 'lvl_1': 'node2', "a": "5"}] == list(
         DictReader(csv_file_path.open()))
 
-    node1.to_csv(csv_file_path.as_posix(), include_data=True, merge_first_sub_row=True)
-    assert [{'lvl_0': 'node1', 'lvl_1': 'node2', "a": "5", "b": "8"}] == list(
-        DictReader(csv_file_path.open()))
 
 
 def test_to_sanky_tree(csv_file_path):

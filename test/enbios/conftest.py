@@ -108,6 +108,7 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                                   unit="kilowatt_hour", magnitude=1.0)],
                                               adapter="bw",
                                               aggregator=None,
+                                              extras={'bw_activity_code': 'b9d74efa4fd670b1977a3471ec010737'},
                                               results={
                                                   default_bw_method_name: ResultValue(unit="kg CO2-Eq",
                                                                                       magnitude=_impact)})}],
@@ -115,6 +116,7 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                      output=[NodeOutput(
                                          unit="kilowatt_hour", magnitude=1.0)],
                                      adapter=None,
+                                     extras={},
                                      aggregator="sum",
                                      results={
                                          default_bw_method_name: ResultValue(unit="kg CO2-Eq", magnitude=_impact)})}
