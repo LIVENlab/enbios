@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 
 [project]
 name = "enbios"
-version = "2.2.8"
+version = "2.2.9"
 description = "Enbios 2"
 authors = [
     { name = "Ramin Soleymani" },
@@ -43,7 +43,7 @@ test = [
 ]
 
 dev = [
-  "build==0.10.0", "twine==4.0.2","jupyter==1.0.0", "ruff==0.3.3","black==23.12.1", "tokenize-rt"
+  "build==1.2.1", "twine==4.0.2","jupyter==1.0.0", "ruff==0.3.3","black==23.12.1", "tokenize-rt"
 ]
 
 [tool.mypy]
