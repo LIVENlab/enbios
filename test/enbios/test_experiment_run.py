@@ -229,15 +229,15 @@ def test_scenario(experiment_scenario_setup: dict,
     #   todo test, complete experiment csv
     experiment.results_to_csv(temp_csv_file)
 
-    def test_scenario(experiment_scenario_setup: dict,
-                      experiment_setup: dict,
-                      default_bw_method_name: str,
-                      temp_csv_file: Path):
-        experiment = Experiment(experiment_scenario_setup)
-        result = experiment.run_scenario("scenario1")
-        expected_value1 = experiment_setup["expected_result_tree"]["data"].results[default_bw_method_name]
-        assert result[default_bw_method_name] == expected_value1.model_dump(
-            exclude_defaults=True)
+def test_scenario2(experiment_scenario_setup: dict,
+                  experiment_setup: dict,
+                  default_bw_method_name: str,
+                  temp_csv_file: Path):
+    experiment = Experiment(experiment_scenario_setup)
+    result = experiment.run_scenario("scenario1")
+    expected_value1 = experiment_setup["expected_result_tree"]["data"].results[default_bw_method_name]
+    assert result["results"][default_bw_method_name] == expected_value1.model_dump(
+        exclude_defaults=True)
 
 
 def test_multi_activity_usage(bw_adapter_config: dict, first_activity_config: dict, experiment_setup,
