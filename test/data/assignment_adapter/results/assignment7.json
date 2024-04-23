@@ -6,7 +6,8 @@
         "output": [
           {
             "magnitude": 2.0,
-            "unit": "megaliter"
+            "unit": "megaliter",
+            "label": null
           }
         ],
         "results": {
@@ -20,7 +21,8 @@
     "output": [
       {
         "magnitude": 2,
-        "unit": "megaliter"
+        "unit": "megaliter",
+           "label": null
       }
     ],
     "name": "root",

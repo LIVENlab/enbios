@@ -6,7 +6,8 @@
         "output": [
           {
             "magnitude": 100.0,
-            "unit": "liter"
+            "unit": "liter",
+            "label": null
           }
         ],
         "results": {
@@ -21,7 +22,8 @@
     "output": [
       {
         "magnitude": 100.0,
-        "unit": "liter"
+        "unit": "liter",
+        "label": null
       }
     ],
     "results": {
@@ -38,7 +40,8 @@
         "output": [
           {
             "magnitude": 150.0,
-            "unit": "liter"
+            "unit": "liter",
+            "label": null
           }
         ],
         "results": {
@@ -53,7 +56,8 @@
     "output": [
       {
         "magnitude": 150.0,
-        "unit": "liter"
+        "unit": "liter",
+        "label": null
       }
     ],
     "results": {

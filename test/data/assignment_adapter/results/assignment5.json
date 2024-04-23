@@ -6,7 +6,8 @@
         "output": [
           {
             "magnitude": 100.0,
-            "unit": "liter"
+            "unit": "liter",
+            "label": null
           }
         ],
         "results": {
@@ -21,7 +22,8 @@
         "output": [
           {
             "magnitude": 100.0,
-            "unit": "meter ** 2"
+            "unit": "meter ** 2",
+            "label": null
           }
         ],
         "results": {
@@ -42,11 +44,13 @@
     "output": [
       {
         "magnitude": 100.0,
-        "unit": "liter"
+        "unit": "liter",
+        "label": null
       },
       {
         "magnitude": 100.0,
-        "unit": "meter ** 2"
+        "unit": "meter ** 2",
+                "label": null
       }
     ]
   },
@@ -57,7 +61,8 @@
         "output": [
           {
             "magnitude": 150.0,
-            "unit": "liter"
+            "unit": "liter",
+            "label": null
           }
         ],
         "results": {
@@ -72,7 +77,8 @@
         "output": [
           {
             "magnitude": 100.0,
-            "unit": "meter ** 2"
+            "unit": "meter ** 2",
+            "label": null
           }
         ],
         "results": {
@@ -87,11 +93,13 @@
     "output": [
       {
         "magnitude": 150.0,
-        "unit": "liter"
+        "unit": "liter",
+        "label": null
       },
       {
         "magnitude": 100.0,
-        "unit": "meter ** 2"
+        "unit": "meter ** 2",
+                "label": null
       }
     ],
     "results": {

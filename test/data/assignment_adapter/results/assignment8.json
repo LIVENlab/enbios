@@ -6,7 +6,8 @@
         "output": [
           {
             "magnitude": 100.0,
-            "unit": "liter"
+            "unit": "liter",
+            "label": null
           }
         ],
         "results": {
@@ -21,7 +22,8 @@
         "output": [
           {
             "magnitude": 60.0,
-            "unit": "liter"
+            "unit": "liter",
+            "label": null
           }
         ],
         "results": {
@@ -83,7 +85,8 @@
     "output": [
       {
         "magnitude": 160.0,
-        "unit": "liter"
+        "unit": "liter",
+        "label": null
       },
       {
         "label": "amount",

@@ -6,6 +6,7 @@
         "output": [
           {
             "magnitude": 100.0,
+            "label": null,
             "unit": "liter"
           }
         ],
@@ -21,7 +22,8 @@
     "output": [
       {
         "magnitude": 100.0,
-        "unit": "liter"
+        "unit": "liter",
+        "label": null
       }
     ],
     "results": {

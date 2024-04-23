@@ -6,8 +6,10 @@
         "output": [
           {
             "magnitude": 100.0,
-            "unit": "liter"
-          }],
+            "unit": "liter",
+            "label": null
+          }
+        ],
         "results": {
           "co2": {
             "magnitude": 5.0,
@@ -20,8 +22,10 @@
     "output": [
       {
         "magnitude": 100.0,
-        "unit": "liter"
-      }],
+        "unit": "liter",
+        "label": null
+      }
+    ],
     "results": {
       "co2": {
         "magnitude": 5.0,
