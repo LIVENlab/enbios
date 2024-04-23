@@ -1,3 +1,5 @@
+import json
+import pickle
 from csv import DictReader
 from pathlib import Path
 
@@ -7,7 +9,8 @@ import pytest
 from enbios.base.experiment import Experiment
 from enbios.const import BASE_TEST_DATA_PATH
 from enbios.models.models import NodeOutput, ResultValue, ScenarioResultNodeData
-from test.enbios.test_project_fixture import TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH, TEST_ECOINVENT_DB
+from test.enbios.test_project_fixture import TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH, TEST_ECOINVENT_DB, \
+    BRIGHTWAY_ADAPTER_MODULE_NAME
 
 
 @pytest.fixture(scope="module")
@@ -15,6 +18,12 @@ def tempfolder() -> Path:
     path = BASE_TEST_DATA_PATH / "temp"
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+@pytest.fixture()
+def clear_temp_files(tempfolder):
+    for f in tempfolder.glob("*"):
+        f.unlink()
 
 
 @pytest.fixture
@@ -27,6 +36,7 @@ def default_bw_config() -> dict:
     return {
         "bw_project": TEST_BW_PROJECT,
         "bw_module_path": BRIGHTWAY_ADAPTER_MODULE_PATH,
+        "adapter_name": BRIGHTWAY_ADAPTER_MODULE_NAME,
         "ecoinvent_db": TEST_ECOINVENT_DB
     }
 
@@ -171,3 +181,33 @@ def create_test_network(test_network_project_db_name):
         bw2data.projects.delete_project(project_name, True)
     except ValueError:
         pass
+
+
+@pytest.fixture
+def two_level_experiment_config(bw_adapter_config: dict, default_bw_config: dict) -> dict:
+    bw_adapter_config["methods"]['WCP'] = ('ReCiPe 2016 v1.03, midpoint (E)',
+                                           'water use',
+                                           'water consumption potential (WCP)')
+    bw_adapter_config["adapter_name"] = default_bw_config["adapter_name"]
+    del bw_adapter_config["module_path"]
+    config = json.load((BASE_TEST_DATA_PATH / "experiment_configs/two_level_two_methods.json").open(encoding="utf-8"))
+    config["adapters"].append(bw_adapter_config)
+    return config
+
+
+@pytest.fixture
+def two_level_experiment_from_pickle(two_level_experiment_config: dict) -> Experiment:
+    exp_pickle = BASE_TEST_DATA_PATH / "pickles/two_level_experiment.pickle"
+    # need to do the import here, otherwise pickle loader fails
+    from enbios.bw2 import brightway_experiment_adapter
+    brightway_experiment_adapter.logger.setLevel("INFO")
+    try:
+        if exp_pickle.exists():
+            return pickle.load(exp_pickle.open("rb"))
+    except Exception as err:
+        raise err
+    print("running experiment...")
+    exp = Experiment(two_level_experiment_config)
+    exp.run()
+    pickle.dump(exp, exp_pickle.open("wb"))
+    return exp

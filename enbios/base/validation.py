@@ -123,16 +123,17 @@ def validate_scenario(
     validate_nodes(scenario_data)
 
     # fill up the missing activities with default values
-    if not scenario_data.config.exclude_defaults:
-        # todo. something to do here?
-        pass
-        # todo make the data come from the adapter
-        # for node_name in experiment.structural_nodes_names:
-        #     if node_name not in defined_nodes:
-        #         node = experiment.get_structural_node(node_name)
-        # scenario_nodes_outputs[node_name] = experiment.get_node_adapter(
-        #     node
-        # ).get_default_output_value(node.name)
+    # todo bring something like this back...make the data come from the adapter
+    # if not scenario_data.config.exclude_defaults:
+    # for node_name in experiment.structural_nodes_names:
+    #     if node_name not in scenario_data.nodes:
+    #         node = experiment.get_structural_node(node_name)
+    #         output = experiment.get_node_adapter(
+    #             node
+    #         ).get_node_output(node_name, scenario_data.name)
+    #         if not output:
+    #             raise EnbiosValidationException(
+    #                 f"No output for node {node_name} in scenario {scenario_data.name}")
     assert scenario_data.name
     return Scenario(
         experiment=experiment,  # type: ignore

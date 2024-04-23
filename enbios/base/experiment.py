@@ -270,7 +270,11 @@ class Experiment:
         scenario_name: Optional[str] = None,
         level_names: Optional[list[str]] = None,
         include_method_units: bool = True,
+        include_output: bool = True,
         flat_hierarchy: Optional[bool] = False,
+        include_extras: Optional[bool] = True,
+        repeat_parent_name: bool = False,
+        alternative_hierarchy: Optional[dict] = None,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -289,7 +293,11 @@ class Experiment:
             scenario.results_to_csv(
                 file_path,
                 level_names=level_names,
+                include_output=include_output,
                 include_method_units=include_method_units,
+                repeat_parent_name=repeat_parent_name,
+                include_extras=include_extras,
+                alternative_hierarchy=alternative_hierarchy,
             )
             return
         else:
@@ -301,7 +309,11 @@ class Experiment:
                     temp_file_name,
                     level_names=level_names,
                     include_method_units=include_method_units,
+                    include_output=include_output,
                     flat_hierarchy=flat_hierarchy,
+                    repeat_parent_name=repeat_parent_name,
+                    include_extras=include_extras,
+                    alternative_hierarchy=alternative_hierarchy,
                 )
                 rows = ReadPath(temp_file_name).read_data()
                 for row in rows:
@@ -311,11 +323,12 @@ class Experiment:
                     for k in row.keys():
                         if k not in header:
                             header.append(k)
-                    # header.remove("scenario")
-                    # header.insert(0, "scenario")
                 all_rows.extend(rows)
                 if (temp_file := Path(temp_file_name)).exists():
                     temp_file.unlink()
+            # put the scenario header at the start
+            header.remove("scenario")
+            header.insert(0, "scenario")
             with Path(file_path).open("w", newline="") as csvfile:
                 writer = csv.DictWriter(csvfile, header)
                 writer.writeheader()
@@ -418,6 +431,19 @@ class Experiment:
 
         node_rows_str = "\n".join(node_rows)
         methods_str = "\n".join([f" {m}" for m in self.methods])
+
+        scenarios_done = [scenario.has_run for scenario in self.scenarios]
+        all_scenarios_run = all(scenarios_done)
+        no_scenarios_run = not any(scenarios_done)
+
+        run_status_str = (
+            "all scenarios run"
+            if all_scenarios_run
+            else "no scenarios run"
+            if no_scenarios_run
+            else "some scenarios run"
+        )
+
         return (
             f"Experiment: \n"
             f"Structural nodes: {len(self._structural_nodes)}\n"
@@ -426,6 +452,7 @@ class Experiment:
             f"{methods_str}\n"
             f"Hierarchy (depth): {self.hierarchy_root.depth}\n"
             f"Scenarios: {len(self.scenarios)}\n"
+            f"{run_status_str}\n"
         )
 
     @staticmethod

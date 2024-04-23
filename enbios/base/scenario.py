@@ -183,7 +183,10 @@ class Scenario:
 
     @staticmethod
     def wrapper_data_serializer(
-        include_output: bool = True, include_extras: bool = True
+        *,
+        include_output: bool = True,
+        include_method_units: bool = True,
+        include_extras: bool = True,
     ) -> Callable[[ScenarioResultNodeData], dict]:
         def _expand_results(results: dict[str, ResultValue]) -> dict:
             """
@@ -194,7 +197,9 @@ class Scenario:
             expanded_results = {}
             for method_name, result_value in results.items():
                 expanded_results[method_name] = result_value.model_dump(
-                    exclude_defaults=True, exclude_unset=True
+                    exclude_defaults=True,
+                    exclude_unset=True,
+                    exclude={} if include_method_units else {"unit"},
                 )
             return expanded_results
 
@@ -204,8 +209,7 @@ class Scenario:
             # there might be no output, when the units don't match
             if include_output:
                 result["output"] = [
-                    output.model_dump(exclude_unset=True, exclude_defaults=True)
-                    for output in data.output
+                    output.model_dump() for output in data.output
                 ]
             if include_extras and data.extras:
                 extras: dict[str, Any] = data.extras
@@ -236,10 +240,13 @@ class Scenario:
         self,
         file_path: PathLike,
         level_names: Optional[list[str]] = None,
+        include_output: bool = True,
         include_method_units: bool = True,
         warn_no_results: bool = True,
         alternative_hierarchy: Optional[dict] = None,
         flat_hierarchy: Optional[bool] = False,
+        repeat_parent_name: bool = False,
+        include_extras: bool = True,
     ):
         """
         Save the results (as tree) to a csv file
@@ -266,8 +273,13 @@ class Scenario:
             include_data=True,
             level_names=level_names,
             data_serializer=self.wrapped_flat_output_list_serializer(
-                self.wrapper_data_serializer(include_method_units)
+                self.wrapper_data_serializer(
+                    include_output=include_output,
+                    include_method_units=include_method_units,
+                    include_extras=include_extras,
+                )
             ),
+            repeat_parent_name=repeat_parent_name,
             flat_hierarchy=flat_hierarchy,
         )
 
@@ -286,10 +298,13 @@ class Scenario:
         :return:
         """
 
+        # todo params for result_units, extras
         def recursive_transform(node: BasicTreeNode[ScenarioResultNodeData]) -> dict:
             result: dict[str, Any] = {
                 "name": node.name,
-                **Scenario.wrapper_data_serializer(include_output)(node.data),
+                **Scenario.wrapper_data_serializer(include_output=include_output)(
+                    node.data
+                ),
             }
             if node.children:
                 result["children"] = [
@@ -370,3 +385,7 @@ class Scenario:
         # output += json.dumps(self.structural_nodes_outputs, indent=2)
         # todo: the tree instead...
         return output
+
+    @property
+    def has_run(self):
+        return self._has_run

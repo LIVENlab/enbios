@@ -484,6 +484,8 @@ class BasicTreeNode(Generic[T]):
                 "data_serializer must be provided"
             )
 
+        if flat_hierarchy and level_names:
+            logger.warning("flat hierarchy do not make use of level_names")
         _total_level_names = level_names if level_names else []
 
         def level_name(level: int) -> str:
