@@ -29,7 +29,7 @@
             }
           ],
           "default": null,
-          "description": "this this is to use inbuilt adapter (e.g. 'simple-assignment-adapter'",
+          "description": "this this is to use inbuilt adapter (e.g. 'assignment-adapter'",
           "title": "Adapter Name"
         },
         "config": {
@@ -77,7 +77,7 @@
         },
         "aggregator_name": {
           "default": null,
-          "description": "this this is to use inbuilt aggregator (e.g. 'simple-assignment-adapter'",
+          "description": "this this is to use inbuilt aggregator (e.g. 'assignment-adapter'",
           "title": "Aggregator Name",
           "type": "string"
         },
@@ -243,7 +243,6 @@
               "type": "null"
             }
           ],
-          "default": null,
           "description": "setup data (id, outputs, ... arbitrary data",
           "title": "Config"
         },
@@ -308,9 +307,6 @@
           ]
         }
       },
-      "required": [
-        "nodes"
-      ],
       "title": "ExperimentScenarioData",
       "type": "object"
     },
@@ -334,7 +330,6 @@
       },
       "required": [
         "name",
-        "config",
         "adapter"
       ],
       "title": "HierarchyStructuralNodeData",

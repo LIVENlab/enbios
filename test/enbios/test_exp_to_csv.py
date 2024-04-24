@@ -1,3 +1,4 @@
+import shutil
 from csv import DictReader
 from itertools import product
 from pathlib import Path
@@ -18,7 +19,18 @@ def temp_file() -> Path:
     return BASE_TEST_DATA_PATH / "temp/temp.csv"
 
 
+"""
+This will make all test pass, because it copies the test file to the validation file.
+Do that, when the function changes its outputs... (e.g. new columns...)
+But check the tables :)...
+"""
+OVERWRITE = False
+
+
 def compare_csv_files(test_file: Path, validation_file: Path):
+    if OVERWRITE:
+        shutil.copy(test_file, validation_file)
+
     test_reader = DictReader(test_file.open(encoding="utf-8"))
     validation_reader = DictReader(validation_file.open(encoding="utf-8"))
 
@@ -50,38 +62,44 @@ def test_base_crash_test(two_level_experiment_from_pickle: Experiment, clear_tem
 def test_normal_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
                     temp_file):
     two_level_experiment_from_pickle.results_to_csv(temp_file)
-    compare_csv_files(temp_file, results_base_folder / "test_normal_csv.csv")
+    file_name = "test_normal_csv.csv"
+    compare_csv_files(temp_file, results_base_folder / file_name)
 
 
 def test_no_extras_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
                        temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, include_extras=False)
-    compare_csv_files(temp_file, results_base_folder / "test_no_extras_csv.csv")
+    file_name = "test_no_extras_csv.csv"
+    compare_csv_files(temp_file, results_base_folder / file_name)
 
 
 def test_single_scenario_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
                              temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, scenarios="default scenario", include_extras=True)
-    compare_csv_files(temp_file, results_base_folder / "test_single_scenario_csv.csv")
+    file_name = "test_single_scenario_csv.csv"
+    compare_csv_files(temp_file, results_base_folder / file_name)
 
 
 def test_single_scenario_no_extras_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files,
                                        results_base_folder: Path,
                                        temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, scenarios="default scenario", include_extras=False)
-    compare_csv_files(temp_file, results_base_folder / "test_single_scenario_no_extras_csv.csv")
+    file_name = "test_single_scenario_no_extras_csv.csv"
+    compare_csv_files(temp_file, results_base_folder / file_name)
 
 
 def test_no_method_units_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
                              temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, include_method_units=False)
-    compare_csv_files(temp_file, results_base_folder / "test_no_method_units_csv.csv")
+    file_name = "test_no_method_units_csv.csv"
+    compare_csv_files(temp_file, results_base_folder / file_name)
 
 
 def test_flat_hierarchy_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
                             temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, flat_hierarchy=True)
-    compare_csv_files(temp_file, results_base_folder / "test_flat_hierarchy_csv.csv")
+    file_name = "test_flat_hierarchy_csv.csv"
+    compare_csv_files(temp_file, results_base_folder / file_name)
 
 
 def test_repeat_parent_name(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,

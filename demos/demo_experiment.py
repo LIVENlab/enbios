@@ -19,9 +19,11 @@ def _create_experiment(num_scenarios) -> Experiment:
                 "water use",
                 "water consumption potential (WCP)",
             ),
-            "HToxicity": ('ReCiPe 2016 v1.03, midpoint (I)',
-                          'human toxicity: carcinogenic',
-                          'human toxicity potential (HTPc)')
+            "HToxicity": (
+                "ReCiPe 2016 v1.03, midpoint (I)",
+                "human toxicity: carcinogenic",
+                "human toxicity potential (HTPc)",
+            ),
         },
         "note": "brightway-adapter",
         "adapter_name": "brightway-adapter",
@@ -38,9 +40,7 @@ def _create_experiment(num_scenarios) -> Experiment:
                     {
                         "name": "electricity production, wind, 1-3MW turbine, onshore",
                         "adapter": "brightway-adapter",
-                        "config": {
-                            "code": "ed3da88fc23311ee183e9ffd376de89b"
-                        },
+                        "config": {"code": "ed3da88fc23311ee183e9ffd376de89b"},
                     },
                     {
                         "name": "electricity production, wind, 1-3MW turbine, offshore",
@@ -69,47 +69,82 @@ def _create_experiment(num_scenarios) -> Experiment:
     }
 
     if num_scenarios > 2:
-        print("note that all experiments beyond the first 2 ones, have randomized outputs")
+        print(
+            "note that all experiments beyond the first 2 ones, have randomized outputs"
+        )
     default_scenarios = [
         {
             "name": "scenario 1",
             "nodes": {
-                "electricity production, wind, 1-3MW turbine, onshore": {"unit": "kilowatt_hour", "magnitude": 3},
-                "electricity production, wind, 1-3MW turbine, offshore": {"unit": "kilowatt_hour", "magnitude": 2},
-                "electricity production, solar tower power plant, 20 MW": {"unit": "kilowatt_hour", "magnitude": 1},
-                "electricity production, solar thermal parabolic trough, 50 MW": {"unit": "kilowatt_hour",
-                                                                                  "magnitude": 1}
-            }
+                "electricity production, wind, 1-3MW turbine, onshore": {
+                    "unit": "kilowatt_hour",
+                    "magnitude": 3,
+                },
+                "electricity production, wind, 1-3MW turbine, offshore": {
+                    "unit": "kilowatt_hour",
+                    "magnitude": 2,
+                },
+                "electricity production, solar tower power plant, 20 MW": {
+                    "unit": "kilowatt_hour",
+                    "magnitude": 1,
+                },
+                "electricity production, solar thermal parabolic trough, 50 MW": {
+                    "unit": "kilowatt_hour",
+                    "magnitude": 1,
+                },
+            },
         },
         {
             "name": "scenario 2",
             "nodes": {
-                "electricity production, wind, 1-3MW turbine, onshore": {"unit": "kilowatt_hour", "magnitude": 2},
-                "electricity production, wind, 1-3MW turbine, offshore": {"unit": "kilowatt_hour", "magnitude": 2},
-                "electricity production, solar tower power plant, 20 MW": {"unit": "kilowatt_hour", "magnitude": 2},
-                "electricity production, solar thermal parabolic trough, 50 MW": {"unit": "kilowatt_hour",
-                                                                                  "magnitude": 2}
-            }
-        }
+                "electricity production, wind, 1-3MW turbine, onshore": {
+                    "unit": "kilowatt_hour",
+                    "magnitude": 2,
+                },
+                "electricity production, wind, 1-3MW turbine, offshore": {
+                    "unit": "kilowatt_hour",
+                    "magnitude": 2,
+                },
+                "electricity production, solar tower power plant, 20 MW": {
+                    "unit": "kilowatt_hour",
+                    "magnitude": 2,
+                },
+                "electricity production, solar thermal parabolic trough, 50 MW": {
+                    "unit": "kilowatt_hour",
+                    "magnitude": 2,
+                },
+            },
+        },
     ]
 
     scenarios: list[dict] = []
 
-    node_names = ["electricity production, wind, 1-3MW turbine, onshore",
-                  "electricity production, wind, 1-3MW turbine, offshore",
-                  "electricity production, solar tower power plant, 20 MW",
-                  "electricity production, solar thermal parabolic trough, 50 MW"]
+    node_names = [
+        "electricity production, wind, 1-3MW turbine, onshore",
+        "electricity production, wind, 1-3MW turbine, offshore",
+        "electricity production, solar tower power plant, 20 MW",
+        "electricity production, solar thermal parabolic trough, 50 MW",
+    ]
 
     for idx in range(num_scenarios):
         if idx < len(default_scenarios):
             scenarios.append(default_scenarios[idx])
         else:
-            scenarios.append({"name": f"scenario {idx + 1}", "nodes": {
-                n: {"unit": "kilowatt_hour", "magnitude": randint(1, 5)}
-                for n in node_names
-            }})
+            scenarios.append(
+                {
+                    "name": f"scenario {idx + 1}",
+                    "nodes": {
+                        n: {"unit": "kilowatt_hour", "magnitude": randint(1, 5)}
+                        for n in node_names
+                    },
+                }
+            )
 
-    config = {"adapters": [bw_adapter_config], "hierarchy": hierarchy, "scenarios": scenarios}
+    config = {
+        "adapters": [bw_adapter_config],
+        "hierarchy": hierarchy,
+        "scenarios": scenarios,
+    }
     return Experiment(config)
 
 
@@ -117,6 +152,7 @@ def get_demo_experiment(num_scenarios: int = 2) -> Experiment:
     experiment_path = Path(f"data/demo_experiment_{num_scenarios}.pickle")
     # for the adapter loader...
     from enbios.bw2 import brightway_experiment_adapter
+
     brightway_experiment_adapter.logger.setLevel("INFO")
     try:
         if experiment_path.exists():

@@ -159,6 +159,8 @@ can be specified in such a way, that scenario outputs and result values have con
 
 [Specifying the hierarchy in a csv file](https://github.com/LIVENlab/enbios/blob/main/demos/csv_hierarchy.ipynb)
 
+[Exporting to a csv file](https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb)
+
 ## People
 
 * [Ramin Soleymani](https://es.linkedin.com/in/ramin-soleymani-4703b17). -[ICTA-UAB](https://www.uab.cat/icta/)

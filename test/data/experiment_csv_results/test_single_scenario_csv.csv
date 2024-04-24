@@ -1,8 +1,8 @@
-lvl_0,lvl_1,lvl_2,results_GWP1000_unit,results_GWP1000_magnitude,results_WCP_unit,results_WCP_magnitude,output_0_unit,output_0_magnitude,output_0_label,bw_activity_code
-root,,,kg CO2-Eq,0.1478233221430239,cubic meter,0.0010633319876832354,kilowatt_hour,6.0,,
-,wind,,kg CO2-Eq,0.05597409991574848,cubic meter,0.0005971209633515382,kilowatt_hour,4.0,,
-,,"electricity production, wind, 1-3MW turbine, onshore",kg CO2-Eq,0.040728182627565654,cubic meter,0.0004090798127341177,kilowatt_hour,3.0,,ed3da88fc23311ee183e9ffd376de89b
-,,"electricity production, wind, 1-3MW turbine, offshore",kg CO2-Eq,0.01524591728818283,cubic meter,0.00018804115061742048,kilowatt_hour,1.0,,6ebfe52dc3ef5b4d35bb603b03559023
-,solar,,kg CO2-Eq,0.09184922222727543,cubic meter,0.00046621102433169726,kilowatt_hour,2.0,,
-,,"electricity production, solar tower power plant, 20 MW",kg CO2-Eq,0.04336171689968771,cubic meter,0.00021147976571951987,kilowatt_hour,1.0,,f2700b2ffcb6b32143a6f95d9cca1721
-,,"electricity production, solar thermal parabolic trough, 50 MW",kg CO2-Eq,0.04848750532758773,cubic meter,0.00025473125861217737,kilowatt_hour,1.0,,19040cdacdbf038e2f6ad59814f7a9ed
+level,lvl_0,lvl_1,lvl_2,results_GWP1000_unit,results_GWP1000_magnitude,results_WCP_unit,results_WCP_magnitude,output_0_unit,output_0_magnitude,output_0_label,bw_activity_code
+0,root,,,kg CO2-Eq,0.1478233221430239,cubic meter,0.0010633319876832354,kilowatt_hour,6.0,,
+1,,wind,,kg CO2-Eq,0.05597409991574848,cubic meter,0.0005971209633515382,kilowatt_hour,4.0,,
+2,,,"electricity production, wind, 1-3MW turbine, onshore",kg CO2-Eq,0.040728182627565654,cubic meter,0.0004090798127341177,kilowatt_hour,3.0,,ed3da88fc23311ee183e9ffd376de89b
+2,,,"electricity production, wind, 1-3MW turbine, offshore",kg CO2-Eq,0.01524591728818283,cubic meter,0.00018804115061742048,kilowatt_hour,1.0,,6ebfe52dc3ef5b4d35bb603b03559023
+1,,solar,,kg CO2-Eq,0.09184922222727543,cubic meter,0.00046621102433169726,kilowatt_hour,2.0,,
+2,,,"electricity production, solar tower power plant, 20 MW",kg CO2-Eq,0.04336171689968771,cubic meter,0.00021147976571951987,kilowatt_hour,1.0,,f2700b2ffcb6b32143a6f95d9cca1721
+2,,,"electricity production, solar thermal parabolic trough, 50 MW",kg CO2-Eq,0.04848750532758773,cubic meter,0.00025473125861217737,kilowatt_hour,1.0,,19040cdacdbf038e2f6ad59814f7a9ed

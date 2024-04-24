@@ -327,13 +327,13 @@ def test_to_csv(csv_file_path):
 
     node1.to_csv(csv_file_path)
     assert csv_file_path.exists()
-    assert [{'lvl_0': 'node1', 'lvl_1': ''}, {'lvl_0': '', 'lvl_1': 'node2'}] == list(DictReader(csv_file_path.open()))
+    assert [{'level': '0','lvl_0': 'node1', 'lvl_1': ''}, {'level': '1','lvl_0': '', 'lvl_1': 'node2'}] == list(DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path, level_names=["main", "sub"])
-    assert [{'main': 'node1', 'sub': ''}, {'main': '', 'sub': 'node2'}] == list(DictReader(csv_file_path.open()))
+    assert [{'level': '0','main': 'node1', 'sub': ''}, {'level': '1','main': '', 'sub': 'node2'}] == list(DictReader(csv_file_path.open()))
 
     node1.to_csv(csv_file_path, repeat_parent_name=True)
-    assert [{'lvl_0': 'node1', 'lvl_1': ''}, {'lvl_0': 'node1', 'lvl_1': 'node2'}] == list(
+    assert [{'level': '0','lvl_0': 'node1', 'lvl_1': ''}, {'level': '1','lvl_0': 'node1', 'lvl_1': 'node2'}] == list(
         DictReader(csv_file_path.open()))
 
 def test_to_csv2(csv_file_path):
@@ -341,8 +341,8 @@ def test_to_csv2(csv_file_path):
     node2 = BasicTreeNode("node2", data={"a": 5, "b": 8})
     node1.add_child(node2)
     node1.to_csv(csv_file_path, include_data=True)
-    assert [{'lvl_0': 'node1', 'lvl_1': '', "a": "1", "b": "2"},
-            {'lvl_0': '', 'lvl_1': 'node2', "a": "5", "b": "8"}] == list(
+    assert [{'level': '0','lvl_0': 'node1', 'lvl_1': '', "a": "1", "b": "2"},
+            {'level': '1','lvl_0': '', 'lvl_1': 'node2', "a": "5", "b": "8"}] == list(
         DictReader(csv_file_path.open()))
 
 
@@ -352,7 +352,7 @@ def test_to_csv3(csv_file_path):
     node1.add_child(node2)
 
     node1.to_csv(csv_file_path, include_data=True, exclude_data_keys=["b"])
-    assert [{'lvl_0': 'node1', 'lvl_1': '', "a": "1"}, {'lvl_0': '', 'lvl_1': 'node2', "a": "5"}] == list(
+    assert [{'level': '0','lvl_0': 'node1', 'lvl_1': '', "a": "1"}, {'level': '1','lvl_0': '', 'lvl_1': 'node2', "a": "5"}] == list(
         DictReader(csv_file_path.open()))
 
 
