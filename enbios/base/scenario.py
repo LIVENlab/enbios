@@ -208,9 +208,7 @@ class Scenario:
             result["results"] = _expand_results(data.results)
             # there might be no output, when the units don't match
             if include_output:
-                result["output"] = [
-                    output.model_dump() for output in data.output
-                ]
+                result["output"] = [output.model_dump() for output in data.output]
             if include_extras and data.extras:
                 extras: dict[str, Any] = data.extras
                 for k in ["name", "results", "output"]:
@@ -250,6 +248,10 @@ class Scenario:
     ):
         """
         Save the results (as tree) to a csv file
+         :param include_extras:
+         :param repeat_parent_name:
+         :param flat_hierarchy:
+         :param include_output:
          :param warn_no_results:
          :param file_path:  path to save the results to
          :param level_names: names of the levels to include in the csv

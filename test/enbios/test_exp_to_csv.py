@@ -61,14 +61,14 @@ def test_no_extras_csv(two_level_experiment_from_pickle: Experiment, clear_temp_
 
 def test_single_scenario_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
                              temp_file: Path):
-    two_level_experiment_from_pickle.results_to_csv(temp_file, scenario_name="default scenario", include_extras=True)
+    two_level_experiment_from_pickle.results_to_csv(temp_file, scenarios="default scenario", include_extras=True)
     compare_csv_files(temp_file, results_base_folder / "test_single_scenario_csv.csv")
 
 
 def test_single_scenario_no_extras_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files,
                                        results_base_folder: Path,
                                        temp_file: Path):
-    two_level_experiment_from_pickle.results_to_csv(temp_file, scenario_name="default scenario", include_extras=False)
+    two_level_experiment_from_pickle.results_to_csv(temp_file, scenarios="default scenario", include_extras=False)
     compare_csv_files(temp_file, results_base_folder / "test_single_scenario_no_extras_csv.csv")
 
 

@@ -267,7 +267,7 @@ class Experiment:
     def results_to_csv(
         self,
         file_path: PathLike,
-        scenario_name: Optional[str] = None,
+        scenarios: Optional[Union[str, list[str]]] = None,
         level_names: Optional[list[str]] = None,
         include_method_units: bool = True,
         include_output: bool = True,
@@ -280,59 +280,62 @@ class Experiment:
         Turn the results into a csv file. If no scenario name is given,
         it will export all scenarios to the same file,
         :param file_path:
-        :param scenario_name: If no scenario name is given, it will
-        export all scenarios to the same file,
-            with an additional column for the scenario alias
+        :param scenarios: string or list of strings. If no scenario name is given, it will export all scenarios to the same file,
+        with an additional column for the scenario alias
         :param level_names: (list of strings) If given, the results will be
         exported with the given level names
         :param include_method_units:  (Include the units of the methods in the header)
+        :param include_output:
+        :param flat_hierarchy:
+        :param include_extras:
+        :param repeat_parent_name:
+        :param alternative_hierarchy:
+
         :return:
         """
-        if scenario_name:
+        scenario_names: list[str]
+        single_scenario = isinstance(scenarios, str)
+        if single_scenario:
+            scenario_names = [scenarios]
+        elif not scenarios:
+            scenario_names = [s.name for s in self.scenarios]
+        else:
+            scenario_names = scenarios
+        header = []
+        all_rows: list = []
+        for scenario_name in scenario_names:
             scenario = self.get_scenario(scenario_name)
+            temp_file_name = gettempdir() + f"/temp_scenario_{scenario.name}.csv"
             scenario.results_to_csv(
-                file_path,
+                temp_file_name,
                 level_names=level_names,
-                include_output=include_output,
                 include_method_units=include_method_units,
+                include_output=include_output,
+                flat_hierarchy=flat_hierarchy,
                 repeat_parent_name=repeat_parent_name,
                 include_extras=include_extras,
                 alternative_hierarchy=alternative_hierarchy,
             )
-            return
-        else:
-            header = []
-            all_rows: list = []
-            for scenario in self.scenarios:
-                temp_file_name = gettempdir() + f"/temp_scenario_{scenario.name}.csv"
-                scenario.results_to_csv(
-                    temp_file_name,
-                    level_names=level_names,
-                    include_method_units=include_method_units,
-                    include_output=include_output,
-                    flat_hierarchy=flat_hierarchy,
-                    repeat_parent_name=repeat_parent_name,
-                    include_extras=include_extras,
-                    alternative_hierarchy=alternative_hierarchy,
-                )
-                rows = ReadPath(temp_file_name).read_data()
+            rows = ReadPath(temp_file_name).read_data()
+            if not single_scenario:
                 for row in rows:
                     row["scenario"] = scenario.name
-                # if not all_rows:
-                for row in rows:
-                    for k in row.keys():
-                        if k not in header:
-                            header.append(k)
-                all_rows.extend(rows)
-                if (temp_file := Path(temp_file_name)).exists():
-                    temp_file.unlink()
-            # put the scenario header at the start
+            # if not all_rows:
+            for row in rows:
+                for k in row.keys():
+                    if k not in header:
+                        header.append(k)
+            all_rows.extend(rows)
+            if (temp_file := Path(temp_file_name)).exists():
+                temp_file.unlink()
+        # put the scenario header at the start
+        if not single_scenario:
             header.remove("scenario")
             header.insert(0, "scenario")
-            with Path(file_path).open("w", newline="") as csvfile:
-                writer = csv.DictWriter(csvfile, header)
-                writer.writeheader()
-                writer.writerows(all_rows)
+        with Path(file_path).open("w", newline="") as csvfile:
+            writer = csv.DictWriter(csvfile, header)
+            writer.writeheader()
+            writer.writerows(all_rows)
 
     def result_to_dict(
         self, include_output: bool = True, alternative_hierarchy: Optional[dict] = None
