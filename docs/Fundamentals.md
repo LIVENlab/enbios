@@ -1,5 +1,9 @@
 # Fundamentals
 
+## Overview
+
+- [A first example](#a-first-simple-examplee)
+
 This version is based on a very simple assumption. Calculating arbitrary (structural/terminal nodes) and aggregated
 values (functional nodes) in
 a MuSIASEM hierarchy for any type of scenarios (functional outputs).
@@ -43,7 +47,7 @@ The configuration data for an Enbios experiment has the following structure:
 - scenarios: a list of scenario configuration, containing in particular the outputs of the structural units
 - config: Some generic configurations
 
-## A first simple example
+## [A first simple example][toc]
 
 This example uses the brightway adapter and 4 activities of ecoinvent 3.9.1. The hierarchy contains 2 wind farms and 2
 solar plants, which are in 2 functional nodes ('wind' and 'solar').
