@@ -61,7 +61,7 @@ class Scenario:
         if self.config.exclude_defaults:
 
             def remove_empty_nodes(
-                node: BasicTreeNode[ScenarioResultNodeData], cancel_parents_of: set[str]
+                    node: BasicTreeNode[ScenarioResultNodeData], cancel_parents_of: set[str]
             ):
                 # aggregators without children are not needed
                 if node.is_leaf and node.data.aggregator:
@@ -86,10 +86,10 @@ class Scenario:
 
     @staticmethod
     def _propagate_results_upwards(
-        node: BasicTreeNode[ScenarioResultNodeData],
-        experiment: "Experiment",
-        *,
-        include_extras: bool = True,
+            node: BasicTreeNode[ScenarioResultNodeData],
+            experiment: "Experiment",
+            *,
+            include_extras: bool = True,
     ):
         if node.is_leaf:
             return
@@ -100,7 +100,7 @@ class Scenario:
                 node.data.extras = aggregator.result_extras(node.name)
 
     def run(
-        self, results_as_dict: bool = True, include_extras: bool = True
+            self, results_as_dict: bool = True, include_extras: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         # if not self._get_methods():
         #     raise ValueError(f"Scenario '{self.name}' has no methods")
@@ -183,10 +183,10 @@ class Scenario:
 
     @staticmethod
     def wrapper_data_serializer(
-        *,
-        include_output: bool = True,
-        include_method_units: bool = True,
-        include_extras: bool = True,
+            *,
+            include_output: bool = True,
+            include_method_units: bool = True,
+            include_extras: bool = True,
     ) -> Callable[[ScenarioResultNodeData], dict]:
         def _expand_results(results: dict[str, ResultValue]) -> dict:
             """
@@ -224,7 +224,7 @@ class Scenario:
 
     @staticmethod
     def wrapped_flat_output_list_serializer(
-        serializer: Callable[[ScenarioResultNodeData], dict]
+            serializer: Callable[[ScenarioResultNodeData], dict]
     ) -> Callable[[ScenarioResultNodeData], dict]:
         import flatten_dict
 
@@ -235,16 +235,16 @@ class Scenario:
         return flattened_wrap
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        level_names: Optional[list[str]] = None,
-        include_output: bool = True,
-        include_method_units: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: Optional[dict] = None,
-        flat_hierarchy: Optional[bool] = False,
-        repeat_parent_name: bool = False,
-        include_extras: bool = True,
+            self,
+            file_path: PathLike,
+            level_names: Optional[list[str]] = None,
+            include_output: bool = True,
+            include_method_units: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: Optional[dict] = None,
+            flat_hierarchy: Optional[bool] = False,
+            repeat_parent_name: bool = False,
+            include_extras: bool = True,
     ):
         """
         Save the results (as tree) to a csv file
@@ -286,10 +286,12 @@ class Scenario:
         )
 
     def result_to_dict(
-        self,
-        include_output: bool = True,
-        warn_no_results: bool = True,
-        alternative_hierarchy: Optional[dict] = None,
+            self,
+            include_output: bool = True,
+            include_method_units: bool = True,
+            include_extras: bool = True,
+            warn_no_results: bool = True,
+            alternative_hierarchy: Optional[dict] = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
@@ -304,7 +306,9 @@ class Scenario:
         def recursive_transform(node: BasicTreeNode[ScenarioResultNodeData]) -> dict:
             result: dict[str, Any] = {
                 "name": node.name,
-                **Scenario.wrapper_data_serializer(include_output=include_output)(
+                **Scenario.wrapper_data_serializer(include_output=include_output,
+                                                   include_method_units=include_method_units,
+                                                   include_extras=include_extras)(
                     node.data
                 ),
             }
@@ -323,7 +327,7 @@ class Scenario:
             return recursive_transform(self.result_tree.copy())
 
     def _rearrange_results(
-        self, hierarchy: dict
+            self, hierarchy: dict
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         hierarchy_obj = HierarchyNodeReference(**hierarchy)
 
@@ -336,7 +340,7 @@ class Scenario:
         )
 
         def recursive_convert(
-            node_: BasicTreeNode[TechTreeNodeData],
+                node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: list[NodeOutput] = []
             results: dict = {}

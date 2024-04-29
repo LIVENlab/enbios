@@ -1,6 +1,7 @@
-from dataclasses import field
-from typing import Optional, Union, Any
+from dataclasses import field, dataclass
+from typing import Optional, Union, Any, Type
 
+from pint import Quantity
 from pint.facets.plain import PlainQuantity
 from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict
 
@@ -56,7 +57,7 @@ class AggregationModel(BaseModel):
     aggregator_name: str = Field(
         None,
         description="this this is to use inbuilt aggregator "
-        "(e.g. 'assignment-adapter'",
+                    "(e.g. 'assignment-adapter'",
     )
     config: Optional[dict] = Field(default_factory=dict)
     note: Optional[str] = None
@@ -109,7 +110,7 @@ class HierarchyNodeReference(BaseModel):
     @field_validator("children", mode="before")
     @classmethod
     def transform_simple_string_children(
-        cls, v: list[str]
+            cls, v: list[str]
     ) -> list[Union["HierarchyNodeReference", str]]:
         return [
             HierarchyNodeReference(name=child) if isinstance(child, str) else child
@@ -236,6 +237,11 @@ class ScenarioResultNodeData(BaseModel):
     adapter: Optional[str] = None
     aggregator: Optional[str] = None
     extras: Optional[dict[str, Any]] = None
+    # todo, make use of this? Used to reconstruct, how outputs have been merged
+    output_aggregation: Optional[list[list[int]]] = None
+
+
+output_merge_type: Type[tuple[list[NodeOutput], list[list[int]]]] = tuple[list[NodeOutput], list[list[int]]]
 
 
 class EnbiosValidationException(Exception):
@@ -243,3 +249,9 @@ class EnbiosValidationException(Exception):
         super().__init__(message)
         self.exc_name = exc_name
         self.code = code
+
+
+@dataclass
+class LabeledQuantity:
+    quantity: Quantity
+    label: Optional[str] = None

@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 
 def validate_experiment_hierarchy(
-    hierarchy: ExperimentHierarchyNodeData,
+        hierarchy: ExperimentHierarchyNodeData,
 ) -> BasicTreeNode[TechTreeNodeData]:
     # todo allow no output only when there are scenarios...
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
@@ -47,9 +47,9 @@ def validate_experiment_hierarchy(
 
 
 def validate_experiment_reference_hierarchy(
-    hierarchy: HierarchyNodeReference,
-    original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
-    get_node_aggregator_fcn: Callable,
+        hierarchy: HierarchyNodeReference,
+        original_experiment_hierarchy: BasicTreeNode[TechTreeNodeData],
+        get_node_aggregator_fcn: Callable,
 ) -> BasicTreeNode[TechTreeNodeData]:
     tech_tree: BasicTreeNode[TechTreeNodeData] = BasicTreeNode.from_dict(
         hierarchy.model_dump(), dataclass=TechTreeNodeData
@@ -82,7 +82,7 @@ def validate_experiment_reference_hierarchy(
 
 
 def recursive_resolve_outputs(
-    node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
+        node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
 ):
     # todo, does this takes default values when an node is not defined
     #  in the scenario?
@@ -93,17 +93,18 @@ def recursive_resolve_outputs(
         cancel_parts_of.add(node.id)
 
     aggregator = experiment.get_node_aggregator(node)
-    node_output = aggregator.aggregate_node_output(node, kwargs.get("scenario_name"))
+    node_output, output_aggregation = aggregator.aggregate_node_output(node, kwargs.get("scenario_name"))
     if not node_output:
         cancel_parts_of.add(node.id)
     else:
         node.data.output = node_output
+        node.data.output_aggregation = output_aggregation
 
 
 def csv2hierarchy(
-    csv_file: PathLike,
-    level_cols: Optional[list[str]] = (),
-    levels_regex: Optional[str] = "^level_\d+$",
+        csv_file: PathLike,
+        level_cols: Optional[list[str]] = (),
+        levels_regex: Optional[str] = "^level_\d+$",
 ) -> dict:
     tree: dict = {}
     reader: Iterator[dict[str, str]] = DictReader(Path(csv_file).open())

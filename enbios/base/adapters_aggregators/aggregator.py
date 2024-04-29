@@ -3,7 +3,7 @@ from typing import Optional, Any
 
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.models import NodeOutput, ScenarioResultNodeData
+from enbios.models.models import NodeOutput, ScenarioResultNodeData, output_merge_type
 
 
 class EnbiosAggregator(ABC):
@@ -20,7 +20,7 @@ class EnbiosAggregator(ABC):
         self,
         node: BasicTreeNode[ScenarioResultNodeData],
         scenario_name: Optional[str] = "",
-    ) -> list[NodeOutput]:
+    ) -> output_merge_type:
         pass
 
     @abstractmethod

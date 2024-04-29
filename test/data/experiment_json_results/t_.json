@@ -1,0 +1,85 @@
+[
+  {
+    "name": "root",
+    "results": {
+      "GWP1000": {
+        "magnitude": 0.1478233221430239
+      },
+      "WCP": {
+        "magnitude": 0.0010633319876832354
+      }
+    },
+    "children": [
+      {
+        "name": "wind",
+        "results": {
+          "GWP1000": {
+            "magnitude": 0.05597409991574848
+          },
+          "WCP": {
+            "magnitude": 0.0005971209633515382
+          }
+        },
+        "children": [
+          {
+            "name": "electricity production, wind, 1-3MW turbine, onshore",
+            "results": {
+              "GWP1000": {
+                "magnitude": 0.040728182627565654
+              },
+              "WCP": {
+                "magnitude": 0.0004090798127341177
+              }
+            }
+          },
+          {
+            "name": "electricity production, wind, 1-3MW turbine, offshore",
+            "results": {
+              "GWP1000": {
+                "magnitude": 0.01524591728818283
+              },
+              "WCP": {
+                "magnitude": 0.00018804115061742048
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "solar",
+        "results": {
+          "GWP1000": {
+            "magnitude": 0.09184922222727543
+          },
+          "WCP": {
+            "magnitude": 0.00046621102433169726
+          }
+        },
+        "children": [
+          {
+            "name": "electricity production, solar tower power plant, 20 MW",
+            "results": {
+              "GWP1000": {
+                "magnitude": 0.04336171689968771
+              },
+              "WCP": {
+                "magnitude": 0.00021147976571951987
+              }
+            }
+          },
+          {
+            "name": "electricity production, solar thermal parabolic trough, 50 MW",
+            "results": {
+              "GWP1000": {
+                "magnitude": 0.04848750532758773
+              },
+              "WCP": {
+                "magnitude": 0.00025473125861217737
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
