@@ -46,6 +46,10 @@ dev = [
   "build==1.2.1", "twine==4.0.2","jupyter==1.0.0", "ruff==0.3.3","black==23.12.1", "tokenize-rt"
 ]
 
+docs = [
+    "pystache", "pydoc-markdown"
+]
+
 [tool.mypy]
 ignore_missing_imports = true
 

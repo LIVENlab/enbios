@@ -18,6 +18,7 @@ from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
 from enbios.base.tree_operations import validate_experiment_hierarchy
+from enbios.base.unit_registry import register_units
 from enbios.base.validation import (
     validate_run_scenario_setting,
     validate_scenarios,
@@ -63,6 +64,7 @@ class Experiment:
             data = config_file_path.read_data()
         else:
             data = data_input
+        register_units()
         raw_data = validate_experiment_data(data)
         # resolve hierarchy and scenarios filepaths if present
         self.resolved_raw_data: ExperimentDataResolved = resolve_input_files(raw_data)

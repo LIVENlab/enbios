@@ -522,5 +522,5 @@ class BrightwayAdapter(EnbiosAdapter):
             {(a.database, a.code): a.id for a in biosphere_activities}
         )
 
-    def result_extras(self, node_name: str) -> dict:
+    def result_extras(self, node_name: str, scenario_name: str) -> dict:
         return {"bw_activity_code": self.activityMap[node_name].bw_activity["code"]}

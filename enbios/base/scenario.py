@@ -167,7 +167,7 @@ class Scenario:
             if include_extras:
                 node.data.extras = cast(
                     EnbiosAdapter, self.experiment.get_node_adapter(node)
-                ).result_extras(node.name)
+                ).result_extras(node.name, self.name)
         if self.config.exclude_defaults:
             for leave in self.result_tree.iter_leaves():
                 if not leave.data.results:

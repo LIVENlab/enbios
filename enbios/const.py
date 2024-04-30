@@ -1,11 +1,16 @@
-from pathlib import Path
 
 import os
 import sys
+from pathlib import Path
+
 
 # Get the absolute path of the entry-point script
-entry_point_script = Path(os.path.abspath(sys.argv[0]))
+PROJECT_PATH = Path(os.path.abspath(sys.argv[0]))
+while PROJECT_PATH.name != "enbios":
+    PROJECT_PATH = PROJECT_PATH.parent
+# cuz we have a enbios subfolder in the project...
+if PROJECT_PATH.parent.name == "enbios":
+    PROJECT_PATH = PROJECT_PATH.parent
 
-PROJECT_PATH = entry_point_script.parent
 BASE_DATA_PATH = PROJECT_PATH / "data"
 BASE_TEST_DATA_PATH = Path(__file__).parent.parent / "test/data"
