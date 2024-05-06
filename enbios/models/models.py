@@ -57,7 +57,7 @@ class AggregationModel(BaseModel):
     aggregator_name: str = Field(
         None,
         description="this this is to use inbuilt aggregator "
-                    "(e.g. 'assignment-adapter'",
+        "(e.g. 'assignment-adapter'",
     )
     config: Optional[dict] = Field(default_factory=dict)
     note: Optional[str] = None
@@ -110,7 +110,7 @@ class HierarchyNodeReference(BaseModel):
     @field_validator("children", mode="before")
     @classmethod
     def transform_simple_string_children(
-            cls, v: list[str]
+        cls, v: list[str]
     ) -> list[Union["HierarchyNodeReference", str]]:
         return [
             HierarchyNodeReference(name=child) if isinstance(child, str) else child
@@ -241,7 +241,9 @@ class ScenarioResultNodeData(BaseModel):
     output_aggregation: Optional[list[list[int]]] = None
 
 
-output_merge_type: Type[tuple[list[NodeOutput], list[list[int]]]] = tuple[list[NodeOutput], list[list[int]]]
+output_merge_type: Type[tuple[list[NodeOutput], list[list[int]]]] = tuple[
+    list[NodeOutput], list[list[int]]
+]
 
 
 class EnbiosValidationException(Exception):

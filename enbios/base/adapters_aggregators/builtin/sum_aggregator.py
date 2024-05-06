@@ -18,14 +18,14 @@ class SumAggregator(EnbiosAggregator):
         pass
 
     def aggregate_node_output(
-            self,
-            node: BasicTreeNode[ScenarioResultNodeData],
-            scenario_name: Optional[str] = "",
+        self,
+        node: BasicTreeNode[ScenarioResultNodeData],
+        scenario_name: Optional[str] = "",
     ) -> output_merge_type:
         return merge_outputs([n.data.output for n in node.children])
 
     def aggregate_node_result(
-            self, node: BasicTreeNode[ScenarioResultNodeData]
+        self, node: BasicTreeNode[ScenarioResultNodeData]
     ) -> dict[str, ResultValue]:
         result: dict[str, ResultValue] = {}
         for child in node.children:

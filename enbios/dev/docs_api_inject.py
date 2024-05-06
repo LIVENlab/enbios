@@ -201,6 +201,7 @@ def create_fundamentals():
             py_loader=PythonLoader(search_path=['.']),
             config=RenderConfig(class_config=ClassRenderConfig()))
         template_module_parsed.render(dest_path.open("w"))
+        print(f"Created {dest_path.relative_to(PROJECT_PATH)} from {template_path.relative_to(PROJECT_PATH)}")
 
 
 if __name__ == "__main__":

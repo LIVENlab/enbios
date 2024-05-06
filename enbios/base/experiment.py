@@ -61,20 +61,23 @@ class Experiment:
                 )
         if isinstance(data_input, str):
             config_file_path = ReadPath(data_input)
-            data = config_file_path.read_data()
+            raw_data = config_file_path.read_data()
         else:
-            data = data_input
+            raw_data = data_input
         register_units()
-        raw_data = validate_experiment_data(data)
+
+        raw_experiment_config = validate_experiment_data(raw_data)
         # resolve hierarchy and scenarios filepaths if present
-        self.resolved_raw_data: ExperimentDataResolved = resolve_input_files(raw_data)
+        self.resolved_raw_data: ExperimentDataResolved = resolve_input_files(
+            raw_experiment_config
+        )
 
         # load and validate adapters and aggregators
-        adapters, methods = validate_adapters(raw_data.adapters)
+        adapters, methods = validate_adapters(raw_experiment_config.adapters)
         self._adapters: dict[str, EnbiosAdapter] = adapters
         self.methods: list[str] = methods
         self._aggregators: dict[str, EnbiosAggregator] = validate_aggregators(
-            raw_data.aggregators
+            raw_experiment_config.aggregators
         )
 
         # validate overall hierarchy
@@ -91,7 +94,7 @@ class Experiment:
                 self.get_node_aggregator(node).validate_node(node.name, node.data.config)
 
         def recursive_convert(
-                node_: BasicTreeNode[TechTreeNodeData],
+            node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: list[NodeOutput] = []
             # if node_.is_leaf:
@@ -156,10 +159,10 @@ class Experiment:
         )
 
     def get_node_aggregator(
-            self,
-            node: Union[
-                BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
-            ],
+        self,
+        node: Union[
+            BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
+        ],
     ) -> EnbiosAggregator:
         """
         Get the aggregator of a node
@@ -175,10 +178,10 @@ class Experiment:
         )
 
     def _get_module_by_name_or_node_indicator(
-            self,
-            name_or_indicator: str,
-            module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
-            node_name: Optional[str] = None,
+        self,
+        name_or_indicator: str,
+        module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
+        node_name: Optional[str] = None,
     ) -> Union[EnbiosAdapter, EnbiosAggregator]:
         modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = cast(
             dict[str, Union[EnbiosAdapter, EnbiosAggregator]],
@@ -210,7 +213,7 @@ class Experiment:
         raise ValueError(f"Scenario '{scenario_name}' not found")
 
     def run_scenario(
-            self, scenario_name: str, results_as_dict: bool = True
+        self, scenario_name: str, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a specific scenario
@@ -221,7 +224,7 @@ class Experiment:
         return self.get_scenario(scenario_name).run(results_as_dict)
 
     def run(
-            self, results_as_dict: bool = True
+        self, results_as_dict: bool = True
     ) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
         """
         Run all scenarios. Returns a dict with the scenario name as key
@@ -240,7 +243,6 @@ class Experiment:
         results = {}
         start_time = time.time()
         for scenario in run_scenarios:
-            scenario.reset_execution_time()
             results[scenario.name] = scenario.run(results_as_dict)
         self._execution_time = time.time() - start_time
         return results
@@ -266,7 +268,9 @@ class Experiment:
             else:
                 return "not run"
 
-    def _scenario_select(self, scenarios: Optional[Union[str, list[str]]] = None) -> list[str]:
+    def _scenario_select(
+        self, scenarios: Optional[Union[str, list[str]]] = None
+    ) -> list[str]:
         scenario_names: list[str]
         single_scenario = isinstance(scenarios, str)
         if single_scenario:
@@ -277,16 +281,16 @@ class Experiment:
             return scenarios
 
     def results_to_csv(
-            self,
-            file_path: PathLike,
-            scenarios: Optional[Union[str, list[str]]] = None,
-            level_names: Optional[list[str]] = None,
-            include_method_units: bool = True,
-            include_output: bool = True,
-            flat_hierarchy: Optional[bool] = False,
-            include_extras: Optional[bool] = True,
-            repeat_parent_name: bool = False,
-            alternative_hierarchy: Optional[dict] = None,
+        self,
+        file_path: PathLike,
+        scenarios: Optional[Union[str, list[str]]] = None,
+        level_names: Optional[list[str]] = None,
+        include_method_units: bool = True,
+        include_output: bool = True,
+        flat_hierarchy: Optional[bool] = False,
+        include_extras: Optional[bool] = True,
+        repeat_parent_name: bool = False,
+        alternative_hierarchy: Optional[dict] = None,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -344,12 +348,12 @@ class Experiment:
             writer.writerows(all_rows)
 
     def result_to_dict(
-            self,
-            scenarios: Optional[Union[str, list[str]]] = None,
-            include_method_units: bool = True,
-            include_output: bool = True,
-            include_extras: Optional[bool] = True,
-            alternative_hierarchy: Optional[dict] = None
+        self,
+        scenarios: Optional[Union[str, list[str]]] = None,
+        include_method_units: bool = True,
+        include_output: bool = True,
+        include_extras: Optional[bool] = True,
+        alternative_hierarchy: Optional[dict] = None,
     ) -> list[dict[str, Any]]:
         """
         Get the results of all scenarios as a list of dictionaries as dictionaries
@@ -364,9 +368,9 @@ class Experiment:
         return [
             self.get_scenario(scenario).result_to_dict(
                 include_output=include_output,
-                include_method_units= include_method_units,
+                include_method_units=include_method_units,
                 include_extras=include_extras,
-                alternative_hierarchy=alternative_hierarchy
+                alternative_hierarchy=alternative_hierarchy,
             )
             for scenario in scenario_names
         ]
@@ -409,10 +413,10 @@ class Experiment:
         return list(self._adapters.values())
 
     def run_scenario_config(
-            self,
-            scenario_config: dict,
-            result_as_dict: bool = True,
-            append_scenario: bool = True,
+        self,
+        scenario_config: dict,
+        result_as_dict: bool = True,
+        append_scenario: bool = True,
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An
@@ -479,10 +483,10 @@ class Experiment:
 
     @staticmethod
     def get_module_definition(
-            clazz: Union[
-                Type[EnbiosAdapter], EnbiosAdapter, Type[EnbiosAggregator], EnbiosAggregator
-            ],
-            details: bool = True,
+        clazz: Union[
+            Type[EnbiosAdapter], EnbiosAdapter, Type[EnbiosAggregator], EnbiosAggregator
+        ],
+        details: bool = True,
     ) -> dict[str, Any]:
         result: dict = {
             "node_indicator": clazz.node_indicator(),
@@ -510,7 +514,7 @@ class Experiment:
         return result
 
     def get_all_configs(
-            self, include_all_builtin_configs: bool = True
+        self, include_all_builtin_configs: bool = True
     ) -> dict[str, dict[str, dict[str, Any]]]:
         """
         Result structure:
@@ -527,15 +531,15 @@ class Experiment:
             "adapters": {
                 name: Experiment.get_module_definition(adapter, True)
                 for name, adapter in (
-                        self._adapters
-                        | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
+                    self._adapters
+                    | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
                 ).items()
             },
             "aggregators": {
                 name: Experiment.get_module_definition(aggregator, True)
                 for name, aggregator in (
-                        self._aggregators
-                        | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
+                    self._aggregators
+                    | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
                 ).items()
             },
         }
@@ -546,7 +550,7 @@ class Experiment:
         adapter_indicator, method_name = "", ""
         if "." in method:
             assert (
-                    method in self.methods
+                method in self.methods
             ), f"Method {method} missing. Candidates: {', '.join(self.methods)}"
             adapter_indicator, method_name = method.split(".")
         else:
@@ -582,7 +586,7 @@ class Experiment:
         return str(MermaidDiagram(nodes=nodes, links=links, orientation="top-down"))
 
     def get_simplified_hierarchy(
-            self, print_it: bool = False
+        self, print_it: bool = False
     ) -> dict[str, Optional[dict[str, Any]]]:
         def rec_nodes(node: BasicTreeNode) -> dict[str, Optional[dict[str, Any]]]:
             res = {}

@@ -49,7 +49,7 @@ class EnbiosAdapter(ABC):
 
     @abstractmethod
     def validate_scenario_node(
-            self, node_name: str, scenario_name: str, scenario_node_data: Any
+        self, node_name: str, scenario_name: str, scenario_node_data: Any
     ):
         """
         Validates the output of a node within a scenario. Is called for each node within a scenario.

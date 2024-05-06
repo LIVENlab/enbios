@@ -108,17 +108,15 @@ def validate_scenario(
     :return:
     """
 
-    def validate_nodes(scenario_: ExperimentScenarioData) -> dict[str, float]:
+    def validate_nodes(scenario_: ExperimentScenarioData):
         nodes = scenario_.nodes or {}
-        outputs: dict[str, float] = {}
+        # outputs: dict[str, float] = {}
 
         for node_name_, node_output in nodes.items():
+            ## what if the node is not structural
             node_ = experiment.get_structural_node(node_name_)
             adapter = experiment.get_node_adapter(node_)
-            outputs[node_name_] = adapter.validate_scenario_node(
-                node_name_, str(scenario_.name), node_output
-            )
-        return outputs
+            adapter.validate_scenario_node(node_name_, str(scenario_.name), node_output)
 
     validate_nodes(scenario_data)
 
