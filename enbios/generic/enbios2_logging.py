@@ -41,7 +41,7 @@ class EnbiosLogger:
 
     @classmethod
     def init_logger(cls):
-        cls.log_config_file = Path(BASE_DATA_PATH) / "logging.json"
+        cls.log_config_file = EnbiosLogger.get_logging_config_file_path()
         # check if  exists
         if not cls.log_config_file.exists():
             print(f"Creating logging config file at: {cls.log_config_file}")
@@ -55,6 +55,10 @@ class EnbiosLogger:
         cls.reload_config()
         # shutoff bw2calc logger
         getLogger("bw2calc").setLevel(logging.WARNING)
+
+    @classmethod
+    def get_logging_config_file_path(cls) -> Path:
+        return Path(BASE_DATA_PATH) / "logging.json"
 
     @classmethod
     def reload_config(cls):

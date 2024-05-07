@@ -18,7 +18,7 @@ from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
 from enbios.base.tree_operations import validate_experiment_hierarchy
-from enbios.base.unit_registry import register_units
+from enbios.base.unit_registry import register_units, get_pint_units_file_path
 from enbios.base.validation import (
     validate_run_scenario_setting,
     validate_scenarios,
@@ -27,7 +27,7 @@ from enbios.base.validation import (
     validate_aggregators,
 )
 from enbios.bw2.MultiLCA_util import BaseStackedMultiLCA
-from enbios.generic.enbios2_logging import get_logger
+from enbios.generic.enbios2_logging import get_logger, EnbiosLogger
 from enbios.generic.files import PathLike, ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.models.environment_model import Settings
@@ -46,7 +46,7 @@ logger = get_logger(__name__)
 class Experiment:
     DEFAULT_SCENARIO_NAME = "default scenario"
 
-    def __init__(self, data_input: Optional[Union[dict, str]] = None):
+    def __init__(self, data_input: Optional[Union[dict, str, Path]] = None):
         """
         Initialize the experiment
         :param data_input: dictionary or filename to load the data from
@@ -59,7 +59,7 @@ class Experiment:
                     "Experiment config-file-path must be specified as environment "
                     "variable: 'CONFIG_FILE'"
                 )
-        if isinstance(data_input, str):
+        if isinstance(data_input, str) or isinstance(data_input, Path):
             config_file_path = ReadPath(data_input)
             raw_data = config_file_path.read_data()
         else:
@@ -608,3 +608,9 @@ class Experiment:
         if print_it:
             print(json.dumps(result, indent=2, ensure_ascii=False))
         return result
+
+    def delete_pint_and_logging_file(self):
+        pint_units_file_path = Path(get_pint_units_file_path())
+        pint_units_file_path.unlink(True)
+        logging_config_file_path = EnbiosLogger.get_logging_config_file_path()
+        logging_config_file_path.unlink(True)

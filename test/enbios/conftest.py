@@ -129,7 +129,8 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                      extras={},
                                      aggregator="sum",
                                      results={
-                                         default_bw_method_name: ResultValue(unit="kg CO2-Eq", magnitude=_impact)})}
+                                         default_bw_method_name: ResultValue(unit="kg CO2-Eq", magnitude=_impact)},
+                                     output_aggregation=[[0]])}
     }
 
 

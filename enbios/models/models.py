@@ -238,7 +238,7 @@ class ScenarioResultNodeData(BaseModel):
     aggregator: Optional[str] = None
     extras: Optional[dict[str, Any]] = None
     # todo, make use of this? Used to reconstruct, how outputs have been merged
-    output_aggregation: Optional[list[list[int]]] = None
+    output_aggregation: Optional[list[list[int]]] = Field(None, exclude=True)
 
 
 output_merge_type: Type[tuple[list[NodeOutput], list[list[int]]]] = tuple[

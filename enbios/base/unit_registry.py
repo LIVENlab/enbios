@@ -5,8 +5,12 @@ from enbios.generic.files import DataPath
 ureg = UnitRegistry()
 
 
+def get_pint_units_file_path() -> DataPath:
+    return DataPath("ecoinvent_pint_unit_match.txt")
+
+
 def register_units():
-    ecoinvent_units_file_path = DataPath("ecoinvent_pint_unit_match.txt")
+    ecoinvent_units_file_path = get_pint_units_file_path()
 
     if not ecoinvent_units_file_path.exists():
         print(
@@ -17,6 +21,3 @@ def register_units():
         ecoinvent_units_file_path.write_text("unspecificEcoinventUnit = []\n")
 
     ureg.load_definitions(ecoinvent_units_file_path)
-
-
-# print("loaded ecoinvent units")

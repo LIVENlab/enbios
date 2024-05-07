@@ -1,5 +1,5 @@
+from enbios.generic.output_merge import merge_outputs
 from enbios.models.models import NodeOutput
-from enbios.util.output_merge import merge_outputs
 
 
 def create_output(label_id: int = 0) -> NodeOutput:

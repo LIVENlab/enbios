@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Optional, Union, TYPE_CHECKING, Any, Callable, cast
 
 from enbios.base.tree_operations import validate_experiment_reference_hierarchy
+
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike
 from enbios.models.models import (
@@ -227,8 +228,7 @@ class Scenario:
     def wrapped_flat_output_list_serializer(
         serializer: Callable[[ScenarioResultNodeData], dict]
     ) -> Callable[[ScenarioResultNodeData], dict]:
-        import flatten_dict
-
+        from enbios.generic.flatten_dict import flatten_dict
         def flattened_wrap(result_data: ScenarioResultNodeData) -> dict:
             res = serializer(result_data)
             return flatten_dict.flatten(res, reducer="underscore", enumerate_types={list})
