@@ -94,7 +94,7 @@ class Experiment:
                 self.get_node_aggregator(node).validate_node(node.name, node.data.config)
 
         def recursive_convert(
-            node_: BasicTreeNode[TechTreeNodeData],
+                node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: list[NodeOutput] = []
             # if node_.is_leaf:
@@ -123,10 +123,9 @@ class Experiment:
 
     def get_structural_node(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
         """
-        Get a node by either its name
-        as it is defined in the experiment data
-        :param name:
-        :return: BasicTreeNode[TechTreeNodeData]
+        Get a node by either its name as it is defined in the experiment data.
+        :param name: Name of the node (as defined in the experiment hierarchy)
+        :return: All node-data
         """
         node = self._structural_nodes.get(name, None)
         if not node:
@@ -137,8 +136,8 @@ class Experiment:
         """
         Get the adapter of a node in the experiment hierarchy
 
-        :param node:
-        :return:
+        :param node: The node for which the adapter should be returned
+        :return: The adapter for the node
         """
         assert node.data.adapter
         return cast(
@@ -151,23 +150,23 @@ class Experiment:
     def get_adapter_by_name(self, name: str) -> EnbiosAdapter:
         """
         Get an adapter by its name
-        :param name:
-        :return:
+        :param name: name of the adapter
+        :return: The adapter
         """
         return cast(
             EnbiosAdapter, self._get_module_by_name_or_node_indicator(name, EnbiosAdapter)
         )
 
     def get_node_aggregator(
-        self,
-        node: Union[
-            BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
-        ],
+            self,
+            node: Union[
+                BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
+            ],
     ) -> EnbiosAggregator:
         """
         Get the aggregator of a node
-        :param node:
-        :return:
+        :param node: The node, either in the config hierarchy or in the result hierarchy
+        :return: The aggregator for the node
         """
         assert node.data.aggregator
         return cast(
@@ -178,10 +177,10 @@ class Experiment:
         )
 
     def _get_module_by_name_or_node_indicator(
-        self,
-        name_or_indicator: str,
-        module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
-        node_name: Optional[str] = None,
+            self,
+            name_or_indicator: str,
+            module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
+            node_name: Optional[str] = None,
     ) -> Union[EnbiosAdapter, EnbiosAggregator]:
         modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = cast(
             dict[str, Union[EnbiosAdapter, EnbiosAggregator]],
@@ -204,8 +203,8 @@ class Experiment:
     def get_scenario(self, scenario_name: str) -> Scenario:
         """
         Get a scenario by its name
-        :param scenario_name:
-        :return:
+        :param scenario_name: The name of the scenario as defined in the config or (Experiment.DEFAULT_SCENARIO_NAME)
+        :return: The scenario object
         """
         for scenario in self.scenarios:
             if scenario.name == scenario_name:
@@ -213,27 +212,24 @@ class Experiment:
         raise ValueError(f"Scenario '{scenario_name}' not found")
 
     def run_scenario(
-        self, scenario_name: str, results_as_dict: bool = True
+            self, scenario_name: str, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a specific scenario
-        :param scenario_name:
-        :param results_as_dict:
-        :return: The result_tree converted into a dict
+        :param scenario_name: Name of the scenario to run
+        :param results_as_dict: If the result should be returned as a dict instead of a tree object
+        :return: The result_tree (eventually converted into a dict)
         """
         return self.get_scenario(scenario_name).run(results_as_dict)
 
     def run(
-        self, results_as_dict: bool = True
+            self, results_as_dict: bool = True
     ) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
         """
-        Run all scenarios. Returns a dict with the scenario name as key
-        and the result_tree as value
-        :return: dictionary scenario-name : result_tree
+        Run all scenarios. Returns a dict with the scenario name as key and the result_tree as value
+        :param results_as_dict: If the result should be returned as a dict instead of a tree object
+        :return: dictionary scenario-name : result_tree  (eventually converted into a dict)
         """
-        # methods = [m.id for m in self.methods.values()]
-        # inventories: list[list[dict[Activity, float]]] = []
-
         if self.config.run_scenarios:
             run_scenarios = [self.get_scenario(s) for s in self.config.run_scenarios]
             logger.info(f"Running selected scenarios: {[s.name for s in run_scenarios]}")
@@ -250,8 +246,7 @@ class Experiment:
     @property
     def execution_time(self) -> str:
         """
-        Get the execution time of the experiment (or all its scenarios) in
-        a readable format
+        Get the execution time of the experiment (or all its scenarios) in a readable format
         :return: execution time in the format HH:MM:SS
         """
         if not math.isnan(self._execution_time):
@@ -269,7 +264,7 @@ class Experiment:
                 return "not run"
 
     def _scenario_select(
-        self, scenarios: Optional[Union[str, list[str]]] = None
+            self, scenarios: Optional[Union[str, list[str]]] = None
     ) -> list[str]:
         scenario_names: list[str]
         single_scenario = isinstance(scenarios, str)
@@ -281,33 +276,35 @@ class Experiment:
             return scenarios
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        scenarios: Optional[Union[str, list[str]]] = None,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = True,
-        include_output: bool = True,
-        flat_hierarchy: Optional[bool] = False,
-        include_extras: Optional[bool] = True,
-        repeat_parent_name: bool = False,
-        alternative_hierarchy: Optional[dict] = None,
+            self,
+            file_path: PathLike,
+            scenarios: Optional[Union[str, list[str]]] = None,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = True,
+            include_output: bool = True,
+            flat_hierarchy: Optional[bool] = False,
+            include_extras: Optional[bool] = True,
+            repeat_parent_name: bool = False,
+            alternative_hierarchy: Optional[dict] = None,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
         it will export all scenarios to the same file,
-        :param file_path:
-        :param scenarios: string or list of strings. If no scenario name is given, it will export all scenarios to the same file,
+        :param file_path: File path to export to
+        :param scenarios: string or list of strings. If no scenario name is given, it will export all scenarios
+        to the same file,
         with an additional column for the scenario alias
-        :param level_names: (list of strings) If given, the results will be
-        exported with the given level names
+        :param level_names: (list of strings) If given, the results will be exported with the given level names.
+        This is only effective when flat_hierarchy is False.
         :param include_method_units:  (Include the units of the methods in the header)
-        :param include_output:
-        :param flat_hierarchy:
-        :param include_extras:
-        :param repeat_parent_name:
-        :param alternative_hierarchy:
-
-        :return:
+        :param include_output: Include the output of all nodes (default: True)
+        :param flat_hierarchy: If instead of representing each level of the hierarchy with its own column,
+        we just indicate the node levels.
+        :param include_extras: Include extras from adapters and aggregators in the results (default: True)
+        :param repeat_parent_name: If True, the parent name will be repeated for each child node in the
+        corresponding level column.  This is only effective when flat_hierarchy is False. (default: False)
+        :param alternative_hierarchy: If given, the results will be recalculated using the given alternative hierarchy.
+        In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
         """
         scenario_names: list[str] = self._scenario_select(scenarios)
         single_scenario = len(scenario_names) == 1
@@ -348,20 +345,21 @@ class Experiment:
             writer.writerows(all_rows)
 
     def result_to_dict(
-        self,
-        scenarios: Optional[Union[str, list[str]]] = None,
-        include_method_units: bool = True,
-        include_output: bool = True,
-        include_extras: Optional[bool] = True,
-        alternative_hierarchy: Optional[dict] = None,
+            self,
+            scenarios: Optional[Union[str, list[str]]] = None,
+            include_method_units: bool = True,
+            include_output: bool = True,
+            include_extras: Optional[bool] = True,
+            alternative_hierarchy: Optional[dict] = None,
     ) -> list[dict[str, Any]]:
         """
         Get the results of all scenarios as a list of dictionaries as dictionaries
-        :param alternative_hierarchy:
-        :param include_extras:
-        :param include_method_units:
-        :param scenarios:
-        :param include_output: Include the output of each node in the tree
+        :param scenarios: A selection of scenarios to export. If None, all scenarios will be exported.
+        :param alternative_hierarchy: If given, the results will be recalculated using the given alternative hierarchy.
+        In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+        :param include_method_units: Include the units of the methods in the header (default: True)
+        :param include_output: Include the output of each node in the tree (default: True)
+        :param include_extras: Include extras from adapters and aggregators in the results (default: True)
         :return:
         """
         scenario_names = self._scenario_select(scenarios)
@@ -394,6 +392,10 @@ class Experiment:
 
     @property
     def structural_nodes_names(self) -> list[str]:
+        """
+        Return the names of all structural nodes (bottom)
+        :return: names of all structural nodes
+        """
         return list(self._structural_nodes.keys())
 
     @property
@@ -408,22 +410,24 @@ class Experiment:
     def adapters(self) -> list[EnbiosAdapter]:
         """
         Get all adapters in a list
-        :return:
+        :return: A list of all adapters
         """
         return list(self._adapters.values())
 
     def run_scenario_config(
-        self,
-        scenario_config: dict,
-        result_as_dict: bool = True,
-        append_scenario: bool = True,
+            self,
+            scenario_config: dict,
+            result_as_dict: bool = True,
+            append_scenario: bool = True,
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An
-        :param scenario_config:
-        :param result_as_dict:
-        :param append_scenario:
-        :return:
+        :param scenario_config: The scenario config as a dictionary (as it would be defined in the experiment config)
+        :param result_as_dict: If True, the result will be returned as a dictionary. If False, the result will be
+        returned as a BasicTreeNode.
+        :param append_scenario: If True, the scenario will be appended to the experiment. If False, the scenario will
+        not be appended.
+        :return: The scenario result as a dictionary or a BasicTreeNode
         """
         scenario_data = ExperimentScenarioData(**scenario_config)
         scenario_data.name_factory(len(self.scenarios))
@@ -441,7 +445,7 @@ class Experiment:
     def info(self) -> str:
         """
         Information about the experiment
-        :return:
+        :return: Generated information as a string
         """
         node_rows: list[str] = []
 
@@ -483,11 +487,17 @@ class Experiment:
 
     @staticmethod
     def get_module_definition(
-        clazz: Union[
-            Type[EnbiosAdapter], EnbiosAdapter, Type[EnbiosAggregator], EnbiosAggregator
-        ],
-        details: bool = True,
+            clazz: Union[
+                Type[EnbiosAdapter], EnbiosAdapter, Type[EnbiosAggregator], EnbiosAggregator
+            ],
+            details: bool = True,
     ) -> dict[str, Any]:
+        """
+        Get the 'node_indicator' and schema of a module (adapter or aggregator)
+        :param clazz: The class of the module (adapter or aggregator)
+        :param details: If the whole schema should be returned (True) or just the node_indicator (False) (default: True)
+        :return: returns a dictionary {node_indicator: <node_indicator>, config: <schema>}
+        """
         result: dict = {
             "node_indicator": clazz.node_indicator(),
         }
@@ -499,7 +509,8 @@ class Experiment:
     def get_builtin_adapters(details: bool = True) -> dict[str, dict[str, Any]]:
         """
         Get the built-in adapters
-        :return:
+        :param details: If the schema should be included or not (default: True)
+        :return: all built-in adapters as a dictionary name: {node_indicator: <node_indicator>, config: <json-schema>}
         """
         result = {}
         for name, clazz in BUILTIN_ADAPTERS.items():
@@ -508,13 +519,18 @@ class Experiment:
 
     @staticmethod
     def get_builtin_aggregators(details: bool = True) -> dict[str, dict[str, Any]]:
+        """
+        Get the built-in aggregators
+        :param details: If the schema should be included or not (default: True)
+        :return: all built-in aggregators as a dictionary name: {node_indicator: <node_indicator>, config: <json-schema>}
+        """
         result = {}
         for name, clazz in BUILTIN_AGGREGATORS.items():
             result[name] = Experiment.get_module_definition(clazz, details)
         return result
 
     def get_all_configs(
-        self, include_all_builtin_configs: bool = True
+            self, include_all_builtin_configs: bool = True
     ) -> dict[str, dict[str, dict[str, Any]]]:
         """
         Result structure:
@@ -531,49 +547,34 @@ class Experiment:
             "adapters": {
                 name: Experiment.get_module_definition(adapter, True)
                 for name, adapter in (
-                    self._adapters
-                    | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
+                        self._adapters
+                        | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
                 ).items()
             },
             "aggregators": {
                 name: Experiment.get_module_definition(aggregator, True)
                 for name, aggregator in (
-                    self._aggregators
-                    | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
+                        self._aggregators
+                        | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
                 ).items()
             },
         }
 
         return result
 
-    def get_method_unit(self, method: str) -> str:
-        adapter_indicator, method_name = "", ""
-        if "." in method:
-            assert (
-                method in self.methods
-            ), f"Method {method} missing. Candidates: {', '.join(self.methods)}"
-            adapter_indicator, method_name = method.split(".")
-        else:
-            assert method in self.method_names
-            found = False
-            for m in self.methods:
-                if m.split(".")[-1] == method:
-                    adapter_indicator, method_name = m.split(".")
-                    found = True
-                    break
-            if not found:
-                raise ValueError(f"Method {method} not found")
-        adapter: EnbiosAdapter = cast(
-            EnbiosAdapter,
-            self._get_module_by_name_or_node_indicator(adapter_indicator, EnbiosAdapter),
-        )
-        return adapter.get_method_unit(method_name)
-
     @property
     def method_names(self) -> list[str]:
+        """
+        Names of all methods
+        :return: a list of method names
+        """
         return [m.split(".")[-1] for m in self.methods]
 
     def hierarchy2mermaid(self) -> str:
+        """
+        Convert the hierarchy to a mermaid graph diagram
+        :return: a string representing in mermaid syntax
+        """
         mm_nodes_map: dict[str, Node] = {}
         nodes: list[Node] = []
         links: list[Link] = []
@@ -586,8 +587,14 @@ class Experiment:
         return str(MermaidDiagram(nodes=nodes, links=links, orientation="top-down"))
 
     def get_simplified_hierarchy(
-        self, print_it: bool = False
+            self, print_it: bool = False
     ) -> dict[str, Optional[dict[str, Any]]]:
+        """
+        Get the hierarchy as a dictionary, but in a simplified form, i.e. only the nodes with children are included.
+        :param print_it: Print it to the console
+        :return: A simplified dictionary of the hierarchy
+        """
+
         def rec_nodes(node: BasicTreeNode) -> dict[str, Optional[dict[str, Any]]]:
             res = {}
             if node.children:

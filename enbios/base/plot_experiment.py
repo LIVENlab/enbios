@@ -433,7 +433,7 @@ def plot_multivalue_results(
             ax.set_xticks(x)
             ax.set_xticklabels(nodes)
             ax.set_title(f"Scenario {scenario}")
-            ax.set_ylabel(f"{method}\n{rs.experiment.get_method_unit(method)}")
+            ax.set_ylabel(f"{method}\n{rs.get_method_unit(method)}")
 
             # ax.set_ylabel
             # ax.set(xlim=(-0.5, len(x_labels) - 0.5), ylim=(0, max(value_array) + yerr_std + 1))

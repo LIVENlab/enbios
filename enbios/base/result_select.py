@@ -1,10 +1,11 @@
-from typing import Optional, Union, Literal
+from typing import Optional, Union, Literal, cast
 
 import pandas as pd
 from numpy import ndarray
 from pandas import DataFrame
 from sklearn.preprocessing import MinMaxScaler
 
+from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.experiment import Experiment
 from enbios.generic.enbios2_logging import get_logger
 
@@ -127,11 +128,39 @@ class ResultsSelector:
             normalized_df = normalized_df[normalized_df["scenario"].isin(self.scenarios)]
         return normalized_df
 
+    def get_method_unit(self, method: str) -> str:
+        """
+
+        :param method:
+        :return:
+        """
+        adapter_indicator, method_name = "", ""
+        if "." in method:
+            assert (
+                    method in self.methods
+            ), f"Method {method} missing. Candidates: {', '.join(self.methods)}"
+            adapter_indicator, method_name = method.split(".")
+        else:
+            assert method in self.method_names
+            found = False
+            for m in self.methods:
+                if m.split(".")[-1] == method:
+                    adapter_indicator, method_name = m.split(".")
+                    found = True
+                    break
+            if not found:
+                raise ValueError(f"Method {method} not found")
+        adapter: EnbiosAdapter = cast(
+            EnbiosAdapter,
+            self.experiment._get_module_by_name_or_node_indicator(adapter_indicator, EnbiosAdapter),
+        )
+        return adapter.get_method_unit(method_name)
+
     def method_label_names(self, include_unit: bool = True) -> list[str]:
         return [
             (
                 method
-                + ("\n" + self.experiment.get_method_unit(method) if include_unit else "")
+                + ("\n" + self.get_method_unit(method) if include_unit else "")
             )
             for method in self.methods
         ]

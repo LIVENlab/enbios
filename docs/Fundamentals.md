@@ -2,7 +2,9 @@
 
 ## Overview
 
-- [Structure of an Enbios configuration](#structure-of-an-enbios-configuration)
+- [Structure of an Enbios](#structure-of-enbios)
+- [Initializing an experiment](#initializing-an-experiment)
+- [Running an experiment](#running-an-experiment)
 - [A first example](#a-first-simple-example)
 - [How to configure Adapters and Aggregators](#how-to-configure-adapters-and-aggregators)
 - [Creating Adapters and Aggregators](#creating-adapters-and-aggregators)
@@ -28,6 +30,8 @@ scenario. Both outputs and resultvalues are passed up in the hierarchy until the
 Functional nodes are each assigned an aggregator, which aggregates outputs and results and pass those up the hierarchy (
 if there is a level up in the hierarchy for any given node).
 
+## Structure of Enbios
+
 ```mermaid
 graph
     Experiment --> Ada_Agg
@@ -42,12 +46,42 @@ graph
 In creation of an enbios experiment. its configuration, is on strictly validated.
 Afterward any scenario or all scenarios, defined in the config object can be executed.
 
+[The full experiment API can be found here.](#Full-Experiment-API)
+
 This version of enbios, is built with flexibility in mind. That means, the value calculation for structural nodes and
 aggregation calculations for functional nodes is done in external python modules. Through this approach,
 users can develop new arbitrary calculation (**Adapter**) and aggregation (**Aggregator**) modules and use them in
 Enbios.
 
+### Configuration
+As seen above these are the main parts of an enbios config
+- adapters: a list of adapter configurations, that should be used in this experiment
+- aggregators: a list of aggregator configurations, that should be used in this experiment
+- hierarchy: a tree-like structure, where each node in the tree needs a name, depending on its position (structural or
+  functional) an association with an adapter or aggregator, and some specific configuration for that (e.g. how to
+  identify the node in the adapter/aggregator, default outputs)
+- scenarios: a list of scenario configuration, containing in particular the outputs of the structural units
+- config: Some generic configurations
+
+### Validation
+
+Enbios uses pydantic (https://docs.pydantic.dev/latest/), as data validation library
+for the structural validation of the configuration. The complete structural definitions of the data, is also given
+as a JSON Schema (https://json-schema.org/)
+file https://github.com/LIVENlab/enbios/blob/main/data/schema/experiment.schema.gen.json
+Therefor the config data can also be validated with any JSON Schema validator (
+e.g. https://www.jsonschemavalidator.net/)
+
 ## Initializing an experiment
+
+An Experiment can be initialized in the 3 following ways.
+
+1. Passing a python dictionary object, which contains the configuration
+2. Passing a string to a JSON file, which contains the configuration
+3. Not passing anything to the experiment, which will make enbios look for a JSON file at the path given for the
+   environmental variable `CONFIG_FILE`.
+
+This starts off the following steps of validation and preparation:
 
 - check environment variables for link to experiment config file
 - register additional units
@@ -85,7 +119,7 @@ Enbios.
               aggregator.aggregate_node_output</agg>)
 - validate scenario settings: Check if the environmental settings, specify which scenarios to run
 
-## Runnning an experiment
+## Running an experiment
 
 The function `Experiment.run` will run either
 
@@ -105,245 +139,6 @@ For all adapters specified for the experiment:
 Propagate the results up in the result-tree:
 
 From top to bottom aggregate the results within the result-tree (<agg>aggregator.aggregate_node_result</agg>)
-
-## Adapters and aggregators
-
-There are a some builtin adapters and aggregators:
-
-**Adapters:**
-
-- SimpleAssignmentAdapter: For this Adapter, the outputs and impacts can be defined in the adapter configuration
-- BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
-  based on the outputs of activities (structural nodes)
-
-## EnbiosAdapter Objects
-
-#### validate\_definition
-
-```python
-@abstractmethod
-def validate_definition(definition: AdapterModel)
-```
-
-This is the first validator to be called. Validates the whole adapter definition, which is the whole dictionary (parse as enbios.models.models.AdapterModel)
-
-**Arguments**:
-
-- `definition`: the whole adapter definition (containing 'config' and 'methods')
-
-#### validate\_config
-
-```python
-@abstractmethod
-def validate_config(config: Optional[dict[str, Any]])
-```
-
-Validate the config. The creator may store anything in the
-
-adapter object through this method.
-
-**Arguments**:
-
-- `config`: the configuration of the adapter, which might have its own BaseModel. For understanding the structure,
-it makes sense to provide this model as a return value of "adapter" in the get_config_schemas() method.
-
-#### validate\_methods
-
-```python
-@abstractmethod
-def validate_methods(methods: Optional[dict[str, Any]]) -> list[str]
-```
-
-Validate the methods. The creator might store method specific data in the adapter through this method.
-
-**Arguments**:
-
-- `methods`: A dictionary of method names and their config (identifiers for the adapter).
-
-**Returns**:
-
-list of method names
-
-#### validate\_node
-
-```python
-@abstractmethod
-def validate_node(node_name: str, node_config: Any)
-```
-
-Validate one node. This method is called for each node experiment config (hierarchy) that is using this adapter.
-
-**Arguments**:
-
-- `node_name`: name of the node in the hierarchy
-- `node_config`: Configuration of the node (data for identification and default outputs...)
-
-#### validate\_scenario\_node
-
-```python
-@abstractmethod
-def validate_scenario_node(node_name: str, scenario_name: str,
-                           scenario_node_data: Any)
-```
-
-Validates the output of a node within a scenario. Is called for each node within a scenario.
-
-**Arguments**:
-
-- `node_name`: Name of the node in the hierarchy.
-- `scenario_name`: Name of scenario
-- `scenario_node_data`: The output or config of the node in the scenario
-
-#### get\_node\_output
-
-```python
-@abstractmethod
-def get_node_output(node_name: str, scenario: str) -> list[NodeOutput]
-```
-
-The output of a node for a scenario. A list of NodeOutput objects.
-
-**Arguments**:
-
-- `node_name`: Name of the node in the hierarchy
-- `scenario`: Name of the scenario
-
-**Returns**:
-
-Multiple NodeOutput objects.
-
-#### get\_method\_unit
-
-```python
-@abstractmethod
-def get_method_unit(method_name: str) -> str
-```
-
-Unit of a method
-
-**Arguments**:
-
-- `method_name`:
-
-#### run\_scenario
-
-```python
-@abstractmethod
-def run_scenario(scenario: Scenario) -> dict[str, dict[str, ResultValue]]
-```
-
-Run a specific scenario. The adapter should return a dictionary of the form:
-
-{
-        node_name: {
-            method_name: ResultValue (unit, magnitude)
-        }
-    }
-
-**Arguments**:
-
-- `scenario`:
-
-**Returns**:
-
-Returns a dictionary node-name: (method-name: results)
-
-#### node\_indicator
-
-```python
-@staticmethod
-@abstractmethod
-def node_indicator() -> str
-```
-
-This string can be used in order to indicate that a node in the hierarchy should use this adapter.
-
-**Returns**:
-
-node-indicator string
-
-#### get\_config\_schemas
-
-```python
-@staticmethod
-@abstractmethod
-def get_config_schemas() -> dict[str, dict[str, Any]]
-```
-
-Get the Jsonschema for the adapter. These can be derived, when there are pydantic based models for validation
-
-(using the `model_json_schema` function). The structure of the return value should correspond to the three parts of validation,
- the adapter-config, the activity-configs in the hierarchy and the methods.
-
-**Returns**:
-
-dictionary, where each key corresponds to one part of validation (proposed keys: `adapter`, `activty` and `method`.
-
-#### name
-
-```python
-@staticmethod
-@abstractmethod
-def name() -> str
-```
-
-Name of the adapter (which can also used to indicate in the hierarchy that a node should use this adapter.
-
-**Returns**:
-
-string: name of the adapter
-
-#### get\_logger
-
-```python
-def get_logger() -> Logger
-```
-
-Logger of this adapter. Use this inside the adapter.
-
-**Returns**:
-
-Use this to make logs inside the adapter
-
-#### result\_extras
-
-```python
-def result_extras(node_name: str, scenario_name: str) -> dict[str, Any]
-```
-
-**Arguments**:
-
-- `node_name`: Name of the node in the hierarchy
-- `scenario_name`: Name of the scenario
-
-**Returns**:
-
-A dictionary of string values pairs. The values should be primitives (like int, or string) since, they
-are generally serialized.
-
-
-**Aggregators**
-
-- SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
-
-## Structure of an Enbios configuration
-
-Enbios uses pydantic (https://docs.pydantic.dev/latest/), as data validation library
-for the structural validation of the configuration file. The complete structural definitions of the data, is also given
-as a JSON Schema (https://json-schema.org/)
-file https://github.com/LIVENlab/enbios/blob/main/data/schema/experiment.schema.gen.json
-Therefor the config data can also be validated with any JSON Schema validator (
-e.g. https://www.jsonschemavalidator.net/)
-
-The configuration data for an Enbios experiment has the following structure:
-
-- adapters: a list of adapter configurations, that should be used in this experiment
-- aggregators: a list of aggregator configurations, that should be used in this experiment
-- hierarchy: a tree-like structure, where each node in the tree needs a name, depending on its position (structural or
-  functional) an association with an adapter or aggregator, and some specific configuration for that (e.g. how to
-  identify the node in the adapter/aggregator, default outputs)
-- scenarios: a list of scenario configuration, containing in particular the outputs of the structural units
-- config: Some generic configurations
 
 ## A first simple example
 
@@ -486,7 +281,6 @@ Full details are below the configuration
     }
   ]
 }
-
 ```
 
 ### Configuration details
@@ -608,255 +402,278 @@ will return dictionaries, which include `node_indicator` (the indicator to use f
 parameter `details` is True (default:True)),
 `config`, which will have the 2 (or the 3 in the case of aggregators) fields.
 
-E.g. get_builtin_adapters
+E.g. `get_builtin_adapters()['brightway-adapter']`
 
 ```json
 {
-  "assignment-adapter": {
-    "activity_indicator": "assign",
-    "config": {
-      "activity": {
-        "$defs": {
-          "ActivityOutput": {
-            "properties": {
-              "unit": {
-                "title": "Unit",
+  "node_indicator": "bw",
+  "config": {
+    "adapter": {
+      "$defs": {
+        "NonLinearCharacterizationConfig": {
+          "properties": {
+            "methods": {
+              "additionalProperties": {
+                "$ref": "#/$defs/NonLinearMethodConfig"
+              },
+              "description": "Non linear characterization. Nested Dictionary: method_name > NonLinearMethodConfig",
+              "title": "Methods",
+              "type": "object"
+            }
+          },
+          "required": [
+            "methods"
+          ],
+          "title": "NonLinearCharacterizationConfig",
+          "type": "object"
+        },
+        "NonLinearMethodConfig": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "default": null,
+              "description": "bw method tuple name",
+              "title": "Name",
+              "type": "string"
+            },
+            "module_path_function_name": {
+              "default": null,
+              "description": "path to a module and a function name. which holds a function that returns a 'dict[tuple[str, str], Callable[[float], float]]'",
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Module Path Function Name",
+              "type": "array"
+            },
+            "get_defaults_from_original": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": false,
+              "description": "Method is already defined in BW and has characterization values. ",
+              "title": "Get Defaults From Original"
+            }
+          },
+          "title": "NonLinearMethodConfig",
+          "type": "object"
+        },
+        "RegionalizationConfig": {
+          "additionalProperties": false,
+          "properties": {
+            "run_regionalization": {
+              "default": false,
+              "title": "Run Regionalization",
+              "type": "boolean"
+            },
+            "select_regions": {
+              "default": null,
+              "description": "regions to store the results for",
+              "items": {
                 "type": "string"
               },
-              "magnitude": {
-                "default": 1.0,
-                "title": "Magnitude",
-                "type": "number"
-              }
+              "title": "Select Regions",
+              "type": "array",
+              "uniqueItems": true
             },
-            "required": [
-              "unit"
-            ],
-            "title": "ActivityOutput",
-            "type": "object"
-          },
-          "ResultValue": {
-            "additionalProperties": false,
-            "properties": {
-              "unit": {
-                "title": "Unit",
-                "type": "string"
+            "set_node_regions": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
               },
-              "amount": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Amount"
-              },
-              "multi_amount": {
-                "anyOf": [
-                  {
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Multi Amount"
-              }
+              "default": {},
+              "description": "Set node regions",
+              "title": "Set Node Regions",
+              "type": "object"
             },
-            "required": [
-              "unit"
-            ],
-            "title": "ResultValue",
-            "type": "object"
-          }
-        },
-        "properties": {
-          "activity": {
-            "title": "Activity",
-            "type": "string"
-          },
-          "output_unit": {
-            "title": "Output Unit",
-            "type": "string"
-          },
-          "default_output": {
-            "$ref": "#/$defs/ActivityOutput"
-          },
-          "default_impacts": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "$ref": "#/$defs/ResultValue"
+            "clear_all_other_node_regions": {
+              "anyOf": [
+                {
+                  "type": "boolean"
                 },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Default Impacts"
+                {
+                  "type": "null"
+                }
+              ],
+              "default": false,
+              "description": "Delete all regions not in 'hierarchy' and 'set_node_regions'",
+              "title": "Clear All Other Node Regions"
+            }
           },
-          "scenario_outputs": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "$ref": "#/$defs/ActivityOutput"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Scenario Outputs"
-          },
-          "scenario_impacts": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "additionalProperties": {
-                    "$ref": "#/$defs/ResultValue"
-                  },
-                  "type": "object"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Scenario Impacts"
-          }
-        },
-        "required": [
-          "activity",
-          "output_unit",
-          "default_output"
-        ],
-        "title": "SimpleAssignment",
-        "type": "object"
-      }
-    }
-  },
-  "brightway-adapter": {
-    "activity_indicator": "bw",
-    "config": {
-      "adapter": {
-        "properties": {
-          "bw_project": {
-            "title": "Bw Project",
-            "type": "string"
-          },
-          "use_k_bw_distributions": {
-            "default": 1,
-            "description": "Number of samples to use for MonteCarlo",
-            "title": "Use K Bw Distributions",
-            "type": "integer"
-          },
-          "store_raw_results": {
-            "default": false,
-            "description": "If the numpy matrix of brightway should be stored in the adapter. Will be stored in `raw_results[scenario.name]`",
-            "title": "Store Raw Results",
-            "type": "boolean"
-          },
-          "store_lca_object": {
-            "default": false,
-            "description": "If the LCA object should be stored. Will be stored in `lca_objects[scenario.name]`",
-            "title": "Store Lca Object",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "bw_project"
-        ],
-        "title": "BWAdapterConfig",
-        "type": "object"
+          "title": "RegionalizationConfig",
+          "type": "object"
+        }
       },
-      "activity": {
-        "$defs": {
-          "ActivityOutput": {
-            "properties": {
-              "unit": {
-                "title": "Unit",
-                "type": "string"
-              },
-              "magnitude": {
-                "default": 1.0,
-                "title": "Magnitude",
-                "type": "number"
-              }
+      "additionalProperties": false,
+      "properties": {
+        "bw_project": {
+          "title": "Bw Project",
+          "type": "string"
+        },
+        "use_k_bw_distributions": {
+          "default": 1,
+          "description": "Number of samples to use for MonteCarlo",
+          "title": "Use K Bw Distributions",
+          "type": "integer"
+        },
+        "store_raw_results": {
+          "default": false,
+          "description": "If the numpy matrix of brightway should be stored in the adapter. Will be stored in `raw_results[scenario.name]`",
+          "title": "Store Raw Results",
+          "type": "boolean"
+        },
+        "store_lca_object": {
+          "default": false,
+          "description": "If the LCA object should be stored. Will be stored in `lca_objects[scenario.name]`",
+          "title": "Store Lca Object",
+          "type": "boolean"
+        },
+        "simple_regionalization": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/RegionalizationConfig"
+            }
+          ],
+          "description": "Generate regionalized LCA"
+        },
+        "nonlinear_characterization": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonLinearCharacterizationConfig"
             },
-            "required": [
-              "unit"
-            ],
-            "title": "ActivityOutput",
-            "type": "object"
-          }
-        },
-        "properties": {
-          "name": {
-            "default": null,
-            "description": "Search:Name of the brightway activity",
-            "title": "Name",
-            "type": "string"
-          },
-          "database": {
-            "default": null,
-            "description": "Search:Name of the database to search first",
-            "title": "Database",
-            "type": "string"
-          },
-          "code": {
-            "default": null,
-            "description": "Search:Brightway activity code",
-            "title": "Code",
-            "type": "string"
-          },
-          "location": {
-            "default": null,
-            "description": "Search:Location filter",
-            "title": "Location",
-            "type": "string"
-          },
-          "unit": {
-            "default": null,
-            "description": "Search: unit filter of results",
-            "title": "Unit",
-            "type": "string"
-          },
-          "default_output": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/ActivityOutput"
-              }
-            ],
-            "default": null,
-            "description": "Default output of the activity for all scenarios"
-          }
-        },
-        "title": "BrightwayActivityConfig",
-        "type": "object"
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Nonlinear characterization"
+        }
       },
-      "method": {
-        "additionalProperties": {
+      "required": [
+        "bw_project"
+      ],
+      "title": "BWAdapterConfig",
+      "type": "object"
+    },
+    "activity": {
+      "$defs": {
+        "NodeOutput": {
+          "additionalProperties": false,
+          "properties": {
+            "unit": {
+              "title": "Unit",
+              "type": "string"
+            },
+            "magnitude": {
+              "default": 1.0,
+              "title": "Magnitude",
+              "type": "number"
+            },
+            "label": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Label"
+            }
+          },
+          "required": [
+            "unit"
+          ],
+          "title": "NodeOutput",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Search:Name of the brightway activity",
+          "title": "Name",
+          "type": "string"
+        },
+        "database": {
+          "default": null,
+          "description": "Search:Name of the database to search first",
+          "title": "Database",
+          "type": "string"
+        },
+        "code": {
+          "default": null,
+          "description": "Search:Brightway activity code",
+          "title": "Code",
+          "type": "string"
+        },
+        "location": {
+          "default": null,
+          "description": "Search:Location filter",
+          "title": "Location",
+          "type": "string"
+        },
+        "enb_location": {
+          "default": null,
+          "description": "Location for regionalization",
           "items": {
             "type": "string"
           },
+          "title": "Enb Location",
           "type": "array"
         },
-        "description": "Simply a dict: name : BW method tuple",
-        "title": "Method definition",
-        "type": "object"
-      }
+        "unit": {
+          "default": null,
+          "description": "Search: unit filter of results",
+          "title": "Unit",
+          "type": "string"
+        },
+        "default_output": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/NodeOutput"
+            }
+          ],
+          "default": null,
+          "description": "Default output of the activity for all scenarios"
+        },
+        "methods": {
+          "default": null,
+          "description": "Subset of all methods",
+          "items": {
+            "type": "string"
+          },
+          "title": "Methods",
+          "type": "array"
+        }
+      },
+      "title": "BrightwayActivityConfig",
+      "type": "object"
+    },
+    "method": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "Simply a dict: name : BW method tuple",
+      "title": "Method definition",
+      "type": "object"
     }
   }
 }
@@ -879,6 +696,25 @@ The configs are in a dictionary in the fields `adapters`, `aggregators`
   }
 }
 ```
+
+### Builtin adapters and aggregators
+
+There are a some builtin adapters and aggregators:
+
+**Adapters:**
+
+- SimpleAssignmentAdapter: For this Adapter, the outputs and impacts can be defined in the adapter configuration
+- BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
+  based on the outputs of activities (structural nodes)
+
+## EnbiosAdapter Objects
+
+
+**Aggregators**
+
+- SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
+
+
 
 ## Creating Adapters and Aggregators
 
@@ -986,6 +822,12 @@ name() can also be used).
 Get the name of the adapter.
 
 `get_config_schemas() -> dict`
+
+## Full Experiment API
+
+## Experiment Objects
+
+
 
 <style>
     ada {

@@ -1,0 +1,116 @@
+{
+  "adapters": [
+    {
+      "adapter_name": "brightway-adapter",
+      "config": {
+        "bw_project": "ecoinvent_391"
+      },
+      "methods": {
+        "GWP1000": [
+          "ReCiPe 2016 v1.03, midpoint (H)",
+          "climate change",
+          "global warming potential (GWP1000)"
+        ],
+        "FETP": [
+          "ReCiPe 2016 v1.03, midpoint (H)",
+          "ecotoxicity: freshwater",
+          "freshwater ecotoxicity potential (FETP)"
+        ]
+      }
+    }
+  ],
+  "hierarchy": {
+    "name": "root",
+    "aggregator": "sum",
+    "children": [
+      {
+        "name": "wind",
+        "aggregator": "sum",
+        "children": [
+          {
+            "name": "wind turbine >3MW onshore",
+            "adapter": "bw",
+            "config": {
+              "code": "0d48975a3766c13e68cedeb6c24f6f74",
+              "default_output": {
+                "unit": "kilowatt_hour",
+                "magnitude": 3
+              }
+            }
+          },
+          {
+            "name": "wind turbine 1-3MW onshore",
+            "adapter": "bw",
+            "config": {
+              "code": "ed3da88fc23311ee183e9ffd376de89b"
+            }
+          }
+        ]
+      },
+      {
+        "name": "solar",
+        "aggregator": "sum",
+        "children": [
+          {
+            "name": "solar tower power plant, 20 MW",
+            "adapter": "bw",
+            "config": {
+              "code": "f2700b2ffcb6b32143a6f95d9cca1721"
+            }
+          },
+          {
+            "name": "solar thermal parabolic trough, 50 MW",
+            "adapter": "bw",
+            "config": {
+              "code": "19040cdacdbf038e2f6ad59814f7a9ed"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "normal scenario",
+      "activities": {
+        "wind turbine >3MW onshore": [
+          "kilowatt_hour",
+          1
+        ],
+        "wind turbine 1-3MW onshore": [
+          "kilowatt_hour",
+          1
+        ],
+        "solar tower power plant, 20 MW": [
+          "kilowatt_hour",
+          1
+        ],
+        "solar thermal parabolic trough, 50 MW": [
+          "kilowatt_hour",
+          1
+        ]
+      }
+    },
+    {
+      "name": "randomized outputs",
+      "activities": {
+        "wind turbine >3MW onshore": [
+          "kilowatt_hour",
+          6
+        ],
+        "wind turbine 1-3MW onshore": [
+          "kilowatt_hour",
+          1
+        ],
+        "solar tower power plant, 20 MW": [
+          "kilowatt_hour",
+          8
+        ],
+        "solar thermal parabolic trough, 50 MW": [
+          "kilowatt_hour",
+          6
+        ]
+      }
+    }
+  ]
+}

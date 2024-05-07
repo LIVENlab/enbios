@@ -2,7 +2,9 @@
 
 ## Overview
 
-- [Structure of an Enbios configuration](#structure-of-an-enbios-configuration)
+- [Structure of an Enbios](#structure-of-enbios)
+- [Initializing an experiment](#initializing-an-experiment)
+- [Running an experiment](#running-an-experiment)
 - [A first example](#a-first-simple-example)
 - [How to configure Adapters and Aggregators](#how-to-configure-adapters-and-aggregators)
 - [Creating Adapters and Aggregators](#creating-adapters-and-aggregators)
@@ -28,6 +30,8 @@ scenario. Both outputs and resultvalues are passed up in the hierarchy until the
 Functional nodes are each assigned an aggregator, which aggregates outputs and results and pass those up the hierarchy (
 if there is a level up in the hierarchy for any given node).
 
+## Structure of Enbios
+
 ```mermaid
 graph
     Experiment --> Ada_Agg
@@ -42,12 +46,42 @@ graph
 In creation of an enbios experiment. its configuration, is on strictly validated.
 Afterward any scenario or all scenarios, defined in the config object can be executed.
 
+[The full experiment API can be found here.](#Full-Experiment-API)
+
 This version of enbios, is built with flexibility in mind. That means, the value calculation for structural nodes and
 aggregation calculations for functional nodes is done in external python modules. Through this approach,
 users can develop new arbitrary calculation (**Adapter**) and aggregation (**Aggregator**) modules and use them in
 Enbios.
 
+### Configuration
+As seen above these are the main parts of an enbios config
+- adapters: a list of adapter configurations, that should be used in this experiment
+- aggregators: a list of aggregator configurations, that should be used in this experiment
+- hierarchy: a tree-like structure, where each node in the tree needs a name, depending on its position (structural or
+  functional) an association with an adapter or aggregator, and some specific configuration for that (e.g. how to
+  identify the node in the adapter/aggregator, default outputs)
+- scenarios: a list of scenario configuration, containing in particular the outputs of the structural units
+- config: Some generic configurations
+
+### Validation
+
+Enbios uses pydantic (https://docs.pydantic.dev/latest/), as data validation library
+for the structural validation of the configuration. The complete structural definitions of the data, is also given
+as a JSON Schema (https://json-schema.org/)
+file https://github.com/LIVENlab/enbios/blob/main/data/schema/experiment.schema.gen.json
+Therefor the config data can also be validated with any JSON Schema validator (
+e.g. https://www.jsonschemavalidator.net/)
+
 ## Initializing an experiment
+
+An Experiment can be initialized in the 3 following ways.
+
+1. Passing a python dictionary object, which contains the configuration
+2. Passing a string to a JSON file, which contains the configuration
+3. Not passing anything to the experiment, which will make enbios look for a JSON file at the path given for the
+   environmental variable `CONFIG_FILE`.
+
+This starts off the following steps of validation and preparation:
 
 - check environment variables for link to experiment config file
 - register additional units
@@ -85,7 +119,7 @@ Enbios.
               aggregator.aggregate_node_output</agg>)
 - validate scenario settings: Check if the environmental settings, specify which scenarios to run
 
-## Runnning an experiment
+## Running an experiment
 
 The function `Experiment.run` will run either
 
@@ -105,40 +139,6 @@ For all adapters specified for the experiment:
 Propagate the results up in the result-tree:
 
 From top to bottom aggregate the results within the result-tree (<agg>aggregator.aggregate_node_result</agg>)
-
-## Adapters and aggregators
-
-There are a some builtin adapters and aggregators:
-
-**Adapters:**
-
-- SimpleAssignmentAdapter: For this Adapter, the outputs and impacts can be defined in the adapter configuration
-- BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
-  based on the outputs of activities (structural nodes)
-
-{{enbios.base.adapters_aggregators.adapter.EnbiosAdapter}}
-**Aggregators**
-
-- SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
-
-## Structure of an Enbios configuration
-
-Enbios uses pydantic (https://docs.pydantic.dev/latest/), as data validation library
-for the structural validation of the configuration file. The complete structural definitions of the data, is also given
-as a JSON Schema (https://json-schema.org/)
-file https://github.com/LIVENlab/enbios/blob/main/data/schema/experiment.schema.gen.json
-Therefor the config data can also be validated with any JSON Schema validator (
-e.g. https://www.jsonschemavalidator.net/)
-
-The configuration data for an Enbios experiment has the following structure:
-
-- adapters: a list of adapter configurations, that should be used in this experiment
-- aggregators: a list of aggregator configurations, that should be used in this experiment
-- hierarchy: a tree-like structure, where each node in the tree needs a name, depending on its position (structural or
-  functional) an association with an adapter or aggregator, and some specific configuration for that (e.g. how to
-  identify the node in the adapter/aggregator, default outputs)
-- scenarios: a list of scenario configuration, containing in particular the outputs of the structural units
-- config: Some generic configurations
 
 ## A first simple example
 
@@ -164,125 +164,7 @@ _(structural nodes are rectangles and functional nodes are rounded rectangles)_
 
 Full details are below the configuration
 
-```json
-{
-  "adapters": [
-    {
-      "adapter_name": "brightway-adapter",
-      "config": {
-        "bw_project": "ecoinvent_391"
-      },
-      "methods": {
-        "GWP1000": [
-          "ReCiPe 2016 v1.03, midpoint (H)",
-          "climate change",
-          "global warming potential (GWP1000)"
-        ],
-        "FETP": [
-          "ReCiPe 2016 v1.03, midpoint (H)",
-          "ecotoxicity: freshwater",
-          "freshwater ecotoxicity potential (FETP)"
-        ]
-      }
-    }
-  ],
-  "hierarchy": {
-    "name": "root",
-    "aggregator": "sum",
-    "children": [
-      {
-        "name": "wind",
-        "aggregator": "sum",
-        "children": [
-          {
-            "name": "wind turbine >3MW onshore",
-            "adapter": "bw",
-            "config": {
-              "code": "0d48975a3766c13e68cedeb6c24f6f74",
-              "default_output": {
-                "unit": "kilowatt_hour",
-                "magnitude": 3
-              }
-            }
-          },
-          {
-            "name": "wind turbine 1-3MW onshore",
-            "adapter": "bw",
-            "config": {
-              "code": "ed3da88fc23311ee183e9ffd376de89b"
-            }
-          }
-        ]
-      },
-      {
-        "name": "solar",
-        "aggregator": "sum",
-        "children": [
-          {
-            "name": "solar tower power plant, 20 MW",
-            "adapter": "bw",
-            "config": {
-              "code": "f2700b2ffcb6b32143a6f95d9cca1721"
-            }
-          },
-          {
-            "name": "solar thermal parabolic trough, 50 MW",
-            "adapter": "bw",
-            "config": {
-              "code": "19040cdacdbf038e2f6ad59814f7a9ed"
-            }
-          }
-        ]
-      }
-    ]
-  },
-  "scenarios": [
-    {
-      "name": "normal scenario",
-      "activities": {
-        "wind turbine >3MW onshore": [
-          "kilowatt_hour",
-          1
-        ],
-        "wind turbine 1-3MW onshore": [
-          "kilowatt_hour",
-          1
-        ],
-        "solar tower power plant, 20 MW": [
-          "kilowatt_hour",
-          1
-        ],
-        "solar thermal parabolic trough, 50 MW": [
-          "kilowatt_hour",
-          1
-        ]
-      }
-    },
-    {
-      "name": "randomized outputs",
-      "activities": {
-        "wind turbine >3MW onshore": [
-          "kilowatt_hour",
-          6
-        ],
-        "wind turbine 1-3MW onshore": [
-          "kilowatt_hour",
-          1
-        ],
-        "solar tower power plant, 20 MW": [
-          "kilowatt_hour",
-          8
-        ],
-        "solar thermal parabolic trough, 50 MW": [
-          "kilowatt_hour",
-          6
-        ]
-      }
-    }
-  ]
-}
-
-```
+{{file:json:test/data/docs_data/simple_example.json}}
 
 ### Configuration details
 
@@ -403,259 +285,9 @@ will return dictionaries, which include `node_indicator` (the indicator to use f
 parameter `details` is True (default:True)),
 `config`, which will have the 2 (or the 3 in the case of aggregators) fields.
 
-E.g. get_builtin_adapters
+E.g. `get_builtin_adapters()['brightway-adapter']`
 
-```json
-{
-  "assignment-adapter": {
-    "activity_indicator": "assign",
-    "config": {
-      "activity": {
-        "$defs": {
-          "ActivityOutput": {
-            "properties": {
-              "unit": {
-                "title": "Unit",
-                "type": "string"
-              },
-              "magnitude": {
-                "default": 1.0,
-                "title": "Magnitude",
-                "type": "number"
-              }
-            },
-            "required": [
-              "unit"
-            ],
-            "title": "ActivityOutput",
-            "type": "object"
-          },
-          "ResultValue": {
-            "additionalProperties": false,
-            "properties": {
-              "unit": {
-                "title": "Unit",
-                "type": "string"
-              },
-              "amount": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Amount"
-              },
-              "multi_amount": {
-                "anyOf": [
-                  {
-                    "items": {
-                      "type": "number"
-                    },
-                    "type": "array"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Multi Amount"
-              }
-            },
-            "required": [
-              "unit"
-            ],
-            "title": "ResultValue",
-            "type": "object"
-          }
-        },
-        "properties": {
-          "activity": {
-            "title": "Activity",
-            "type": "string"
-          },
-          "output_unit": {
-            "title": "Output Unit",
-            "type": "string"
-          },
-          "default_output": {
-            "$ref": "#/$defs/ActivityOutput"
-          },
-          "default_impacts": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "$ref": "#/$defs/ResultValue"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Default Impacts"
-          },
-          "scenario_outputs": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "$ref": "#/$defs/ActivityOutput"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Scenario Outputs"
-          },
-          "scenario_impacts": {
-            "anyOf": [
-              {
-                "additionalProperties": {
-                  "additionalProperties": {
-                    "$ref": "#/$defs/ResultValue"
-                  },
-                  "type": "object"
-                },
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Scenario Impacts"
-          }
-        },
-        "required": [
-          "activity",
-          "output_unit",
-          "default_output"
-        ],
-        "title": "SimpleAssignment",
-        "type": "object"
-      }
-    }
-  },
-  "brightway-adapter": {
-    "activity_indicator": "bw",
-    "config": {
-      "adapter": {
-        "properties": {
-          "bw_project": {
-            "title": "Bw Project",
-            "type": "string"
-          },
-          "use_k_bw_distributions": {
-            "default": 1,
-            "description": "Number of samples to use for MonteCarlo",
-            "title": "Use K Bw Distributions",
-            "type": "integer"
-          },
-          "store_raw_results": {
-            "default": false,
-            "description": "If the numpy matrix of brightway should be stored in the adapter. Will be stored in `raw_results[scenario.name]`",
-            "title": "Store Raw Results",
-            "type": "boolean"
-          },
-          "store_lca_object": {
-            "default": false,
-            "description": "If the LCA object should be stored. Will be stored in `lca_objects[scenario.name]`",
-            "title": "Store Lca Object",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "bw_project"
-        ],
-        "title": "BWAdapterConfig",
-        "type": "object"
-      },
-      "activity": {
-        "$defs": {
-          "ActivityOutput": {
-            "properties": {
-              "unit": {
-                "title": "Unit",
-                "type": "string"
-              },
-              "magnitude": {
-                "default": 1.0,
-                "title": "Magnitude",
-                "type": "number"
-              }
-            },
-            "required": [
-              "unit"
-            ],
-            "title": "ActivityOutput",
-            "type": "object"
-          }
-        },
-        "properties": {
-          "name": {
-            "default": null,
-            "description": "Search:Name of the brightway activity",
-            "title": "Name",
-            "type": "string"
-          },
-          "database": {
-            "default": null,
-            "description": "Search:Name of the database to search first",
-            "title": "Database",
-            "type": "string"
-          },
-          "code": {
-            "default": null,
-            "description": "Search:Brightway activity code",
-            "title": "Code",
-            "type": "string"
-          },
-          "location": {
-            "default": null,
-            "description": "Search:Location filter",
-            "title": "Location",
-            "type": "string"
-          },
-          "unit": {
-            "default": null,
-            "description": "Search: unit filter of results",
-            "title": "Unit",
-            "type": "string"
-          },
-          "default_output": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/ActivityOutput"
-              }
-            ],
-            "default": null,
-            "description": "Default output of the activity for all scenarios"
-          }
-        },
-        "title": "BrightwayActivityConfig",
-        "type": "object"
-      },
-      "method": {
-        "additionalProperties": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "description": "Simply a dict: name : BW method tuple",
-        "title": "Method definition",
-        "type": "object"
-      }
-    }
-  }
-}
-```
+{{file:json:test/data/docs_data/gen/bw_adapter.json}}
 
 On an experiment instance the following function can be
 called: `get_all_configs(include_all_builtin_configs: bool = True)`, which
@@ -674,6 +306,23 @@ The configs are in a dictionary in the fields `adapters`, `aggregators`
   }
 }
 ```
+
+### Builtin adapters and aggregators
+
+There are a some builtin adapters and aggregators:
+
+**Adapters:**
+
+- SimpleAssignmentAdapter: For this Adapter, the outputs and impacts can be defined in the adapter configuration
+- BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
+  based on the outputs of activities (structural nodes)
+
+{{enbios.base.adapters_aggregators.adapter.EnbiosAdapter}}
+**Aggregators**
+
+- SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
+
+
 
 ## Creating Adapters and Aggregators
 
@@ -781,6 +430,10 @@ name() can also be used).
 Get the name of the adapter.
 
 `get_config_schemas() -> dict`
+
+## Full Experiment API
+
+{{enbios.base.experiment.Experiment}}
 
 <style>
     ada {

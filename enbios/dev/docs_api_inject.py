@@ -1,6 +1,8 @@
 import io
+import json
 from logging import getLogger, Logger, StreamHandler
-from typing import Optional, TextIO, cast
+from pathlib import Path
+from typing import Optional, TextIO, cast, Union
 
 import docspec
 import pystache
@@ -10,7 +12,8 @@ from pydoc_markdown.contrib.processors.sphinx import SphinxProcessor
 from pydoc_markdown.util.misc import escape_except_blockquotes
 from pystache.parsed import ParsedTemplate
 
-from enbios.const import PROJECT_PATH
+from enbios import Experiment
+from enbios.const import PROJECT_PATH, BASE_TEST_DATA_PATH
 
 
 class FunctionRenderConfig(BaseModel):
@@ -83,11 +86,21 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
 
         self._renderer.init(context)
 
-    def find_object(self, obj_path: str):
+    def find_object(self, obj_path: str) -> Union[docspec.ApiObject, docspec.Function, docspec.Class, tuple[Path, str]]:
         path_parts = obj_path.split(".")
+        if obj_path.startswith("file:"):
+            file_type_and_path = obj_path.removeprefix("file:")
+            type_prefix_end_index = file_type_and_path.index(":")
+            type_prefix = file_type_and_path[:type_prefix_end_index]
+            file_path = PROJECT_PATH / file_type_and_path.removeprefix(f"{type_prefix}:")
+            if file_path.exists():
+                return file_path, type_prefix
+            else:
+                raise FileNotFoundError(f"File {file_path} not found.")
         module = list(filter(lambda m: m.name == path_parts[0] or obj_path.startswith(m.name), self._module_list))
         if not module:
-            raise ModuleNotFoundError(f"Module {path_parts[0]} not found. Options: {self._module_list}")
+            raise ModuleNotFoundError(
+                f"Module {path_parts[0]} not found. Options: {[m.name for m in self._module_list]}")
         else:
             current_obj: docspec.ApiObject = list(sorted(module, key=lambda m: len(m.name)))[-1]
 
@@ -163,6 +176,8 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
     def render(self, fp: TextIO):
         """
         Returns: a string of type unicode.
+
+        Also include file:<filetype>:<filepath> to include the contents of a file. as code-block of type <filetype>
         """
 
         def get_unicode(node):
@@ -171,7 +186,13 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
             try:
                 obj_ = self.find_object(node.key)
                 fp = io.StringIO()
-                if isinstance(obj_, docspec.Function):
+                if isinstance(obj_, tuple) and isinstance(obj_[0], Path):
+                    file_path, file_type = obj_
+                    with open(file_path, "r") as f:
+                        fp.write(f"```{file_type}\n{f.read()}\n```")
+                elif isinstance(obj_, docspec.ApiObject):
+                    self._renderer._render_header(fp, 1, obj_)
+                elif isinstance(obj_, docspec.Function):
                     self._render_function(obj_, fp)
                 elif isinstance(obj_, docspec.Class):
                     self._render_class(obj_, fp)
@@ -190,6 +211,13 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
 
 
 def create_fundamentals():
+    # pre-create some json files
+    # bw adapter config:
+    adapter_configs = Experiment.get_builtin_adapters()
+    base_gen_path = BASE_TEST_DATA_PATH / "docs_data/gen/"
+    json.dump(adapter_configs["brightway-adapter"], (base_gen_path / "bw_adapter.json").open("w", encoding="utf-8"),
+              ensure_ascii=False, indent=2)
+
     template_path = PROJECT_PATH / "docs_templates/Fundamentals.md"
     dest_path = PROJECT_PATH / "docs/Fundamentals.md"
     with open(template_path, encoding="utf-8") as fin:
