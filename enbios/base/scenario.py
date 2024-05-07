@@ -88,17 +88,14 @@ class Scenario:
     @staticmethod
     def _propagate_results_upwards(
         node: BasicTreeNode[ScenarioResultNodeData],
-        experiment: "Experiment",
-        *,
-        include_extras: bool = True,
+        experiment: "Experiment"
     ):
         if node.is_leaf:
             return
         else:
             aggregator = experiment.get_node_aggregator(node)
             node.data.results = aggregator.aggregate_node_result(node)
-            if include_extras:
-                node.data.extras = aggregator.result_extras(node.name)
+            node.data.extras = aggregator.result_extras(node.name)
 
     def run(
         self, results_as_dict: bool = True, include_extras: bool = True
@@ -132,13 +129,12 @@ class Scenario:
         self.result_tree.recursive_apply(
             Scenario._propagate_results_upwards,  # type: ignore
             experiment=self.experiment,
-            include_extras=include_extras,
             depth_first=True,
         )
 
         self._has_run = True
         self._execution_time = time.time() - start_time
-        return self.result_to_dict() if results_as_dict else self.result_tree
+        return self.result_to_dict(include_extras=True) if results_as_dict else self.result_tree
 
     @property
     def execution_time(self) -> str:

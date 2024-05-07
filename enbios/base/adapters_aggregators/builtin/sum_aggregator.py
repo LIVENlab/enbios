@@ -39,6 +39,7 @@ class SumAggregator(EnbiosAggregator):
                 node_agg_result = result[key]
                 if value.magnitude:
                     node_agg_result.magnitude += value.magnitude
+                # multi_magnitude
                 max_len = max(
                     len(node_agg_result.multi_magnitude), len(value.multi_magnitude)
                 )

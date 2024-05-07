@@ -609,7 +609,11 @@ class Experiment:
             print(json.dumps(result, indent=2, ensure_ascii=False))
         return result
 
-    def delete_pint_and_logging_file(self):
+    @staticmethod
+    def delete_pint_and_logging_file():
+        """"
+        Deletes the pint unit file and the logging config file
+        """
         pint_units_file_path = Path(get_pint_units_file_path())
         pint_units_file_path.unlink(True)
         logging_config_file_path = EnbiosLogger.get_logging_config_file_path()

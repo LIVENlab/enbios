@@ -64,6 +64,7 @@ def validate_aggregators(
 
             aggregators.append(aggregator)
 
+    names_counter = Counter([aggregator.name() for aggregator in aggregators])
     return {aggregator.name(): aggregator for aggregator in aggregators}
 
 

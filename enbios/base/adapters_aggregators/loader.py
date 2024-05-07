@@ -13,6 +13,12 @@ from enbios.models.models import AdapterModel, AggregationModel
 logger = get_logger(__name__)
 
 
+def get_module_classes(module: ModuleType, base_class: Type) -> list[Union[EnbiosAdapter, EnbiosAggregator]]:
+    classes = []
+
+    return classes
+
+
 def create_module_object(
     model_data: Union[AdapterModel, AggregationModel], base_class: Type
 ) -> Union[EnbiosAdapter, EnbiosAggregator]:
@@ -29,7 +35,10 @@ def create_module_object(
                 1
             ]
             assert clazz
-            if any(base.__name__ == base_class.__name__ for base in clazz.__bases__):
+            # only classes defined in this module
+            if clazz.__module__ != adapter_module.__name__:
+                continue
+            if any(base.__name__ == base_class.__name__ for base in clazz.__mro__):
                 return clazz()
         raise ValueError(
             f"'{Path(model_data.module_path).name}' has no class that inherits from '{base_class.__name__}'"
