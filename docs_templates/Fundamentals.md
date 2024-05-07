@@ -54,7 +54,9 @@ users can develop new arbitrary calculation (**Adapter**) and aggregation (**Agg
 Enbios.
 
 ### Configuration
+
 As seen above these are the main parts of an enbios config
+
 - adapters: a list of adapter configurations, that should be used in this experiment
 - aggregators: a list of aggregator configurations, that should be used in this experiment
 - hierarchy: a tree-like structure, where each node in the tree needs a name, depending on its position (structural or
@@ -165,6 +167,9 @@ _(structural nodes are rectangles and functional nodes are rounded rectangles)_
 Full details are below the configuration
 
 {{file:json:test/data/docs_data/simple_example.json}}
+
+Upon running the experiment with the fiven configuration we get this result (if converted into a dict):
+{{file:json:test/data/docs_data/gen/simple_example_result.json}}
 
 ### Configuration details
 
@@ -321,8 +326,6 @@ There are a some builtin adapters and aggregators:
 **Aggregators**
 
 - SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
-
-
 
 ## Creating Adapters and Aggregators
 
