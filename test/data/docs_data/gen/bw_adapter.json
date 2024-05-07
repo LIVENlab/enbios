@@ -1,0 +1,272 @@
+{
+  "node_indicator": "bw",
+  "config": {
+    "adapter": {
+      "$defs": {
+        "NonLinearCharacterizationConfig": {
+          "properties": {
+            "methods": {
+              "additionalProperties": {
+                "$ref": "#/$defs/NonLinearMethodConfig"
+              },
+              "description": "Non linear characterization. Nested Dictionary: method_name > NonLinearMethodConfig",
+              "title": "Methods",
+              "type": "object"
+            }
+          },
+          "required": [
+            "methods"
+          ],
+          "title": "NonLinearCharacterizationConfig",
+          "type": "object"
+        },
+        "NonLinearMethodConfig": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "default": null,
+              "description": "bw method tuple name",
+              "title": "Name",
+              "type": "string"
+            },
+            "module_path_function_name": {
+              "default": null,
+              "description": "path to a module and a function name. which holds a function that returns a 'dict[tuple[str, str], Callable[[float], float]]'",
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "title": "Module Path Function Name",
+              "type": "array"
+            },
+            "get_defaults_from_original": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": false,
+              "description": "Method is already defined in BW and has characterization values. ",
+              "title": "Get Defaults From Original"
+            }
+          },
+          "title": "NonLinearMethodConfig",
+          "type": "object"
+        },
+        "RegionalizationConfig": {
+          "additionalProperties": false,
+          "properties": {
+            "run_regionalization": {
+              "default": false,
+              "title": "Run Regionalization",
+              "type": "boolean"
+            },
+            "select_regions": {
+              "default": null,
+              "description": "regions to store the results for",
+              "items": {
+                "type": "string"
+              },
+              "title": "Select Regions",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "set_node_regions": {
+              "additionalProperties": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "default": {},
+              "description": "Set node regions",
+              "title": "Set Node Regions",
+              "type": "object"
+            },
+            "clear_all_other_node_regions": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": false,
+              "description": "Delete all regions not in 'hierarchy' and 'set_node_regions'",
+              "title": "Clear All Other Node Regions"
+            }
+          },
+          "title": "RegionalizationConfig",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "bw_project": {
+          "title": "Bw Project",
+          "type": "string"
+        },
+        "use_k_bw_distributions": {
+          "default": 1,
+          "description": "Number of samples to use for MonteCarlo",
+          "title": "Use K Bw Distributions",
+          "type": "integer"
+        },
+        "store_raw_results": {
+          "default": false,
+          "description": "If the numpy matrix of brightway should be stored in the adapter. Will be stored in `raw_results[scenario.name]`",
+          "title": "Store Raw Results",
+          "type": "boolean"
+        },
+        "store_lca_object": {
+          "default": false,
+          "description": "If the LCA object should be stored. Will be stored in `lca_objects[scenario.name]`",
+          "title": "Store Lca Object",
+          "type": "boolean"
+        },
+        "simple_regionalization": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/RegionalizationConfig"
+            }
+          ],
+          "description": "Generate regionalized LCA"
+        },
+        "nonlinear_characterization": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonLinearCharacterizationConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Nonlinear characterization"
+        }
+      },
+      "required": [
+        "bw_project"
+      ],
+      "title": "BWAdapterConfig",
+      "type": "object"
+    },
+    "activity": {
+      "$defs": {
+        "NodeOutput": {
+          "additionalProperties": false,
+          "properties": {
+            "unit": {
+              "title": "Unit",
+              "type": "string"
+            },
+            "magnitude": {
+              "default": 1.0,
+              "title": "Magnitude",
+              "type": "number"
+            },
+            "label": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Label"
+            }
+          },
+          "required": [
+            "unit"
+          ],
+          "title": "NodeOutput",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "name": {
+          "default": null,
+          "description": "Search:Name of the brightway activity",
+          "title": "Name",
+          "type": "string"
+        },
+        "database": {
+          "default": null,
+          "description": "Search:Name of the database to search first",
+          "title": "Database",
+          "type": "string"
+        },
+        "code": {
+          "default": null,
+          "description": "Search:Brightway activity code",
+          "title": "Code",
+          "type": "string"
+        },
+        "location": {
+          "default": null,
+          "description": "Search:Location filter",
+          "title": "Location",
+          "type": "string"
+        },
+        "enb_location": {
+          "default": null,
+          "description": "Location for regionalization",
+          "items": {
+            "type": "string"
+          },
+          "title": "Enb Location",
+          "type": "array"
+        },
+        "unit": {
+          "default": null,
+          "description": "Search: unit filter of results",
+          "title": "Unit",
+          "type": "string"
+        },
+        "default_output": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/NodeOutput"
+            }
+          ],
+          "default": null,
+          "description": "Default output of the activity for all scenarios"
+        },
+        "methods": {
+          "default": null,
+          "description": "Subset of all methods",
+          "items": {
+            "type": "string"
+          },
+          "title": "Methods",
+          "type": "array"
+        }
+      },
+      "title": "BrightwayActivityConfig",
+      "type": "object"
+    },
+    "method": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "Simply a dict: name : BW method tuple",
+      "title": "Method definition",
+      "type": "object"
+    }
+  }
+}
