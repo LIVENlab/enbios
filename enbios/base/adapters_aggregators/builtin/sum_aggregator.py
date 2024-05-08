@@ -4,12 +4,16 @@ from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.output_merge import merge_outputs
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.models import ResultValue, ScenarioResultNodeData, output_merge_type
+from enbios.models.models import ResultValue, ScenarioResultNodeData, output_merge_type, AggregationModel
 
 
 class SumAggregator(EnbiosAggregator):
+
     def __init__(self):
         self.logger = get_logger(__name__)
+
+    def validate_definition(self, definition: AggregationModel):
+        pass
 
     def validate_config(self, config: Optional[dict[str, Any]]):
         pass
@@ -17,15 +21,20 @@ class SumAggregator(EnbiosAggregator):
     def validate_node(self, node_name: str, node_config: Any):
         pass
 
+    def validate_scenario_node(
+            self, node_name: str, scenario_name: str, scenario_node_data: Any
+    ):
+        pass
+
     def aggregate_node_output(
-        self,
-        node: BasicTreeNode[ScenarioResultNodeData],
-        scenario_name: Optional[str] = "",
+            self,
+            node: BasicTreeNode[ScenarioResultNodeData],
+            scenario_name: Optional[str] = "",
     ) -> output_merge_type:
         return merge_outputs([n.data.output for n in node.children])
 
     def aggregate_node_result(
-        self, node: BasicTreeNode[ScenarioResultNodeData]
+            self, node: BasicTreeNode[ScenarioResultNodeData]
     ) -> dict[str, ResultValue]:
         result: dict[str, ResultValue] = {}
         for child in node.children:

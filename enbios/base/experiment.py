@@ -5,7 +5,7 @@ import time
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
-from typing import Any, Optional, Union, Type, cast
+from typing import Any, Optional, Union, Type, cast, TypeVar
 
 from python_mermaid.diagram import MermaidDiagram
 from python_mermaid.link import Link
@@ -14,6 +14,7 @@ from python_mermaid.node import Node
 from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.adapters_aggregators.builtin import BUILTIN_ADAPTERS, BUILTIN_AGGREGATORS
+from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
 from enbios.base.experiment_io import resolve_input_files
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
@@ -41,6 +42,8 @@ from enbios.models.models import (
 )
 
 logger = get_logger(__name__)
+
+T = TypeVar('T', bound=EnbiosNodeModule)
 
 
 class Experiment:
@@ -87,18 +90,14 @@ class Experiment:
         self._structural_nodes: dict[str, BasicTreeNode[TechTreeNodeData]] = {}
         # validate individual nodes based on their adapter/aggregator
         for node in self.hierarchy_root.iter_all_nodes():
+            self.get_node_module(node).validate_node(node.name, node.data.config)
             if node.is_leaf:
-                self.get_node_adapter(node).validate_node(node.name, node.data.config)
                 self._structural_nodes[node.name] = node
-            else:
-                self.get_node_aggregator(node).validate_node(node.name, node.data.config)
 
         def recursive_convert(
                 node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: list[NodeOutput] = []
-            # if node_.is_leaf:
-            #     output = self.get_node_adapter(node_).get_node_output(node_.name, "")
             return BasicTreeNode(
                 name=node_.name,
                 data=ScenarioResultNodeData(
@@ -132,20 +131,26 @@ class Experiment:
             raise ValueError(f"Node with name '{name}' not found")
         return node
 
-    def get_node_adapter(self, node: BasicTreeNode[TechTreeNodeData]) -> EnbiosAdapter:
+    def get_node_module(self, node: Union[str, BasicTreeNode[TechTreeNodeData]],
+                        module_type: Optional[T] = EnbiosNodeModule) -> T:
         """
-        Get the adapter of a node in the experiment hierarchy
-
-        :param node: The node for which the adapter should be returned
-        :return: The adapter for the node
+        Get the module of a node in the experiment hierarchy
         """
-        assert node.data.adapter
-        return cast(
-            EnbiosAdapter,
-            self._get_module_by_name_or_node_indicator(
-                node.data.adapter, EnbiosAdapter, node.name
-            ),
-        )
+        if isinstance(node, str):
+            node = self.hierarchy_root.find_subnode_by_name(node)
+        try:
+            if node.is_leaf:
+                return self.get_module_by_name_or_node_indicator(
+                    node.data.adapter, EnbiosAdapter
+                )
+            else:
+                return self.get_module_by_name_or_node_indicator(
+                    node.data.aggregator, EnbiosAggregator
+                )
+        except ValueError as e:
+            raise ValueError(
+                f"Node '{node.name}' has no valid adapter/aggregator: {e}"
+            )
 
     def get_adapter_by_name(self, name: str) -> EnbiosAdapter:
         """
@@ -154,34 +159,14 @@ class Experiment:
         :return: The adapter
         """
         return cast(
-            EnbiosAdapter, self._get_module_by_name_or_node_indicator(name, EnbiosAdapter)
+            EnbiosAdapter, self.get_module_by_name_or_node_indicator(name, EnbiosAdapter)
         )
 
-    def get_node_aggregator(
-            self,
-            node: Union[
-                BasicTreeNode[ScenarioResultNodeData], BasicTreeNode[TechTreeNodeData]
-            ],
-    ) -> EnbiosAggregator:
-        """
-        Get the aggregator of a node
-        :param node: The node, either in the config hierarchy or in the result hierarchy
-        :return: The aggregator for the node
-        """
-        assert node.data.aggregator
-        return cast(
-            EnbiosAggregator,
-            self._get_module_by_name_or_node_indicator(
-                node.data.aggregator, EnbiosAggregator, node.name
-            ),
-        )
-
-    def _get_module_by_name_or_node_indicator(
+    def get_module_by_name_or_node_indicator(
             self,
             name_or_indicator: str,
-            module_type: Type[Union[EnbiosAdapter, EnbiosAggregator]],
-            node_name: Optional[str] = None,
-    ) -> Union[EnbiosAdapter, EnbiosAggregator]:
+            module_type: Type[T],
+    ) -> T:
         modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = cast(
             dict[str, Union[EnbiosAdapter, EnbiosAggregator]],
             (self._adapters if module_type == EnbiosAdapter else self._aggregators),
@@ -194,11 +179,7 @@ class Experiment:
             if module.node_indicator() == name_or_indicator:
                 return module
 
-        node_err = f"Node '{node_name}' specifies an " if node_name else ""
-        raise ValueError(
-            f"{node_err} unknown {module_type.__name__}: '{name_or_indicator}'. "
-            + f"Available {module_type.__name__}s are: {[m.node_indicator() for m in modules.values()]}"
-        )
+        raise ValueError(f"Module '{name_or_indicator}' not found")
 
     def get_scenario(self, scenario_name: str) -> Scenario:
         """
@@ -450,11 +431,7 @@ class Experiment:
         node_rows: list[str] = []
 
         def print_node(node: BasicTreeNode[TechTreeNodeData], _):
-            module_name: str
-            if node.data.adapter:
-                module_name = self.get_node_adapter(node).name()
-            else:
-                module_name = self.get_node_aggregator(node).name()
+            module_name: str = self.get_node_module(node).name()
             node_rows.append(f"{' ' * node.level}{node.name} - {module_name}")
 
         self.hierarchy_root.recursive_apply(print_node, False, False, None)

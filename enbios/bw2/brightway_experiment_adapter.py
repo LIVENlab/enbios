@@ -28,7 +28,7 @@ from enbios.bw2.bw_models import (
 )
 from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.generic.util import load_module, get_module_functions
-from enbios.models.models import NodeOutput, AdapterModel, ResultValue
+from enbios.models.models import NodeOutput, ResultValue
 
 logger = getLogger(__file__)
 
@@ -87,8 +87,6 @@ class BrightwayAdapter(EnbiosAdapter):
     def name() -> str:
         return "brightway-adapter"
 
-    def validate_definition(self, definition: AdapterModel):
-        pass
 
     def __init__(self) -> None:
         super(BrightwayAdapter, self).__init__()

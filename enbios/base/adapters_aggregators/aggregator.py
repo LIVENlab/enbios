@@ -1,31 +1,41 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Optional, Any
 
+from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.models import ScenarioResultNodeData, output_merge_type
+from enbios.models.models import ScenarioResultNodeData, output_merge_type, AggregationModel
 
 
-class EnbiosAggregator(ABC):
-    @abstractmethod
-    def validate_config(self, config: Optional[dict[str, Any]]):
-        pass
-
-    @abstractmethod
-    def validate_node(self, node_name: str, node_config: Any):
-        pass
+class EnbiosAggregator(EnbiosNodeModule[AggregationModel]):
 
     @abstractmethod
     def aggregate_node_output(
-        self,
-        node: BasicTreeNode[ScenarioResultNodeData],
-        scenario_name: Optional[str] = "",
+            self,
+            node: BasicTreeNode[ScenarioResultNodeData],
+            scenario_name: Optional[str] = "",
     ) -> output_merge_type:
         pass
+
+    # @abstractmethod
+    # def validate_scenario_node(
+    #     self, node_name: str, scenario_name: str, scenario_node_data: Any
+    # ):
+    #     """
+    #     Validates the output of a node within a scenario. Is called for each node within a scenario.
+    #     :param node_name: Name of the node in the hierarchy.
+    #     :param scenario_name: Name of scenario
+    #     :param scenario_node_data: The output or config of the node in the scenario
+    #     """
+    #     pass
 
     @abstractmethod
     def aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData]):
         pass
+
+    # @abstractmethod
+    # def aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: str):
+    #     pass
 
     @staticmethod
     @abstractmethod

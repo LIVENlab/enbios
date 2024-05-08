@@ -1,7 +1,7 @@
 import re
 from csv import DictReader
 from pathlib import Path
-from typing import Any, TYPE_CHECKING, Callable, Optional, Iterator
+from typing import Any, TYPE_CHECKING, Callable, Optional, Iterator, cast
 
 from enbios import PathLike
 from enbios.generic.flatten_dict.flatten_dict import unflatten
@@ -84,6 +84,7 @@ def validate_experiment_reference_hierarchy(
 def recursive_resolve_outputs(
     node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
 ):
+    from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
     # todo, does this takes default values when an node is not defined
     #  in the scenario?
     if node.is_leaf:
@@ -92,7 +93,7 @@ def recursive_resolve_outputs(
     if any(child.id in cancel_parts_of for child in node.children):
         cancel_parts_of.add(node.id)
 
-    aggregator = experiment.get_node_aggregator(node)
+    aggregator = cast(EnbiosAggregator, experiment.get_node_module(node.name))
     node_output, output_aggregation = aggregator.aggregate_node_output(
         node, kwargs.get("scenario_name")
     )
