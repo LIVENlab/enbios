@@ -102,7 +102,7 @@ class Scenario:
             node.data.extras = aggregator.result_extras(node.name, scenario_name)
 
     def run(
-            self, results_as_dict: bool = True, include_extras: bool = True
+            self, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         # if not self._get_methods():
         #     raise ValueError(f"Scenario '{self.name}' has no methods")
@@ -123,12 +123,12 @@ class Scenario:
                 # As each future completes, set the results
                 for future in concurrent.futures.as_completed(futures):
                     result_data = future.result()
-                    self.set_results(result_data, include_extras)
+                    self.set_results(result_data)
         else:
             for adapter in self.experiment.adapters:
                 # run in parallel:
                 result_data = adapter.run_scenario(self)  # type: ignore
-                self.set_results(result_data, include_extras)
+                self.set_results(result_data)
 
         self.result_tree.recursive_apply(
             Scenario._propagate_results_upwards,  # type: ignore
@@ -151,7 +151,7 @@ class Scenario:
     def reset_execution_time(self):
         self._execution_time = float("NaN")
 
-    def set_results(self, result_data: dict[str, Any], include_extras: bool = True):
+    def set_results(self, result_data: dict[str, Any]):
         for node_name, node_result in result_data.items():
             node = self.result_tree.find_subnode_by_name(node_name)
             if not node:
@@ -165,8 +165,7 @@ class Scenario:
                     logger.error(f"Node '{node_name}' not found in result tree")
                 continue
             node.data.results = node_result
-            if include_extras:
-                node.data.extras = self.experiment.get_node_module(node).result_extras(node.name, self.name)
+            node.data.extras = self.experiment.get_node_module(node).result_extras(node.name, self.name)
         if self.config.exclude_defaults:
             for leave in self.result_tree.iter_leaves():
                 if not leave.data.results:
@@ -374,6 +373,7 @@ class Scenario:
             Scenario._propagate_results_upwards,  # type: ignore
             experiment=self.experiment,
             depth_first=True,
+            scenario_name=self.name,
         )
 
         return result_tree

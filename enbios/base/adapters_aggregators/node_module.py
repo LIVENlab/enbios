@@ -82,7 +82,9 @@ class EnbiosNodeModule(ABC, Generic[T]):
 
     def result_extras(self, node_name: str, scenario_name: str) -> dict[str, Any]:
         """
-
+        Extra data that are stored for a node in the adapter/aggregator. This is method is called for each scenario run
+        and stored in the result-tree. Therefore, the scenario_name is passed (but does not always need to be used).
+        Adapters/Aggregators do not need to store node-extras over multiple scenarios.
         :param node_name: Name of the node in the hierarchy
         :param scenario_name: Name of the scenario
         :return: A dictionary of string values pairs. The values should be primitives (like int, or string) since, they
