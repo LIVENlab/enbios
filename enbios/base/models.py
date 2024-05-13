@@ -3,9 +3,10 @@ from typing import Optional, Union, Any, Type
 
 from pint import Quantity
 from pint.facets.plain import PlainQuantity
-from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict
+from pydantic import ConfigDict, BaseModel, Field, model_validator, field_validator
+from pydantic_settings import BaseSettings
 
-from enbios.generic.files import PathLike
+from enbios import PathLike
 
 StrictInputConfig = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
 
@@ -257,3 +258,8 @@ class EnbiosValidationException(Exception):
 class LabeledQuantity:
     quantity: Quantity
     label: Optional[str] = None
+
+
+class Settings(BaseSettings):
+    CONFIG_FILE: Optional[str] = None
+    RUN_SCENARIOS: Optional[list[str]] = None

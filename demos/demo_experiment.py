@@ -5,7 +5,7 @@ from random import randint
 from enbios import Experiment
 
 
-def _create_experiment(num_scenarios) -> Experiment:
+def create_experiment_config(num_scenarios) -> dict:
     bw_adapter_config = {
         "config": {"bw_project": "ecoinvent_391"},
         "methods": {
@@ -145,7 +145,11 @@ def _create_experiment(num_scenarios) -> Experiment:
         "hierarchy": hierarchy,
         "scenarios": scenarios,
     }
-    return Experiment(config)
+    return config
+
+
+def create_experiment(num_scenarios) -> Experiment:
+    return Experiment(create_experiment_config(num_scenarios))
 
 
 def get_demo_experiment(num_scenarios: int = 2) -> Experiment:
@@ -161,7 +165,7 @@ def get_demo_experiment(num_scenarios: int = 2) -> Experiment:
     except Exception as err:
         raise err
     print("running experiment...")
-    exp = _create_experiment(num_scenarios)
+    exp = create_experiment(num_scenarios)
     exp.run()
     experiment_path.parent.mkdir(parents=True, exist_ok=True)
     pickle.dump(exp, experiment_path.open("wb"))
