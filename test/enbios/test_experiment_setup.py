@@ -8,7 +8,7 @@ import pytest
 from enbios.base.experiment import Experiment
 from enbios.const import BASE_TEST_DATA_PATH
 from enbios.generic.files import ReadPath
-from enbios.models.models import ExperimentData
+from enbios.base.models import ExperimentData
 
 try:
     from test.enbios.test_project_fixture import TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH

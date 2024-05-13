@@ -323,6 +323,7 @@ There are a some builtin adapters and aggregators:
   based on the outputs of activities (structural nodes)
 
 {{enbios.base.adapters_aggregators.adapter.EnbiosAdapter}}
+
 **Aggregators**
 
 - SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
@@ -433,6 +434,19 @@ name() can also be used).
 Get the name of the adapter.
 
 `get_config_schemas() -> dict`
+
+## Environmental variables
+
+In order to help executing enbios on remote systems it is also possible to make use of certain environmental variables,
+for the enbios experiments. Environment variables can be set before a python script is executed.
+
+Enbios reads two environmental variables:
+
+- CONFIG_FILE: In case an experiment file is created without a config object, nor without a filepath for the
+  configuration file, it will check for the existence of this variable and interpret is as the location of the
+  configuration file.
+
+- RUN_SCENARIOS:
 
 ## Full Experiment API
 

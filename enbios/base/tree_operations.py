@@ -5,13 +5,7 @@ from typing import Any, TYPE_CHECKING, Callable, Optional, Iterator, cast
 
 from enbios import PathLike
 from enbios.generic.flatten_dict.flatten_dict import unflatten
-from enbios.models.models import (
-    ExperimentHierarchyNodeData,
-    HierarchyNodeReference,
-    EnbiosValidationException,
-    TechTreeNodeData,
-    ScenarioResultNodeData,
-)
+from enbios.base.models import ExperimentHierarchyNodeData, HierarchyNodeReference, EnbiosValidationException, TechTreeNodeData, ScenarioResultNodeData
 
 if TYPE_CHECKING:
     from enbios.base.experiment import Experiment

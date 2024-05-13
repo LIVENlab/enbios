@@ -7,12 +7,8 @@ from frictionless.fields import NumberField, StringField
 from enbios.base.tree_operations import csv2hierarchy
 from enbios.generic.files import ReadPath
 from enbios.generic.flatten_dict.flatten_dict import unflatten
-from enbios.models.models import (
-    ExperimentData,
-    ExperimentHierarchyNodeData,
-    ExperimentScenarioData,
-    ExperimentDataResolved,
-)
+from enbios.base.models import ExperimentHierarchyNodeData, ExperimentScenarioData, ExperimentData, \
+    ExperimentDataResolved
 
 activities_schema = Schema(
     fields=[

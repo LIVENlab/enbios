@@ -3,7 +3,7 @@ from typing import Any, Optional
 
 from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
 from enbios.base.scenario import Scenario
-from enbios.models.models import AdapterModel, NodeOutput, ResultValue
+from enbios.base.models import AdapterModel, NodeOutput, ResultValue
 
 
 class EnbiosAdapter(EnbiosNodeModule[AdapterModel]):

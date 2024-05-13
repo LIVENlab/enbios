@@ -4,11 +4,7 @@ from typing import Optional, Any
 from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.models import (
-    ScenarioResultNodeData,
-    output_merge_type,
-    AggregationModel,
-)
+from enbios.base.models import AggregationModel, output_merge_type, ScenarioResultNodeData
 
 
 class EnbiosAggregator(EnbiosNodeModule[AggregationModel]):

@@ -16,6 +16,8 @@ from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.adapters_aggregators.builtin import BUILTIN_ADAPTERS, BUILTIN_AGGREGATORS
 from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
 from enbios.base.experiment_io import resolve_input_files
+from enbios.base.models import ExperimentConfig, NodeOutput, ExperimentScenarioData, ExperimentDataResolved, \
+    TechTreeNodeData, ScenarioResultNodeData, Settings
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
 from enbios.base.tree_operations import validate_experiment_hierarchy
@@ -31,15 +33,6 @@ from enbios.bw2.MultiLCA_util import BaseStackedMultiLCA
 from enbios.generic.enbios2_logging import get_logger, EnbiosLogger
 from enbios.generic.files import PathLike, ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.environment_model import Settings
-from enbios.models.models import (
-    ExperimentConfig,
-    ExperimentScenarioData,
-    NodeOutput,
-    ExperimentDataResolved,
-    TechTreeNodeData,
-    ScenarioResultNodeData,
-)
 
 logger = get_logger(__name__)
 
@@ -95,7 +88,7 @@ class Experiment:
                 self._structural_nodes[node.name] = node
 
         def recursive_convert(
-            node_: BasicTreeNode[TechTreeNodeData],
+                node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: list[NodeOutput] = []
             return BasicTreeNode(
@@ -143,9 +136,9 @@ class Experiment:
         return node
 
     def get_node_module(
-        self,
-        node: Union[str, BasicTreeNode[TechTreeNodeData]],
-        module_type: Optional[T] = EnbiosNodeModule,
+            self,
+            node: Union[str, BasicTreeNode[TechTreeNodeData]],
+            module_type: Optional[T] = EnbiosNodeModule,
     ) -> T:
         """
         Get the module of a node in the experiment hierarchy
@@ -175,9 +168,9 @@ class Experiment:
         )
 
     def get_module_by_name_or_node_indicator(
-        self,
-        name_or_indicator: str,
-        module_type: Type[T],
+            self,
+            name_or_indicator: str,
+            module_type: Type[T],
     ) -> T:
         modules: dict[str, Union[EnbiosAdapter, EnbiosAggregator]] = cast(
             dict[str, Union[EnbiosAdapter, EnbiosAggregator]],
@@ -205,7 +198,7 @@ class Experiment:
         raise ValueError(f"Scenario '{scenario_name}' not found")
 
     def run_scenario(
-        self, scenario_name: str, results_as_dict: bool = True
+            self, scenario_name: str, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a specific scenario
@@ -216,7 +209,7 @@ class Experiment:
         return self.get_scenario(scenario_name).run(results_as_dict)
 
     def run(
-        self, results_as_dict: bool = True
+            self, results_as_dict: bool = True
     ) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]:
         """
         Run all scenarios. Returns a dict with the scenario name as key and the result_tree as value
@@ -257,7 +250,7 @@ class Experiment:
                 return "not run"
 
     def _scenario_select(
-        self, scenarios: Optional[Union[str, list[str]]] = None
+            self, scenarios: Optional[Union[str, list[str]]] = None
     ) -> list[str]:
         single_scenario = isinstance(scenarios, str)
         if single_scenario:
@@ -268,16 +261,16 @@ class Experiment:
             return scenarios
 
     def results_to_csv(
-        self,
-        file_path: PathLike,
-        scenarios: Optional[Union[str, list[str]]] = None,
-        level_names: Optional[list[str]] = None,
-        include_method_units: bool = True,
-        include_output: bool = True,
-        flat_hierarchy: Optional[bool] = False,
-        include_extras: Optional[bool] = True,
-        repeat_parent_name: bool = False,
-        alternative_hierarchy: Optional[dict] = None,
+            self,
+            file_path: PathLike,
+            scenarios: Optional[Union[str, list[str]]] = None,
+            level_names: Optional[list[str]] = None,
+            include_method_units: bool = True,
+            include_output: bool = True,
+            flat_hierarchy: Optional[bool] = False,
+            include_extras: Optional[bool] = True,
+            repeat_parent_name: bool = False,
+            alternative_hierarchy: Optional[dict] = None,
     ):
         """
         Turn the results into a csv file. If no scenario name is given,
@@ -337,12 +330,12 @@ class Experiment:
             writer.writerows(all_rows)
 
     def result_to_dict(
-        self,
-        scenarios: Optional[Union[str, list[str]]] = None,
-        include_method_units: bool = True,
-        include_output: bool = True,
-        include_extras: Optional[bool] = True,
-        alternative_hierarchy: Optional[dict] = None,
+            self,
+            scenarios: Optional[Union[str, list[str]]] = None,
+            include_method_units: bool = True,
+            include_output: bool = True,
+            include_extras: Optional[bool] = True,
+            alternative_hierarchy: Optional[dict] = None,
     ) -> list[dict[str, Any]]:
         """
         Get the results of all scenarios as a list of dictionaries as dictionaries
@@ -407,10 +400,10 @@ class Experiment:
         return list(self._adapters.values())
 
     def run_scenario_config(
-        self,
-        scenario_config: dict,
-        result_as_dict: bool = True,
-        append_scenario: bool = True,
+            self,
+            scenario_config: dict,
+            result_as_dict: bool = True,
+            append_scenario: bool = True,
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An
@@ -475,10 +468,10 @@ class Experiment:
 
     @staticmethod
     def get_module_definition(
-        clazz: Union[
-            Type[EnbiosAdapter], EnbiosAdapter, Type[EnbiosAggregator], EnbiosAggregator
-        ],
-        details: bool = True,
+            clazz: Union[
+                Type[EnbiosAdapter], EnbiosAdapter, Type[EnbiosAggregator], EnbiosAggregator
+            ],
+            details: bool = True,
     ) -> dict[str, Any]:
         """
         Get the 'node_indicator' and schema of a module (adapter or aggregator)
@@ -518,7 +511,7 @@ class Experiment:
         return result
 
     def get_all_configs(
-        self, include_all_builtin_configs: bool = True
+            self, include_all_builtin_configs: bool = True
     ) -> dict[str, dict[str, dict[str, Any]]]:
         """
         Result structure:
@@ -535,15 +528,15 @@ class Experiment:
             "adapters": {
                 name: Experiment.get_module_definition(adapter, True)
                 for name, adapter in (
-                    self._adapters
-                    | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
+                        self._adapters
+                        | (BUILTIN_ADAPTERS if include_all_builtin_configs else {})
                 ).items()
             },
             "aggregators": {
                 name: Experiment.get_module_definition(aggregator, True)
                 for name, aggregator in (
-                    self._aggregators
-                    | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
+                        self._aggregators
+                        | (BUILTIN_AGGREGATORS if include_all_builtin_configs else {})
                 ).items()
             },
         }
@@ -575,7 +568,7 @@ class Experiment:
         return str(MermaidDiagram(nodes=nodes, links=links, orientation="top-down"))
 
     def get_simplified_hierarchy(
-        self, print_it: bool = False
+            self, print_it: bool = False
     ) -> dict[str, Optional[dict[str, Any]]]:
         """
         Get the hierarchy as a dictionary, but in a simplified form, i.e. only the nodes with children are included.

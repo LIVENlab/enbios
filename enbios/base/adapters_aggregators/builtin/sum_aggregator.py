@@ -4,12 +4,7 @@ from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.output_merge import merge_outputs
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.models import (
-    ResultValue,
-    ScenarioResultNodeData,
-    output_merge_type,
-    AggregationModel,
-)
+from enbios.base.models import AggregationModel, output_merge_type, ResultValue, ScenarioResultNodeData
 
 
 class SumAggregator(EnbiosAggregator):

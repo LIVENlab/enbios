@@ -1,7 +1,7 @@
 from typing import Optional
 
 from enbios.base.unit_registry import ureg
-from enbios.models.models import NodeOutput, LabeledQuantity, output_merge_type
+from enbios.base.models import NodeOutput, output_merge_type, LabeledQuantity
 
 
 def merge_outputs(nodes_outputs: list[list[NodeOutput]]) -> output_merge_type:

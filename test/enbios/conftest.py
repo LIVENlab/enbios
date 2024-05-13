@@ -8,7 +8,8 @@ import pytest
 
 from enbios.base.experiment import Experiment
 from enbios.const import BASE_TEST_DATA_PATH
-from enbios.models.models import NodeOutput, ResultValue, ScenarioResultNodeData
+from enbios import ResultValue, ScenarioResultNodeData
+from enbios.base.models import NodeOutput
 from test.enbios.test_project_fixture import TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH, TEST_ECOINVENT_DB, \
     BRIGHTWAY_ADAPTER_MODULE_NAME
 
