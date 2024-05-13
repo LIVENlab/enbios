@@ -90,15 +90,16 @@ class Scenario:
     @staticmethod
     def _propagate_results_upwards(
             node: BasicTreeNode[ScenarioResultNodeData],
-            experiment: "Experiment"
+            experiment: "Experiment",
+            scenario_name: str
     ):
         from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
         if node.is_leaf:
             return
         else:
             aggregator: EnbiosAggregator = experiment.get_node_module(node.name, Type[EnbiosAggregator])
-            node.data.results = aggregator.aggregate_node_result(node)
-            node.data.extras = aggregator.result_extras(node.name)
+            node.data.results = aggregator.aggregate_node_result(node, scenario_name)
+            node.data.extras = aggregator.result_extras(node.name, scenario_name)
 
     def run(
             self, results_as_dict: bool = True, include_extras: bool = True
@@ -133,6 +134,7 @@ class Scenario:
             Scenario._propagate_results_upwards,  # type: ignore
             experiment=self.experiment,
             depth_first=True,
+            scenario_name=self.name
         )
 
         self._has_run = True
@@ -150,7 +152,6 @@ class Scenario:
         self._execution_time = float("NaN")
 
     def set_results(self, result_data: dict[str, Any], include_extras: bool = True):
-
         for node_name, node_result in result_data.items():
             node = self.result_tree.find_subnode_by_name(node_name)
             if not node:

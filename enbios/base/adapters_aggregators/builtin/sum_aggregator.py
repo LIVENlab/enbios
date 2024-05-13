@@ -34,7 +34,8 @@ class SumAggregator(EnbiosAggregator):
         return merge_outputs([n.data.output for n in node.children])
 
     def aggregate_node_result(
-            self, node: BasicTreeNode[ScenarioResultNodeData]
+            self, node: BasicTreeNode[ScenarioResultNodeData],
+            scenario_name: str
     ) -> dict[str, ResultValue]:
         result: dict[str, ResultValue] = {}
         for child in node.children:

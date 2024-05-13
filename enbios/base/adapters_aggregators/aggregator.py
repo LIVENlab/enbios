@@ -30,7 +30,7 @@ class EnbiosAggregator(EnbiosNodeModule[AggregationModel]):
     #     pass
 
     @abstractmethod
-    def aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData]):
+    def aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: str):
         pass
 
     # @abstractmethod
@@ -52,7 +52,7 @@ class EnbiosAggregator(EnbiosNodeModule[AggregationModel]):
     def get_config_schemas() -> dict:
         pass
 
-    def result_extras(self, node_name: str) -> dict[str, Any]:
+    def result_extras(self, node_name: str, scenario_name: str) -> dict[str, Any]:
         return {}
 
     def get_logger(self):
