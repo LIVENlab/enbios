@@ -37,7 +37,7 @@ class ResultsSelector:
         else:
             self.scenarios = all_scenarios
 
-        all_methods: list[str] = self.experiment.method_names
+        all_methods: list[str] = self.experiment.methods
 
         all_method_names: list[str] = self.experiment.method_names
         self.methods: list[str] = []

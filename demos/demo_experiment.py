@@ -163,5 +163,6 @@ def get_demo_experiment(num_scenarios: int = 2) -> Experiment:
     print("running experiment...")
     exp = _create_experiment(num_scenarios)
     exp.run()
+    experiment_path.parent.mkdir(parents=True, exist_ok=True)
     pickle.dump(exp, experiment_path.open("wb"))
     return exp

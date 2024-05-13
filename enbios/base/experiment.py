@@ -120,8 +120,12 @@ class Experiment:
         self._lca: Optional[BaseStackedMultiLCA] = None
         self._execution_time: float = float("NaN")
 
-
     def get_node(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
+        """
+        Get a node from the hierarchy by its name
+        :param name: name of the node
+        :return: All node-data
+        """
         node = self.hierarchy_root.find_subnode_by_name(name)
         if not node:
             raise ValueError(f"Node with name '{name}' not found")

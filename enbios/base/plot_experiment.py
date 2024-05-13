@@ -219,8 +219,8 @@ def single_star_plot(
     fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
 
     cmap = plt.colormaps.get_cmap("tab10")
-    angles = 0
-    for idx, scenario_name in enumerate(scenarios or []):
+    angles = []
+    for idx, scenario_name in enumerate(scenarios or rs.scenarios):
         values = df.loc[df["scenario"] == scenario_name].values.tolist()[0][1:]
         values.append(values[0])
 
