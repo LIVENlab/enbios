@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from logging import Logger
 from typing import Any, Optional
 
 from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
@@ -11,7 +10,6 @@ class EnbiosAdapter(EnbiosNodeModule[AdapterModel]):
     def __init__(self):
         self._config = None
 
-
     @abstractmethod
     def validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]:
         """
@@ -20,8 +18,6 @@ class EnbiosAdapter(EnbiosNodeModule[AdapterModel]):
         :return: list of method names
         """
         pass
-
-
 
     @abstractmethod
     def get_node_output(self, node_name: str, scenario: str) -> list[NodeOutput]:

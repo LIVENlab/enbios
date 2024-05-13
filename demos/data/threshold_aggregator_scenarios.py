@@ -16,7 +16,6 @@ class NodeThresholdConfig(BaseModel):
 
 
 class ThresholdAggregator(SumAggregator):
-
     def __init__(self):
         super().__init__()
         # node -> threshold
@@ -28,7 +27,9 @@ class ThresholdAggregator(SumAggregator):
 
     def validate_node(self, node_name: str, node_config: Any):
         if node_config:
-            self.node_thresholds[node_name] = NodeThresholdConfig.model_validate(node_config)
+            self.node_thresholds[node_name] = NodeThresholdConfig.model_validate(
+                node_config
+            )
 
     def name(self) -> str:
         return "sum-scenario-threshold-aggregator"
@@ -37,14 +38,14 @@ class ThresholdAggregator(SumAggregator):
         return "scenario-threshold"
 
     def validate_scenario_node(
-            self, node_name: str, scenario_name: str, scenario_node_data: Any
+        self, node_name: str, scenario_name: str, scenario_node_data: Any
     ):
-        self.scenario_configs.setdefault(scenario_name, {})[node_name] = NodeThresholdConfig.model_validate(
-            scenario_node_data)
+        self.scenario_configs.setdefault(scenario_name, {})[
+            node_name
+        ] = NodeThresholdConfig.model_validate(scenario_node_data)
 
     def aggregate_node_result(
-            self, node: BasicTreeNode[ScenarioResultNodeData],
-            scenario_name: str
+        self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: str
     ) -> dict[str, ResultValue]:
         sum_ = super().aggregate_node_result(node, scenario_name)
 
@@ -53,8 +54,9 @@ class ThresholdAggregator(SumAggregator):
             for method_threshold in threshold_config.method_thresholds:
                 if method_threshold.method in sum_:
                     method = method_threshold.method
-                    self.threshold_results[node.name][method] = sum_[
-                                                                    method].magnitude >= method_threshold.threshold
+                    self.threshold_results[node.name][method] = (
+                        sum_[method].magnitude >= method_threshold.threshold
+                    )
 
         if scenario_name in self.scenario_configs:
             if node.name in self.scenario_configs[scenario_name]:

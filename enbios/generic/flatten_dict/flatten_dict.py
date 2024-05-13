@@ -7,9 +7,20 @@ except ImportError:
 
 import six
 
-from .reducers import tuple_reducer, path_reducer, dot_reducer, underscore_reducer, double_colon_reducer
-from .splitters import tuple_splitter, path_splitter, dot_splitter, underscore_splitter, double_colon_splitter
-
+from .reducers import (
+    tuple_reducer,
+    path_reducer,
+    dot_reducer,
+    underscore_reducer,
+    double_colon_reducer,
+)
+from .splitters import (
+    tuple_splitter,
+    path_splitter,
+    dot_splitter,
+    underscore_splitter,
+    double_colon_splitter,
+)
 
 REDUCER_DICT = {
     "tuple": tuple_reducer,
@@ -139,7 +150,7 @@ def nested_set_dict(d, keys, value):
     assert keys
     key = keys[0]
     if len(keys) == 1:
-        if type(d) == list:
+        if isinstance(d, list):
             d.append(value)
         else:
             d[key] = value
@@ -154,7 +165,7 @@ def nested_set_dict(d, keys, value):
         else:
             d[key] = []
         d = d[key]
-    elif type(key) == int:
+    elif isinstance(key, int):
         if (key + 1) > len(d):
             d.append({})
         d = d[key]

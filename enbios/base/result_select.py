@@ -14,10 +14,10 @@ logger = get_logger(__name__)
 
 class ResultsSelector:
     def __init__(
-            self,
-            experiment: Experiment,
-            scenarios: Optional[list[str]] = None,
-            methods: Optional[list[str]] = None,
+        self,
+        experiment: Experiment,
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
     ):
         """
         Initialize the object with experiment, scenarios, and methods.
@@ -58,9 +58,9 @@ class ResultsSelector:
 
     @staticmethod
     def get_result_selector(
-            result_selector: Union[Experiment, "ResultsSelector"],
-            scenarios: Optional[list[str]] = None,
-            methods: Optional[list[str]] = None,
+        result_selector: Union[Experiment, "ResultsSelector"],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
     ) -> "ResultsSelector":
         if isinstance(result_selector, Experiment):
             return ResultsSelector(result_selector, scenarios=scenarios, methods=methods)
@@ -137,7 +137,7 @@ class ResultsSelector:
         adapter_indicator, method_name = "", ""
         if "." in method:
             assert (
-                    method in self.methods
+                method in self.methods
             ), f"Method {method} missing. Candidates: {', '.join(self.methods)}"
             adapter_indicator, method_name = method.split(".")
         else:
@@ -150,15 +150,14 @@ class ResultsSelector:
                     break
             if not found:
                 raise ValueError(f"Method {method} not found")
-        adapter: EnbiosAdapter = self.experiment.get_module_by_name_or_node_indicator(adapter_indicator, EnbiosAdapter)
+        adapter: EnbiosAdapter = self.experiment.get_module_by_name_or_node_indicator(
+            adapter_indicator, EnbiosAdapter
+        )
         return adapter.get_method_unit(method_name)
 
     def method_label_names(self, include_unit: bool = True) -> list[str]:
         return [
-            (
-                    method
-                    + ("\n" + self.get_method_unit(method) if include_unit else "")
-            )
+            (method + ("\n" + self.get_method_unit(method) if include_unit else ""))
             for method in self.methods
         ]
 
@@ -203,9 +202,9 @@ class ResultsSelector:
         return nodes
 
     def collect_tech_results(
-            self,
-            nodes: list[str],
-            value_name: Literal["magnitude", "multi_magnitude"] = "magnitude",
+        self,
+        nodes: list[str],
+        value_name: Literal["magnitude", "multi_magnitude"] = "magnitude",
     ):
         df = DataFrame()
         for scenario in self.scenarios:

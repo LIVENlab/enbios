@@ -13,7 +13,9 @@ from enbios.models.models import AdapterModel, AggregationModel
 logger = get_logger(__name__)
 
 
-def get_module_classes(module: ModuleType, base_class: Type) -> list[Union[EnbiosAdapter, EnbiosAggregator]]:
+def get_module_classes(
+    module: ModuleType, base_class: Type
+) -> list[Union[EnbiosAdapter, EnbiosAggregator]]:
     classes = []
 
     return classes

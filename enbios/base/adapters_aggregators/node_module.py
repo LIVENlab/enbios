@@ -6,11 +6,10 @@ from pydantic import BaseModel
 
 from enbios.generic.enbios2_logging import get_logger
 
-T = TypeVar('T', bound=BaseModel)
+T = TypeVar("T", bound=BaseModel)
 
 
 class EnbiosNodeModule(ABC, Generic[T]):
-
     @abstractmethod
     def validate_definition(self, definition: T):
         """
@@ -35,7 +34,7 @@ class EnbiosNodeModule(ABC, Generic[T]):
 
     @abstractmethod
     def validate_scenario_node(
-            self, node_name: str, scenario_name: str, scenario_node_data: Any
+        self, node_name: str, scenario_name: str, scenario_node_data: Any
     ):
         """
         Validates the output of a node within a scenario. Is called for each node within a scenario.

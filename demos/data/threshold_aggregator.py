@@ -16,7 +16,6 @@ class NodeThresholdConfig(BaseModel):
 
 
 class ThresholdAggregator(SumAggregator):
-
     def __init__(self):
         super().__init__()
         self.node_thresholds: dict[str, NodeThresholdConfig] = {}
@@ -24,7 +23,9 @@ class ThresholdAggregator(SumAggregator):
 
     def validate_node(self, node_name: str, node_config: Any):
         if node_config:
-            self.node_thresholds[node_name] = NodeThresholdConfig.model_validate(node_config)
+            self.node_thresholds[node_name] = NodeThresholdConfig.model_validate(
+                node_config
+            )
 
     def name(self) -> str:
         return "sum-threshold-aggregator"
@@ -33,8 +34,7 @@ class ThresholdAggregator(SumAggregator):
         return "threshold"
 
     def aggregate_node_result(
-            self, node: BasicTreeNode[ScenarioResultNodeData],
-            scenario_name: str
+        self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: str
     ) -> dict[str, ResultValue]:
         sum_ = super().aggregate_node_result(node, scenario_name)
         if node.name in self.node_thresholds:
@@ -43,11 +43,12 @@ class ThresholdAggregator(SumAggregator):
             for method_threshold in node_thresholds.method_thresholds:
                 if method_threshold.method in sum_:
                     method = method_threshold.method
-                    self.threshold_results[node.name][method] = sum_[method].magnitude >= method_threshold.threshold
+                    self.threshold_results[node.name][method] = (
+                        sum_[method].magnitude >= method_threshold.threshold
+                    )
         return sum_
 
-    def result_extras(self, node_name: str,
-                      scenario_name: str) -> dict[str, Any]:
+    def result_extras(self, node_name: str, scenario_name: str) -> dict[str, Any]:
         results = self.threshold_results.get(node_name, {})
         if results:
             return {"threshold_results": results}

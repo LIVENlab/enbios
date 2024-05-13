@@ -85,6 +85,7 @@ def recursive_resolve_outputs(
     node: BasicTreeNode[ScenarioResultNodeData], experiment: "Experiment", **kwargs
 ):
     from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
+
     # todo, does this takes default values when an node is not defined
     #  in the scenario?
     if node.is_leaf:

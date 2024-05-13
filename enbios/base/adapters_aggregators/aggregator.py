@@ -4,16 +4,19 @@ from typing import Optional, Any
 from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.models import ScenarioResultNodeData, output_merge_type, AggregationModel
+from enbios.models.models import (
+    ScenarioResultNodeData,
+    output_merge_type,
+    AggregationModel,
+)
 
 
 class EnbiosAggregator(EnbiosNodeModule[AggregationModel]):
-
     @abstractmethod
     def aggregate_node_output(
-            self,
-            node: BasicTreeNode[ScenarioResultNodeData],
-            scenario_name: Optional[str] = "",
+        self,
+        node: BasicTreeNode[ScenarioResultNodeData],
+        scenario_name: Optional[str] = "",
     ) -> output_merge_type:
         pass
 
@@ -30,7 +33,9 @@ class EnbiosAggregator(EnbiosNodeModule[AggregationModel]):
     #     pass
 
     @abstractmethod
-    def aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: str):
+    def aggregate_node_result(
+        self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: str
+    ):
         pass
 
     # @abstractmethod

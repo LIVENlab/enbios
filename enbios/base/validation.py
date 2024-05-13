@@ -65,6 +65,12 @@ def validate_aggregators(
             aggregators.append(aggregator)
 
     names_counter = Counter([aggregator.name() for aggregator in aggregators])
+    for agg, count in dict(names_counter).items():
+        if count > 1:
+            raise ValueError(
+                f"There are multiple aggregators with the name {agg}. "
+                f"Please make sure that all aggregators have unique names."
+            )
     return {aggregator.name(): aggregator for aggregator in aggregators}
 
 
@@ -116,7 +122,9 @@ def validate_scenario(
         for node_name_, node_output in nodes.items():
             node_ = experiment.get_node(node_name_)
             node_module = experiment.get_node_module(node_)
-            node_module.validate_scenario_node(node_name_, str(scenario_.name), node_output)
+            node_module.validate_scenario_node(
+                node_name_, str(scenario_.name), node_output
+            )
 
     validate_nodes(scenario_data)
 

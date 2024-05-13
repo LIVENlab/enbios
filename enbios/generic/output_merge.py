@@ -20,7 +20,7 @@ def merge_outputs(nodes_outputs: list[list[NodeOutput]]) -> output_merge_type:
                 if labeled_q.label == given_output.label:
                     return idx
             elif not labeled_q.label and labeled_q.quantity.is_compatible_with(
-                    given_output.unit
+                given_output.unit
             ):
                 return idx
         return None
@@ -31,14 +31,13 @@ def merge_outputs(nodes_outputs: list[list[NodeOutput]]) -> output_merge_type:
             assign_to: Optional[int] = find_node_output_index(output)
             if assign_to is not None:
                 final_node_outputs[assign_to].quantity += (
-                        ureg(output.unit) * output.magnitude
+                    ureg(output.unit) * output.magnitude
                 )
                 node_outputs_assignment.append(assign_to)
             else:
                 final_node_outputs.append(
                     LabeledQuantity(
-                        quantity=ureg.parse_expression(output.unit)
-                                 * output.magnitude,
+                        quantity=ureg.parse_expression(output.unit) * output.magnitude,
                         label=output.label,
                     )
                 )

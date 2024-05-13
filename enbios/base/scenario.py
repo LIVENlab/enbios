@@ -47,6 +47,7 @@ class Scenario:
 
         # structural_nodes_names = list(n.name for n in )
         from enbios.base.adapters_aggregators.adapter import EnbiosAdapter
+
         structural_nodes_names: list[str] = []
         for result_index, node in enumerate(self.result_tree.iter_leaves()):
             # try:
@@ -56,15 +57,14 @@ class Scenario:
             # structural_node = self.experiment.get_structural_node(node.name)
             # todo: should be dealt returned by the adapter...
             node.data.output = self.experiment.get_node_module(
-                node.name,
-                Type[EnbiosAdapter]
+                node.name, Type[EnbiosAdapter]
             ).get_node_output(node.name, self.name)
             structural_nodes_names.append(node.name)
 
         if self.config.exclude_defaults:
 
             def remove_empty_nodes(
-                    node: BasicTreeNode[ScenarioResultNodeData], cancel_parents_of: set[str]
+                node: BasicTreeNode[ScenarioResultNodeData], cancel_parents_of: set[str]
             ):
                 # aggregators without children are not needed
                 if node.is_leaf and node.data.aggregator:
@@ -89,20 +89,23 @@ class Scenario:
 
     @staticmethod
     def _propagate_results_upwards(
-            node: BasicTreeNode[ScenarioResultNodeData],
-            experiment: "Experiment",
-            scenario_name: str
+        node: BasicTreeNode[ScenarioResultNodeData],
+        experiment: "Experiment",
+        scenario_name: str,
     ):
         from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
+
         if node.is_leaf:
             return
         else:
-            aggregator: EnbiosAggregator = experiment.get_node_module(node.name, Type[EnbiosAggregator])
+            aggregator: EnbiosAggregator = experiment.get_node_module(
+                node.name, Type[EnbiosAggregator]
+            )
             node.data.results = aggregator.aggregate_node_result(node, scenario_name)
             node.data.extras = aggregator.result_extras(node.name, scenario_name)
 
     def run(
-            self, results_as_dict: bool = True
+        self, results_as_dict: bool = True
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         # if not self._get_methods():
         #     raise ValueError(f"Scenario '{self.name}' has no methods")
@@ -134,12 +137,16 @@ class Scenario:
             Scenario._propagate_results_upwards,  # type: ignore
             experiment=self.experiment,
             depth_first=True,
-            scenario_name=self.name
+            scenario_name=self.name,
         )
 
         self._has_run = True
         self._execution_time = time.time() - start_time
-        return self.result_to_dict(include_extras=True) if results_as_dict else self.result_tree
+        return (
+            self.result_to_dict(include_extras=True)
+            if results_as_dict
+            else self.result_tree
+        )
 
     @property
     def execution_time(self) -> str:
@@ -165,7 +172,9 @@ class Scenario:
                     logger.error(f"Node '{node_name}' not found in result tree")
                 continue
             node.data.results = node_result
-            node.data.extras = self.experiment.get_node_module(node).result_extras(node.name, self.name)
+            node.data.extras = self.experiment.get_node_module(node).result_extras(
+                node.name, self.name
+            )
         if self.config.exclude_defaults:
             for leave in self.result_tree.iter_leaves():
                 if not leave.data.results:
@@ -181,10 +190,10 @@ class Scenario:
 
     @staticmethod
     def wrapper_data_serializer(
-            *,
-            include_output: bool = True,
-            include_method_units: bool = True,
-            include_extras: bool = True,
+        *,
+        include_output: bool = True,
+        include_method_units: bool = True,
+        include_extras: bool = True,
     ) -> Callable[[ScenarioResultNodeData], dict]:
         def _expand_results(results: dict[str, ResultValue]) -> dict:
             """
@@ -222,9 +231,10 @@ class Scenario:
 
     @staticmethod
     def wrapped_flat_output_list_serializer(
-            serializer: Callable[[ScenarioResultNodeData], dict]
+        serializer: Callable[[ScenarioResultNodeData], dict]
     ) -> Callable[[ScenarioResultNodeData], dict]:
         from enbios.generic.flatten_dict import flatten_dict
+
         def flattened_wrap(result_data: ScenarioResultNodeData) -> dict:
             res = serializer(result_data)
             return flatten_dict.flatten(res, reducer="underscore", enumerate_types={list})
@@ -232,16 +242,16 @@ class Scenario:
         return flattened_wrap
 
     def results_to_csv(
-            self,
-            file_path: PathLike,
-            level_names: Optional[list[str]] = None,
-            include_output: bool = True,
-            include_method_units: bool = True,
-            warn_no_results: bool = True,
-            alternative_hierarchy: Optional[dict] = None,
-            flat_hierarchy: Optional[bool] = False,
-            repeat_parent_name: bool = False,
-            include_extras: bool = True,
+        self,
+        file_path: PathLike,
+        level_names: Optional[list[str]] = None,
+        include_output: bool = True,
+        include_method_units: bool = True,
+        warn_no_results: bool = True,
+        alternative_hierarchy: Optional[dict] = None,
+        flat_hierarchy: Optional[bool] = False,
+        repeat_parent_name: bool = False,
+        include_extras: bool = True,
     ):
         """
         Save the results (as tree) to a csv file
@@ -283,12 +293,12 @@ class Scenario:
         )
 
     def result_to_dict(
-            self,
-            include_output: bool = True,
-            include_method_units: bool = True,
-            include_extras: bool = True,
-            warn_no_results: bool = True,
-            alternative_hierarchy: Optional[dict] = None,
+        self,
+        include_output: bool = True,
+        include_method_units: bool = True,
+        include_extras: bool = True,
+        warn_no_results: bool = True,
+        alternative_hierarchy: Optional[dict] = None,
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
@@ -324,7 +334,7 @@ class Scenario:
             return recursive_transform(self.result_tree.copy())
 
     def _rearrange_results(
-            self, hierarchy: dict
+        self, hierarchy: dict
     ) -> BasicTreeNode[ScenarioResultNodeData]:
         hierarchy_obj = HierarchyNodeReference(**hierarchy)
 
@@ -337,7 +347,7 @@ class Scenario:
         )
 
         def recursive_convert(
-                node_: BasicTreeNode[TechTreeNodeData],
+            node_: BasicTreeNode[TechTreeNodeData],
         ) -> BasicTreeNode[ScenarioResultNodeData]:
             output: list[NodeOutput] = []
             results: dict = {}
