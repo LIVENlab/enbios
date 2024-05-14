@@ -2,8 +2,8 @@ from abc import abstractmethod
 from typing import Any, Optional
 
 from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
-from enbios.base.scenario import Scenario
 from enbios.base.models import AdapterModel, NodeOutput, ResultValue
+from enbios.base.scenario import Scenario
 
 
 class EnbiosAdapter(EnbiosNodeModule[AdapterModel]):
@@ -33,8 +33,8 @@ class EnbiosAdapter(EnbiosNodeModule[AdapterModel]):
     def get_method_unit(self, method_name: str) -> str:
         """
         Unit of a method
-        :param method_name:
-        :return:
+        :param method_name: The name of the method
+        :return: the unit (as string)
         """
         pass
 
@@ -47,7 +47,7 @@ class EnbiosAdapter(EnbiosNodeModule[AdapterModel]):
                     method_name: ResultValue (unit, magnitude)
                 }
             }
-        :param scenario:
+        :param scenario: The scenario object
         :return: Returns a dictionary node-name: (method-name: results)
         """
         pass
