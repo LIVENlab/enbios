@@ -197,14 +197,14 @@ def single_star_plot(
 ) -> Figure:
     """
     plots multiple scenarios into one star plot
-    :param experiment:
-    :param scenarios:
-    :param methods:
-    :param r_ticks:
-    :param show_r_ticks:
-    :param show_grid:
-    :param show_labels:
-    :param image_file:
+    :param experiment: experiment to plot
+    :param scenarios: scenarios to plot
+    :param methods: methods to plot
+    :param r_ticks: ticks for the radial axis
+    :param show_r_ticks: if the radial axis should be shown
+    :param show_grid: if the grid should be shown
+    :param show_labels: if the method labels should be shown
+    :param image_file: file to save the plot to
     :return:
     """
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
