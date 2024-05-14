@@ -166,6 +166,9 @@ graph LR
 
 _(structural nodes are rectangles and functional nodes are rounded rectangles)_
 
+[This demo notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/intro.ipynb)) shows how to build the
+configuration step by step.
+
 Full details are below the configuration
 
 {{file:json:test/data/docs_data/simple_example.json}}
@@ -362,7 +365,8 @@ But can also be written to csv files with functions for Experiment (and scenario
 
 {{enbios.base.scenario.Scenario.result_to_csv}}
 
-[This notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb)) demonstrates to usage of the results_to_csv function.
+[This notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb)) demonstrates to usage of the
+results_to_csv function.
 
 ## Creating Adapters and Aggregators
 
@@ -382,94 +386,11 @@ First, there are several validation functions. These functions serve to check th
 store all configurations inside the adapter object as they are later needed for the execution. In case of invalid data,
 they should raise an Exception. In the case some validation is not required, it is ok, they just contain `pass`.
 
-`validate_definition(self, definition: AdapterModel)`
-
-Validates the whole adapter definition, which is the whole dictionary (parse
-as `enbios.models.models.AdapterModel`)
-
-`validate_config(self, config: Optional[dict[str, Any]])`
-
-Validates the configuration (the `config` value in the definition).
-
-`validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]`
-
-Validates the `methods` in the definition.
-
-`validate_node(self, node_name: str, node_config: Any)`
-
-Validates a node configuration, for each node that specifies this as its adapter.
-
-`validate_node_output(self, node_name: str, target_output: ActivityOutput) -> float`
-
-Validates the output of a node as part of a scenario validation in the experiment.
-
-`get_node_output_unit(self, activity_name: str) -> str`
-
-Get the output unit of a node.
-
-`get_method_unit(self, method_name: str) -> str`
-
-Get the unit of a method.
-
-`get_default_output_value(self, activity_name: str) -> float`
-
-Get the default output amount of a node (in its defined output unit).
-
-`run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]`
-
-Run a scenario.
-
-Additionally, there are some static method, which means, they can be called on the Adapter class.
-
-`static node_indicator() -> str`
-
-The indicator that can be used, to indicate that a node should use this adapter (alternatively, the name, as given in
-name() can also be used).
-
-`static get_config_schemas() -> dict[str, dict[str, Any]]`
-
-Get the configuration schemas for `config`, `method` and  `activity`. The idea here, is that, these are generated from
-Pydantic model classes, which are used `validate_config`, `validate_node` and `validate_methods`.
-
-`static name() -> str`
-
-Get the name of the adapter.
+{{enbios.base.adapters_aggregators.adapter.EnbiosAdapter}}
 
 ### Aggregator
 
-`validate_config(self, config: Optional[dict[str, Any]])`
-
-Validate the configuration of the aggregator.
-
-`validate_node(self, node_name: str, node_config: Any)`
-
-Validates a node configuration, for each node that specifies this as its aggregator.
-
-`aggregate_node_output(self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: Optional[str] = "") -> Optional[NodeOutput]`
-
-Aggregate the outputs of the children of a node. This method should return an optional NodeOutput, if the aggregation
-was correct and there is some uniform output. This is in order to prevent errors higher up in the hierarchy. For
-example, the Sum aggregator, returns NodeOutput, if the outputs (and crucially their units) can be summed up. It returns
-None,
-if the units don't fit together.
-This function is already called during the initiation of an experiment as part of each scenario validation.
-
-`aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData])`
-
-Aggregate the results of the children of a node.
-
-Static methods:
-
-`def node_indicator() -> str`
-
-The indicator that can be used, to indicate that a node should use this aggregator (alternatively, the name, as given in
-name() can also be used).
-
-`name() -> str`
-
-Get the name of the adapter.
-
-`get_config_schemas() -> dict`
+{{enbios.base.adapters_aggregators.aggregator.EnbiosAggregator}}
 
 ## Environmental variables
 

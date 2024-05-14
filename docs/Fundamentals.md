@@ -166,6 +166,9 @@ graph LR
 
 _(structural nodes are rectangles and functional nodes are rounded rectangles)_
 
+[This demo notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/intro.ipynb)) shows how to build the
+configuration step by step.
+
 Full details are below the configuration
 
 ```json
@@ -1065,7 +1068,11 @@ Unit of a method
 
 **Arguments**:
 
-- `method_name`:
+- `method_name`: The name of the method
+
+**Returns**:
+
+the unit (as string)
 
 #### run\_scenario
 
@@ -1084,7 +1091,7 @@ Run a specific scenario. The adapter should return a dictionary of the form:
 
 **Arguments**:
 
-- `scenario`:
+- `scenario`: The scenario object
 
 **Returns**:
 
@@ -1240,7 +1247,8 @@ In this alternative hierarchy, tho, already defined nodeds need no config and no
 
 
 
-[This notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb)) demonstrates to usage of the results_to_csv function.
+[This notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb)) demonstrates to usage of the
+results_to_csv function.
 
 ## Creating Adapters and Aggregators
 
@@ -1260,94 +1268,147 @@ First, there are several validation functions. These functions serve to check th
 store all configurations inside the adapter object as they are later needed for the execution. In case of invalid data,
 they should raise an Exception. In the case some validation is not required, it is ok, they just contain `pass`.
 
-`validate_definition(self, definition: AdapterModel)`
+## EnbiosAdapter Objects
 
-Validates the whole adapter definition, which is the whole dictionary (parse
-as `enbios.models.models.AdapterModel`)
+#### validate\_methods
 
-`validate_config(self, config: Optional[dict[str, Any]])`
+```python
+@abstractmethod
+def validate_methods(methods: Optional[dict[str, Any]]) -> list[str]
+```
 
-Validates the configuration (the `config` value in the definition).
+Validate the methods. The creator might store method specific data in the adapter through this method.
 
-`validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]`
+**Arguments**:
 
-Validates the `methods` in the definition.
+- `methods`: A dictionary of method names and their config (identifiers for the adapter).
 
-`validate_node(self, node_name: str, node_config: Any)`
+**Returns**:
 
-Validates a node configuration, for each node that specifies this as its adapter.
+list of method names
 
-`validate_node_output(self, node_name: str, target_output: ActivityOutput) -> float`
 
-Validates the output of a node as part of a scenario validation in the experiment.
+#### get\_node\_output
 
-`get_node_output_unit(self, activity_name: str) -> str`
+```python
+@abstractmethod
+def get_node_output(node_name: str, scenario: str) -> list[NodeOutput]
+```
 
-Get the output unit of a node.
+The output of a node for a scenario. A list of NodeOutput objects.
 
-`get_method_unit(self, method_name: str) -> str`
+**Arguments**:
 
-Get the unit of a method.
+- `node_name`: Name of the node in the hierarchy
+- `scenario`: Name of the scenario
 
-`get_default_output_value(self, activity_name: str) -> float`
+**Returns**:
 
-Get the default output amount of a node (in its defined output unit).
+Multiple NodeOutput objects.
 
-`run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]`
 
-Run a scenario.
+#### get\_method\_unit
 
-Additionally, there are some static method, which means, they can be called on the Adapter class.
+```python
+@abstractmethod
+def get_method_unit(method_name: str) -> str
+```
 
-`static node_indicator() -> str`
+Unit of a method
 
-The indicator that can be used, to indicate that a node should use this adapter (alternatively, the name, as given in
-name() can also be used).
+**Arguments**:
 
-`static get_config_schemas() -> dict[str, dict[str, Any]]`
+- `method_name`: The name of the method
 
-Get the configuration schemas for `config`, `method` and  `activity`. The idea here, is that, these are generated from
-Pydantic model classes, which are used `validate_config`, `validate_node` and `validate_methods`.
+**Returns**:
 
-`static name() -> str`
+the unit (as string)
 
-Get the name of the adapter.
+
+#### run\_scenario
+
+```python
+@abstractmethod
+def run_scenario(scenario: Scenario) -> dict[str, dict[str, ResultValue]]
+```
+
+Run a specific scenario. The adapter should return a dictionary of the form:
+
+{
+        node_name: {
+            method_name: ResultValue (unit, magnitude)
+        }
+    }
+
+**Arguments**:
+
+- `scenario`: The scenario object
+
+**Returns**:
+
+Returns a dictionary node-name: (method-name: results)
+
+
+
 
 ### Aggregator
 
-`validate_config(self, config: Optional[dict[str, Any]])`
+## EnbiosAggregator Objects
 
-Validate the configuration of the aggregator.
+#### aggregate\_node\_output
 
-`validate_node(self, node_name: str, node_config: Any)`
+```python
+@abstractmethod
+def aggregate_node_output(
+        node: BasicTreeNode[ScenarioResultNodeData],
+        scenario_name: Optional[str] = "") -> output_merge_type
+```
 
-Validates a node configuration, for each node that specifies this as its aggregator.
+#### aggregate\_node\_result
 
-`aggregate_node_output(self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: Optional[str] = "") -> Optional[NodeOutput]`
+```python
+@abstractmethod
+def aggregate_node_result(node: BasicTreeNode[ScenarioResultNodeData],
+                          scenario_name: str)
+```
 
-Aggregate the outputs of the children of a node. This method should return an optional NodeOutput, if the aggregation
-was correct and there is some uniform output. This is in order to prevent errors higher up in the hierarchy. For
-example, the Sum aggregator, returns NodeOutput, if the outputs (and crucially their units) can be summed up. It returns
-None,
-if the units don't fit together.
-This function is already called during the initiation of an experiment as part of each scenario validation.
+#### node\_indicator
 
-`aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData])`
+```python
+@staticmethod
+@abstractmethod
+def node_indicator() -> str
+```
 
-Aggregate the results of the children of a node.
+#### name
 
-Static methods:
+```python
+@staticmethod
+@abstractmethod
+def name() -> str
+```
 
-`def node_indicator() -> str`
+#### get\_config\_schemas
 
-The indicator that can be used, to indicate that a node should use this aggregator (alternatively, the name, as given in
-name() can also be used).
+```python
+@staticmethod
+@abstractmethod
+def get_config_schemas() -> dict
+```
 
-`name() -> str`
+#### result\_extras
 
-Get the name of the adapter.
+```python
+def result_extras(node_name: str, scenario_name: str) -> dict[str, Any]
+```
 
-`get_config_schemas() -> dict`
+#### get\_logger
+
+```python
+def get_logger()
+```
+
+
 
 ## Environmental variables
 
@@ -1721,7 +1782,7 @@ Result structure:
 
 **Arguments**:
 
-- `include_all_builtin_configs`:
+- `include_all_builtin_configs`: Include the jsonschema configs of all adapters and aggregegators
 
 **Returns**:
 
