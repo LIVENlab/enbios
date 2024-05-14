@@ -999,13 +999,6 @@ modules, when `include_all_builtin_configs` is set True (default).
 
 The configs are in a dictionary in the fields `adapters`, `aggregators`
 
-### Splitting the config file:
-
-The configuration of an experiment can also be split into multiple files.
-The hierarchy and scenarios can be separated in external files (and be provided in alternative formats).
-
-See [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_config_files.ipynb) for details.
-
 ```json
   {
   "adapters": {
@@ -1017,6 +1010,13 @@ See [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_
 }
 ```
 
+### Splitting the config file:
+
+The configuration of an experiment can also be split into multiple files.
+The hierarchy and scenarios can be separated in external files (and be provided in alternative formats).
+
+See [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_config_files.ipynb) for details.
+
 ### Builtin adapters and aggregators
 
 There are a some builtin adapters and aggregators:
@@ -1025,11 +1025,9 @@ There are a some builtin adapters and aggregators:
 
 - SimpleAssignmentAdapter: For this Adapter, the outputs and impacts can be defined in the adapter configuration
 - BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
-  based on the outputs of activities (structural nodes)
-
-See [this notebook](
+  based on the outputs of activities (structural nodes). See [this notebook](
 https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb
-) for all possible configs in one structure
+) for all possible configs in one dictionary.
 
 **Aggregators**
 
@@ -1040,13 +1038,13 @@ https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb
 Besides including the hierarchy in the configuration it is also possible to have a file location.
 Enbios is able to read hierarchies in 3 formats.
 
-1. as json, which should be the same format as it would be in the experiment config.
+1. as .json, which should be the same format as it would be in the experiment config.
 
-2. as csv file
+2. as .csv file
    The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_hierarchy.ipynb) demonstrates
    how to use a csv file to specify the hierarchy:
 
-3. as mermaid (mm) file
+3. as .mermaid (or .mm) file
    As demonstrated in [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/mermaid.ipynb)
 
 ## Exporting the results
@@ -1250,11 +1248,13 @@ functions. When creating a concrete adapter or aggregator, these functions have 
 def validate_definition(definition: T)
 ```
 
-This is the first validator to be called. Validates the whole adapter definition, which is the whole dictionary (parse as enbios.models.models.AdapterModel)
+This is the first validator to be called. Validates the whole adapter/aggregator definition, which is the whole
+
+dictionary (parse as enbios.models.models.AdapterModel)
 
 **Arguments**:
 
-- `definition`: the whole adapter definition (containing 'config' and 'methods')
+- `definition`: the whole adapter/aggregator definition (containing 'config' and 'methods')
 
 #### validate\_config
 
@@ -1265,12 +1265,14 @@ def validate_config(config: Optional[dict[str, Any]])
 
 Validate the config. The creator may store anything in the
 
-adapter object through this method.
+adapter/aggregator object through this method.
 
 **Arguments**:
 
-- `config`: the configuration of the adapter, which might have its own BaseModel. For understanding the structure,
-it makes sense to provide this model as a return value of "adapter" in the get_config_schemas() method.
+- `config`: the configuration of the adapter/aggregator, which might have its own BaseModel. For
+understanding the structure, it makes sense to provide this model as a return value of "adapter/aggregator"
+in the get_config_schemas()
+method.
 
 #### validate\_node
 
@@ -1303,7 +1305,7 @@ Validates the output of a node within a scenario. Is called for each node within
 def node_indicator() -> str
 ```
 
-This string can be used in order to indicate that a node in the hierarchy should use this adapter.
+This string can be used in order to indicate that a node in the hierarchy should use this adapter/aggregator.
 
 **Returns**:
 
@@ -1317,14 +1319,17 @@ node-indicator string
 def get_config_schemas() -> dict[str, dict[str, Any]]
 ```
 
-Get the Jsonschema for the adapter. These can be derived, when there are pydantic based models for validation
+Get the Jsonschema for the adapter/aggregator. These can be derived, when there are pydantic based models
 
-(using the `model_json_schema` function). The structure of the return value should correspond to the three parts of validation,
- the adapter-config, the activity-configs in the hierarchy and the methods.
+for validation
+(using the `model_json_schema` function). The structure of the return value should correspond to the three
+parts of validation,
+ the adapter/aggregator-config, the node-configs in the hierarchy and the methods.
 
 **Returns**:
 
-dictionary, where each key corresponds to one part of validation (proposed keys: `adapter`, `activty` and `method`.
+dictionary, where each key corresponds to one part of validation (proposed keys: `adapter/aggregator`,
+`activty` and `method`.
 
 #### name
 
@@ -1334,11 +1339,13 @@ dictionary, where each key corresponds to one part of validation (proposed keys:
 def name() -> str
 ```
 
-Name of the adapter (which can also used to indicate in the hierarchy that a node should use this adapter.
+Name of the adapter/aggregator (which can also used to indicate in the hierarchy that a node should use this
+
+adapter/aggregator.
 
 **Returns**:
 
-string: name of the adapter
+string: name of the adapter/aggregator
 
 #### get\_logger
 
@@ -1346,11 +1353,11 @@ string: name of the adapter
 def get_logger() -> Logger
 ```
 
-Logger of this adapter. Use this inside the adapter.
+Logger of this adapter/aggregator. Use this inside the adapter/aggregator.
 
 **Returns**:
 
-Use this to make logs inside the adapter
+Use this to make logs inside the adapter/aggregator
 
 #### result\_extras
 
