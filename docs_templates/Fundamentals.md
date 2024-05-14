@@ -330,8 +330,16 @@ There are a some builtin adapters and aggregators:
 
 ## Hierarchy
 
+Besides including the hierarchy in the configuration it is also possible to have a file location.
+Enbios is able to read hierarchies in 3 formats.
+
+1. as json, which should be the same format as it would be in the experiment config.
+
+2. as csv file
 The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_hierarchy.ipynb) demonstrates how to use a csv file to specify the hierarchy:
 
+3. as mermaid (mm) file
+As demonstrated in [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/mermaid.ipynb)
 
 ## Creating Adapters and Aggregators
 
