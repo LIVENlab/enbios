@@ -328,6 +328,11 @@ There are a some builtin adapters and aggregators:
 
 - SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
 
+## Hierarchy
+
+The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_hierarchy.ipynb) demonstrates how to use a csv file to specify the hierarchy:
+
+
 ## Creating Adapters and Aggregators
 
 In order to create new adapters and aggregators, one has to create module which contain a class, which inherits
@@ -446,7 +451,10 @@ Enbios reads two environmental variables:
   configuration file, it will check for the existence of this variable and interpret is as the location of the
   configuration file.
 
-- RUN_SCENARIOS:
+- RUN_SCENARIOS: This variable is read as a json object (in this case as a list) and defines, which scenarios should be
+  run.
+
+The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/environmental_variables.ipynb) demonstrates the usage.
 
 ## Full Experiment API
 
