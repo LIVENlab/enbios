@@ -1182,6 +1182,39 @@ In this alternative hierarchy, tho, already defined nodeds need no config and no
 [This notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb) demonstrates to usage of the
 results_to_csv function.
 
+### Storing the experiment as a pickle
+
+Sometimes it useful to keep the experiment object after an experiment has been run.
+The experiment object (or scenario objects) can be stored into files with the python module `pickle` (Read more
+about [the pickle module](https://docs.python.org/3/library/pickle.html) here).
+
+```python
+import pickle
+from enbios.base.experiment import Experiment
+
+config_file = "...some_config_path...json"
+exp = Experiment(config_file)
+exp.run()
+with open("experiment.pickle", "wb") as fout:
+    pickle.dump(exp, fout)
+
+## somewhere else (e.g. in another script)
+
+exp: Experiment = pickle.load(open("experiment.pickle", "rb"))
+```
+
+This allows you to reopen the same experiment later, in order to
+
+- run more scenarios
+- recalculate the results with an alternative hierarchy (see the next section)
+- do alternative exports (omitting certain fields, or only selecting certain scenarios)
+
+> [!CAUTION]
+> The pickle module is not secure. Only unpickle data you trust.
+> That generally means, you should only use pickle to store experiments on one computer.
+> It is well possible, that pickled experiments cannot be unpickled on other computers, when you are using custom
+> adapters/aggregators.
+
 ### Aggegating the results into alternative hierarchies
 
 After running an experiment (or individual scenarios) it is also possible to restructure the results into alternative
@@ -1469,6 +1502,8 @@ Enbios reads two environmental variables:
 
 The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/environmental_variables.ipynb)
 demonstrates the usage.
+
+## Plotting results
 
 ## Full Experiment API
 
