@@ -7,6 +7,8 @@
 - [Running an experiment](#running-an-experiment)
 - [A first example](#a-first-simple-example)
 - [How to configure Adapters and Aggregators](#how-to-configure-adapters-and-aggregators)
+- [Hierarchy](#hierarchy)
+- [Exporting results](#exporting-the-results)
 - [Creating Adapters and Aggregators](#creating-adapters-and-aggregators)
 
 This version is based on a very simple assumption. Calculating arbitrary (structural/terminal nodes) and aggregated
@@ -1017,10 +1019,228 @@ There are a some builtin adapters and aggregators:
 
 ## EnbiosAdapter Objects
 
+#### validate\_methods
+
+```python
+@abstractmethod
+def validate_methods(methods: Optional[dict[str, Any]]) -> list[str]
+```
+
+Validate the methods. The creator might store method specific data in the adapter through this method.
+
+**Arguments**:
+
+- `methods`: A dictionary of method names and their config (identifiers for the adapter).
+
+**Returns**:
+
+list of method names
+
+#### get\_node\_output
+
+```python
+@abstractmethod
+def get_node_output(node_name: str, scenario: str) -> list[NodeOutput]
+```
+
+The output of a node for a scenario. A list of NodeOutput objects.
+
+**Arguments**:
+
+- `node_name`: Name of the node in the hierarchy
+- `scenario`: Name of the scenario
+
+**Returns**:
+
+Multiple NodeOutput objects.
+
+#### get\_method\_unit
+
+```python
+@abstractmethod
+def get_method_unit(method_name: str) -> str
+```
+
+Unit of a method
+
+**Arguments**:
+
+- `method_name`:
+
+#### run\_scenario
+
+```python
+@abstractmethod
+def run_scenario(scenario: Scenario) -> dict[str, dict[str, ResultValue]]
+```
+
+Run a specific scenario. The adapter should return a dictionary of the form:
+
+{
+        node_name: {
+            method_name: ResultValue (unit, magnitude)
+        }
+    }
+
+**Arguments**:
+
+- `scenario`:
+
+**Returns**:
+
+Returns a dictionary node-name: (method-name: results)
+
+
 
 **Aggregators**
 
 - SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
+
+## Hierarchy
+
+Besides including the hierarchy in the configuration it is also possible to have a file location.
+Enbios is able to read hierarchies in 3 formats.
+
+1. as json, which should be the same format as it would be in the experiment config.
+
+2. as csv file
+   The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_hierarchy.ipynb) demonstrates
+   how to use a csv file to specify the hierarchy:
+
+3. as mermaid (mm) file
+   As demonstrated in [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/mermaid.ipynb)
+
+## Exporting the results
+
+After running an experiment or individual scenarios, the results are stored in a tree structure.
+
+The result can be turned into a dictionary (and dumped into a json file) with the Experiment function:
+
+#### results\_to\_dict
+
+```python
+def results_to_dict(
+        scenarios: Optional[Union[str, list[str]]] = None,
+        include_method_units: bool = True,
+        include_output: bool = True,
+        include_extras: Optional[bool] = True,
+        alternative_hierarchy: Optional[dict] = None) -> list[dict[str, Any]]
+```
+
+Get the results of all scenarios as a list of dictionaries as dictionaries
+
+**Arguments**:
+
+- `scenarios`: A selection of scenarios to export. If None, all scenarios will be exported.
+- `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
+In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+- `include_method_units`: Include the units of the methods in the header (default: True)
+- `include_output`: Include the output of each node in the tree (default: True)
+- `include_extras`: Include extras from adapters and aggregators in the results (default: True)
+
+
+
+And for scenarios:
+
+#### result\_to\_dict
+
+```python
+def result_to_dict(
+        include_output: bool = True,
+        include_method_units: bool = True,
+        include_extras: bool = True,
+        warn_no_results: bool = True,
+        alternative_hierarchy: Optional[dict] = None) -> dict[str, Any]
+```
+
+Return the results as a dictionary
+
+**Arguments**:
+
+- `include_method_units`: (Include the units of the methods in the header)
+- `include_output`: Include the output of all nodes (default: True)
+- `alternative_hierarchy`: An alternative hierarchy to use for the results,
+which comes from Scenario.rearrange_results.
+- `warn_no_results`: Write a warning, if the scenario has not run yet.
+
+
+
+But can also be written to csv files with functions for Experiment (and scenarios respectively)
+
+#### results\_to\_csv
+
+```python
+def results_to_csv(file_path: PathLike,
+                   scenarios: Optional[Union[str, list[str]]] = None,
+                   level_names: Optional[list[str]] = None,
+                   include_method_units: bool = True,
+                   include_output: bool = True,
+                   flat_hierarchy: Optional[bool] = False,
+                   include_extras: Optional[bool] = True,
+                   repeat_parent_name: bool = False,
+                   alternative_hierarchy: Optional[dict] = None)
+```
+
+Turn the results into a csv file. If no scenario name is given,
+
+it will export all scenarios to the same file,
+
+**Arguments**:
+
+- `file_path`: File path to export to
+- `scenarios`: string or list of strings. If no scenario name is given, it will export all scenarios
+to the same file,
+with an additional column for the scenario alias
+- `level_names`: (list of strings) If given, the results will be exported with the given level names.
+This is only effective when flat_hierarchy is False.
+- `include_method_units`: (Include the units of the methods in the header)
+- `include_output`: Include the output of all nodes (default: True)
+- `flat_hierarchy`: If instead of representing each level of the hierarchy with its own column,
+we just indicate the node levels.
+- `include_extras`: Include extras from adapters and aggregators in the results (default: True)
+- `repeat_parent_name`: If True, the parent name will be repeated for each child node in the
+corresponding level column.  This is only effective when flat_hierarchy is False. (default: False)
+- `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
+In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+
+
+
+#### result\_to\_csv
+
+```python
+def result_to_csv(file_path: PathLike,
+                  level_names: Optional[list[str]] = None,
+                  include_output: bool = True,
+                  include_method_units: bool = True,
+                  alternative_hierarchy: Optional[dict] = None,
+                  flat_hierarchy: Optional[bool] = False,
+                  repeat_parent_name: bool = False,
+                  include_extras: bool = True,
+                  warn_no_results: bool = True)
+```
+
+Save the results (as tree) to a csv file
+
+:param file_path:  path to save the results to
+ :param level_names: names of the levels to include in the csv
+ (must not match length of levels)
+ :param include_method_units:  (Include the units of the methods in the header)
+
+**Arguments**:
+
+- `include_output`: Include the output of all nodes (default: True)
+- `flat_hierarchy`: If instead of representing each level of the hierarchy with its own column,
+we just indicate the node levels.
+- `include_extras`: Include extras from adapters and aggregators in the results (default: True)
+- `repeat_parent_name`: If True, the parent name will be repeated for each child node in the
+corresponding level column.  This is only effective when flat_hierarchy is False. (default: False)
+- `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
+In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+- `warn_no_results`: Write a warning, if the scenario has not run yet.
+
+
+
+[This notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb)) demonstrates to usage of the results_to_csv function.
 
 ## Creating Adapters and Aggregators
 
@@ -1129,9 +1349,437 @@ Get the name of the adapter.
 
 `get_config_schemas() -> dict`
 
+## Environmental variables
+
+In order to help executing enbios on remote systems it is also possible to make use of certain environmental variables,
+for the enbios experiments. Environment variables can be set before a python script is executed.
+
+Enbios reads two environmental variables:
+
+- CONFIG_FILE: In case an experiment file is created without a config object, nor without a filepath for the
+  configuration file, it will check for the existence of this variable and interpret is as the location of the
+  configuration file.
+
+- RUN_SCENARIOS: This variable is read as a json object (in this case as a list) and defines, which scenarios should be
+  run.
+
+The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/environmental_variables.ipynb)
+demonstrates the usage.
+
 ## Full Experiment API
 
 ## Experiment Objects
+
+#### get\_node
+
+```python
+def get_node(name: str) -> BasicTreeNode[TechTreeNodeData]
+```
+
+Get a node from the hierarchy by its name
+
+**Arguments**:
+
+- `name`: name of the node
+
+**Returns**:
+
+All node-data
+
+#### get\_structural\_node
+
+```python
+def get_structural_node(name: str) -> BasicTreeNode[TechTreeNodeData]
+```
+
+Get a node by either its name as it is defined in the experiment data.
+
+**Arguments**:
+
+- `name`: Name of the node (as defined in the experiment hierarchy)
+
+**Returns**:
+
+All node-data
+
+#### get\_node\_module
+
+```python
+def get_node_module(node: Union[str, BasicTreeNode[TechTreeNodeData]],
+                    module_type: Optional[T] = EnbiosNodeModule) -> T
+```
+
+Get the module of a node in the experiment hierarchy
+
+
+#### get\_adapter\_by\_name
+
+```python
+def get_adapter_by_name(name: str) -> EnbiosAdapter
+```
+
+Get an adapter by its name
+
+**Arguments**:
+
+- `name`: name of the adapter
+
+**Returns**:
+
+The adapter
+
+#### get\_module\_by\_name\_or\_node\_indicator
+
+```python
+def get_module_by_name_or_node_indicator(name_or_indicator: str,
+                                         module_type: Type[T]) -> T
+```
+
+#### get\_scenario
+
+```python
+def get_scenario(scenario_name: str) -> Scenario
+```
+
+Get a scenario by its name
+
+**Arguments**:
+
+- `scenario_name`: The name of the scenario as defined in the config or (Experiment.DEFAULT_SCENARIO_NAME)
+
+**Returns**:
+
+The scenario object
+
+#### run\_scenario
+
+```python
+def run_scenario(
+    scenario_name: str,
+    results_as_dict: bool = True
+) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]
+```
+
+Run a specific scenario
+
+**Arguments**:
+
+- `scenario_name`: Name of the scenario to run
+- `results_as_dict`: If the result should be returned as a dict instead of a tree object
+
+**Returns**:
+
+The result_tree (eventually converted into a dict)
+
+#### run
+
+```python
+def run(
+    results_as_dict: bool = True
+) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]
+```
+
+Run all scenarios. Returns a dict with the scenario name as key and the result_tree as value
+
+**Arguments**:
+
+- `results_as_dict`: If the result should be returned as a dict instead of a tree object
+
+**Returns**:
+
+dictionary scenario-name : result_tree  (eventually converted into a dict)
+
+#### execution\_time
+
+```python
+@property
+def execution_time() -> str
+```
+
+Get the execution time of the experiment (or all its scenarios) in a readable format
+
+**Returns**:
+
+execution time in the format HH:MM:SS
+
+#### results\_to\_csv
+
+```python
+def results_to_csv(file_path: PathLike,
+                   scenarios: Optional[Union[str, list[str]]] = None,
+                   level_names: Optional[list[str]] = None,
+                   include_method_units: bool = True,
+                   include_output: bool = True,
+                   flat_hierarchy: Optional[bool] = False,
+                   include_extras: Optional[bool] = True,
+                   repeat_parent_name: bool = False,
+                   alternative_hierarchy: Optional[dict] = None)
+```
+
+Turn the results into a csv file. If no scenario name is given,
+
+it will export all scenarios to the same file,
+
+**Arguments**:
+
+- `file_path`: File path to export to
+- `scenarios`: string or list of strings. If no scenario name is given, it will export all scenarios
+to the same file,
+with an additional column for the scenario alias
+- `level_names`: (list of strings) If given, the results will be exported with the given level names.
+This is only effective when flat_hierarchy is False.
+- `include_method_units`: (Include the units of the methods in the header)
+- `include_output`: Include the output of all nodes (default: True)
+- `flat_hierarchy`: If instead of representing each level of the hierarchy with its own column,
+we just indicate the node levels.
+- `include_extras`: Include extras from adapters and aggregators in the results (default: True)
+- `repeat_parent_name`: If True, the parent name will be repeated for each child node in the
+corresponding level column.  This is only effective when flat_hierarchy is False. (default: False)
+- `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
+In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+
+
+#### results\_to\_dict
+
+```python
+def results_to_dict(
+        scenarios: Optional[Union[str, list[str]]] = None,
+        include_method_units: bool = True,
+        include_output: bool = True,
+        include_extras: Optional[bool] = True,
+        alternative_hierarchy: Optional[dict] = None) -> list[dict[str, Any]]
+```
+
+Get the results of all scenarios as a list of dictionaries as dictionaries
+
+**Arguments**:
+
+- `scenarios`: A selection of scenarios to export. If None, all scenarios will be exported.
+- `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
+In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+- `include_method_units`: Include the units of the methods in the header (default: True)
+- `include_output`: Include the output of each node in the tree (default: True)
+- `include_extras`: Include extras from adapters and aggregators in the results (default: True)
+
+
+#### config
+
+```python
+@property
+def config() -> ExperimentConfig
+```
+
+get the config of the experiment
+
+
+#### structural\_nodes\_names
+
+```python
+@property
+def structural_nodes_names() -> list[str]
+```
+
+Return the names of all structural nodes (bottom)
+
+**Returns**:
+
+names of all structural nodes
+
+#### scenario\_names
+
+```python
+@property
+def scenario_names() -> list[str]
+```
+
+Get all scenario names
+
+**Returns**:
+
+list of strings of the scenario names
+
+#### adapters
+
+```python
+@property
+def adapters() -> list[EnbiosAdapter]
+```
+
+Get all adapters in a list
+
+**Returns**:
+
+A list of all adapters
+
+#### run\_scenario\_config
+
+```python
+def run_scenario_config(
+    scenario_config: dict,
+    result_as_dict: bool = True,
+    append_scenario: bool = True
+) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]
+```
+
+Run a scenario from a config dictionary. Scenario will be validated and run. An
+
+**Arguments**:
+
+- `scenario_config`: The scenario config as a dictionary (as it would be defined in the experiment config)
+- `result_as_dict`: If True, the result will be returned as a dictionary. If False, the result will be
+returned as a BasicTreeNode.
+- `append_scenario`: If True, the scenario will be appended to the experiment. If False, the scenario will
+not be appended.
+
+**Returns**:
+
+The scenario result as a dictionary or a BasicTreeNode
+
+#### info
+
+```python
+def info() -> str
+```
+
+Information about the experiment
+
+**Returns**:
+
+Generated information as a string
+
+#### get\_module\_definition
+
+```python
+@staticmethod
+def get_module_definition(clazz: Union[Type[EnbiosAdapter], EnbiosAdapter,
+                                       Type[EnbiosAggregator],
+                                       EnbiosAggregator],
+                          details: bool = True) -> dict[str, Any]
+```
+
+Get the 'node_indicator' and schema of a module (adapter or aggregator)
+
+**Arguments**:
+
+- `clazz`: The class of the module (adapter or aggregator)
+- `details`: If the whole schema should be returned (True) or just the node_indicator (False) (default: True)
+
+**Returns**:
+
+returns a dictionary {node_indicator: <node_indicator>, config: <schema>}
+
+#### get\_builtin\_adapters
+
+```python
+@staticmethod
+def get_builtin_adapters(details: bool = True) -> dict[str, dict[str, Any]]
+```
+
+Get the built-in adapters
+
+**Arguments**:
+
+- `details`: If the schema should be included or not (default: True)
+
+**Returns**:
+
+all built-in adapters as a dictionary name: {node_indicator: <node_indicator>, config: <json-schema>}
+
+#### get\_builtin\_aggregators
+
+```python
+@staticmethod
+def get_builtin_aggregators(details: bool = True) -> dict[str, dict[str, Any]]
+```
+
+Get the built-in aggregators
+
+**Arguments**:
+
+- `details`: If the schema should be included or not (default: True)
+
+**Returns**:
+
+all built-in aggregators as a dictionary name: {node_indicator: <node_indicator>, config: <json-schema>}
+
+#### get\_all\_configs
+
+```python
+def get_all_configs(
+    include_all_builtin_configs: bool = True
+) -> dict[str, dict[str, dict[str, Any]]]
+```
+
+Result structure:
+
+```json
+    {
+        "adapters": { <adapter_name>: <adapter_config>},
+        "aggregators": { ... }
+    }
+    ```
+
+**Arguments**:
+
+- `include_all_builtin_configs`:
+
+**Returns**:
+
+all configs
+
+#### method\_names
+
+```python
+@property
+def method_names() -> list[str]
+```
+
+Names of all methods
+
+**Returns**:
+
+a list of method names
+
+#### hierarchy2mermaid
+
+```python
+def hierarchy2mermaid() -> str
+```
+
+Convert the hierarchy to a mermaid graph diagram
+
+**Returns**:
+
+a string representing in mermaid syntax
+
+#### get\_simplified\_hierarchy
+
+```python
+def get_simplified_hierarchy(
+        print_it: bool = False) -> dict[str, Optional[dict[str, Any]]]
+```
+
+Get the hierarchy as a dictionary, but in a simplified form, i.e. only the nodes with children are included.
+
+**Arguments**:
+
+- `print_it`: Print it to the console
+
+**Returns**:
+
+A simplified dictionary of the hierarchy
+
+#### delete\_pint\_and\_logging\_file
+
+```python
+@staticmethod
+def delete_pint_and_logging_file()
+```
+
+"
+
+Deletes the pint unit file and the logging config file
+
 
 
 

@@ -190,8 +190,8 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
                     file_path, file_type = obj_
                     with open(file_path, "r") as f:
                         fp.write(f"```{file_type}\n{f.read()}\n```")
-                elif isinstance(obj_, docspec.ApiObject):
-                    self._renderer._render_header(fp, 1, obj_)
+                # elif isinstance(obj_, docspec.ApiObject):
+                #     self._renderer._render_header(fp, 1, obj_)
                 elif isinstance(obj_, docspec.Function):
                     self._render_function(obj_, fp)
                 elif isinstance(obj_, docspec.Class):

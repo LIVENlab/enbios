@@ -7,6 +7,8 @@
 - [Running an experiment](#running-an-experiment)
 - [A first example](#a-first-simple-example)
 - [How to configure Adapters and Aggregators](#how-to-configure-adapters-and-aggregators)
+- [Hierarchy](#hierarchy)
+- [Exporting results](#exporting-the-results)
 - [Creating Adapters and Aggregators](#creating-adapters-and-aggregators)
 
 This version is based on a very simple assumption. Calculating arbitrary (structural/terminal nodes) and aggregated
@@ -336,10 +338,31 @@ Enbios is able to read hierarchies in 3 formats.
 1. as json, which should be the same format as it would be in the experiment config.
 
 2. as csv file
-The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_hierarchy.ipynb) demonstrates how to use a csv file to specify the hierarchy:
+   The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_hierarchy.ipynb) demonstrates
+   how to use a csv file to specify the hierarchy:
 
 3. as mermaid (mm) file
-As demonstrated in [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/mermaid.ipynb)
+   As demonstrated in [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/mermaid.ipynb)
+
+## Exporting the results
+
+After running an experiment or individual scenarios, the results are stored in a tree structure.
+
+The result can be turned into a dictionary (and dumped into a json file) with the Experiment function:
+
+{{enbios.base.experiment.Experiment.results_to_dict}}
+
+And for scenarios:
+
+{{enbios.base.scenario.Scenario.result_to_dict}}
+
+But can also be written to csv files with functions for Experiment (and scenarios respectively)
+
+{{enbios.base.experiment.Experiment.results_to_csv}}
+
+{{enbios.base.scenario.Scenario.result_to_csv}}
+
+[This notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb)) demonstrates to usage of the results_to_csv function.
 
 ## Creating Adapters and Aggregators
 
@@ -462,7 +485,8 @@ Enbios reads two environmental variables:
 - RUN_SCENARIOS: This variable is read as a json object (in this case as a list) and defines, which scenarios should be
   run.
 
-The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/environmental_variables.ipynb) demonstrates the usage.
+The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/environmental_variables.ipynb)
+demonstrates the usage.
 
 ## Full Experiment API
 

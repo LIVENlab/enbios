@@ -42,5 +42,5 @@ def test_experiment_to_dict(two_level_experiment_from_pickle: Experiment,
                             result_file_name: str,
                             results_base_folder: Path):
     kwargs: dict[str, bool] = result_data_config
-    result_dict = two_level_experiment_from_pickle.result_to_dict(**kwargs)
+    result_dict = two_level_experiment_from_pickle.results_to_dict(**kwargs)
     assert result_dict == json.load((results_base_folder / result_file_name).open("r", encoding="utf-8"))

@@ -235,31 +235,33 @@ class Scenario:
 
         return flattened_wrap
 
-    def results_to_csv(
+    def result_to_csv(
             self,
             file_path: PathLike,
             level_names: Optional[list[str]] = None,
             include_output: bool = True,
             include_method_units: bool = True,
-            warn_no_results: bool = True,
             alternative_hierarchy: Optional[dict] = None,
             flat_hierarchy: Optional[bool] = False,
             repeat_parent_name: bool = False,
             include_extras: bool = True,
+            warn_no_results: bool = True,
     ):
         """
         Save the results (as tree) to a csv file
-         :param include_extras:
-         :param repeat_parent_name:
-         :param flat_hierarchy:
-         :param include_output:
-         :param warn_no_results:
          :param file_path:  path to save the results to
          :param level_names: names of the levels to include in the csv
          (must not match length of levels)
-         :param alternative_hierarchy: An alternative hierarchy to use for the results,
-          which comes from Scenario.rearrange_results.
-         :param include_method_units:
+         :param include_method_units:  (Include the units of the methods in the header)
+        :param include_output: Include the output of all nodes (default: True)
+        :param flat_hierarchy: If instead of representing each level of the hierarchy with its own column,
+        we just indicate the node levels.
+        :param include_extras: Include extras from adapters and aggregators in the results (default: True)
+        :param repeat_parent_name: If True, the parent name will be repeated for each child node in the
+        corresponding level column.  This is only effective when flat_hierarchy is False. (default: False)
+        :param alternative_hierarchy: If given, the results will be recalculated using the given alternative hierarchy.
+        In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+        :param warn_no_results: Write a warning, if the scenario has not run yet.
         """
         if not self.result_tree:
             raise ValueError(f"Scenario '{self.name}' has no results")
@@ -296,10 +298,11 @@ class Scenario:
     ) -> dict[str, Any]:
         """
         Return the results as a dictionary
-        :param include_output:
-        :param warn_no_results:
+        :param include_method_units:  (Include the units of the methods in the header)
+        :param include_output: Include the output of all nodes (default: True)
         :param alternative_hierarchy: An alternative hierarchy to use for the results,
         which comes from Scenario.rearrange_results.
+        :param warn_no_results: Write a warning, if the scenario has not run yet.
         :return:
         """
 

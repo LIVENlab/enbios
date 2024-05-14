@@ -298,7 +298,7 @@ class Experiment:
         for scenario_name in scenario_names:
             scenario = self.get_scenario(scenario_name)
             temp_file_name = gettempdir() + f"/temp_scenario_{scenario.name}.csv"
-            scenario.results_to_csv(
+            scenario.result_to_csv(
                 temp_file_name,
                 level_names=level_names,
                 include_method_units=include_method_units,
@@ -329,7 +329,7 @@ class Experiment:
             writer.writeheader()
             writer.writerows(all_rows)
 
-    def result_to_dict(
+    def results_to_dict(
             self,
             scenarios: Optional[Union[str, list[str]]] = None,
             include_method_units: bool = True,
@@ -521,7 +521,7 @@ class Experiment:
                 "aggregators": { ... }
             }
             ```
-        :param include_all_builtin_configs:
+        :param include_all_builtin_configs: Include the jsonschema configs of all adapters and aggregegators
         :return: all configs
         """
         result = {
