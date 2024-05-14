@@ -95,19 +95,19 @@ This starts off the following steps of validation and preparation:
 - validate adapters
     - __For each defined adapter:__
         - load adapter module
-        - <ada>adapter.validate_definition </ada>
-        - <ada>adapter.validate_config </ada>
-        - <ada>adapter.validate_methods </ada>
+        - <ada>_adapter.validate_definition_</ada>
+        - <ada>_adapter.validate_config_</ada>
+        - <ada>_adapter.validate_methods_</ada>
     - load builtin adapters
 - validate aggregators
     - __For each defined aggregator:__
         - load aggregator module
-        - <agg>aggregator.validate_config</agg>
+        - <agg>_aggregator.validate_config_</agg>
     - load builtin aggregators
 - validate hierarchy
     - basic structural validation
     - validate hierarchy nodes against their adapters, aggregators
-      (<ada>adapter.validate_node</ada> <b>/</b> <agg>aggregator.validate_node</agg>)
+      (<ada>_adapter.validate_node_</ada> <b>/</b> <agg>_aggregator.validate_node_</agg>)
 - create template result-tree
 - validate scenarios
     - create default scenario, if no scenario is defined
@@ -120,7 +120,7 @@ This starts off the following steps of validation and preparation:
                 - Get the nodes output from its adapter: <ada>adapter.get_node_output</ada>
             - eventually remove exclude defaults (nodes with no output for a scenario) from the result-tree
             - from top to bottom aggregate the outputs within the result-tree (<agg>
-              aggregator.aggregate_node_output</agg>)
+              _aggregator.aggregate_node_output_</agg>)
 - validate scenario settings: Check if the environmental settings, specify which scenarios to run
 
 ## Running an experiment
@@ -137,12 +137,12 @@ Scenarios can also be run individually with: `Experiment.run_scenario`
 
 For all adapters specified for the experiment:
 
-- <ada>adapter.run_scenario</ada>
+- <ada>_adapter.run_scenario_</ada>
 - add the results from the adapters to the result-tree
 
 Propagate the results up in the result-tree:
 
-From top to bottom aggregate the results within the result-tree (<agg>aggregator.aggregate_node_result</agg>)
+From top to bottom aggregate the results within the result-tree (<agg>_aggregator.aggregate_node_result_</agg>)
 
 ## A first simple example
 
@@ -166,7 +166,7 @@ graph LR
 
 _(structural nodes are rectangles and functional nodes are rounded rectangles)_
 
-[This demo notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/intro.ipynb)) shows how to build the
+[This demo notebook](https://github.com/LIVENlab/enbios/blob/main/demos/intro.ipynb) shows how to build the
 configuration step by step.
 
 Full details are below the configuration
@@ -999,6 +999,13 @@ modules, when `include_all_builtin_configs` is set True (default).
 
 The configs are in a dictionary in the fields `adapters`, `aggregators`
 
+### Splitting the config file:
+
+The configuration of an experiment can also be split into multiple files.
+The hierarchy and scenarios can be separated in external files (and be provided in alternative formats).
+
+See [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_config_files.ipynb) for details.
+
 ```json
   {
   "adapters": {
@@ -1020,84 +1027,9 @@ There are a some builtin adapters and aggregators:
 - BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
   based on the outputs of activities (structural nodes)
 
-## EnbiosAdapter Objects
-
-#### validate\_methods
-
-```python
-@abstractmethod
-def validate_methods(methods: Optional[dict[str, Any]]) -> list[str]
-```
-
-Validate the methods. The creator might store method specific data in the adapter through this method.
-
-**Arguments**:
-
-- `methods`: A dictionary of method names and their config (identifiers for the adapter).
-
-**Returns**:
-
-list of method names
-
-#### get\_node\_output
-
-```python
-@abstractmethod
-def get_node_output(node_name: str, scenario: str) -> list[NodeOutput]
-```
-
-The output of a node for a scenario. A list of NodeOutput objects.
-
-**Arguments**:
-
-- `node_name`: Name of the node in the hierarchy
-- `scenario`: Name of the scenario
-
-**Returns**:
-
-Multiple NodeOutput objects.
-
-#### get\_method\_unit
-
-```python
-@abstractmethod
-def get_method_unit(method_name: str) -> str
-```
-
-Unit of a method
-
-**Arguments**:
-
-- `method_name`: The name of the method
-
-**Returns**:
-
-the unit (as string)
-
-#### run\_scenario
-
-```python
-@abstractmethod
-def run_scenario(scenario: Scenario) -> dict[str, dict[str, ResultValue]]
-```
-
-Run a specific scenario. The adapter should return a dictionary of the form:
-
-{
-        node_name: {
-            method_name: ResultValue (unit, magnitude)
-        }
-    }
-
-**Arguments**:
-
-- `scenario`: The scenario object
-
-**Returns**:
-
-Returns a dictionary node-name: (method-name: results)
-
-
+See [this notebook](
+https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb
+) for all possible configs in one structure
 
 **Aggregators**
 
@@ -1247,8 +1179,19 @@ In this alternative hierarchy, tho, already defined nodeds need no config and no
 
 
 
-[This notebook]((https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb)) demonstrates to usage of the
+[This notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb) demonstrates to usage of the
 results_to_csv function.
+
+### Aggegating the results into alternative hierarchies
+
+After running an experiment (or individual scenarios) it is also possible to restructure the results into alternative
+hierarchies. That means, that the results of the structural nodes, are not recalculated, but the functional nodes (which
+use adapters) recalculate their results. When this is done, configurations for adapter nodes do not need to be provided
+again. However, nodes with aggregators can redefine their config if wanted, or it might be needed, if the user
+introduces new functional nodes.
+
+[This notebook demonstrates](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_hierarchies.ipynb) how this can
+be done.
 
 ## Creating Adapters and Aggregators
 
@@ -1261,6 +1204,146 @@ abstract methods, which any subclass needs to implement.
 
 The internals of these functions is mostly up to the developer, but they have to make sure, that they return data of the
 types that enbios requires (these return types are already included as return type hints in the abstract methods).
+
+Since adapters and aggregators have several functions in common, there is a common parent class, which defines these
+functions. When creating a concrete adapter or aggregator, these functions have to be implemented as well.
+
+## EnbiosNodeModule Objects
+
+#### validate\_definition
+
+```python
+@abstractmethod
+def validate_definition(definition: T)
+```
+
+This is the first validator to be called. Validates the whole adapter definition, which is the whole dictionary (parse as enbios.models.models.AdapterModel)
+
+**Arguments**:
+
+- `definition`: the whole adapter definition (containing 'config' and 'methods')
+
+#### validate\_config
+
+```python
+@abstractmethod
+def validate_config(config: Optional[dict[str, Any]])
+```
+
+Validate the config. The creator may store anything in the
+
+adapter object through this method.
+
+**Arguments**:
+
+- `config`: the configuration of the adapter, which might have its own BaseModel. For understanding the structure,
+it makes sense to provide this model as a return value of "adapter" in the get_config_schemas() method.
+
+#### validate\_node
+
+```python
+@abstractmethod
+def validate_node(node_name: str, node_config: Any)
+```
+
+#### validate\_scenario\_node
+
+```python
+@abstractmethod
+def validate_scenario_node(node_name: str, scenario_name: str,
+                           scenario_node_data: Any)
+```
+
+Validates the output of a node within a scenario. Is called for each node within a scenario.
+
+**Arguments**:
+
+- `node_name`: Name of the node in the hierarchy.
+- `scenario_name`: Name of scenario
+- `scenario_node_data`: The output or config of the node in the scenario
+
+#### node\_indicator
+
+```python
+@staticmethod
+@abstractmethod
+def node_indicator() -> str
+```
+
+This string can be used in order to indicate that a node in the hierarchy should use this adapter.
+
+**Returns**:
+
+node-indicator string
+
+#### get\_config\_schemas
+
+```python
+@staticmethod
+@abstractmethod
+def get_config_schemas() -> dict[str, dict[str, Any]]
+```
+
+Get the Jsonschema for the adapter. These can be derived, when there are pydantic based models for validation
+
+(using the `model_json_schema` function). The structure of the return value should correspond to the three parts of validation,
+ the adapter-config, the activity-configs in the hierarchy and the methods.
+
+**Returns**:
+
+dictionary, where each key corresponds to one part of validation (proposed keys: `adapter`, `activty` and `method`.
+
+#### name
+
+```python
+@staticmethod
+@abstractmethod
+def name() -> str
+```
+
+Name of the adapter (which can also used to indicate in the hierarchy that a node should use this adapter.
+
+**Returns**:
+
+string: name of the adapter
+
+#### get\_logger
+
+```python
+def get_logger() -> Logger
+```
+
+Logger of this adapter. Use this inside the adapter.
+
+**Returns**:
+
+Use this to make logs inside the adapter
+
+#### result\_extras
+
+```python
+def result_extras(node_name: str, scenario_name: str) -> dict[str, Any]
+```
+
+Extra data that are stored for a node in the adapter/aggregator. This is method is called for each scenario run
+
+and stored in the result-tree. Therefore, the scenario_name is passed (but does not always need to be used).
+Adapters/Aggregators do not need to store node-extras over multiple scenarios.
+
+**Arguments**:
+
+- `node_name`: Name of the node in the hierarchy
+- `scenario_name`: Name of the scenario
+
+**Returns**:
+
+A dictionary of string values pairs. The values should be primitives (like int, or string) since, they
+are generally serialized.
+
+
+
+This [demo notebook](https://github.com/LIVENlab/enbios/blob/main/demos/aggregator_extension.ipynb) shows how to build
+and use a custom aggregator.
 
 ### Adapter
 
@@ -1287,7 +1370,6 @@ Validate the methods. The creator might store method specific data in the adapte
 
 list of method names
 
-
 #### get\_node\_output
 
 ```python
@@ -1306,7 +1388,6 @@ The output of a node for a scenario. A list of NodeOutput objects.
 
 Multiple NodeOutput objects.
 
-
 #### get\_method\_unit
 
 ```python
@@ -1323,7 +1404,6 @@ Unit of a method
 **Returns**:
 
 the unit (as string)
-
 
 #### run\_scenario
 
@@ -1350,7 +1430,6 @@ Returns a dictionary node-name: (method-name: results)
 
 
 
-
 ### Aggregator
 
 ## EnbiosAggregator Objects
@@ -1370,42 +1449,6 @@ def aggregate_node_output(
 @abstractmethod
 def aggregate_node_result(node: BasicTreeNode[ScenarioResultNodeData],
                           scenario_name: str)
-```
-
-#### node\_indicator
-
-```python
-@staticmethod
-@abstractmethod
-def node_indicator() -> str
-```
-
-#### name
-
-```python
-@staticmethod
-@abstractmethod
-def name() -> str
-```
-
-#### get\_config\_schemas
-
-```python
-@staticmethod
-@abstractmethod
-def get_config_schemas() -> dict
-```
-
-#### result\_extras
-
-```python
-def result_extras(node_name: str, scenario_name: str) -> dict[str, Any]
-```
-
-#### get\_logger
-
-```python
-def get_logger()
 ```
 
 
