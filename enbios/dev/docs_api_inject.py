@@ -34,7 +34,10 @@ class ClassRenderConfig(BaseModel):
 
 
 class ModuleRenderConfig(BaseModel):
-    pass
+    render_header: bool = True
+    render_docstring: bool = True
+    render_public_functions: bool = True
+    render_private_functions: bool = False
 
 
 class RenderConfig(BaseModel):
@@ -124,6 +127,35 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
         fp.write("\n".join(lines))
         fp.write("\n\n")
 
+    def _render_module(self, obj_: docspec.Module, fp: Optional[TextIO] = None, _config: Optional[
+        ModuleRenderConfig] = None):
+        if not _config:
+            _config = self._config.module_config
+
+        if _config.render_header:
+            self._renderer._render_header(fp, 1, obj_)
+
+        # if _config.render_signature:
+        #     self._renderer._render_signature_block(fp, obj_)
+
+        if _config.render_docstring and obj_.docstring:
+            self._render_docstring(obj_, fp)
+
+        if self._config.class_config.render_init:
+            constructor: docspec.Function = cast(Optional[docspec.Function], docspec.get_member(obj_, "__init__"))
+            if constructor:
+                self._render_function(constructor, fp, self._config.class_config.function_config)
+
+        for member in obj_.members:
+            if isinstance(member, docspec.Function):
+                if member.name == "__init__":
+                    continue
+                if member.name.startswith("_"):
+                    if _config.render_private_functions:
+                        self._render_function(member, fp, self._config.class_config.function_config)
+                elif _config.render_public_functions:
+                    self._render_function(member, fp, self._config.class_config.function_config)
+
     def _render_class(self, obj_: docspec.Class, fp: Optional[TextIO] = None, _config: Optional[
         ClassRenderConfig] = None):
         if not _config:
@@ -196,8 +228,8 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
                     self._render_function(obj_, fp)
                 elif isinstance(obj_, docspec.Class):
                     self._render_class(obj_, fp)
-                # elif isinstance(obj_, docspec.Module):
-                #     self._renderer._render_module(fp, obj_)
+                elif isinstance(obj_, docspec.Module):
+                    self._render_module(obj_, fp)
                 else:
                     raise NotImplementedError(f"Unsupported object type: {type(obj_)}")
                 return fp.getvalue()

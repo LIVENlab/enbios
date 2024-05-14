@@ -1026,8 +1026,8 @@ There are a some builtin adapters and aggregators:
 - SimpleAssignmentAdapter: For this Adapter, the outputs and impacts can be defined in the adapter configuration
 - BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
   based on the outputs of activities (structural nodes). See [this notebook](
-https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb
-) for all possible configs in one dictionary.
+  https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb
+  ) for all possible configs in one dictionary.
 
 **Aggregators**
 
@@ -1205,6 +1205,7 @@ This allows you to reopen the same experiment later, in order to
 
 - run more scenarios
 - recalculate the results with an alternative hierarchy (see the next section)
+- do more plotting
 - do alternative exports (omitting certain fields, or only selecting certain scenarios)
 
 > [!CAUTION]
@@ -1213,7 +1214,7 @@ This allows you to reopen the same experiment later, in order to
 > It is well possible, that pickled experiments cannot be unpickled on other computers, when you are using custom
 > adapters/aggregators.
 
-### Aggegating the results into alternative hierarchies
+### Aggregating the results into alternative hierarchies
 
 After running an experiment (or individual scenarios) it is also possible to restructure the results into alternative
 hierarchies. That means, that the results of the structural nodes, are not recalculated, but the functional nodes (which
@@ -1511,6 +1512,128 @@ The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/de
 demonstrates the usage.
 
 ## Plotting results
+
+Enbios allows creating plots directly from Experiment objects.
+For several plot types it allows to filter by scenarios, methods (and by levels of the hierarchy or even individual
+nodes).
+
+Simple barplot
+
+![](../demos/data/plots/bar_plot_1.png)
+
+# enbios.base.plot\_experiment
+
+#### bar\_plot
+
+```python
+def bar_plot(experiment: Union[Experiment, ResultsSelector],
+             scenarios: Optional[list[str]] = None,
+             methods: Optional[list[str]] = None,
+             image_file: Optional[PathLike] = None) -> Figure
+```
+
+#### stacked\_bar\_plot
+
+```python
+def stacked_bar_plot(experiment: Union[Experiment, ResultsSelector],
+                     scenarios: Optional[list[str]] = None,
+                     methods: Optional[list[str]] = None,
+                     level: int = 1,
+                     short_method_names: bool = True,
+                     nodes: Optional[list[str]] = None,
+                     image_file: Optional[PathLike] = None) -> Figure
+```
+
+#### star\_plot
+
+```python
+def star_plot(experiment: Union[Experiment, ResultsSelector],
+              scenarios: Optional[list[str]] = None,
+              methods: Optional[list[str]] = None,
+              *,
+              fill: bool = True,
+              r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+              show_r_ticks: bool = True,
+              show_grid: bool = True,
+              col: int = 4,
+              row: Optional[int] = None,
+              show_labels: bool = True,
+              image_file: Optional[PathLike] = None) -> Figure
+```
+
+#### single\_star\_plot
+
+```python
+def single_star_plot(experiment: Union[Experiment, ResultsSelector],
+                     scenarios: Optional[list[str]] = None,
+                     methods: Optional[list[str]] = None,
+                     *,
+                     r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+                     show_r_ticks: bool = True,
+                     show_grid: bool = True,
+                     show_labels: bool = True,
+                     image_file: Optional[PathLike] = None) -> Figure
+```
+
+plots multiple scenarios into one star plot
+
+**Arguments**:
+
+- `experiment`: experiment to plot
+- `scenarios`: scenarios to plot
+- `methods`: methods to plot
+- `r_ticks`: ticks for the radial axis
+- `show_r_ticks`: if the radial axis should be shown
+- `show_grid`: if the grid should be shown
+- `show_labels`: if the method labels should be shown
+- `image_file`: file to save the plot to
+
+#### plot\_heatmap
+
+```python
+def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
+                 scenarios: Optional[list[str]] = None,
+                 methods: Optional[list[str]] = None,
+                 special_df: Optional[DataFrame] = None,
+                 image_file: Optional[PathLike] = None,
+                 x_label_rotation: Optional[int] = 45) -> Figure
+```
+
+#### plot\_sankey
+
+```python
+def plot_sankey(exp: Experiment,
+                scenario_name: str,
+                method_: str,
+                default_bar_color: Optional[str] = "blue",
+                color_map: Optional[dict[str, str]] = None,
+                *,
+                image_file: Optional[PathLike] = None) -> Figure
+```
+
+#### one\_axes\_scatter\_plot
+
+```python
+def one_axes_scatter_plot(experiment: Union[Experiment, ResultsSelector],
+                          selected_scenario: str,
+                          methods: Optional[list[str]] = None,
+                          image_file: Optional[PathLike] = None) -> Figure
+```
+
+#### plot\_multivalue\_results
+
+```python
+def plot_multivalue_results(experiment: Union[Experiment, ResultsSelector],
+                            scenarios: Optional[list[str]] = None,
+                            level: int = 1,
+                            methods: Optional[list[str]] = None,
+                            nodes: Optional[list[str]] = None,
+                            image_file: Optional[PathLike] = None,
+                            err_method: Optional[Callable[[np.ndarray],
+                                                          float]] = None)
+```
+
+
 
 ## Full Experiment API
 

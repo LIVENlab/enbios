@@ -19,10 +19,8 @@ def create_experiment_config(num_scenarios) -> dict:
                 "water use",
                 "water consumption potential (WCP)",
             ),
-            "HToxicity": (
-                "ReCiPe 2016 v1.03, midpoint (I)",
-                "human toxicity: carcinogenic",
-                "human toxicity potential (HTPc)",
+            "LandUse": (
+                "ReCiPe 2016 v1.03, midpoint (E)", "land use", "agricultural land occupation (LOP)"
             ),
         },
         "note": "brightway-adapter",
@@ -78,19 +76,19 @@ def create_experiment_config(num_scenarios) -> dict:
             "nodes": {
                 "electricity production, wind, 1-3MW turbine, onshore": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 3,
+                    "magnitude": 4,
                 },
                 "electricity production, wind, 1-3MW turbine, offshore": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 2,
+                    "magnitude": 3,
                 },
                 "electricity production, solar tower power plant, 20 MW": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 1,
+                    "magnitude": 3,
                 },
                 "electricity production, solar thermal parabolic trough, 50 MW": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 1,
+                    "magnitude": 4,
                 },
             },
         },
@@ -103,15 +101,15 @@ def create_experiment_config(num_scenarios) -> dict:
                 },
                 "electricity production, wind, 1-3MW turbine, offshore": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 2,
+                    "magnitude": 5,
                 },
                 "electricity production, solar tower power plant, 20 MW": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 2,
+                    "magnitude": 4,
                 },
                 "electricity production, solar thermal parabolic trough, 50 MW": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 2,
+                    "magnitude": 3,
                 },
             },
         },
@@ -134,7 +132,7 @@ def create_experiment_config(num_scenarios) -> dict:
                 {
                     "name": f"scenario {idx + 1}",
                     "nodes": {
-                        n: {"unit": "kilowatt_hour", "magnitude": randint(1, 5)}
+                        n: {"unit": "kilowatt_hour", "magnitude": randint(2, 5)}
                         for n in node_names
                     },
                 }

@@ -333,8 +333,8 @@ There are a some builtin adapters and aggregators:
 - SimpleAssignmentAdapter: For this Adapter, the outputs and impacts can be defined in the adapter configuration
 - BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
   based on the outputs of activities (structural nodes). See [this notebook](
-https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb
-) for all possible configs in one dictionary.
+  https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb
+  ) for all possible configs in one dictionary.
 
 **Aggregators**
 
@@ -400,6 +400,7 @@ This allows you to reopen the same experiment later, in order to
 
 - run more scenarios
 - recalculate the results with an alternative hierarchy (see the next section)
+- do more plotting
 - do alternative exports (omitting certain fields, or only selecting certain scenarios)
 
 > [!CAUTION]
@@ -408,7 +409,7 @@ This allows you to reopen the same experiment later, in order to
 > It is well possible, that pickled experiments cannot be unpickled on other computers, when you are using custom
 > adapters/aggregators.
 
-### Aggegating the results into alternative hierarchies
+### Aggregating the results into alternative hierarchies
 
 After running an experiment (or individual scenarios) it is also possible to restructure the results into alternative
 hierarchies. That means, that the results of the structural nodes, are not recalculated, but the functional nodes (which
@@ -469,6 +470,16 @@ The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/de
 demonstrates the usage.
 
 ## Plotting results
+
+Enbios allows creating plots directly from Experiment objects.
+For several plot types it allows to filter by scenarios, methods (and by levels of the hierarchy or even individual
+nodes).
+
+Simple barplot
+
+![](../demos/data/plots/bar_plot_1.png)
+
+{{enbios.base.plot_experiment}}
 
 ## Full Experiment API
 
