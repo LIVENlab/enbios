@@ -7,7 +7,13 @@ from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.adapters_aggregators.builtin import BUILTIN_AGGREGATORS
 from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.scenario import Scenario
-from enbios.base.models import ExperimentConfig, AdapterModel, AggregationModel, ExperimentScenarioData, Settings
+from enbios.base.models import (
+    ExperimentConfig,
+    AdapterModel,
+    AggregationModel,
+    ExperimentScenarioData,
+    Settings,
+)
 
 if TYPE_CHECKING:
     from enbios.base.experiment import Experiment
@@ -16,7 +22,7 @@ logger = getLogger(__name__)
 
 
 def validate_adapters(
-        experiment_adapters: list[AdapterModel],
+    experiment_adapters: list[AdapterModel],
 ) -> tuple[dict[str, EnbiosAdapter], list[str]]:
     """
     Validate the adapters in this experiment data
@@ -38,7 +44,7 @@ def validate_adapters(
 
 
 def validate_aggregators(
-        experiment_aggregators: list[AggregationModel],
+    experiment_aggregators: list[AggregationModel],
 ) -> dict[str, EnbiosAggregator]:
     """
     Validate the aggregators in this experiment data
@@ -69,9 +75,9 @@ def validate_aggregators(
 
 
 def validate_scenarios(
-        experiment_scenarios: Optional[list[ExperimentScenarioData]],
-        default_scenario_name: str,
-        experiment: "Experiment",
+    experiment_scenarios: Optional[list[ExperimentScenarioData]],
+    default_scenario_name: str,
+    experiment: "Experiment",
 ) -> list[Scenario]:
     scenarios: list[Scenario] = []
 
@@ -100,7 +106,7 @@ def validate_scenarios(
 
 
 def validate_scenario(
-        scenario_data: ExperimentScenarioData, experiment: "Experiment"
+    scenario_data: ExperimentScenarioData, experiment: "Experiment"
 ) -> Scenario:
     """
     Validate one scenario
@@ -145,7 +151,7 @@ def validate_scenario(
 
 
 def validate_run_scenario_setting(
-        env_settings: Settings, experiment_config: ExperimentConfig, scenario_names: list[str]
+    env_settings: Settings, experiment_config: ExperimentConfig, scenario_names: list[str]
 ):
     """
     Validate a run environmental variable that is setting the scenario

@@ -4,8 +4,12 @@ from typing import Union, Optional
 from frictionless import Schema
 from frictionless.fields import NumberField, StringField
 
-from enbios.base.models import ExperimentHierarchyNodeData, ExperimentScenarioData, ExperimentData, \
-    ExperimentDataResolved
+from enbios.base.models import (
+    ExperimentHierarchyNodeData,
+    ExperimentScenarioData,
+    ExperimentData,
+    ExperimentDataResolved,
+)
 from enbios.base.tree_operations import csv2hierarchy
 from enbios.generic.files import ReadPath
 from enbios.generic.mermaid2hierarchy import convert_mermaid_file
@@ -58,7 +62,7 @@ methods_schema = Schema(
 
 
 def get_abs_path(
-        path: Union[str, PathLike], base_dir: Optional[Union[str, PathLike]] = None
+    path: Union[str, PathLike], base_dir: Optional[Union[str, PathLike]] = None
 ) -> ReadPath:
     if base_dir:
         return ReadPath(base_dir) / path
@@ -80,7 +84,8 @@ def resolve_input_files(raw_input: ExperimentData) -> ExperimentDataResolved:
             hierarchy_data = convert_mermaid_file(hierarchy_file)
         else:
             raise Exception(
-                f"Invalid hierarchy file: {raw_input.hierarchy}. Valid fileformats are .json, .csv, .mm (or .mermaid).")
+                f"Invalid hierarchy file: {raw_input.hierarchy}. Valid fileformats are .json, .csv, .mm (or .mermaid)."
+            )
 
         raw_input.hierarchy = ExperimentHierarchyNodeData(**hierarchy_data)
 

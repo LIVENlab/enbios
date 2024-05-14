@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Optional, Any
+from typing import Optional
 
 from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
 from enbios.generic.tree.basic_tree import BasicTreeNode
