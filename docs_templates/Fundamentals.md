@@ -95,7 +95,7 @@ This starts off the following steps of validation and preparation:
 - validate adapters
     - __For each defined adapter:__
         - load adapter module
-        - <ada>_adapter.validate_definition_</ada>
+        - <ada style="color: darkgreen; font-weight: bold;">_adapter.validate_definition_</ada>
         - <ada>_adapter.validate_config_</ada>
         - <ada>_adapter.validate_methods_</ada>
     - load builtin adapters
@@ -229,7 +229,10 @@ the
 first one defines the unit and the 2nd the amount. E.g. these two definitions are
 equivalent: `{'unit':'kilowatt_hour','magnitude':5}` and `['kilowatt_hour', 5]`.
 
-_config_: A dictionary with scenario specific configuration.
+_config_: A dictionary with scenario specific configuration. A dictionary with 2 keys:
+`name`: Name of the scenario
+`nodes`: A dictionary of scenario specific configuration of each node. Keys are the node names, and values are adapter/aggregator specific.
+
 
 ## How to configure Adapters and Aggregators
 
@@ -296,8 +299,6 @@ parameter `details` is True (default:True)),
 `config`, which will have the 2 (or the 3 in the case of aggregators) fields.
 
 E.g. `get_builtin_adapters()['brightway-adapter']`
-
-{{file:json:test/data/docs_data/gen/bw_adapter.json}}
 
 On an experiment instance the following function can be
 called: `get_all_configs(include_all_builtin_configs: bool = True)`, which
@@ -475,11 +476,48 @@ Enbios allows creating plots directly from Experiment objects.
 For several plot types it allows to filter by scenarios, methods (and by levels of the hierarchy or even individual
 nodes).
 
-Simple barplot
 
-![](../demos/data/plots/bar_plot_1.png)
+Some plots need to apply some scaling (like a normalization) to the data before it can be plotted.
+This normalization is done per method and normalizes over all scenarios (or a selected subset).
 
-{{enbios.base.plot_experiment}}
+For example this result with several scenarios and methods:
+
+|  | scenario | GWP1000 | WCP | LandUse |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | scenario 1 | 0.424077 | 0.002763 | 0.051385 |
+| 1 | scenario 2 | 0.422291 | 0.002823 | 0.050667 |
+| 2 | scenario 3 | 0.460658 | 0.002933 | 0.055922 |
+| 3 | scenario 4 | 0.254918 | 0.001718 | 0.030420 |
+
+will be normalized like so:
+
+|  | scenario | GWP1000 | WCP | LandUse |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | scenario 1 | 0.822196 | 0.860085 | 0.822084 |
+| 1 | scenario 2 | 0.813515 | 0.909543 | 0.793935 |
+| 2 | scenario 3 | 1.000000 | 1.000000 | 1.000000 |
+| 3 | scenario 4 | 0.000000 | 0.000000 | 0.000000 |
+
+
+
+#### Simple barplot
+
+<img src=../demos/data/plots/bar_plot_3.png  width="700" alt=""/>
+
+
+#### Stacked barplot
+This type of plot, allows to select specific nodes, which will be stacked up for each scenario bar.
+
+<img src=../demos/data/plots/stacked_plot_3.png  width="700" alt=""/>
+
+
+#### Startplot
+
+{{enbios.base.plot_experiment.star_plot}}
+
+<img src=../demos/data/plots/stacked_plot_3.png  width="700" alt=""/>
+
+
 
 ## Full Experiment API
 

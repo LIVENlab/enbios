@@ -20,7 +20,9 @@ def create_experiment_config(num_scenarios) -> dict:
                 "water consumption potential (WCP)",
             ),
             "LandUse": (
-                "ReCiPe 2016 v1.03, midpoint (E)", "land use", "agricultural land occupation (LOP)"
+                "ReCiPe 2016 v1.03, midpoint (E)",
+                "land use",
+                "agricultural land occupation (LOP)",
             ),
         },
         "note": "brightway-adapter",

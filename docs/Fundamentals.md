@@ -12,8 +12,7 @@
 - [Creating Adapters and Aggregators](#creating-adapters-and-aggregators)
 
 This version is based on a very simple assumption. Calculating arbitrary (structural/terminal nodes) and aggregated
-values (functional nodes) in
-a MuSIASEM hierarchy for any type of scenarios (functional outputs).
+values (functional nodes) in a MuSIASEM hierarchy for any type of scenarios (functional outputs).
 
 The following diagram explains the main components and their interaction.
 The main class is the Experiment. It requires a configuration object, which can come directly from a json file (or
@@ -290,7 +289,8 @@ Full details are below the configuration
 }
 ```
 
-Upon running the experiment with the fiven configuration we get this result (if converted into a dict):
+Upon running the experiment with the given configuration we get this result (if converted into a dict):
+
 ```json
 {
   "normal scenario": {
@@ -1070,12 +1070,10 @@ Get the results of all scenarios as a list of dictionaries as dictionaries
 
 - `scenarios`: A selection of scenarios to export. If None, all scenarios will be exported.
 - `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
-In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+  In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
 - `include_method_units`: Include the units of the methods in the header (default: True)
 - `include_output`: Include the output of each node in the tree (default: True)
 - `include_extras`: Include extras from adapters and aggregators in the results (default: True)
-
-
 
 And for scenarios:
 
@@ -1097,10 +1095,8 @@ Return the results as a dictionary
 - `include_method_units`: (Include the units of the methods in the header)
 - `include_output`: Include the output of all nodes (default: True)
 - `alternative_hierarchy`: An alternative hierarchy to use for the results,
-which comes from Scenario.rearrange_results.
+  which comes from Scenario.rearrange_results.
 - `warn_no_results`: Write a warning, if the scenario has not run yet.
-
-
 
 But can also be written to csv files with functions for Experiment (and scenarios respectively)
 
@@ -1126,21 +1122,19 @@ it will export all scenarios to the same file,
 
 - `file_path`: File path to export to
 - `scenarios`: string or list of strings. If no scenario name is given, it will export all scenarios
-to the same file,
-with an additional column for the scenario alias
+  to the same file,
+  with an additional column for the scenario alias
 - `level_names`: (list of strings) If given, the results will be exported with the given level names.
-This is only effective when flat_hierarchy is False.
+  This is only effective when flat_hierarchy is False.
 - `include_method_units`: (Include the units of the methods in the header)
 - `include_output`: Include the output of all nodes (default: True)
 - `flat_hierarchy`: If instead of representing each level of the hierarchy with its own column,
-we just indicate the node levels.
+  we just indicate the node levels.
 - `include_extras`: Include extras from adapters and aggregators in the results (default: True)
 - `repeat_parent_name`: If True, the parent name will be repeated for each child node in the
-corresponding level column.  This is only effective when flat_hierarchy is False. (default: False)
+  corresponding level column. This is only effective when flat_hierarchy is False. (default: False)
 - `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
-In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
-
-
+  In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
 
 #### result\_to\_csv
 
@@ -1157,25 +1151,23 @@ def result_to_csv(file_path: PathLike,
 ```
 
 Save the results (as tree) to a csv file
-
+```
 :param file_path:  path to save the results to
- :param level_names: names of the levels to include in the csv
- (must not match length of levels)
- :param include_method_units:  (Include the units of the methods in the header)
-
+:param level_names: names of the levels to include in the csv
+(must not match length of levels)
+:param include_method_units:  (Include the units of the methods in the header)
+```
 **Arguments**:
 
 - `include_output`: Include the output of all nodes (default: True)
 - `flat_hierarchy`: If instead of representing each level of the hierarchy with its own column,
-we just indicate the node levels.
+  we just indicate the node levels.
 - `include_extras`: Include extras from adapters and aggregators in the results (default: True)
 - `repeat_parent_name`: If True, the parent name will be repeated for each child node in the
-corresponding level column.  This is only effective when flat_hierarchy is False. (default: False)
+  corresponding level column. This is only effective when flat_hierarchy is False. (default: False)
 - `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
-In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+  In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
 - `warn_no_results`: Write a warning, if the scenario has not run yet.
-
-
 
 [This notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb) demonstrates to usage of the
 results_to_csv function.
@@ -1271,9 +1263,9 @@ adapter/aggregator object through this method.
 **Arguments**:
 
 - `config`: the configuration of the adapter/aggregator, which might have its own BaseModel. For
-understanding the structure, it makes sense to provide this model as a return value of "adapter/aggregator"
-in the get_config_schemas()
-method.
+  understanding the structure, it makes sense to provide this model as a return value of "adapter/aggregator"
+  in the get_config_schemas()
+  method.
 
 #### validate\_node
 
@@ -1325,7 +1317,7 @@ Get the Jsonschema for the adapter/aggregator. These can be derived, when there 
 for validation
 (using the `model_json_schema` function). The structure of the return value should correspond to the three
 parts of validation,
- the adapter/aggregator-config, the node-configs in the hierarchy and the methods.
+the adapter/aggregator-config, the node-configs in the hierarchy and the methods.
 
 **Returns**:
 
@@ -1380,8 +1372,6 @@ Adapters/Aggregators do not need to store node-extras over multiple scenarios.
 
 A dictionary of string values pairs. The values should be primitives (like int, or string) since, they
 are generally serialized.
-
-
 
 This [demo notebook](https://github.com/LIVENlab/enbios/blob/main/demos/aggregator_extension.ipynb) shows how to build
 and use a custom aggregator.
@@ -1456,10 +1446,10 @@ def run_scenario(scenario: Scenario) -> dict[str, dict[str, ResultValue]]
 Run a specific scenario. The adapter should return a dictionary of the form:
 
 {
-        node_name: {
-            method_name: ResultValue (unit, magnitude)
-        }
-    }
+node_name: {
+method_name: ResultValue (unit, magnitude)
+}
+}
 
 **Arguments**:
 
@@ -1468,8 +1458,6 @@ Run a specific scenario. The adapter should return a dictionary of the form:
 **Returns**:
 
 Returns a dictionary node-name: (method-name: results)
-
-
 
 ### Aggregator
 
@@ -1491,8 +1479,6 @@ def aggregate_node_output(
 def aggregate_node_result(node: BasicTreeNode[ScenarioResultNodeData],
                           scenario_name: str)
 ```
-
-
 
 ## Environmental variables
 
@@ -1517,32 +1503,38 @@ Enbios allows creating plots directly from Experiment objects.
 For several plot types it allows to filter by scenarios, methods (and by levels of the hierarchy or even individual
 nodes).
 
-Simple barplot
+Some plots need to apply some scaling (like a normalization) to the data before it can be plotted.
+This normalization is done per method and normalizes over all scenarios (or a selected subset).
 
-![](../demos/data/plots/bar_plot_1.png)
+For example this result with several scenarios and methods:
 
-# enbios.base.plot\_experiment
+|   | scenario   | GWP1000  | WCP      | LandUse  |
+|:--|:-----------|:---------|:---------|:---------|
+| 0 | scenario 1 | 0.424077 | 0.002763 | 0.051385 |
+| 1 | scenario 2 | 0.422291 | 0.002823 | 0.050667 |
+| 2 | scenario 3 | 0.460658 | 0.002933 | 0.055922 |
+| 3 | scenario 4 | 0.254918 | 0.001718 | 0.030420 |
 
-#### bar\_plot
+will be normalized like so:
 
-```python
-def bar_plot(experiment: Union[Experiment, ResultsSelector],
-             scenarios: Optional[list[str]] = None,
-             methods: Optional[list[str]] = None,
-             image_file: Optional[PathLike] = None) -> Figure
-```
+|   | scenario   | GWP1000  | WCP      | LandUse  |
+|:--|:-----------|:---------|:---------|:---------|
+| 0 | scenario 1 | 0.822196 | 0.860085 | 0.822084 |
+| 1 | scenario 2 | 0.813515 | 0.909543 | 0.793935 |
+| 2 | scenario 3 | 1.000000 | 1.000000 | 1.000000 |
+| 3 | scenario 4 | 0.000000 | 0.000000 | 0.000000 |
 
-#### stacked\_bar\_plot
+#### Simple barplot
 
-```python
-def stacked_bar_plot(experiment: Union[Experiment, ResultsSelector],
-                     scenarios: Optional[list[str]] = None,
-                     methods: Optional[list[str]] = None,
-                     level: int = 1,
-                     short_method_names: bool = True,
-                     nodes: Optional[list[str]] = None,
-                     image_file: Optional[PathLike] = None) -> Figure
-```
+<img src=../demos/data/plots/bar_plot_3.png  width="700" alt=""/>
+
+#### Stacked barplot
+
+This type of plot, allows to select specific nodes, which will be stacked up for each scenario bar.
+
+<img src=../demos/data/plots/stacked_plot_3.png  width="700" alt=""/>
+
+#### Startplot
 
 #### star\_plot
 
@@ -1561,79 +1553,27 @@ def star_plot(experiment: Union[Experiment, ResultsSelector],
               image_file: Optional[PathLike] = None) -> Figure
 ```
 
-#### single\_star\_plot
+Create a star plot (radar chart) to visualize the results across multiple scenarios.
 
-```python
-def single_star_plot(experiment: Union[Experiment, ResultsSelector],
-                     scenarios: Optional[list[str]] = None,
-                     methods: Optional[list[str]] = None,
-                     *,
-                     r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-                     show_r_ticks: bool = True,
-                     show_grid: bool = True,
-                     show_labels: bool = True,
-                     image_file: Optional[PathLike] = None) -> Figure
-```
-
-plots multiple scenarios into one star plot
+The results are normalized across scenarios before plotting, so the values are relative.
+Each scenario is represented by a circle, with multiple axis for different angles, representing different methods.
+It is important to note, that in some cases, some circles
 
 **Arguments**:
 
-- `experiment`: experiment to plot
-- `scenarios`: scenarios to plot
-- `methods`: methods to plot
-- `r_ticks`: ticks for the radial axis
-- `show_r_ticks`: if the radial axis should be shown
-- `show_grid`: if the grid should be shown
-- `show_labels`: if the method labels should be shown
-- `image_file`: file to save the plot to
+- `experiment`:
+- `scenarios`:
+- `methods`:
+- `fill`:
+- `r_ticks`:
+- `show_r_ticks`:
+- `show_grid`:
+- `col`:
+- `row`:
+- `show_labels`:
+- `image_file`:
 
-#### plot\_heatmap
-
-```python
-def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
-                 scenarios: Optional[list[str]] = None,
-                 methods: Optional[list[str]] = None,
-                 special_df: Optional[DataFrame] = None,
-                 image_file: Optional[PathLike] = None,
-                 x_label_rotation: Optional[int] = 45) -> Figure
-```
-
-#### plot\_sankey
-
-```python
-def plot_sankey(exp: Experiment,
-                scenario_name: str,
-                method_: str,
-                default_bar_color: Optional[str] = "blue",
-                color_map: Optional[dict[str, str]] = None,
-                *,
-                image_file: Optional[PathLike] = None) -> Figure
-```
-
-#### one\_axes\_scatter\_plot
-
-```python
-def one_axes_scatter_plot(experiment: Union[Experiment, ResultsSelector],
-                          selected_scenario: str,
-                          methods: Optional[list[str]] = None,
-                          image_file: Optional[PathLike] = None) -> Figure
-```
-
-#### plot\_multivalue\_results
-
-```python
-def plot_multivalue_results(experiment: Union[Experiment, ResultsSelector],
-                            scenarios: Optional[list[str]] = None,
-                            level: int = 1,
-                            methods: Optional[list[str]] = None,
-                            nodes: Optional[list[str]] = None,
-                            image_file: Optional[PathLike] = None,
-                            err_method: Optional[Callable[[np.ndarray],
-                                                          float]] = None)
-```
-
-
+<img src=../demos/data/plots/stacked_plot_3.png  width="700"  alt=""/>
 
 ## Full Experiment API
 
@@ -1680,7 +1620,6 @@ def get_node_module(node: Union[str, BasicTreeNode[TechTreeNodeData]],
 
 Get the module of a node in the experiment hierarchy
 
-
 #### get\_adapter\_by\_name
 
 ```python
@@ -1724,8 +1663,8 @@ The scenario object
 
 ```python
 def run_scenario(
-    scenario_name: str,
-    results_as_dict: bool = True
+        scenario_name: str,
+        results_as_dict: bool = True
 ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]
 ```
 
@@ -1744,7 +1683,7 @@ The result_tree (eventually converted into a dict)
 
 ```python
 def run(
-    results_as_dict: bool = True
+        results_as_dict: bool = True
 ) -> dict[str, Union[BasicTreeNode[ScenarioResultNodeData], dict]]
 ```
 
@@ -1793,20 +1732,19 @@ it will export all scenarios to the same file,
 
 - `file_path`: File path to export to
 - `scenarios`: string or list of strings. If no scenario name is given, it will export all scenarios
-to the same file,
-with an additional column for the scenario alias
+  to the same file,
+  with an additional column for the scenario alias
 - `level_names`: (list of strings) If given, the results will be exported with the given level names.
-This is only effective when flat_hierarchy is False.
+  This is only effective when flat_hierarchy is False.
 - `include_method_units`: (Include the units of the methods in the header)
 - `include_output`: Include the output of all nodes (default: True)
 - `flat_hierarchy`: If instead of representing each level of the hierarchy with its own column,
-we just indicate the node levels.
+  we just indicate the node levels.
 - `include_extras`: Include extras from adapters and aggregators in the results (default: True)
 - `repeat_parent_name`: If True, the parent name will be repeated for each child node in the
-corresponding level column.  This is only effective when flat_hierarchy is False. (default: False)
+  corresponding level column. This is only effective when flat_hierarchy is False. (default: False)
 - `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
-In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
-
+  In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
 
 #### results\_to\_dict
 
@@ -1825,11 +1763,10 @@ Get the results of all scenarios as a list of dictionaries as dictionaries
 
 - `scenarios`: A selection of scenarios to export. If None, all scenarios will be exported.
 - `alternative_hierarchy`: If given, the results will be recalculated using the given alternative hierarchy.
-In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
+  In this alternative hierarchy, tho, already defined nodeds need no config and no adapter/aggregator.
 - `include_method_units`: Include the units of the methods in the header (default: True)
 - `include_output`: Include the output of each node in the tree (default: True)
 - `include_extras`: Include extras from adapters and aggregators in the results (default: True)
-
 
 #### config
 
@@ -1839,7 +1776,6 @@ def config() -> ExperimentConfig
 ```
 
 get the config of the experiment
-
 
 #### structural\_nodes\_names
 
@@ -1884,9 +1820,9 @@ A list of all adapters
 
 ```python
 def run_scenario_config(
-    scenario_config: dict,
-    result_as_dict: bool = True,
-    append_scenario: bool = True
+        scenario_config: dict,
+        result_as_dict: bool = True,
+        append_scenario: bool = True
 ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]
 ```
 
@@ -1896,9 +1832,9 @@ Run a scenario from a config dictionary. Scenario will be validated and run. An
 
 - `scenario_config`: The scenario config as a dictionary (as it would be defined in the experiment config)
 - `result_as_dict`: If True, the result will be returned as a dictionary. If False, the result will be
-returned as a BasicTreeNode.
+  returned as a BasicTreeNode.
 - `append_scenario`: If True, the scenario will be appended to the experiment. If False, the scenario will
-not be appended.
+  not be appended.
 
 **Returns**:
 
@@ -1921,8 +1857,8 @@ Generated information as a string
 ```python
 @staticmethod
 def get_module_definition(clazz: Union[Type[EnbiosAdapter], EnbiosAdapter,
-                                       Type[EnbiosAggregator],
-                                       EnbiosAggregator],
+Type[EnbiosAggregator],
+EnbiosAggregator],
                           details: bool = True) -> dict[str, Any]
 ```
 
@@ -1975,7 +1911,7 @@ all built-in aggregators as a dictionary name: {node_indicator: <node_indicator>
 
 ```python
 def get_all_configs(
-    include_all_builtin_configs: bool = True
+        include_all_builtin_configs: bool = True
 ) -> dict[str, dict[str, dict[str, Any]]]
 ```
 
@@ -1983,14 +1919,16 @@ Result structure:
 
 ```json
     {
-        "adapters": { <adapter_name>: <adapter_config>},
-        "aggregators": { ... }
-    }
-    ```
+  "adapters": {
+    <adapter_name>: <adapter_config>
+  },
+  "aggregators": {
+    ...
+  }
+}
+```
 
-**Arguments**:
-
-- `include_all_builtin_configs`: Include the jsonschema configs of all adapters and aggregegators
+**Arguments**: - `include_all_builtin_configs`: Include the jsonschema configs of all adapters and aggregegators
 
 **Returns**:
 
@@ -2062,5 +2000,4 @@ Deletes the pint unit file and the logging config file
         color: darkorange;
         font-weight: bold;
     }
-
 </style>
