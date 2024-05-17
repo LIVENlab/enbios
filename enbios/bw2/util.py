@@ -1,14 +1,19 @@
+from csv import DictReader
 from pathlib import Path
-from typing import Generator, Iterator, Literal
+from typing import Generator, Iterator, Literal, Sequence
 
 import bw2data
 import bw2io
+import openpyxl
 from bw2calc import LCA
 from bw2data import databases as bw_databases
 from bw2data.backends import Activity, ExchangeDataset, ActivityDataset
 from bw2data.project import projects as bw_projects
 from bw2io import SingleOutputEcospold2Importer
 from scipy.sparse import csr_matrix
+
+from enbios import PathLike
+from enbios.base.models import ExperimentHierarchyNodeData
 
 
 def info_exchanges(act: Activity) -> dict:
@@ -26,7 +31,7 @@ def info_exchanges(act: Activity) -> dict:
 
 
 def iter_exchange_by_ids(
-    ids: Iterator[int], batch_size: int = 1000
+        ids: Iterator[int], batch_size: int = 1000
 ) -> Generator[ExchangeDataset, None, None]:
     """
     Iterate over exchanges by ids
@@ -50,7 +55,7 @@ def iter_exchange_by_ids(
 
 
 def iter_activities_by_codes(
-    codes: Iterator[str], batch_size: int = 1000
+        codes: Iterator[str], batch_size: int = 1000
 ) -> Generator[ActivityDataset, None, None]:
     """
     Iterate over activities by codes
@@ -171,9 +176,9 @@ Following two functions are from bw_utils...
 
 
 def _check_lca(
-    lca: LCA,
-    make_calculations: bool = True,
-    inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
+        lca: LCA,
+        make_calculations: bool = True,
+        inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
 ):
     if not hasattr(lca, "inventory"):
         if make_calculations:
@@ -197,10 +202,10 @@ def _check_lca(
 
 
 def split_inventory(
-    lca: LCA,
-    technosphere_activities: list[int],
-    inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
-    make_calculations: bool = True,
+        lca: LCA,
+        technosphere_activities: list[int],
+        inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
+        make_calculations: bool = True,
 ) -> csr_matrix:
     """
     Split the results of a lcia calculation into groups. Each group is a list of activities, specified by their ids.
@@ -223,11 +228,11 @@ This package has just one function for setting up a brightway project with a evo
 
 
 def safe_setup_ecoinvent(
-    project_name: str,
-    ecoinvent_db_path: str,
-    db_name: str,
-    delete_project: bool = False,
-    delete_if_unlinked: bool = True,
+        project_name: str,
+        ecoinvent_db_path: str,
+        db_name: str,
+        delete_project: bool = False,
+        delete_if_unlinked: bool = True,
 ):
     """
     Initiate a project with a ecoinvent database
@@ -263,3 +268,62 @@ def safe_setup_ecoinvent(
             bw2data.projects.delete_project(project_name, True)
         else:
             imported.write_unlinked(f"{db_name}_unlinked")
+
+
+def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_update_file: PathLike,
+                                   prev_code_column: str, new_code: str) -> dict:
+    """
+     updae the codes of an hierarchy, (file) between the 2 ecoinvent versions.
+     todo implement
+    :return:
+    """
+    hierarchy: ExperimentHierarchyNodeData = ExperimentHierarchyNodeData.model_validate(experiment_hierarchy)
+    activity_code_update_file_ = Path(activity_code_update_file)
+    if not activity_code_update_file_.exists():
+        raise FileNotFoundError(f"{activity_code_update_file} does not exist")
+
+    activity_codes: dict[str, ExperimentHierarchyNodeData] = {}
+
+    def rec_change_code(node: ExperimentHierarchyNodeData):
+        from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
+        if getattr(node, "adapter", None) in [BrightwayAdapter.name(), BrightwayAdapter.node_indicator()]:
+            code = node.config.get("code", None)
+            if not code:
+                print(f"node : {node.name} has no code. Nothing to do")
+            else:
+                activity_codes[code] = node
+        if node.children:
+            for child in node.children:
+                rec_change_code(child)
+
+    rec_change_code(hierarchy)
+
+    def check_fieldnames(fieldnames: Sequence[str]):
+        if prev_code_column not in fieldnames:
+            raise ValueError(f"Column {prev_code_column} not found in {activity_code_update_file}")
+        if new_code not in fieldnames:
+            raise ValueError(f"Column {new_code} not found in {activity_code_update_file}")
+
+    if activity_code_update_file_.suffix == ".csv":
+        reader = DictReader(activity_code_update_file_.open(encoding="utf-8"))
+        check_fieldnames(reader.fieldnames)
+        for row in reader:
+            row: dict = row
+            if row[prev_code_column] in activity_codes:
+                activity_codes[row[new_code]].config["code"] = row[new_code]
+    elif activity_code_update_file_.suffix == ".xlsx":
+        wb = openpyxl.load_workbook(activity_code_update_file_)
+        ws = wb.active
+
+        fieldnames= [cell.value for cell in ws[1]]
+        check_fieldnames(fieldnames)
+        prev_index = fieldnames.index(prev_code_column)
+        new_index = fieldnames.index(new_code)
+
+        for row in ws.iter_rows(min_row=2,values_only=True):
+            if row[prev_index] in activity_codes:
+                activity_codes[row[new_index]].config["code"] = row[new_index]
+    else:
+        raise ValueError(f"File {activity_code_update_file} is not supported")
+
+    return hierarchy.model_dump(exclude_unset=True, exclude_defaults=True)
