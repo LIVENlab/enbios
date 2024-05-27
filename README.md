@@ -47,7 +47,7 @@ But we also have a few Jupyter notebooks for you to use, see below.
 You first need to create an environment. From your terminal, try this:
 
 * Windows  `python -m venv venv`
-* Linux   `python3.9 -m venv venv`
+* Linux   `python3 -m venv venv`
 
 Activate the environment with
 

@@ -10,6 +10,12 @@
 - [Hierarchy](#hierarchy)
 - [Exporting results](#exporting-the-results)
 - [Creating Adapters and Aggregators](#creating-adapters-and-aggregators)
+- [EnbiosNode API](#enbiosnodemodule-objects)
+- [EnbiosAdapterNode API](#enbiosadapter-objects)
+- [EnbiosAggregatorNode API](#enbiosaggregator-objects)
+- [Environmental variables](#Environmental-variables)
+- [Plotting results](#plotting-results)
+- [Experiment API](#full-experiment-api)
 
 This version is based on a very simple assumption. Calculating arbitrary (structural/terminal nodes) and aggregated
 values (functional nodes) in
