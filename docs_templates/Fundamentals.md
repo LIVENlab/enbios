@@ -108,21 +108,22 @@ This starts off the following steps of validation and preparation:
 - validate hierarchy
     - basic structural validation
     - validate hierarchy nodes against their adapters, aggregators
-      (<ada>_adapter.validate_node_ *️⃣ </ada> <b>/</b> <agg>_aggregator.validate_node_</agg> /)
+      (<ada>_adapter.validate_node_ *️⃣ </ada> <b>/</b> <agg>_aggregator.validate_node_ ⏏️</agg>)
 - create template result-tree
 - validate scenarios
     - create default scenario, if no scenario is defined
     - __for each defined scenario (or the default scenario)__:
         - validate scenario
             - __for each node that the scenario specifies:__
-                - Validate the nodes scenario data against their adapter/aggregator: <ada>adapter.validate_scenario_node*️⃣ </ada> / <agg>aggragator.validate_scenario_node ⏏️ </agg>)
+                - Validate the nodes scenario data against their adapter/aggregator: <ada>_adapter.validate_scenario_node_ *️⃣ </ada> / <agg>_aggregator.validate_scenario_node_ ⏏️ </agg>)
         - prepare scenario result-tree
             - __for all structural nodes of the result-tree:__
-                - Get the nodes output from its adapter: <ada>adapter.get_node_output *️⃣ </ada>
+                - Get the nodes output from its adapter: <ada>_adapter.get_node_output_ *️⃣ </ada>
             - eventually remove exclude defaults (nodes with no output for a scenario) from the result-tree
             - from top to bottom aggregate the outputs within the result-tree (<agg>
               _aggregator.aggregate_node_output_ ⏏️</agg>)
 - validate scenario settings: Check if the environmental settings, specify which scenarios to run
+
 
 ## Running an experiment
 
@@ -138,12 +139,12 @@ Scenarios can also be run individually with: `Experiment.run_scenario`
 
 For all adapters specified for the experiment:
 
-- <ada>_adapter.run_scenario_</ada>
+- <ada>_adapter.run_scenario_  *️⃣ </ada>
 - add the results from the adapters to the result-tree
 
 Propagate the results up in the result-tree:
 
-From top to bottom aggregate the results within the result-tree (<agg>_aggregator.aggregate_node_result_</agg>)
+From top to bottom aggregate the results within the result-tree (<agg>_aggregator.aggregate_node_result_ ⏏️</agg>)
 
 ## A first simple example
 
@@ -318,6 +319,14 @@ The configs are in a dictionary in the fields `adapters`, `aggregators`
   }
 }
 ```
+
+#### Validation aspects of Adapters/Aggregators (summary)
+
+In summary, adapter/aggregator specific validation happens at 3 locations of the configuration file:
+
+- The adapter/aggregator definition itself
+- Node configs against their corresponding adapter/aggregator
+- Node scenario configs against their corresponding adapter/aggregator
 
 ### Splitting the config file:
 
@@ -511,14 +520,21 @@ This type of plot, allows to select specific nodes, which will be stacked up for
 
 <img src=../demos/data/plots/stacked_plot_3.png  width="700" alt=""/>
 
-
-#### Startplot
+#### Starplot
 
 {{enbios.base.plot_experiment.star_plot}}
 
-<img src=../demos/data/plots/stacked_plot_3.png  width="700" alt=""/>
+<img src=../demos/data/plots/star_plot_1.png  width="700" alt=""/>
 
+{{enbios.base.plot_experiment.single_star_plot}}
 
+{{enbios.base.plot_experiment.plot_heatmap}}
+
+{{enbios.base.plot_experiment.plot_sankey}}
+
+{{enbios.base.plot_experiment.one_axes_scatter_plot}}
+
+{{enbios.base.plot_experiment.plot_multivalue_results}}
 
 ## Full Experiment API
 

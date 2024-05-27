@@ -108,21 +108,22 @@ This starts off the following steps of validation and preparation:
 - validate hierarchy
     - basic structural validation
     - validate hierarchy nodes against their adapters, aggregators
-      (<ada>_adapter.validate_node_ *️⃣ </ada> <b>/</b> <agg>_aggregator.validate_node_</agg> /)
+      (<ada>_adapter.validate_node_ *️⃣ </ada> <b>/</b> <agg>_aggregator.validate_node_ ⏏️</agg>)
 - create template result-tree
 - validate scenarios
     - create default scenario, if no scenario is defined
     - __for each defined scenario (or the default scenario)__:
         - validate scenario
             - __for each node that the scenario specifies:__
-                - Validate the nodes scenario data against their adapter/aggregator: <ada>adapter.validate_scenario_node*️⃣ </ada> / <agg>aggragator.validate_scenario_node ⏏️ </agg>)
+                - Validate the nodes scenario data against their adapter/aggregator: <ada>_adapter.validate_scenario_node_ *️⃣ </ada> / <agg>_aggregator.validate_scenario_node_ ⏏️ </agg>)
         - prepare scenario result-tree
             - __for all structural nodes of the result-tree:__
-                - Get the nodes output from its adapter: <ada>adapter.get_node_output *️⃣ </ada>
+                - Get the nodes output from its adapter: <ada>_adapter.get_node_output_ *️⃣ </ada>
             - eventually remove exclude defaults (nodes with no output for a scenario) from the result-tree
             - from top to bottom aggregate the outputs within the result-tree (<agg>
               _aggregator.aggregate_node_output_ ⏏️</agg>)
 - validate scenario settings: Check if the environmental settings, specify which scenarios to run
+
 
 ## Running an experiment
 
@@ -138,12 +139,12 @@ Scenarios can also be run individually with: `Experiment.run_scenario`
 
 For all adapters specified for the experiment:
 
-- <ada>_adapter.run_scenario_</ada>
+- <ada>_adapter.run_scenario_  *️⃣ </ada>
 - add the results from the adapters to the result-tree
 
 Propagate the results up in the result-tree:
 
-From top to bottom aggregate the results within the result-tree (<agg>_aggregator.aggregate_node_result_</agg>)
+From top to bottom aggregate the results within the result-tree (<agg>_aggregator.aggregate_node_result_ ⏏️</agg>)
 
 ## A first simple example
 
@@ -739,6 +740,14 @@ The configs are in a dictionary in the fields `adapters`, `aggregators`
 }
 ```
 
+#### Validation aspects of Adapters/Aggregators (summary)
+
+In summary, adapter/aggregator specific validation happens at 3 locations of the configuration file:
+
+- The adapter/aggregator definition itself
+- Node configs against their corresponding adapter/aggregator
+- Node scenario configs against their corresponding adapter/aggregator
+
 ### Splitting the config file:
 
 The configuration of an experiment can also be split into multiple files.
@@ -1280,8 +1289,7 @@ This type of plot, allows to select specific nodes, which will be stacked up for
 
 <img src=../demos/data/plots/stacked_plot_3.png  width="700" alt=""/>
 
-
-#### Startplot
+#### Starplot
 
 #### star\_plot
 
@@ -1322,7 +1330,91 @@ It is important to note, that in some cases, some circles
 
 
 
-<img src=../demos/data/plots/stacked_plot_3.png  width="700" alt=""/>
+<img src=../demos/data/plots/star_plot_1.png  width="700" alt=""/>
+
+#### single\_star\_plot
+
+```python
+def single_star_plot(experiment: Union[Experiment, ResultsSelector],
+                     scenarios: Optional[list[str]] = None,
+                     methods: Optional[list[str]] = None,
+                     *,
+                     r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+                     show_r_ticks: bool = True,
+                     show_grid: bool = True,
+                     show_labels: bool = True,
+                     image_file: Optional[PathLike] = None) -> Figure
+```
+
+plots multiple scenarios into a single star plot
+
+**Arguments**:
+
+- `experiment`: experiment to plot
+- `scenarios`: scenarios to plot
+- `methods`: methods to plot
+- `r_ticks`: ticks for the radial axis
+- `show_r_ticks`: if the radial axis should be shown
+- `show_grid`: if the grid should be shown
+- `show_labels`: if the method labels should be shown
+- `image_file`: file to save the plot to
+
+**Returns**:
+
+A Figure object
+
+
+
+#### plot\_heatmap
+
+```python
+def plot_heatmap(experiment: Union[Experiment, ResultsSelector],
+                 scenarios: Optional[list[str]] = None,
+                 methods: Optional[list[str]] = None,
+                 special_df: Optional[DataFrame] = None,
+                 image_file: Optional[PathLike] = None,
+                 x_label_rotation: Optional[int] = 45) -> Figure
+```
+
+
+
+#### plot\_sankey
+
+```python
+def plot_sankey(exp: Experiment,
+                scenario_name: str,
+                method_: str,
+                default_bar_color: Optional[str] = "blue",
+                color_map: Optional[dict[str, str]] = None,
+                *,
+                image_file: Optional[PathLike] = None) -> Figure
+```
+
+
+
+#### one\_axes\_scatter\_plot
+
+```python
+def one_axes_scatter_plot(experiment: Union[Experiment, ResultsSelector],
+                          selected_scenario: str,
+                          methods: Optional[list[str]] = None,
+                          image_file: Optional[PathLike] = None) -> Figure
+```
+
+
+
+#### plot\_multivalue\_results
+
+```python
+def plot_multivalue_results(experiment: Union[Experiment, ResultsSelector],
+                            scenarios: Optional[list[str]] = None,
+                            level: int = 1,
+                            methods: Optional[list[str]] = None,
+                            nodes: Optional[list[str]] = None,
+                            image_file: Optional[PathLike] = None,
+                            err_method: Optional[Callable[[np.ndarray],
+                                                          float]] = None)
+```
 
 
 
