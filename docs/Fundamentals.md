@@ -95,32 +95,33 @@ This starts off the following steps of validation and preparation:
 - validate adapters
     - __For each defined adapter:__
         - load adapter module
-        - <span style="color: darkgreen; font-weight: bold;">_adapter.validate_definition_</span>
-        - <ada>_adapter.validate_config_</ada>
-        - <ada>_adapter.validate_methods_</ada>
+        - <ada>_adapter.validate_definition_ *️⃣ </ada>
+        - <ada>_adapter.validate_config_ *️⃣ </ada>
+        - <ada>_adapter.validate_methods_ *️⃣ </ada>
     - load builtin adapters
 - validate aggregators
     - __For each defined aggregator:__
         - load aggregator module
-        - <agg>_aggregator.validate_config_</agg>
+        - <agg>_aggregator.validate_definition_ ⏏️</agg>
+        - <agg>_aggregator.validate_config_ ⏏️</agg>
     - load builtin aggregators
 - validate hierarchy
     - basic structural validation
     - validate hierarchy nodes against their adapters, aggregators
-      (<ada>_adapter.validate_node_</ada> <b>/</b> <agg>_aggregator.validate_node_</agg>)
+      (<ada>_adapter.validate_node_ *️⃣ </ada> <b>/</b> <agg>_aggregator.validate_node_</agg> /)
 - create template result-tree
 - validate scenarios
     - create default scenario, if no scenario is defined
     - __for each defined scenario (or the default scenario)__:
         - validate scenario
             - __for each node that the scenario specifies:__
-                - Validate the nodes scenario data against their adapter: <ada>adapter.validate_scenario_node</ada>)
+                - Validate the nodes scenario data against their adapter/aggregator: <ada>adapter.validate_scenario_node*️⃣ </ada> / <agg>aggragator.validate_scenario_node ⏏️ </agg>)
         - prepare scenario result-tree
             - __for all structural nodes of the result-tree:__
-                - Get the nodes output from its adapter: <ada>adapter.get_node_output</ada>
+                - Get the nodes output from its adapter: <ada>adapter.get_node_output *️⃣ </ada>
             - eventually remove exclude defaults (nodes with no output for a scenario) from the result-tree
             - from top to bottom aggregate the outputs within the result-tree (<agg>
-              _aggregator.aggregate_node_output_</agg>)
+              _aggregator.aggregate_node_output_ ⏏️</agg>)
 - validate scenario settings: Check if the environmental settings, specify which scenarios to run
 
 ## Running an experiment
