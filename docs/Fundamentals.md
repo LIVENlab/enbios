@@ -10,9 +10,9 @@
 - [Hierarchy](#hierarchy)
 - [Exporting results](#exporting-the-results)
 - [Creating Adapters and Aggregators](#creating-adapters-and-aggregators)
-- [EnbiosNode API](#enbiosnodemodule-objects)
-- [EnbiosAdapterNode API](#enbiosadapter-objects)
-- [EnbiosAggregatorNode API](#enbiosaggregator-objects)
+  - [EnbiosNode API](#enbiosnodemodule-objects)
+  - [EnbiosAdapterNode API](#enbiosadapter-objects)
+  - [EnbiosAggregatorNode API](#enbiosaggregator-objects)
 - [Environmental variables](#Environmental-variables)
 - [Plotting results](#plotting-results)
 - [Experiment API](#full-experiment-api)
@@ -984,7 +984,7 @@ types that enbios requires (these return types are already included as return ty
 Since adapters and aggregators have several functions in common, there is a common parent class, which defines these
 functions. When creating a concrete adapter or aggregator, these functions have to be implemented as well.
 
-## EnbiosNodeModule Objects
+### EnbiosNodeModule Objects
 
 #### validate\_definition
 
@@ -1136,7 +1136,7 @@ First, there are several validation functions. These functions serve to check th
 store all configurations inside the adapter object as they are later needed for the execution. In case of invalid data,
 they should raise an Exception. In the case some validation is not required, it is ok, they just contain `pass`.
 
-## EnbiosAdapter Objects
+### EnbiosAdapter Objects
 
 #### validate\_methods
 
@@ -1217,7 +1217,7 @@ Returns a dictionary node-name: (method-name: results)
 
 ### Aggregator
 
-## EnbiosAggregator Objects
+### EnbiosAggregator Objects
 
 #### aggregate\_node\_output
 
@@ -1426,7 +1426,7 @@ def plot_multivalue_results(experiment: Union[Experiment, ResultsSelector],
 
 ## Full Experiment API
 
-## Experiment Objects
+### Experiment Objects
 
 #### get\_node
 
