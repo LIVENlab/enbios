@@ -95,7 +95,7 @@ This starts off the following steps of validation and preparation:
 - validate adapters
     - __For each defined adapter:__
         - load adapter module
-        - <ada style="color: darkgreen; font-weight: bold;">_adapter.validate_definition_</ada>
+        - <ada style="color: darkgreen; font-weight: bold;">adapter.validate_definition</ada>
         - <ada>_adapter.validate_config_</ada>
         - <ada>_adapter.validate_methods_</ada>
     - load builtin adapters
