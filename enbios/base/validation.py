@@ -54,6 +54,7 @@ def validate_aggregators(
     aggregators = []
     for aggregator_def in experiment_aggregators:
         aggregator = load_aggregator(aggregator_def)
+        aggregator.validate_definition(aggregator_def)
         aggregator.validate_config(aggregator_def.config)
         aggregators.append(aggregator)
 

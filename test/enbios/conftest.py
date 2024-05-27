@@ -8,7 +8,7 @@ import pytest
 
 from enbios.base.experiment import Experiment
 from enbios.const import BASE_TEST_DATA_PATH
-from enbios import ResultValue, ScenarioResultNodeData
+from enbios import ResultValue, ScenarioResultNodeData, BasicTreeNode
 from enbios.base.models import NodeOutput
 from test.enbios.test_project_fixture import TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH, TEST_ECOINVENT_DB, \
     BRIGHTWAY_ADAPTER_MODULE_NAME
@@ -41,6 +41,10 @@ def default_bw_config() -> dict:
         "ecoinvent_db": TEST_ECOINVENT_DB
     }
 
+@pytest.fixture
+def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[ScenarioResultNodeData]:
+    return run_basic_experiment.get_scenario(
+        Experiment.DEFAULT_SCENARIO_NAME).result_tree
 
 @pytest.fixture
 def set_bw_default_project(default_bw_config):
@@ -134,6 +138,45 @@ def experiment_setup(bw_adapter_config, default_result_score: float, first_activ
                                      output_aggregation=[[0]])}
     }
 
+
+
+@pytest.fixture
+def experiment_scenario_setup(bw_adapter_config, first_activity_config):
+    return {
+        "adapters": [
+            bw_adapter_config
+        ],
+        "hierarchy": {
+            "name": "root",
+            "aggregator": "sum",
+            "children": [
+                {
+                    "name": "single_activity",
+                    "adapter": "bw",
+                    "config": first_activity_config,
+                }
+            ]
+        },
+        "scenarios": [
+            {
+                "name": "scenario1",
+                "nodes": {
+                    "single_activity": {
+                        "unit": "kWh",
+                        "magnitude": 1
+                    }
+                }
+            },
+            {
+                "name": "scenario2",
+                "nodes": {
+                    "single_activity": {
+                        "unit": "MWh",
+                        "magnitude": 2
+                    }
+                }
+            }]
+    }
 
 @pytest.fixture
 def basic_experiment(experiment_setup) -> Experiment:

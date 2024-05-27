@@ -28,8 +28,10 @@ def experiment_files(tmp_path):
 
 def experiments_data():
     for file in (BASE_TEST_DATA_PATH / "experiment_instances").glob("*.json"):
-        yield ReadPath(file).read_data()
-
+        try:
+            yield ReadPath(file).read_data()
+        except FileNotFoundError as err:
+            raise err
 
 def experiments_data_configures():
     for experiment_data in experiments_data():
@@ -90,16 +92,17 @@ def test_one_experiment_data():
 
 
 def test_env_config(tempfolder: Path):
+    import os
     with pytest.raises(Exception):
+        del os.environ["CONFIG_FILE"]
         Experiment()
 
-    import os
     experiment_data = ReadPath(BASE_TEST_DATA_PATH / "experiment_instances/scenario3.json").read_data()
     fix_experiment_data(experiment_data, TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH)
     temp_env_file = Path(tempfolder / "env_config.json")
     json.dump(experiment_data, temp_env_file.open("w", encoding="utf-8"))
     os.environ["CONFIG_FILE"] = temp_env_file.as_posix()
-    exp = Experiment()
+    Experiment()
 
 
 # def test_run_scenarios_env_setting():

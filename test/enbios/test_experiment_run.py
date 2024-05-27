@@ -25,43 +25,6 @@ def default_bw_activity(default_bw_config, first_activity_config) -> Activity:
                            filter={"location": first_activity_config["location"]})))
 
 
-@pytest.fixture
-def experiment_scenario_setup(bw_adapter_config, first_activity_config):
-    return {
-        "adapters": [
-            bw_adapter_config
-        ],
-        "hierarchy": {
-            "name": "root",
-            "aggregator": "sum",
-            "children": [
-                {
-                    "name": "single_activity",
-                    "adapter": "bw",
-                    "config": first_activity_config,
-                }
-            ]
-        },
-        "scenarios": [
-            {
-                "name": "scenario1",
-                "nodes": {
-                    "single_activity": {
-                        "unit": "kWh",
-                        "magnitude": 1
-                    }
-                }
-            },
-            {
-                "name": "scenario2",
-                "nodes": {
-                    "single_activity": {
-                        "unit": "MWh",
-                        "magnitude": 2
-                    }
-                }
-            }]
-    }
 
 
 @pytest.fixture
@@ -91,10 +54,7 @@ def test_write_dict(run_basic_experiment: Experiment, tempfolder: Path):
               (tempfolder / "test_json_output_no_output.json").open("w"), indent=2)
 
 
-@pytest.fixture
-def basic_exp_run_result_tree(run_basic_experiment) -> BasicTreeNode[ScenarioResultNodeData]:
-    return run_basic_experiment.get_scenario(
-        Experiment.DEFAULT_SCENARIO_NAME).result_tree
+
 
 
 def test_single_lca_compare(run_basic_experiment: Experiment,
@@ -103,7 +63,7 @@ def test_single_lca_compare(run_basic_experiment: Experiment,
                             default_bw_method_name: str,
                             default_method_tuple):
     expected_value = experiment_setup["expected_result_tree"]["data"].results[default_bw_method_name]
-    activity = run_basic_experiment.get_structural_node("single_activity")
+    activity = run_basic_experiment.get_node("single_activity")
     bw_adapter: BrightwayAdapter = cast(BrightwayAdapter, run_basic_experiment.get_node_module(activity))
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
     regular_score = bw_activity.lca(default_method_tuple).score
@@ -228,6 +188,7 @@ def test_scenario(experiment_scenario_setup: dict,
         expected_value2, abs=1e-6)
     #   todo test, complete experiment csv
     experiment.results_to_csv(temp_csv_file)
+    assert experiment.execution_time
 
 def test_scenario2(experiment_scenario_setup: dict,
                   experiment_setup: dict,
@@ -340,10 +301,6 @@ def test_lca_distribution(experiment_setup,
 
     experiment = Experiment(scenario_data)
     result = experiment.run()
-    pass
-
-
-def test_run_scenario_config():
     pass
 
 

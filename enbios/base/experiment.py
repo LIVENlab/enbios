@@ -131,16 +131,6 @@ class Experiment:
             raise ValueError(f"Node with name '{name}' not found")
         return node
 
-    def get_structural_node(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
-        """
-        Get a node by either its name as it is defined in the experiment data.
-        :param name: Name of the node (as defined in the experiment hierarchy)
-        :return: All node-data
-        """
-        node = self._structural_nodes.get(name, None)
-        if not node:
-            raise ValueError(f"Node with name '{name}' not found")
-        return node
 
     def get_node_module(
         self,

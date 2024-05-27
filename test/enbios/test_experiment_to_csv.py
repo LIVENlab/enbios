@@ -10,7 +10,7 @@ from enbios.const import BASE_TEST_DATA_PATH
 
 
 @pytest.fixture
-def results_base_folder() -> Path:
+def csv_results_base_folder() -> Path:
     return BASE_TEST_DATA_PATH / "experiment_csv_results"
 
 
@@ -59,63 +59,62 @@ def test_base_crash_test(two_level_experiment_from_pickle: Experiment, clear_tem
         two_level_experiment_from_pickle.results_to_csv(temp_file.parent / file_name, **kwargs)
 
 
-def test_normal_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
+def test_normal_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, csv_results_base_folder: Path,
                     temp_file):
     two_level_experiment_from_pickle.results_to_csv(temp_file)
     file_name = "test_normal_csv.csv"
-    compare_csv_files(temp_file, results_base_folder / file_name)
+    compare_csv_files(temp_file, csv_results_base_folder / file_name)
 
 
-def test_no_extras_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
+def test_no_extras_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, csv_results_base_folder: Path,
                        temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, include_extras=False)
     file_name = "test_no_extras_csv.csv"
-    compare_csv_files(temp_file, results_base_folder / file_name)
+    compare_csv_files(temp_file, csv_results_base_folder / file_name)
 
 
-def test_single_scenario_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
+def test_single_scenario_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, csv_results_base_folder: Path,
                              temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, scenarios="default scenario", include_extras=True)
     file_name = "test_single_scenario_csv.csv"
-    compare_csv_files(temp_file, results_base_folder / file_name)
+    compare_csv_files(temp_file, csv_results_base_folder / file_name)
 
 
 def test_single_scenario_no_extras_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files,
-                                       results_base_folder: Path,
+                                       csv_results_base_folder: Path,
                                        temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, scenarios="default scenario", include_extras=False)
     file_name = "test_single_scenario_no_extras_csv.csv"
-    compare_csv_files(temp_file, results_base_folder / file_name)
+    compare_csv_files(temp_file, csv_results_base_folder / file_name)
 
 
-def test_no_method_units_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
+def test_no_method_units_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, csv_results_base_folder: Path,
                              temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, include_method_units=False)
     file_name = "test_no_method_units_csv.csv"
-    compare_csv_files(temp_file, results_base_folder / file_name)
+    compare_csv_files(temp_file, csv_results_base_folder / file_name)
 
 
-def test_flat_hierarchy_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
+def test_flat_hierarchy_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, csv_results_base_folder: Path,
                             temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, flat_hierarchy=True)
     file_name = "test_flat_hierarchy_csv.csv"
-    compare_csv_files(temp_file, results_base_folder / file_name)
+    compare_csv_files(temp_file, csv_results_base_folder / file_name)
 
 
-def test_repeat_parent_name(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
+def test_repeat_parent_name(two_level_experiment_from_pickle: Experiment, clear_temp_files, csv_results_base_folder: Path,
                             temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, repeat_parent_name=True)
-    compare_csv_files(temp_file, results_base_folder / "test_repeat_parent_name.csv")
+    compare_csv_files(temp_file, csv_results_base_folder / "test_repeat_parent_name.csv")
 
 
-def test_level_names(two_level_experiment_from_pickle: Experiment, clear_temp_files, results_base_folder: Path,
+def test_level_names(two_level_experiment_from_pickle: Experiment, clear_temp_files, csv_results_base_folder: Path,
                      temp_file: Path):
     two_level_experiment_from_pickle.results_to_csv(temp_file, level_names=["root", "technology", "node"])
-    compare_csv_files(temp_file, results_base_folder / "test_level_names.csv")
+    compare_csv_files(temp_file, csv_results_base_folder / "test_level_names.csv")
 
 
-def test_alternative_hierarchy_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files,
-                                   results_base_folder: Path, temp_file: Path):
+def test_alternative_hierarchy_csv(two_level_experiment_from_pickle: Experiment, clear_temp_files, temp_file: Path):
     alt_hierarchy = {
         "name": "root",
         "aggregator": "sum",

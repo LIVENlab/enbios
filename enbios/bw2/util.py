@@ -1,6 +1,5 @@
-from csv import DictReader
 from pathlib import Path
-from typing import Generator, Iterator, Literal, Sequence
+from typing import Generator, Iterator, Literal, Optional
 
 import bw2data
 import bw2io
@@ -11,6 +10,7 @@ from bw2data.backends import Activity, ExchangeDataset, ActivityDataset
 from bw2data.project import projects as bw_projects
 from bw2io import SingleOutputEcospold2Importer
 from scipy.sparse import csr_matrix
+from tqdm import tqdm
 
 from enbios import PathLike
 from enbios.base.models import ExperimentHierarchyNodeData
@@ -271,11 +271,10 @@ def safe_setup_ecoinvent(
 
 
 def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_update_file: PathLike,
-                                   prev_code_column: str, new_code: str) -> dict:
+                                   worksheet: str) -> dict:
     """
-     updae the codes of an hierarchy, (file) between the 2 ecoinvent versions.
-     todo implement
-    :return:
+     update the codes of an hierarchy, between the 2 ecoinvent versions.
+    :return: a new, updated
     """
     hierarchy: ExperimentHierarchyNodeData = ExperimentHierarchyNodeData.model_validate(experiment_hierarchy)
     activity_code_update_file_ = Path(activity_code_update_file)
@@ -284,6 +283,7 @@ def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_upd
 
     activity_codes: dict[str, ExperimentHierarchyNodeData] = {}
 
+    # go through the hierarchy and find the nodes, which have a brightway adapter and a code
     def rec_change_code(node: ExperimentHierarchyNodeData):
         from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
         if getattr(node, "adapter", None) in [BrightwayAdapter.name(), BrightwayAdapter.node_indicator()]:
@@ -292,38 +292,75 @@ def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_upd
                 print(f"node : {node.name} has no code. Nothing to do")
             else:
                 activity_codes[code] = node
-        if node.children:
+        if hasattr(node, "children"):
             for child in node.children:
                 rec_change_code(child)
 
     rec_change_code(hierarchy)
 
-    def check_fieldnames(fieldnames: Sequence[str]):
-        if prev_code_column not in fieldnames:
-            raise ValueError(f"Column {prev_code_column} not found in {activity_code_update_file}")
-        if new_code not in fieldnames:
-            raise ValueError(f"Column {new_code} not found in {activity_code_update_file}")
-
-    if activity_code_update_file_.suffix == ".csv":
-        reader = DictReader(activity_code_update_file_.open(encoding="utf-8"))
-        check_fieldnames(reader.fieldnames)
-        for row in reader:
-            row: dict = row
-            if row[prev_code_column] in activity_codes:
-                activity_codes[row[new_code]].config["code"] = row[new_code]
-    elif activity_code_update_file_.suffix == ".xlsx":
-        wb = openpyxl.load_workbook(activity_code_update_file_)
-        ws = wb.active
-
-        fieldnames= [cell.value for cell in ws[1]]
-        check_fieldnames(fieldnames)
-        prev_index = fieldnames.index(prev_code_column)
-        new_index = fieldnames.index(new_code)
-
-        for row in ws.iter_rows(min_row=2,values_only=True):
-            if row[prev_index] in activity_codes:
-                activity_codes[row[new_index]].config["code"] = row[new_index]
-    else:
+    if not activity_code_update_file_.suffix == ".xlsx":
         raise ValueError(f"File {activity_code_update_file} is not supported")
 
+    # load worksheet
+    wb = openpyxl.load_workbook(activity_code_update_file_, read_only=True)
+    if worksheet not in wb.sheetnames:
+        raise ValueError(f"Worksheet {worksheet} not found in {activity_code_update_file}")
+    ws = wb[worksheet]
+
+    # check the versions, or logging
+    first_row = [cell.value for cell in ws[1]]
+    versions = list(filter(lambda value: value, first_row))
+    if len(versions) != 2:
+        raise ValueError(f"First row of {activity_code_update_file} must contain 2 versions")
+    print(f"Version update: {versions[0]} -> {versions[1]}")
+
+    # find the columns with the codes
+    prev_index: Optional[int] = None
+    new_index: Optional[int] = None
+    activity_name_index: Optional[int] = None
+    for idx, cell in enumerate(ws[2]):
+        if cell.value == "Activity Name" and not activity_name_index:
+            activity_name_index = idx
+        if cell.value == "Activity UUID":
+            if prev_index is None:
+                prev_index = idx
+            else:
+                new_index = idx
+
+    if prev_index is None or new_index is None:
+        raise ValueError(f"Activity UUID columns not found")
+
+    activities_todo = list(activity_codes.keys())
+    for row in tqdm(ws.iter_rows(min_row=3, values_only=True)):
+        prev_code = row[prev_index]
+        # check if we already replaced it (codes appear twice with different products)
+        if prev_code in activity_codes and prev_code in activities_todo:
+            activity_codes[prev_code].config["code"] = row[new_index]
+            print(f"change code of '{row[activity_name_index]}': {prev_code} -> {row[new_index]}")
+            activities_todo.remove(prev_code)
+            if len(activities_todo) == 0:
+                break
+    if activities_todo:
+        print(f"Following codes have not been found: {activities_todo}")
+
     return hierarchy.model_dump(exclude_unset=True, exclude_defaults=True)
+
+
+if __name__ == "__main__":
+    print(update_ecoinvent_activity_code(
+        {
+            "name": "cool",
+            "aggregator": "sum",
+            "children": [
+                {
+                    "name": "a1",
+                    "adapter": "bw",
+                    "config": {
+                        "code": "4fe91148-1e26-59dd-91c4-52a70be24882"
+                    }
+                }
+            ]
+        },
+        "Correspondence File v3.9.1 - v.3.10-1.xlsx",
+        "Cut-off"
+    ))

@@ -133,7 +133,7 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
             _config = self._config.module_config
 
         if _config.render_header:
-            self._renderer._render_header(fp, 1, obj_)
+            self._renderer._render_header(fp, 3, obj_)
 
         # if _config.render_signature:
         #     self._renderer._render_signature_block(fp, obj_)
@@ -162,7 +162,7 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
             _config = self._config.class_config
 
         if _config.render_header:
-            self._renderer._render_header(fp, 1, obj_)
+            self._renderer._render_header(fp, 3, obj_)
 
         if _config.render_signature:
             self._renderer._render_signature_block(fp, obj_)
@@ -197,7 +197,7 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
             docspec.visit([obj_], self.sphinx_proc._process)
 
         if _config.render_header:
-            self._renderer._render_header(fp, 1, obj_)
+            self._renderer._render_header(fp, 3, obj_)
 
         if _config.render_signature:
             self._renderer._render_signature_block(fp, obj_)
@@ -223,7 +223,7 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
                     with open(file_path, "r") as f:
                         fp.write(f"```{file_type}\n{f.read()}\n```")
                 # elif isinstance(obj_, docspec.ApiObject):
-                #     self._renderer._render_header(fp, 1, obj_)
+                #     self._renderer._render_header(fp, 3, obj_)
                 elif isinstance(obj_, docspec.Function):
                     self._render_function(obj_, fp)
                 elif isinstance(obj_, docspec.Class):
