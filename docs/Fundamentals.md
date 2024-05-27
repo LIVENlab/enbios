@@ -754,13 +754,6 @@ In summary, adapter/aggregator specific validation happens at 3 locations of the
 - Node configs against their corresponding adapter/aggregator
 - Node scenario configs against their corresponding adapter/aggregator
 
-### Splitting the config file:
-
-The configuration of an experiment can also be split into multiple files.
-The hierarchy and scenarios can be separated in external files (and be provided in alternative formats).
-
-See [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_config_files.ipynb) for details.
-
 ### Builtin adapters and aggregators
 
 There are a some builtin adapters and aggregators:
@@ -776,6 +769,13 @@ There are a some builtin adapters and aggregators:
 **Aggregators**
 
 - SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
+
+## Splitting the config file:
+
+The configuration of an experiment can also be split into multiple files.
+The hierarchy and scenarios can be separated in external files (and be provided in alternative formats).
+
+See [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_config_files.ipynb) for details.
 
 ## Hierarchy
 
@@ -794,6 +794,8 @@ Enbios is able to read hierarchies in 3 formats.
 ## Exporting the results
 
 After running an experiment or individual scenarios, the results are stored in a tree structure.
+
+### Exporting the results to json
 
 The result can be turned into a dictionary (and dumped into a json file) with the Experiment function:
 
@@ -845,6 +847,8 @@ which comes from Scenario.rearrange_results.
 - `warn_no_results`: Write a warning, if the scenario has not run yet.
 
 
+
+### Exporting the results to csv
 
 But can also be written to csv files with functions for Experiment (and scenarios respectively)
 
