@@ -93,14 +93,14 @@ This starts off the following steps of validation and preparation:
 - resolve experiment data links (eventual links to hierarchy and scenario files)
 - validate full experiment data (structural validation)
 - validate adapters
-    - __For each defined adapter:__
+    - __For each defined adapter: *️⃣__
         - load adapter module
         - <ada>_adapter.validate_definition_ *️⃣ </ada>
         - <ada>_adapter.validate_config_ *️⃣ </ada>
         - <ada>_adapter.validate_methods_ *️⃣ </ada>
     - load builtin adapters
 - validate aggregators
-    - __For each defined aggregator:__
+    - __For each defined aggregator: ⏏️__
         - load aggregator module
         - <agg>_aggregator.validate_definition_ ⏏️</agg>
         - <agg>_aggregator.validate_config_ ⏏️</agg>
