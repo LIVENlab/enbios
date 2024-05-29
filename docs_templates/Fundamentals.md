@@ -350,7 +350,7 @@ There are a some builtin adapters and aggregators:
 
 - SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
 
-## Splitting the config file:
+## Splitting the config file
 
 The configuration of an experiment can also be split into multiple files.
 The hierarchy and scenarios can be separated in external files (and be provided in alternative formats).
