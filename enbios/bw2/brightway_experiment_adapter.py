@@ -1,6 +1,6 @@
 import math
 from logging import getLogger
-from typing import Optional, Any, Sequence, Callable
+from typing import Optional, Any, Sequence, Callable, Union
 
 import bw2data as bd
 import numpy as np
@@ -25,7 +25,7 @@ from enbios.bw2.bw_models import (
     BWMethodDefinition,
     BWActivityData,
     NonLinearMethodConfig,
-    BWCalculationSetup,
+    BWCalculationSetup, RegionalizationConfig,
 )
 from enbios.bw2.util import bw_unit_fix, get_activity
 from enbios.generic.util import load_module, get_module_functions
@@ -259,6 +259,63 @@ class BrightwayAdapter(EnbiosAdapter):
     def get_method_unit(self, method_name: str) -> str:
         return self.methods[method_name].bw_method_unit
 
+    def prepare_regionalization(self, config: Optional[Union[RegionalizationConfig, dict]] = None):
+        if not config:
+            config = self.config.simple_regionalization
+        elif isinstance(config, dict):
+            config = RegionalizationConfig(**config)
+        # memorize nodes from the tree in order to not delete their location
+        if config.clear_all_other_node_regions:
+            keep_locations_of_activities = [
+                a.bw_activity["code"] for a in self.activityMap.values()
+            ]
+
+            range_length = 1000
+            activities_to_set = list(
+                ActivityDataset.select().where(
+                    ActivityDataset.code.not_in(keep_locations_of_activities)
+                )
+            )
+
+            for range_start in range(
+                    math.ceil(len(activities_to_set) / range_length)
+            ):
+                # noinspection PyUnresolvedReferences
+                # noinspection PyProtectedMember
+                with ActivityDataset._meta.database.atomic():
+                    for a in activities_to_set[
+                             range_start * range_length: (range_start + 1) * range_length
+                             ]:
+                        a.data["enb_location"] = None
+                        a.save()
+
+        # set additional specified locations. 'set_node_regions' field
+        activity_codes: list[str] = list(
+            config.set_node_regions.keys()
+        )
+        # this approach is much faster than individual updates
+        # noinspection PyUnresolvedReferences
+        # noinspection PyProtectedMember
+        with ActivityDataset._meta.database.atomic():
+            activities_to_set = list(
+                ActivityDataset.select().where(
+                    ActivityDataset.code.in_(activity_codes)
+                )
+            )
+            # validate all activities are present
+            if len(activities_to_set) != len(activity_codes):
+                missing = set(activity_codes) - set(
+                    a.code for a in activities_to_set
+                )
+                logger.warning(
+                    f"Some activities specified in 'set_node_regions' are not found: {missing}"
+                )
+            for a in activities_to_set:
+                a.data["enb_location"] = tuple(
+                    config.set_node_regions[a.code]
+                )
+                a.save()  # This updates each user in the database
+
     def prepare_scenario(self, scenario: Scenario):
         inventory: list[dict[Activity, float]] = []
         for act_alias, activity in self.activityMap.items():
@@ -287,58 +344,7 @@ class BrightwayAdapter(EnbiosAdapter):
             self.config.simple_regionalization.run_regionalization
             and not self.all_regions_set
         ):
-            # memorize nodes from the tree in order to not delete their location
-            if self.config.simple_regionalization.clear_all_other_node_regions:
-                keep_locations_of_activities = [
-                    a.bw_activity["code"] for a in self.activityMap.values()
-                ]
-
-                range_length = 1000
-                activities_to_reset = list(
-                    ActivityDataset.select().where(
-                        ActivityDataset.code.not_in(keep_locations_of_activities)
-                    )
-                )
-
-                for range_start in range(
-                    math.ceil(len(activities_to_reset) / range_length)
-                ):
-                    # noinspection PyUnresolvedReferences
-                    # noinspection PyProtectedMember
-                    with ActivityDataset._meta.database.atomic():
-                        for a in activities_to_reset[
-                            range_start * range_length : (range_start + 1) * range_length
-                        ]:
-                            a.data["enb_location"] = None
-                            a.save()
-
-            # set additional specified locations. 'set_node_regions' field
-            activity_codes: list[str] = list(
-                self.config.simple_regionalization.set_node_regions.keys()
-            )
-            # this approach is much faster than individual updates
-            # noinspection PyUnresolvedReferences
-            # noinspection PyProtectedMember
-            with ActivityDataset._meta.database.atomic():
-                activities_to_reset = list(
-                    ActivityDataset.select().where(
-                        ActivityDataset.code.in_(activity_codes)
-                    )
-                )
-                # validate all activities are present
-                if len(activities_to_reset) != len(activity_codes):
-                    missing = set(activity_codes) - set(
-                        a.code for a in activities_to_reset
-                    )
-                    logger.warning(
-                        f"Some activities specified in 'set_node_regions' are not found: {missing}"
-                    )
-                for a in activities_to_reset:
-                    a.data["enb_location"] = tuple(
-                        self.config.simple_regionalization.set_node_regions[a.code]
-                    )
-                    a.save()  # This updates each user in the database
-
+            self.prepare_regionalization(self.config.simple_regionalization)
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         self.prepare_scenario(scenario)
         use_distributions = self.config.use_k_bw_distributions > 1

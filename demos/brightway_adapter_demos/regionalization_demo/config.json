@@ -1,0 +1,53 @@
+{
+  "adapters": [
+    {
+      "adapter_name": "brightway-adapter",
+      "config": {
+        "bw_project": "ecoinvent_391",
+        "simple_regionalization": {
+          "run_regionalization": true,
+          "select_regions": [
+            "CAT"
+          ],
+          "set_node_regions": {
+            "<code>": [
+              "ES",
+              "CAT"
+            ]
+          },
+          "clear_all_other_node_regions": false
+        }
+      },
+      "methods": {
+        "GWP1000": [
+          "ReCiPe 2016 v1.03, midpoint (E)",
+          "climate change",
+          "global warming potential (GWP1000)"
+        ]
+      }
+    }
+  ],
+  "hierarchy": {
+    "name": "root",
+    "aggregator": "sum",
+    "children": [
+      {
+        "name": "single_activity",
+        "adapter": "bw",
+        "config": {
+          "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
+          "unit": "kilowatt hour",
+          "location": "DK",
+          "enb_location": ["EU", "DK"],
+          "default_output": {
+            "unit": "kWh",
+            "magnitude": 1
+          }
+        }
+      }
+    ]
+  },
+  "config": {
+    "run_adapters_concurrently": false
+  }
+}
