@@ -1,7 +1,6 @@
 from typing import Optional, Any
 
 from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
-from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.output_merge import merge_outputs
 from enbios.generic.tree.basic_tree import BasicTreeNode
 from enbios.base.models import (
@@ -13,8 +12,6 @@ from enbios.base.models import (
 
 
 class SumAggregator(EnbiosAggregator):
-    def __init__(self):
-        self.logger = get_logger(__name__)
 
     def validate_definition(self, definition: AggregationModel):
         pass

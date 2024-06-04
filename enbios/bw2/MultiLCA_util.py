@@ -14,15 +14,15 @@ from enbios.bw2.util import split_inventory
 
 class BaseStackedMultiLCA(ABC):
     def __init__(
-        self,
-        calc_setup: BWCalculationSetup,
-        results_structure: np.ndarray,
-        subset_labels: Optional[set[str]] = None,
-        activity_label_key: Optional[str] = None,
-        use_distributions: bool = False,
-        method_activity_func_maps: dict[
-            tuple[str, ...], dict[int, Callable[[float], float]]
-        ] = {},
+            self,
+            calc_setup: BWCalculationSetup,
+            results_structure: np.ndarray,
+            subset_labels: Optional[set[str]] = None,
+            activity_label_key: Optional[str] = None,
+            use_distributions: bool = False,
+            method_activity_func_maps: dict[
+                tuple[str, ...], dict[int, Callable[[float], float]]
+            ] = {},
     ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
@@ -81,6 +81,10 @@ class BaseStackedMultiLCA(ABC):
                 self.lca.characterization_matrix = cf_matrix
 
                 for loc_idx, subset in enumerate(self.subset_labels):
+                    if subset not in self.subset_label_map:
+                        from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
+                        BrightwayAdapter.get_logger().error(f"Subset '{subset}' not found! Skipped. Results will be 0")
+                        continue
                     activity_ids = self.subset_label_map[subset]
                     # todo, this is a bw_utils method split_inventory
                     regional_characterized_inventory = self.lcia_calculation(
@@ -108,7 +112,7 @@ class BaseStackedMultiLCA(ABC):
         self.supply_arrays.append(self.lca.supply_array)
 
     def lcia_calculation(
-        self, non_linear: bool = False, inventory: Optional[Any] = None
+            self, non_linear: bool = False, inventory: Optional[Any] = None
     ) -> Any:
         """The actual LCIA calculation.
         Separated from ``lcia`` to be reusable in cases where the matrices are already built, e.g. ``redo_lcia`` and Monte Carlo classes.
@@ -134,35 +138,35 @@ class BaseStackedMultiLCA(ABC):
             self.lca.characterized_inventory = result
         else:
             self.lca.characterized_inventory = (
-                self.lca.characterization_matrix * inventory
+                    self.lca.characterization_matrix * inventory
             )
         return self.lca.characterized_inventory
 
     def resolve_subsets(self, activity_label_key: str):
-        # final location -> id
-        base_loc_map: dict[str, list[int]] = {}
-        # all other indices to last locs
-        loc_tree: list[dict] = []
+        # final division -> id
+        base_div_map: dict[str, list[int]] = {}
+        # all other indices to last group
+        div_tree: list[dict] = []
         for a in ActivityDataset.select(ActivityDataset).where(
-            ActivityDataset.type == "process"
+                ActivityDataset.type == "process"
         ):
             # if a.type == "process":
             loc: Sequence[str] = a.data.get(activity_label_key)
             if not isinstance(loc, tuple) and not isinstance(loc, list):
                 continue
-            final_loc = loc[-1]
-            base_loc_map.setdefault(final_loc, []).append(a.id)
+            final_subgroups = loc[-1]
+            base_div_map.setdefault(final_subgroups, []).append(a.id)
             # make tree list at least as long as length
             for idx, rest in enumerate(loc[:-1]):
-                if len(loc_tree) <= idx:
-                    loc_tree.append({})
+                if len(div_tree) <= idx:
+                    div_tree.append({})
                 # set location default and add location
-                loc_tree[idx].setdefault(rest, set()).add(loc[idx + 1])
-        loc_tree.reverse()
-        for level in loc_tree:
-            for loc_, sub_locs in level.items():
-                base_loc_map.setdefault(loc_, [])
-                for sub_loc in sub_locs:
-                    base_loc_map[loc_].extend(base_loc_map[sub_loc])
+                div_tree[idx].setdefault(rest, set()).add(loc[idx + 1])
+        div_tree.reverse()
+        for level in div_tree:
+            for group_, sub_group in level.items():
+                base_div_map.setdefault(group_, [])
+                for sub_loc in sub_group:
+                    base_div_map[group_].extend(base_div_map[sub_loc])
 
-        return base_loc_map
+        return base_div_map

@@ -7,15 +7,15 @@
         "simple_regionalization": {
           "run_regionalization": true,
           "select_regions": [
-            "CAT"
+            "EU"
           ],
           "set_node_regions": {
             "<code>": [
-              "ES",
-              "CAT"
+              "EU",
+              "ES"
             ]
           },
-          "clear_all_other_node_regions": false
+          "clear_all_other_node_regions": true
         }
       },
       "methods": {

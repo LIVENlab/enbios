@@ -1,4 +1,5 @@
 import math
+from collections import Counter
 from logging import getLogger
 from typing import Optional, Any, Sequence, Callable, Union
 
@@ -111,11 +112,28 @@ class BrightwayAdapter(EnbiosAdapter):
     def node_indicator() -> str:
         return "bw"
 
-    def assert_all_codes_unique(self):
+    @staticmethod
+    def assert_all_codes_unique(raise_error: Optional[bool] = False, bw_project: Optional[str] = None):
+
+        prev_bw_project = None
+        if bw_project:
+            prev_bw_project = bd.projects.current
+            bd.projects.set_current(bw_project)
+
         all_activities = list(ActivityDataset.select())
-        assert len(all_activities) == len(
-            set([a.code for a in all_activities])
-        ), "It is recommended that all activities have unique codes"
+        codes = [a.code for a in all_activities]
+        if len(all_activities) != len(
+            set(codes)
+        ):
+            duplicates = [k for k, v in Counter(codes).items() if v > 1]
+            message = f"It is recommended that all activities have unique codes, Duplicates: {duplicates}"
+            if raise_error:
+                raise ValueError(message)
+            else:
+                logger.warning(message)
+
+        if bw_project:
+            bd.projects.set_current(prev_bw_project)
 
     def validate_config(self, config: Optional[dict[str, Any]]):
         self.config = BWAdapterConfig.model_validate(config)
@@ -345,6 +363,7 @@ class BrightwayAdapter(EnbiosAdapter):
             and not self.all_regions_set
         ):
             self.prepare_regionalization(self.config.simple_regionalization)
+
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
         self.prepare_scenario(scenario)
         use_distributions = self.config.use_k_bw_distributions > 1

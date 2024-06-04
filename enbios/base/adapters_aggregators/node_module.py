@@ -79,12 +79,13 @@ class EnbiosNodeModule(ABC, Generic[T]):
         """
         pass
 
-    def get_logger(self) -> Logger:
+    @classmethod
+    def get_logger(cls) -> Logger:
         """
         Logger of this adapter/aggregator. Use this inside the adapter/aggregator.
         :return: Use this to make logs inside the adapter/aggregator
         """
-        return get_logger(f"({self.name()})")
+        return get_logger(f"({cls.name()})")
 
     def result_extras(self, node_name: str, scenario_name: str) -> dict[str, Any]:
         """

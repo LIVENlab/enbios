@@ -175,7 +175,7 @@ def test_run_use_distribution(experiment_setup, default_bw_method_name):
     assert all(v != 0.0 for v in result["default scenario"]["results"][default_bw_method_name]["multi_magnitude"])
 
 
-def regionalization_setup(experiment_setup: dict):
+def  regionalization_setup(experiment_setup: dict):
     # experiment_setup["scenario"]["hierarchy"]["children"][0]["config"]["enb_location"] = ("ES", "cat")
     experiment_setup["scenario"]["hierarchy"]["children"] = [
         {'name': 'electricity production, wind, 1-3MW turbine, onshore',
@@ -595,3 +595,25 @@ energy,co2,biosphere,1"""
         }
     })
     res = exp.run()
+
+
+def test_all_codes_unique():
+    project_name = "test-project_" + str(uuid4())
+    print(project_name)
+    bw2data.projects.create_project(project_name)
+    bw2data.projects.set_current(project_name)
+    db = bw2data.Database("test-db")
+    db.register()
+    for i in range(4):
+        code_name = "act" + str(i)
+        db.new_activity(code_name, name=code_name).save()
+    BrightwayAdapter.assert_all_codes_unique()
+
+    db2 = bw2data.Database("test-db2")
+    db2.register()
+    code_name = "act1"
+    db2.new_activity(code_name, name=code_name).save()
+
+    with pytest.raises(ValueError):
+        BrightwayAdapter.assert_all_codes_unique(True)
+    bw2data.projects.delete_project(project_name, True)
