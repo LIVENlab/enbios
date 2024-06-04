@@ -15,6 +15,9 @@ A builtin adapter allows to make Life cycle assessment calculations based on bri
 The linked repository contains an extended documentation, example notebooks, built in plotting capabilities and more
 than 170 tests.
 
+Code repository: https://github.com/LIVENlab/enbios/
+pypi project: https://pypi.org/project/enbios/
+
 ## References
 
 Madrid-López, C. (2019). Integrated Assessment of the Nexus: The case of Shale Gas. IANEX project summary Poster. (Version 1). Zenodo. https://doi.org/10.5281/zenodo.10252544
