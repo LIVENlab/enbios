@@ -511,7 +511,8 @@ class BrightwayAdapter(EnbiosAdapter):
             )
             for method_key, cf in bw_method_data:
                 activity_id = bw_cf_activity_key2ids[tuple(method_key)]
-                result_func_map[activity_id] = lambda v, cf_=cf: v * cf_
+                if activity_id not in result_func_map:
+                    result_func_map[activity_id] = lambda v, cf_=cf: v * cf_
         return result_func_map
 
     @staticmethod

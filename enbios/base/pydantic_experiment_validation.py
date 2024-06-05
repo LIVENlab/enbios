@@ -1,4 +1,5 @@
 import sys
+from copy import deepcopy
 
 from pydantic import ValidationError
 
@@ -11,7 +12,7 @@ from enbios.base.models import (
 
 def validate_experiment_data(data: dict) -> ExperimentData:
     try:
-        return ExperimentData.model_validate(data)
+        return ExperimentData.model_validate(deepcopy(data))
     except ValidationError as err:
         print(err)
 

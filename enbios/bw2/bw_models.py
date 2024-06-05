@@ -81,6 +81,7 @@ class NonLinearMethodConfig(BaseModel):
 
 
 class NonLinearCharacterizationConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
     methods: dict[str, NonLinearMethodConfig] = Field(
         ...,
         description="Non linear characterization. "

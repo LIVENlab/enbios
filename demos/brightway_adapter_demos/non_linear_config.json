@@ -4,18 +4,14 @@
       "adapter_name": "brightway-adapter",
       "config": {
         "bw_project": "ecoinvent_391",
-        "simple_regionalization": {
-          "run_regionalization": true,
-          "select_regions": [
-            "EU"
-          ],
-          "set_node_regions": {
-            "<code>": [
-              "EU",
-              "ES"
-            ]
-          },
-          "clear_all_other_node_regions": true
+        "store_lca_object": true,
+        "nonlinear_characterization": {
+          "methods": {
+            "GWP1000": {
+              "get_defaults_from_original": true,
+              "functions": {}
+            }
+          }
         }
       },
       "methods": {
@@ -38,7 +34,6 @@
           "name": "heat and power co-generation, wood chips, 6667 kW, state-of-the-art 2014",
           "unit": "kilowatt hour",
           "location": "DK",
-          "enb_location": ["EU", "DK"],
           "default_output": {
             "unit": "kWh",
             "magnitude": 1
