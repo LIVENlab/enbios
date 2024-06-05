@@ -14,15 +14,15 @@ from enbios.bw2.util import split_inventory
 
 class BaseStackedMultiLCA(ABC):
     def __init__(
-            self,
-            calc_setup: BWCalculationSetup,
-            results_structure: np.ndarray,
-            subset_labels: Optional[set[str]] = None,
-            activity_label_key: Optional[str] = None,
-            use_distributions: bool = False,
-            method_activity_func_maps: dict[
-                tuple[str, ...], dict[int, Callable[[float], float]]
-            ] = {},
+        self,
+        calc_setup: BWCalculationSetup,
+        results_structure: np.ndarray,
+        subset_labels: Optional[set[str]] = None,
+        activity_label_key: Optional[str] = None,
+        use_distributions: bool = False,
+        method_activity_func_maps: dict[
+            tuple[str, ...], dict[int, Callable[[float], float]]
+        ] = {},
     ):
         self.func_units = calc_setup.inv
         self.methods = calc_setup.ia
@@ -82,8 +82,13 @@ class BaseStackedMultiLCA(ABC):
 
                 for idx, subset in enumerate(self.subset_labels):
                     if subset not in self.subset_label_map:
-                        from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
-                        BrightwayAdapter.get_logger().error(f"Subset '{subset}' not found! Skipped. Results will be 0")
+                        from enbios.bw2.brightway_experiment_adapter import (
+                            BrightwayAdapter,
+                        )
+
+                        BrightwayAdapter.get_logger().error(
+                            f"Subset '{subset}' not found! Skipped. Results will be 0"
+                        )
                         continue
                     activity_ids = self.subset_label_map[subset]
                     # todo, this is a bw_utils method split_inventory
@@ -91,9 +96,7 @@ class BaseStackedMultiLCA(ABC):
                         self.non_linear_methods_flags[col],
                         split_inventory(self.lca, activity_ids),
                     )
-                    self.results[
-                        row, col, idx
-                    ] = subset_characterized_inventory.sum()
+                    self.results[row, col, idx] = subset_characterized_inventory.sum()
         self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
 
     def prep_demand(self, row: int, func_unit: dict[Activity, float]):
@@ -112,7 +115,7 @@ class BaseStackedMultiLCA(ABC):
         self.supply_arrays.append(self.lca.supply_array)
 
     def lcia_calculation(
-            self, non_linear: bool = False, inventory: Optional[Any] = None
+        self, non_linear: bool = False, inventory: Optional[Any] = None
     ) -> Any:
         """The actual LCIA calculation.
         Separated from ``lcia`` to be reusable in cases where the matrices are already built, e.g. ``redo_lcia`` and Monte Carlo classes.
@@ -138,7 +141,7 @@ class BaseStackedMultiLCA(ABC):
             self.lca.characterized_inventory = result
         else:
             self.lca.characterized_inventory = (
-                    self.lca.characterization_matrix * inventory
+                self.lca.characterization_matrix * inventory
             )
         return self.lca.characterized_inventory
 
@@ -148,7 +151,7 @@ class BaseStackedMultiLCA(ABC):
         # all other indices to last group
         div_tree: list[dict] = []
         for a in ActivityDataset.select(ActivityDataset).where(
-                ActivityDataset.type == "process"
+            ActivityDataset.type == "process"
         ):
             # if a.type == "process":
             sub: Sequence[str] = a.data.get(activity_label_key)

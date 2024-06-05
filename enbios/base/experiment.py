@@ -131,7 +131,6 @@ class Experiment:
             raise ValueError(f"Node with name '{name}' not found")
         return node
 
-
     def get_node_module(
         self,
         node: Union[str, BasicTreeNode[TechTreeNodeData]],

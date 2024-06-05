@@ -31,7 +31,7 @@ def info_exchanges(act: Activity) -> dict:
 
 
 def iter_exchange_by_ids(
-        ids: Iterator[int], batch_size: int = 1000
+    ids: Iterator[int], batch_size: int = 1000
 ) -> Generator[ExchangeDataset, None, None]:
     """
     Iterate over exchanges by ids
@@ -55,7 +55,7 @@ def iter_exchange_by_ids(
 
 
 def iter_activities_by_codes(
-        codes: Iterator[str], batch_size: int = 1000
+    codes: Iterator[str], batch_size: int = 1000
 ) -> Generator[ActivityDataset, None, None]:
     """
     Iterate over activities by codes
@@ -176,9 +176,9 @@ Following two functions are from bw_utils...
 
 
 def _check_lca(
-        lca: LCA,
-        make_calculations: bool = True,
-        inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
+    lca: LCA,
+    make_calculations: bool = True,
+    inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
 ):
     if not hasattr(lca, "inventory"):
         if make_calculations:
@@ -202,10 +202,10 @@ def _check_lca(
 
 
 def split_inventory(
-        lca: LCA,
-        technosphere_activities: list[int],
-        inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
-        make_calculations: bool = True,
+    lca: LCA,
+    technosphere_activities: list[int],
+    inventory_name: Literal["inventory", "characterized_inventory"] = "inventory",
+    make_calculations: bool = True,
 ) -> csr_matrix:
     """
     Split the results of a lcia calculation into groups. Each group is a list of activities, specified by their ids.
@@ -228,11 +228,11 @@ This package has just one function for setting up a brightway project with a evo
 
 
 def safe_setup_ecoinvent(
-        project_name: str,
-        ecoinvent_db_path: str,
-        db_name: str,
-        delete_project: bool = False,
-        delete_if_unlinked: bool = True,
+    project_name: str,
+    ecoinvent_db_path: str,
+    db_name: str,
+    delete_project: bool = False,
+    delete_if_unlinked: bool = True,
 ):
     """
     Initiate a project with a ecoinvent database
@@ -270,13 +270,16 @@ def safe_setup_ecoinvent(
             imported.write_unlinked(f"{db_name}_unlinked")
 
 
-def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_update_file: PathLike,
-                                   worksheet: str) -> dict:
+def update_ecoinvent_activity_code(
+    experiment_hierarchy: dict, activity_code_update_file: PathLike, worksheet: str
+) -> dict:
     """
      update the codes of an hierarchy, between the 2 ecoinvent versions.
     :return: a new, updated
     """
-    hierarchy: ExperimentHierarchyNodeData = ExperimentHierarchyNodeData.model_validate(experiment_hierarchy)
+    hierarchy: ExperimentHierarchyNodeData = ExperimentHierarchyNodeData.model_validate(
+        experiment_hierarchy
+    )
     activity_code_update_file_ = Path(activity_code_update_file)
     if not activity_code_update_file_.exists():
         raise FileNotFoundError(f"{activity_code_update_file} does not exist")
@@ -286,7 +289,11 @@ def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_upd
     # go through the hierarchy and find the nodes, which have a brightway adapter and a code
     def rec_change_code(node: ExperimentHierarchyNodeData):
         from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
-        if getattr(node, "adapter", None) in [BrightwayAdapter.name(), BrightwayAdapter.node_indicator()]:
+
+        if getattr(node, "adapter", None) in [
+            BrightwayAdapter.name(),
+            BrightwayAdapter.node_indicator(),
+        ]:
             code = node.config.get("code", None)
             if not code:
                 print(f"node : {node.name} has no code. Nothing to do")
@@ -304,14 +311,18 @@ def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_upd
     # load worksheet
     wb = openpyxl.load_workbook(activity_code_update_file_, read_only=True)
     if worksheet not in wb.sheetnames:
-        raise ValueError(f"Worksheet {worksheet} not found in {activity_code_update_file}")
+        raise ValueError(
+            f"Worksheet {worksheet} not found in {activity_code_update_file}"
+        )
     ws = wb[worksheet]
 
     # check the versions, or logging
     first_row = [cell.value for cell in ws[1]]
     versions = list(filter(lambda value: value, first_row))
     if len(versions) != 2:
-        raise ValueError(f"First row of {activity_code_update_file} must contain 2 versions")
+        raise ValueError(
+            f"First row of {activity_code_update_file} must contain 2 versions"
+        )
     print(f"Version update: {versions[0]} -> {versions[1]}")
 
     # find the columns with the codes
@@ -328,7 +339,7 @@ def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_upd
                 new_index = idx
 
     if prev_index is None or new_index is None:
-        raise ValueError(f"Activity UUID columns not found")
+        raise ValueError("Activity UUID columns not found")
 
     activities_todo = list(activity_codes.keys())
     for row in tqdm(ws.iter_rows(min_row=3, values_only=True)):
@@ -336,7 +347,9 @@ def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_upd
         # check if we already replaced it (codes appear twice with different products)
         if prev_code in activity_codes and prev_code in activities_todo:
             activity_codes[prev_code].config["code"] = row[new_index]
-            print(f"change code of '{row[activity_name_index]}': {prev_code} -> {row[new_index]}")
+            print(
+                f"change code of '{row[activity_name_index]}': {prev_code} -> {row[new_index]}"
+            )
             activities_todo.remove(prev_code)
             if len(activities_todo) == 0:
                 break
@@ -347,20 +360,20 @@ def update_ecoinvent_activity_code(experiment_hierarchy: dict, activity_code_upd
 
 
 if __name__ == "__main__":
-    print(update_ecoinvent_activity_code(
-        {
-            "name": "cool",
-            "aggregator": "sum",
-            "children": [
-                {
-                    "name": "a1",
-                    "adapter": "bw",
-                    "config": {
-                        "code": "4fe91148-1e26-59dd-91c4-52a70be24882"
+    print(
+        update_ecoinvent_activity_code(
+            {
+                "name": "cool",
+                "aggregator": "sum",
+                "children": [
+                    {
+                        "name": "a1",
+                        "adapter": "bw",
+                        "config": {"code": "4fe91148-1e26-59dd-91c4-52a70be24882"},
                     }
-                }
-            ]
-        },
-        "Correspondence File v3.9.1 - v.3.10-1.xlsx",
-        "Cut-off"
-    ))
+                ],
+            },
+            "Correspondence File v3.9.1 - v.3.10-1.xlsx",
+            "Cut-off",
+        )
+    )

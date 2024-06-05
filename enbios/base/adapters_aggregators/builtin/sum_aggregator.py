@@ -12,7 +12,6 @@ from enbios.base.models import (
 
 
 class SumAggregator(EnbiosAggregator):
-
     def validate_definition(self, definition: AggregationModel):
         pass
 

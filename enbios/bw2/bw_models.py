@@ -38,7 +38,6 @@ class RegionalizationConfig(BaseModel):
 class NonLinearMethodConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
     name: str = Field(None, description="bw method tuple name")
-    # bw_id: tuple[str, ...] = Field(None, description="bw method tuple name")
     functions: dict[tuple[str, str], Callable[[float], float]] = Field(None, exclude=True)
     module_path_function_name: tuple[str, str] = Field(
         None,
@@ -46,7 +45,6 @@ class NonLinearMethodConfig(BaseModel):
         "which holds a function that returns a "
         "'dict[tuple[str, str], Callable[[float], float]]'",
     )
-    # default_function: Callable[[float], float] = Field(None, init_var=False)
     get_defaults_from_original: Optional[bool] = Field(
         False,
         description="Method is already defined in BW and has characterization values. ",
@@ -54,22 +52,6 @@ class NonLinearMethodConfig(BaseModel):
 
     @model_validator(mode="before")
     def check_defaults(data: dict):
-        # has_default_function = data.get("default_function")
-        has_get_defaults_from_original = data.get("get_defaults_from_original", False)
-        # if has_default_function and has_get_defaults_from_original:
-        #     logger.warning(
-        #         f"brightway nonlinear method config for method '{data['name']}' should only have one"
-        #         f"'default_function' or 'get_defaults_from_original'. Using 'default_function'"
-        #     )
-        #     data["get_defaults_from_original"] = False
-        # if not has_default_function and not has_get_defaults_from_original:
-        #     logger.warning(
-        #         f"brightway nonlinear method config for method '{data['name']}' should either have"
-        #         f"'default_function' or 'get_defaults_from_original'. Creating 'default_function'"
-        #         f"with f(x) = x"
-        #     )
-        #     data["default_function"] = lambda v: v
-
         # either 'functions' or 'module_path_function_name' must be present
         has_functions = data.get("functions") is not None
         has_module_path_function_name = data.get("module_path_function_name")

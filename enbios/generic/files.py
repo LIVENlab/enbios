@@ -76,11 +76,14 @@ class ReadPath(Path):
     _flavour = Path(".")._flavour  # type: ignore
 
     if sys.version_info >= (3, 12):
+
         def __init__(self, *args):
             super().__init__(*args)
             if not os.path.exists(self):
                 raise FileNotFoundError(f"File {self} does not exist")
+
     else:
+
         def __new__(cls, *args, **kwargs):
             instance = super().__new__(cls, *args, **kwargs)
             if not os.path.exists(instance):
