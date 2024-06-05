@@ -761,10 +761,14 @@ There are a some builtin adapters and aggregators:
 **Adapters:**
 
 - SimpleAssignmentAdapter: For this Adapter, the outputs and impacts can be defined in the adapter configuration
-- BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
-  based on the outputs of activities (structural nodes). See [this notebook](
+  - BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
+    based on the outputs of activities (structural nodes). There are two notebooks which explain additional
+  functionalities of this adapter:
+  - [Regionalization](https://github.com/LIVENlab/enbios/blob/main/demos/brightway_adapter_demos/enbios_bw_regionalization.ipynb)
+  - [Non-linear characterization](https://github.com/LIVENlab/enbios/blob/main/demos/brightway_adapter_demos/non_linear_methods.ipynb)
+  - and a notebook which contains all possible configuration fields [here](
   https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb
-  ) for all possible configs in one dictionary.
+  )
 
 **Aggregators**
 
@@ -1099,7 +1103,8 @@ string: name of the adapter/aggregator
 #### get\_logger
 
 ```python
-def get_logger() -> Logger
+@classmethod
+def get_logger(cls) -> Logger
 ```
 
 Logger of this adapter/aggregator. Use this inside the adapter/aggregator.

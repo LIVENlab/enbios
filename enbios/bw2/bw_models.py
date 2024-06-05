@@ -54,21 +54,21 @@ class NonLinearMethodConfig(BaseModel):
 
     @model_validator(mode="before")
     def check_defaults(data: dict):
-        has_default_function = data.get("default_function")
+        # has_default_function = data.get("default_function")
         has_get_defaults_from_original = data.get("get_defaults_from_original", False)
-        if has_default_function and has_get_defaults_from_original:
-            logger.warning(
-                f"brightway nonlinear method config for method '{data['name']}' should only have one"
-                f"'default_function' or 'get_defaults_from_original'. Using 'default_function'"
-            )
-            data["get_defaults_from_original"] = False
-        if not has_default_function and not has_get_defaults_from_original:
-            logger.warning(
-                f"brightway nonlinear method config for method '{data['name']}' should either have"
-                f"'default_function' or 'get_defaults_from_original'. Creating 'default_function'"
-                f"with f(x) = x"
-            )
-            data["default_function"] = lambda v: v
+        # if has_default_function and has_get_defaults_from_original:
+        #     logger.warning(
+        #         f"brightway nonlinear method config for method '{data['name']}' should only have one"
+        #         f"'default_function' or 'get_defaults_from_original'. Using 'default_function'"
+        #     )
+        #     data["get_defaults_from_original"] = False
+        # if not has_default_function and not has_get_defaults_from_original:
+        #     logger.warning(
+        #         f"brightway nonlinear method config for method '{data['name']}' should either have"
+        #         f"'default_function' or 'get_defaults_from_original'. Creating 'default_function'"
+        #         f"with f(x) = x"
+        #     )
+        #     data["default_function"] = lambda v: v
 
         # either 'functions' or 'module_path_function_name' must be present
         has_functions = data.get("functions") is not None

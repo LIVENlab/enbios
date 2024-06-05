@@ -163,6 +163,14 @@ can be specified in such a way, that scenario outputs and result values have con
 
 [Write a custom aggregator](https://github.com/LIVENlab/enbios/blob/main/demos/aggregator_extension.ipynb)
 
+__Brightway Adapter specific demos:__
+
+[Regionalization](https://github.com/LIVENlab/enbios/blob/main/demos/brightway_adapter_demos/enbios_bw_regionalization.ipynb)
+
+[Non-linear characterization](https://github.com/LIVENlab/enbios/blob/main/demos/brightway_adapter_demos/non_linear_methods.ipynb)
+
+
+
 ## People
 
 * [Ramin Soleymani](https://es.linkedin.com/in/ramin-soleymani-4703b17). -[ICTA-UAB](https://www.uab.cat/icta/)
