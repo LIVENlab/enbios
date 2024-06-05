@@ -131,7 +131,7 @@ class BaseStackedMultiLCA(ABC):
                     ] = self.lca.characterization_matrix[activity_id]
             result = np.array([])
             for summed_row, function in zip(summed_inventory, func_array):
-                result = np.append(result, function(summed_row))
+                result = np.append(result, function(summed_row.item()))
             # TODO characterized_inventory should actually be m*n (m:num bioflows, n:processes)
             # here it is (1*n)
             # but we dont calc that, cuz not using the summed_inventory would probably take much longer

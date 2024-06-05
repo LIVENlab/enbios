@@ -46,7 +46,7 @@ class NonLinearMethodConfig(BaseModel):
         "which holds a function that returns a "
         "'dict[tuple[str, str], Callable[[float], float]]'",
     )
-    default_function: Callable[[float], float] = Field(None, init_var=False)
+    # default_function: Callable[[float], float] = Field(None, init_var=False)
     get_defaults_from_original: Optional[bool] = Field(
         False,
         description="Method is already defined in BW and has characterization values. ",
