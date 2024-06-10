@@ -213,7 +213,7 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
         """
 
         def get_unicode(node):
-            if type(node) is str:
+            if isinstance(node, str):
                 return node
             try:
                 obj_ = self.find_object(node.key)

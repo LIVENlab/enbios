@@ -200,7 +200,7 @@ def create_test_network(test_network_project_db_name):
     import bw2data
     try:
         from bw_tools.network_build import build_network
-    except ImportError as err:
+    except ImportError:
         raise AssertionError("Cannot import bw_tools.network_build")
 
     project_name, db_name = test_network_project_db_name

@@ -55,14 +55,14 @@ def test_scenario_exec_time(experiment_scenario_setup: dict):
     experiment.run_scenario("scenario2")
     assert experiment.execution_time
 
-def test_scenario_select(experiment_setup):
-    scenario_data = experiment_setup["scenario"]
+# def test_scenario_select(experiment_setup):
+#     scenario_data = experiment_setup["scenario"]
 
 
 def test_env_vars(experiment_setup, tempfolder: Path):
     # test fail
     with pytest.raises(Exception):
-        exp = Experiment()
+        _ = Experiment()
 
     # test success
 
@@ -70,4 +70,4 @@ def test_env_vars(experiment_setup, tempfolder: Path):
     file_path = tempfolder / "setup.json"
     json.dump(experiment_setup["scenario"], file_path.open("w", encoding="utf-8"))
     os.environ["CONFIG_FILE"] = file_path.absolute().as_posix()
-    exp = Experiment()
+    _ = Experiment()

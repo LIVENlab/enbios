@@ -15,7 +15,7 @@ from bw_tools.network_build import build_network
 from enbios.base.experiment import Experiment
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.const import BASE_TEST_DATA_PATH
-from test.enbios.conftest import experiment_setup
+from test.enbios.conftest import experiment_setup # noqa: F401
 
 
 def test_basic(basic_experiment):
@@ -28,7 +28,7 @@ def test_bw_config(default_bw_config):
     assert default_bw_config["ecoinvent_db"] in bw2data.databases
 
 
-def test_get_activity_db_code(default_bw_config, experiment_setup):
+def test_get_activity_db_code(default_bw_config, experiment_setup): # noqa: F811
     activity_db_code = {
         "name": 'electricity production, hard coal',
         "adapter": "bw",
@@ -43,7 +43,7 @@ def test_get_activity_db_code(default_bw_config, experiment_setup):
     Experiment(experiment_setup["scenario"])
 
 
-def test_get_activity_code(experiment_setup):
+def test_get_activity_code(experiment_setup):  # noqa: F811
     activity_code = {
         "name": 'electricity production, hard coal2',
         "adapter": "bw",
@@ -56,7 +56,7 @@ def test_get_activity_code(experiment_setup):
     Experiment(experiment_setup["scenario"])
 
 
-def test_get_activity_name_no_loc(experiment_setup):
+def test_get_activity_name_no_loc(experiment_setup):  # noqa: F811
     activity_name_no_loc = {
         "name": 'market for petroleum refinery',
         "adapter": "bw",
@@ -144,7 +144,7 @@ def test_run_store_data(experiment_setup):
     experiment_setup["scenario"]["adapters"][0]["config"]["store_lca_object"] = True
     experiment_setup["scenario"]["adapters"][0]["config"]["store_raw_results"] = True
     exp = Experiment(experiment_setup["scenario"])
-    result = exp.run()
+    _ = exp.run()
 
 
 def test_run_exclude_defaults(experiment_setup):
