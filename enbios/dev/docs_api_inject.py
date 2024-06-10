@@ -30,7 +30,9 @@ class ClassRenderConfig(BaseModel):
     render_init: bool = False
     render_public_functions: bool = True
     render_private_functions: bool = False
-    function_config: Optional[FunctionRenderConfig] = Field(default_factory=FunctionRenderConfig)
+    function_config: Optional[FunctionRenderConfig] = Field(
+        default_factory=FunctionRenderConfig
+    )
 
 
 class ModuleRenderConfig(BaseModel):
@@ -41,20 +43,25 @@ class ModuleRenderConfig(BaseModel):
 
 
 class RenderConfig(BaseModel):
-    module_config: Optional[ModuleRenderConfig] = Field(default_factory=ModuleRenderConfig)
+    module_config: Optional[ModuleRenderConfig] = Field(
+        default_factory=ModuleRenderConfig
+    )
     class_config: Optional[ClassRenderConfig] = Field(default_factory=ClassRenderConfig)
-    function_config: Optional[FunctionRenderConfig] = Field(default_factory=FunctionRenderConfig)
+    function_config: Optional[FunctionRenderConfig] = Field(
+        default_factory=FunctionRenderConfig
+    )
 
 
 class InsertAPIObjectParsedTemplate(ParsedTemplate):
-
-    def __init__(self,
-                 pt: ParsedTemplate,
-                 context: Context,
-                 py_loader: PythonLoader,
-                 renderer: Optional[Renderer] = None,
-                 config: Optional[RenderConfig] = None,
-                 logger: Optional[Logger] = None):
+    def __init__(
+        self,
+        pt: ParsedTemplate,
+        context: Context,
+        py_loader: PythonLoader,
+        renderer: Optional[Renderer] = None,
+        config: Optional[RenderConfig] = None,
+        logger: Optional[Logger] = None,
+    ):
         super(InsertAPIObjectParsedTemplate, self).__init__()
         self._parse_tree = pt._parse_tree
         self.context = context
@@ -79,7 +86,8 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
                 add_member_class_prefix=False,  # Avoids adding class prefixes to members
                 # code_block_style='fenced',  # Use fenced code blocks (```)
                 insert_header_anchors=False,  # Avoid inserting anchors in headers
-                render_toc=False)  # Disable rendering of table of contents
+                render_toc=False,
+            )  # Disable rendering of table of contents
         if logger:
             self.logger = logger
         else:
@@ -89,7 +97,9 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
 
         self._renderer.init(context)
 
-    def find_object(self, obj_path: str) -> Union[docspec.ApiObject, docspec.Function, docspec.Class, tuple[Path, str]]:
+    def find_object(
+        self, obj_path: str
+    ) -> Union[docspec.ApiObject, docspec.Function, docspec.Class, tuple[Path, str]]:
         path_parts = obj_path.split(".")
         if obj_path.startswith("file:"):
             file_type_and_path = obj_path.removeprefix("file:")
@@ -100,18 +110,28 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
                 return file_path, type_prefix
             else:
                 raise FileNotFoundError(f"File {file_path} not found.")
-        module = list(filter(lambda m: m.name == path_parts[0] or obj_path.startswith(m.name), self._module_list))
+        module = list(
+            filter(
+                lambda m: m.name == path_parts[0] or obj_path.startswith(m.name),
+                self._module_list,
+            )
+        )
         if not module:
             raise ModuleNotFoundError(
-                f"Module {path_parts[0]} not found. Options: {[m.name for m in self._module_list]}")
+                f"Module {path_parts[0]} not found. Options: {[m.name for m in self._module_list]}"
+            )
         else:
-            current_obj: docspec.ApiObject = list(sorted(module, key=lambda m: len(m.name)))[-1]
+            current_obj: docspec.ApiObject = list(
+                sorted(module, key=lambda m: len(m.name))
+            )[-1]
 
-        path_parts = path_parts[len(current_obj.name.split(".")):]
+        path_parts = path_parts[len(current_obj.name.split(".")) :]
         for part in path_parts:
             next_: docspec.ApiObject = docspec.get_member(current_obj, part)
             if not next_:
-                raise ModuleNotFoundError(f"Member '{part}' not found in {obj_path}. Valid subpath: {current_obj.path}")
+                raise ModuleNotFoundError(
+                    f"Member '{part}' not found in {obj_path}. Valid subpath: {current_obj.path}"
+                )
             current_obj = next_
         return current_obj
 
@@ -127,8 +147,12 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
         fp.write("\n".join(lines))
         fp.write("\n\n")
 
-    def _render_module(self, obj_: docspec.Module, fp: Optional[TextIO] = None, _config: Optional[
-        ModuleRenderConfig] = None):
+    def _render_module(
+        self,
+        obj_: docspec.Module,
+        fp: Optional[TextIO] = None,
+        _config: Optional[ModuleRenderConfig] = None,
+    ):
         if not _config:
             _config = self._config.module_config
 
@@ -142,9 +166,13 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
             self._render_docstring(obj_, fp)
 
         if self._config.class_config.render_init:
-            constructor: docspec.Function = cast(Optional[docspec.Function], docspec.get_member(obj_, "__init__"))
+            constructor: docspec.Function = cast(
+                Optional[docspec.Function], docspec.get_member(obj_, "__init__")
+            )
             if constructor:
-                self._render_function(constructor, fp, self._config.class_config.function_config)
+                self._render_function(
+                    constructor, fp, self._config.class_config.function_config
+                )
 
         for member in obj_.members:
             if isinstance(member, docspec.Function):
@@ -152,12 +180,20 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
                     continue
                 if member.name.startswith("_"):
                     if _config.render_private_functions:
-                        self._render_function(member, fp, self._config.class_config.function_config)
+                        self._render_function(
+                            member, fp, self._config.class_config.function_config
+                        )
                 elif _config.render_public_functions:
-                    self._render_function(member, fp, self._config.class_config.function_config)
+                    self._render_function(
+                        member, fp, self._config.class_config.function_config
+                    )
 
-    def _render_class(self, obj_: docspec.Class, fp: Optional[TextIO] = None, _config: Optional[
-        ClassRenderConfig] = None):
+    def _render_class(
+        self,
+        obj_: docspec.Class,
+        fp: Optional[TextIO] = None,
+        _config: Optional[ClassRenderConfig] = None,
+    ):
         if not _config:
             _config = self._config.class_config
 
@@ -171,9 +207,13 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
             self._render_docstring(obj_, fp)
 
         if self._config.class_config.render_init:
-            constructor: docspec.Function = cast(Optional[docspec.Function], docspec.get_member(obj_, "__init__"))
+            constructor: docspec.Function = cast(
+                Optional[docspec.Function], docspec.get_member(obj_, "__init__")
+            )
             if constructor:
-                self._render_function(constructor, fp, self._config.class_config.function_config)
+                self._render_function(
+                    constructor, fp, self._config.class_config.function_config
+                )
 
         for member in obj_.members:
             if isinstance(member, docspec.Function):
@@ -181,15 +221,20 @@ class InsertAPIObjectParsedTemplate(ParsedTemplate):
                     continue
                 if member.name.startswith("_"):
                     if _config.render_private_functions:
-                        self._render_function(member, fp, self._config.class_config.function_config)
+                        self._render_function(
+                            member, fp, self._config.class_config.function_config
+                        )
                 elif _config.render_public_functions:
-                    self._render_function(member, fp, self._config.class_config.function_config)
+                    self._render_function(
+                        member, fp, self._config.class_config.function_config
+                    )
 
-    def _render_function(self,
-                         obj_: docspec.Function,
-                         fp: TextIO,
-                         _config: Optional[FunctionRenderConfig] = None):
-
+    def _render_function(
+        self,
+        obj_: docspec.Function,
+        fp: TextIO,
+        _config: Optional[FunctionRenderConfig] = None,
+    ):
         if not _config:
             _config = self._config.function_config
 
@@ -247,21 +292,30 @@ def create_fundamentals():
     # bw adapter config:
     adapter_configs = Experiment.get_builtin_adapters()
     base_gen_path = BASE_TEST_DATA_PATH / "docs_data/gen/"
-    json.dump(adapter_configs["brightway-adapter"], (base_gen_path / "bw_adapter.json").open("w", encoding="utf-8"),
-              ensure_ascii=False, indent=2)
+    json.dump(
+        adapter_configs["brightway-adapter"],
+        (base_gen_path / "bw_adapter.json").open("w", encoding="utf-8"),
+        ensure_ascii=False,
+        indent=2,
+    )
 
     template_path = PROJECT_PATH / "docs_templates/Fundamentals.md"
     dest_path = PROJECT_PATH / "docs/Fundamentals.md"
     with open(template_path, encoding="utf-8") as fin:
         text = fin.read()
         pystache_parsed = pystache.parse(text)
-        template_module_parsed: InsertAPIObjectParsedTemplate = InsertAPIObjectParsedTemplate(
-            pystache_parsed,
-            context=Context(directory=PROJECT_PATH.as_posix()),
-            py_loader=PythonLoader(search_path=['.']),
-            config=RenderConfig(class_config=ClassRenderConfig()))
+        template_module_parsed: InsertAPIObjectParsedTemplate = (
+            InsertAPIObjectParsedTemplate(
+                pystache_parsed,
+                context=Context(directory=PROJECT_PATH.as_posix()),
+                py_loader=PythonLoader(search_path=["."]),
+                config=RenderConfig(class_config=ClassRenderConfig()),
+            )
+        )
         template_module_parsed.render(dest_path.open("w"))
-        print(f"Created {dest_path.relative_to(PROJECT_PATH)} from {template_path.relative_to(PROJECT_PATH)}")
+        print(
+            f"Created {dest_path.relative_to(PROJECT_PATH)} from {template_path.relative_to(PROJECT_PATH)}"
+        )
 
 
 if __name__ == "__main__":

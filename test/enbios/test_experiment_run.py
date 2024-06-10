@@ -11,7 +11,7 @@ from enbios import Experiment, ScenarioResultNodeData
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.generic.files import ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from test.enbios.conftest import tempfolder
+from test.enbios.conftest import tempfolder # noqa: F401
 
 
 @pytest.fixture
@@ -300,7 +300,7 @@ def test_lca_distribution(experiment_setup,
     )
 
     experiment = Experiment(scenario_data)
-    result = experiment.run()
+    _ = experiment.run()
     pass
 
 

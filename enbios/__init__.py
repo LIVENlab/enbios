@@ -11,14 +11,23 @@ from enbios.bw2.util import report
 from enbios.generic.files import PathLike
 from enbios.generic.tree.basic_tree import BasicTreeNode
 
-version = importlib.metadata.version('enbios')
+version = importlib.metadata.version("enbios")
 
-__all__ = ['Experiment', "Scenario", "TechTreeNodeData", "ResultValue", "ScenarioResultNodeData", "report",
-           "PathLike", "BasicTreeNode"]
+__all__ = [
+    "Experiment",
+    "Scenario",
+    "TechTreeNodeData",
+    "ResultValue",
+    "ScenarioResultNodeData",
+    "report",
+    "PathLike",
+    "BasicTreeNode",
+]
 
 
 def get_enbios_ureg() -> UnitRegistry:
     from enbios.base.unit_registry import ureg
+
     return ureg
 
 

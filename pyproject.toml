@@ -63,3 +63,8 @@ dependencies = {file="requirements.txt"}
 [tool.ruff]
 line-length = 90
 
+#
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+"**/{test,docs,tools}/*" = ["E402","F403", "F811"]
+

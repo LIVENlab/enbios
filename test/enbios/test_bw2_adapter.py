@@ -320,7 +320,7 @@ def test_regionlized_clear_locations(
     exp = Experiment(exp_config)
     exp.run()
 
-    assert 3 == len([a for a in db if a.get("enb_location") != None])
+    assert 3 == len([a for a in db if a.get("enb_location") is not None])
     # just set 1, and set location clearing.
     bw_adapter_config["config"]["simple_regionalization"]["set_node_regions"] = {
         "energy1": ["ES"]
@@ -328,7 +328,7 @@ def test_regionlized_clear_locations(
     bw_adapter_config["config"]["simple_regionalization"]["clear_all_other_node_regions"] = True
     exp = Experiment(exp_config)
     exp.run()
-    assert 2 == len([a for a in db if a.get("enb_location") != None])
+    assert 2 == len([a for a in db if a.get("enb_location") is not None])
 
 
 def test_nonlinear_methods1(experiment_setup: dict,
@@ -408,7 +408,7 @@ def test_nonlinear_methods3(set_bw_default_project,
         }}}
 
     experiment = Experiment(experiment_setup["scenario"])
-    result = experiment.run()["default scenario"]['results']
+    _ = experiment.run()["default scenario"]['results']
 
     bw_adapter: BrightwayAdapter = cast(BrightwayAdapter,experiment.adapters[0])
     bw_activity = bw_adapter.activityMap["single_activity"].bw_activity
@@ -417,7 +417,7 @@ def test_nonlinear_methods3(set_bw_default_project,
 
     # get the summed inventory, which are basically all biosphere activities
     # Total Biosphere Demand Vector
-    summed_inventory = lca.inventory.sum(1)
+    _ = lca.inventory.sum(1)
     pass
 
 
@@ -437,7 +437,7 @@ def test_regionlized_nonlinear_characterization(test_network_project_db_name: tu
     bw2data.projects.set_current(project_name)
     db = bw2data.Database(db_name)
     all_activities = list(db)
-    a = mermaid_diagram.create_diagram(all_activities, False)
+    _ = mermaid_diagram.create_diagram(all_activities, False)
 
     # some basic method
     method_id = ('IPCC',)
@@ -594,7 +594,7 @@ energy,co2,biosphere,1"""
             ]
         }
     })
-    res = exp.run()
+    _ = exp.run()
 
 
 def test_all_codes_unique():

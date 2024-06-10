@@ -12,7 +12,7 @@ from enbios.base.models import ExperimentData
 
 try:
     from test.enbios.test_project_fixture import TEST_BW_PROJECT, BRIGHTWAY_ADAPTER_MODULE_PATH
-except ImportError as err:
+except ImportError:
     getLogger("test-logger").error("Please copy test/enbios/test_project_fixture.py.example to "
                                    "test/enbios/test_project_fixture.py and fill in the values.")
     sys.exit(1)
