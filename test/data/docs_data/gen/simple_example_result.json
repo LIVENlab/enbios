@@ -1,0 +1,302 @@
+{
+  "normal scenario": {
+    "name": "root",
+    "results": {
+      "GWP1000": {
+        "unit": "kg CO2-Eq",
+        "magnitude": 0.142615182893779
+      },
+      "FETP": {
+        "unit": "kg 1,4-DCB-Eq",
+        "magnitude": 0.06303329465759974
+      }
+    },
+    "output": [
+      {
+        "unit": "kilowatt_hour",
+        "magnitude": 4.0,
+        "label": null
+      }
+    ],
+    "children": [
+      {
+        "name": "wind",
+        "results": {
+          "GWP1000": {
+            "unit": "kg CO2-Eq",
+            "magnitude": 0.04021441221464619
+          },
+          "FETP": {
+            "unit": "kg 1,4-DCB-Eq",
+            "magnitude": 0.0566978988042604
+          }
+        },
+        "output": [
+          {
+            "unit": "kilowatt_hour",
+            "magnitude": 2.0,
+            "label": null
+          }
+        ],
+        "children": [
+          {
+            "name": "wind turbine >3MW onshore",
+            "results": {
+              "GWP1000": {
+                "unit": "kg CO2-Eq",
+                "magnitude": 0.024970800870991273
+              },
+              "FETP": {
+                "unit": "kg 1,4-DCB-Eq",
+                "magnitude": 0.050272290729750875
+              }
+            },
+            "output": [
+              {
+                "unit": "kilowatt_hour",
+                "magnitude": 1.0,
+                "label": null
+              }
+            ],
+            "bw_activity_code": "0d48975a3766c13e68cedeb6c24f6f74"
+          },
+          {
+            "name": "wind turbine 1-3MW onshore",
+            "results": {
+              "GWP1000": {
+                "unit": "kg CO2-Eq",
+                "magnitude": 0.015243611343654916
+              },
+              "FETP": {
+                "unit": "kg 1,4-DCB-Eq",
+                "magnitude": 0.006425608074509521
+              }
+            },
+            "output": [
+              {
+                "unit": "kilowatt_hour",
+                "magnitude": 1.0,
+                "label": null
+              }
+            ],
+            "bw_activity_code": "ed3da88fc23311ee183e9ffd376de89b"
+          }
+        ]
+      },
+      {
+        "name": "solar",
+        "results": {
+          "GWP1000": {
+            "unit": "kg CO2-Eq",
+            "magnitude": 0.10240077067913281
+          },
+          "FETP": {
+            "unit": "kg 1,4-DCB-Eq",
+            "magnitude": 0.006335395853339337
+          }
+        },
+        "output": [
+          {
+            "unit": "kilowatt_hour",
+            "magnitude": 2.0,
+            "label": null
+          }
+        ],
+        "children": [
+          {
+            "name": "solar tower power plant, 20 MW",
+            "results": {
+              "GWP1000": {
+                "unit": "kg CO2-Eq",
+                "magnitude": 0.04820458190235993
+              },
+              "FETP": {
+                "unit": "kg 1,4-DCB-Eq",
+                "magnitude": 0.0032423199619428613
+              }
+            },
+            "output": [
+              {
+                "unit": "kilowatt_hour",
+                "magnitude": 1.0,
+                "label": null
+              }
+            ],
+            "bw_activity_code": "f2700b2ffcb6b32143a6f95d9cca1721"
+          },
+          {
+            "name": "solar thermal parabolic trough, 50 MW",
+            "results": {
+              "GWP1000": {
+                "unit": "kg CO2-Eq",
+                "magnitude": 0.05419618877677287
+              },
+              "FETP": {
+                "unit": "kg 1,4-DCB-Eq",
+                "magnitude": 0.0030930758913964764
+              }
+            },
+            "output": [
+              {
+                "unit": "kilowatt_hour",
+                "magnitude": 1.0,
+                "label": null
+              }
+            ],
+            "bw_activity_code": "19040cdacdbf038e2f6ad59814f7a9ed"
+          }
+        ]
+      }
+    ]
+  },
+  "randomized outputs": {
+    "name": "root",
+    "results": {
+      "GWP1000": {
+        "unit": "kg CO2-Eq",
+        "magnitude": 0.8758822044490706
+      },
+      "FETP": {
+        "unit": "kg 1,4-DCB-Eq",
+        "magnitude": 0.35255636749694047
+      }
+    },
+    "output": [
+      {
+        "unit": "kilowatt_hour",
+        "magnitude": 21.0,
+        "label": null
+      }
+    ],
+    "children": [
+      {
+        "name": "wind",
+        "results": {
+          "GWP1000": {
+            "unit": "kg CO2-Eq",
+            "magnitude": 0.1650684165695875
+          },
+          "FETP": {
+            "unit": "kg 1,4-DCB-Eq",
+            "magnitude": 0.30805935245300914
+          }
+        },
+        "output": [
+          {
+            "unit": "kilowatt_hour",
+            "magnitude": 7.0,
+            "label": null
+          }
+        ],
+        "children": [
+          {
+            "name": "wind turbine >3MW onshore",
+            "results": {
+              "GWP1000": {
+                "unit": "kg CO2-Eq",
+                "magnitude": 0.14982480522593258
+              },
+              "FETP": {
+                "unit": "kg 1,4-DCB-Eq",
+                "magnitude": 0.3016337443784996
+              }
+            },
+            "output": [
+              {
+                "unit": "kilowatt_hour",
+                "magnitude": 6.0,
+                "label": null
+              }
+            ],
+            "bw_activity_code": "0d48975a3766c13e68cedeb6c24f6f74"
+          },
+          {
+            "name": "wind turbine 1-3MW onshore",
+            "results": {
+              "GWP1000": {
+                "unit": "kg CO2-Eq",
+                "magnitude": 0.015243611343654916
+              },
+              "FETP": {
+                "unit": "kg 1,4-DCB-Eq",
+                "magnitude": 0.006425608074509521
+              }
+            },
+            "output": [
+              {
+                "unit": "kilowatt_hour",
+                "magnitude": 1.0,
+                "label": null
+              }
+            ],
+            "bw_activity_code": "ed3da88fc23311ee183e9ffd376de89b"
+          }
+        ]
+      },
+      {
+        "name": "solar",
+        "results": {
+          "GWP1000": {
+            "unit": "kg CO2-Eq",
+            "magnitude": 0.7108137878794831
+          },
+          "FETP": {
+            "unit": "kg 1,4-DCB-Eq",
+            "magnitude": 0.04449701504393135
+          }
+        },
+        "output": [
+          {
+            "unit": "kilowatt_hour",
+            "magnitude": 14.0,
+            "label": null
+          }
+        ],
+        "children": [
+          {
+            "name": "solar tower power plant, 20 MW",
+            "results": {
+              "GWP1000": {
+                "unit": "kg CO2-Eq",
+                "magnitude": 0.38563665521887946
+              },
+              "FETP": {
+                "unit": "kg 1,4-DCB-Eq",
+                "magnitude": 0.02593855969554289
+              }
+            },
+            "output": [
+              {
+                "unit": "kilowatt_hour",
+                "magnitude": 8.0,
+                "label": null
+              }
+            ],
+            "bw_activity_code": "f2700b2ffcb6b32143a6f95d9cca1721"
+          },
+          {
+            "name": "solar thermal parabolic trough, 50 MW",
+            "results": {
+              "GWP1000": {
+                "unit": "kg CO2-Eq",
+                "magnitude": 0.3251771326606037
+              },
+              "FETP": {
+                "unit": "kg 1,4-DCB-Eq",
+                "magnitude": 0.018558455348388462
+              }
+            },
+            "output": [
+              {
+                "unit": "kilowatt_hour",
+                "magnitude": 6.0,
+                "label": null
+              }
+            ],
+            "bw_activity_code": "19040cdacdbf038e2f6ad59814f7a9ed"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -5,7 +5,7 @@ from random import randint
 from enbios import Experiment
 
 
-def _create_experiment(num_scenarios) -> Experiment:
+def create_experiment_config(num_scenarios) -> dict:
     bw_adapter_config = {
         "config": {"bw_project": "ecoinvent_391"},
         "methods": {
@@ -19,10 +19,10 @@ def _create_experiment(num_scenarios) -> Experiment:
                 "water use",
                 "water consumption potential (WCP)",
             ),
-            "HToxicity": (
-                "ReCiPe 2016 v1.03, midpoint (I)",
-                "human toxicity: carcinogenic",
-                "human toxicity potential (HTPc)",
+            "LandUse": (
+                "ReCiPe 2016 v1.03, midpoint (E)",
+                "land use",
+                "agricultural land occupation (LOP)",
             ),
         },
         "note": "brightway-adapter",
@@ -78,19 +78,19 @@ def _create_experiment(num_scenarios) -> Experiment:
             "nodes": {
                 "electricity production, wind, 1-3MW turbine, onshore": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 3,
+                    "magnitude": 4,
                 },
                 "electricity production, wind, 1-3MW turbine, offshore": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 2,
+                    "magnitude": 3,
                 },
                 "electricity production, solar tower power plant, 20 MW": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 1,
+                    "magnitude": 3,
                 },
                 "electricity production, solar thermal parabolic trough, 50 MW": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 1,
+                    "magnitude": 4,
                 },
             },
         },
@@ -103,15 +103,15 @@ def _create_experiment(num_scenarios) -> Experiment:
                 },
                 "electricity production, wind, 1-3MW turbine, offshore": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 2,
+                    "magnitude": 5,
                 },
                 "electricity production, solar tower power plant, 20 MW": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 2,
+                    "magnitude": 4,
                 },
                 "electricity production, solar thermal parabolic trough, 50 MW": {
                     "unit": "kilowatt_hour",
-                    "magnitude": 2,
+                    "magnitude": 3,
                 },
             },
         },
@@ -134,7 +134,7 @@ def _create_experiment(num_scenarios) -> Experiment:
                 {
                     "name": f"scenario {idx + 1}",
                     "nodes": {
-                        n: {"unit": "kilowatt_hour", "magnitude": randint(1, 5)}
+                        n: {"unit": "kilowatt_hour", "magnitude": randint(2, 5)}
                         for n in node_names
                     },
                 }
@@ -145,7 +145,11 @@ def _create_experiment(num_scenarios) -> Experiment:
         "hierarchy": hierarchy,
         "scenarios": scenarios,
     }
-    return Experiment(config)
+    return config
+
+
+def create_experiment(num_scenarios) -> Experiment:
+    return Experiment(create_experiment_config(num_scenarios))
 
 
 def get_demo_experiment(num_scenarios: int = 2) -> Experiment:
@@ -161,7 +165,7 @@ def get_demo_experiment(num_scenarios: int = 2) -> Experiment:
     except Exception as err:
         raise err
     print("running experiment...")
-    exp = _create_experiment(num_scenarios)
+    exp = create_experiment(num_scenarios)
     exp.run()
     experiment_path.parent.mkdir(parents=True, exist_ok=True)
     pickle.dump(exp, experiment_path.open("wb"))

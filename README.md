@@ -50,7 +50,7 @@ In any case you will need to install python first and then create an environment
 Once you have python installed, first need to create an environment. To do so, write this:
 
 * Windows  `python -m venv venv`
-* Linux   `python3.9 -m venv venv`
+* Linux   `python3 -m venv venv`
 
 Activate the environment with
 

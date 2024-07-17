@@ -7,7 +7,15 @@
 - [Running an experiment](#running-an-experiment)
 - [A first example](#a-first-simple-example)
 - [How to configure Adapters and Aggregators](#how-to-configure-adapters-and-aggregators)
+- [Hierarchy](#hierarchy)
+- [Exporting results](#exporting-the-results)
 - [Creating Adapters and Aggregators](#creating-adapters-and-aggregators)
+  - [EnbiosNode API](#enbiosnodemodule-objects)
+  - [EnbiosAdapterNode API](#enbiosadapter-objects)
+  - [EnbiosAggregatorNode API](#enbiosaggregator-objects)
+- [Environmental variables](#Environmental-variables)
+- [Plotting results](#plotting-results)
+- [Experiment API](#full-experiment-api)
 
 This version is based on a very simple assumption. Calculating arbitrary (structural/terminal nodes) and aggregated
 values (functional nodes) in
@@ -91,35 +99,37 @@ This starts off the following steps of validation and preparation:
 - resolve experiment data links (eventual links to hierarchy and scenario files)
 - validate full experiment data (structural validation)
 - validate adapters
-    - __For each defined adapter:__
+    - __For each defined adapter: *️⃣__
         - load adapter module
-        - <ada>adapter.validate_definition </ada>
-        - <ada>adapter.validate_config </ada>
-        - <ada>adapter.validate_methods </ada>
+        - <ada>_adapter.validate_definition_ *️⃣ </ada>
+        - <ada>_adapter.validate_config_ *️⃣ </ada>
+        - <ada>_adapter.validate_methods_ *️⃣ </ada>
     - load builtin adapters
 - validate aggregators
-    - __For each defined aggregator:__
+    - __For each defined aggregator: ⏏️__
         - load aggregator module
-        - <agg>aggregator.validate_config</agg>
+        - <agg>_aggregator.validate_definition_ ⏏️</agg>
+        - <agg>_aggregator.validate_config_ ⏏️</agg>
     - load builtin aggregators
 - validate hierarchy
     - basic structural validation
     - validate hierarchy nodes against their adapters, aggregators
-      (<ada>adapter.validate_node</ada> <b>/</b> <agg>aggregator.validate_node</agg>)
+      (<ada>_adapter.validate_node_ *️⃣ </ada> <b>/</b> <agg>_aggregator.validate_node_ ⏏️</agg>)
 - create template result-tree
 - validate scenarios
     - create default scenario, if no scenario is defined
     - __for each defined scenario (or the default scenario)__:
         - validate scenario
             - __for each node that the scenario specifies:__
-                - Validate the nodes scenario data against their adapter: <ada>adapter.validate_scenario_node</ada>)
+                - Validate the nodes scenario data against their adapter/aggregator: <ada>_adapter.validate_scenario_node_ *️⃣ </ada> / <agg>_aggregator.validate_scenario_node_ ⏏️ </agg>)
         - prepare scenario result-tree
             - __for all structural nodes of the result-tree:__
-                - Get the nodes output from its adapter: <ada>adapter.get_node_output</ada>
+                - Get the nodes output from its adapter: <ada>_adapter.get_node_output_ *️⃣ </ada>
             - eventually remove exclude defaults (nodes with no output for a scenario) from the result-tree
             - from top to bottom aggregate the outputs within the result-tree (<agg>
-              aggregator.aggregate_node_output</agg>)
+              _aggregator.aggregate_node_output_ ⏏️</agg>)
 - validate scenario settings: Check if the environmental settings, specify which scenarios to run
+
 
 ## Running an experiment
 
@@ -135,12 +145,12 @@ Scenarios can also be run individually with: `Experiment.run_scenario`
 
 For all adapters specified for the experiment:
 
-- <ada>adapter.run_scenario</ada>
+- <ada>_adapter.run_scenario_  *️⃣ </ada>
 - add the results from the adapters to the result-tree
 
 Propagate the results up in the result-tree:
 
-From top to bottom aggregate the results within the result-tree (<agg>aggregator.aggregate_node_result</agg>)
+From top to bottom aggregate the results within the result-tree (<agg>_aggregator.aggregate_node_result_ ⏏️</agg>)
 
 ## A first simple example
 
@@ -163,6 +173,9 @@ graph LR
 ```
 
 _(structural nodes are rectangles and functional nodes are rounded rectangles)_
+
+[This demo notebook](https://github.com/LIVENlab/enbios/blob/main/demos/intro.ipynb) shows how to build the
+configuration step by step.
 
 Full details are below the configuration
 
@@ -224,7 +237,10 @@ the
 first one defines the unit and the 2nd the amount. E.g. these two definitions are
 equivalent: `{'unit':'kilowatt_hour','magnitude':5}` and `['kilowatt_hour', 5]`.
 
-_config_: A dictionary with scenario specific configuration.
+_config_: A dictionary with scenario specific configuration. A dictionary with 2 keys:
+`name`: Name of the scenario
+`nodes`: A dictionary of scenario specific configuration of each node. Keys are the node names, and values are adapter/aggregator specific.
+
 
 ## How to configure Adapters and Aggregators
 
@@ -292,8 +308,6 @@ parameter `details` is True (default:True)),
 
 E.g. `get_builtin_adapters()['brightway-adapter']`
 
-{{file:json:test/data/docs_data/gen/bw_adapter.json}}
-
 On an experiment instance the following function can be
 called: `get_all_configs(include_all_builtin_configs: bool = True)`, which
 will return all configs for all adapters and aggregators specified in the experiment config data and all builtin
@@ -312,6 +326,21 @@ The configs are in a dictionary in the fields `adapters`, `aggregators`
 }
 ```
 
+#### Validation aspects of Adapters/Aggregators (summary)
+
+In summary, adapter/aggregator specific validation happens at 3 locations of the configuration file:
+
+- The adapter/aggregator definition itself
+- Node configs against their corresponding adapter/aggregator
+- Node scenario configs against their corresponding adapter/aggregator
+
+### Splitting the config file:
+
+The configuration of an experiment can also be split into multiple files.
+The hierarchy and scenarios can be separated in external files (and be provided in alternative formats).
+
+See [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_config_files.ipynb) for details.
+
 ### Builtin adapters and aggregators
 
 There are a some builtin adapters and aggregators:
@@ -320,12 +349,93 @@ There are a some builtin adapters and aggregators:
 
 - SimpleAssignmentAdapter: For this Adapter, the outputs and impacts can be defined in the adapter configuration
 - BrightwayAdapter: This Adapter, uses brightway2 (https://docs.brightway.dev) in order to calculate impacts,
-  based on the outputs of activities (structural nodes)
+  based on the outputs of activities (structural nodes). See [this notebook](
+  https://github.com/LIVENlab/enbios/blob/main/demos/bw_adapter_config.ipynb
+  ) for all possible configs in one dictionary.
 
-{{enbios.base.adapters_aggregators.adapter.EnbiosAdapter}}
 **Aggregators**
 
 - SumAggregator: This Aggregator simply sums up the impact results of its children in the hierarchy.
+
+## Hierarchy
+
+Besides including the hierarchy in the configuration it is also possible to have a file location.
+Enbios is able to read hierarchies in 3 formats.
+
+1. as .json, which should be the same format as it would be in the experiment config.
+
+2. as .csv file
+   The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_hierarchy.ipynb) demonstrates
+   how to use a csv file to specify the hierarchy:
+
+3. as .mermaid (or .mm) file
+   As demonstrated in [this notebook](https://github.com/LIVENlab/enbios/blob/main/demos/mermaid.ipynb)
+
+## Exporting the results
+
+After running an experiment or individual scenarios, the results are stored in a tree structure.
+
+The result can be turned into a dictionary (and dumped into a json file) with the Experiment function:
+
+{{enbios.base.experiment.Experiment.results_to_dict}}
+
+And for scenarios:
+
+{{enbios.base.scenario.Scenario.result_to_dict}}
+
+But can also be written to csv files with functions for Experiment (and scenarios respectively)
+
+{{enbios.base.experiment.Experiment.results_to_csv}}
+
+{{enbios.base.scenario.Scenario.result_to_csv}}
+
+[This notebook](https://github.com/LIVENlab/enbios/blob/main/demos/csv_export.ipynb) demonstrates to usage of the
+results_to_csv function.
+
+### Storing the experiment as a pickle
+
+Sometimes it useful to keep the experiment object after an experiment has been run.
+The experiment object (or scenario objects) can be stored into files with the python module `pickle` (Read more
+about [the pickle module](https://docs.python.org/3/library/pickle.html) here).
+
+```python
+import pickle
+from enbios.base.experiment import Experiment
+
+config_file = "...some_config_path...json"
+exp = Experiment(config_file)
+exp.run()
+with open("experiment.pickle", "wb") as fout:
+    pickle.dump(exp, fout)
+
+## somewhere else (e.g. in another script)
+
+exp: Experiment = pickle.load(open("experiment.pickle", "rb"))
+```
+
+This allows you to reopen the same experiment later, in order to
+
+- run more scenarios
+- recalculate the results with an alternative hierarchy (see the next section)
+- do more plotting
+- do alternative exports (omitting certain fields, or only selecting certain scenarios)
+
+> [!CAUTION]
+> The pickle module is not secure. Only unpickle data you trust.
+> That generally means, you should only use pickle to store experiments on one computer.
+> It is well possible, that pickled experiments cannot be unpickled on other computers, when you are using custom
+> adapters/aggregators.
+
+### Aggregating the results into alternative hierarchies
+
+After running an experiment (or individual scenarios) it is also possible to restructure the results into alternative
+hierarchies. That means, that the results of the structural nodes, are not recalculated, but the functional nodes (which
+use adapters) recalculate their results. When this is done, configurations for adapter nodes do not need to be provided
+again. However, nodes with aggregators can redefine their config if wanted, or it might be needed, if the user
+introduces new functional nodes.
+
+[This notebook demonstrates](https://github.com/LIVENlab/enbios/blob/main/demos/multiple_hierarchies.ipynb) how this can
+be done.
 
 ## Creating Adapters and Aggregators
 
@@ -339,100 +449,98 @@ abstract methods, which any subclass needs to implement.
 The internals of these functions is mostly up to the developer, but they have to make sure, that they return data of the
 types that enbios requires (these return types are already included as return type hints in the abstract methods).
 
+Since adapters and aggregators have several functions in common, there is a common parent class, which defines these
+functions. When creating a concrete adapter or aggregator, these functions have to be implemented as well.
+
+{{enbios.base.adapters_aggregators.node_module.EnbiosNodeModule}}
+
+This [demo notebook](https://github.com/LIVENlab/enbios/blob/main/demos/aggregator_extension.ipynb) shows how to build
+and use a custom aggregator.
+
 ### Adapter
 
 First, there are several validation functions. These functions serve to check the correctness of the input, but also to
 store all configurations inside the adapter object as they are later needed for the execution. In case of invalid data,
 they should raise an Exception. In the case some validation is not required, it is ok, they just contain `pass`.
 
-`validate_definition(self, definition: AdapterModel)`
-
-Validates the whole adapter definition, which is the whole dictionary (parse
-as `enbios.models.models.AdapterModel`)
-
-`validate_config(self, config: Optional[dict[str, Any]])`
-
-Validates the configuration (the `config` value in the definition).
-
-`validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]`
-
-Validates the `methods` in the definition.
-
-`validate_node(self, node_name: str, node_config: Any)`
-
-Validates a node configuration, for each node that specifies this as its adapter.
-
-`validate_node_output(self, node_name: str, target_output: ActivityOutput) -> float`
-
-Validates the output of a node as part of a scenario validation in the experiment.
-
-`get_node_output_unit(self, activity_name: str) -> str`
-
-Get the output unit of a node.
-
-`get_method_unit(self, method_name: str) -> str`
-
-Get the unit of a method.
-
-`get_default_output_value(self, activity_name: str) -> float`
-
-Get the default output amount of a node (in its defined output unit).
-
-`run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]`
-
-Run a scenario.
-
-Additionally, there are some static method, which means, they can be called on the Adapter class.
-
-`static node_indicator() -> str`
-
-The indicator that can be used, to indicate that a node should use this adapter (alternatively, the name, as given in
-name() can also be used).
-
-`static get_config_schemas() -> dict[str, dict[str, Any]]`
-
-Get the configuration schemas for `config`, `method` and  `activity`. The idea here, is that, these are generated from
-Pydantic model classes, which are used `validate_config`, `validate_node` and `validate_methods`.
-
-`static name() -> str`
-
-Get the name of the adapter.
+{{enbios.base.adapters_aggregators.adapter.EnbiosAdapter}}
 
 ### Aggregator
 
-`validate_config(self, config: Optional[dict[str, Any]])`
+{{enbios.base.adapters_aggregators.aggregator.EnbiosAggregator}}
 
-Validate the configuration of the aggregator.
+## Environmental variables
 
-`validate_node(self, node_name: str, node_config: Any)`
+In order to help executing enbios on remote systems it is also possible to make use of certain environmental variables,
+for the enbios experiments. Environment variables can be set before a python script is executed.
 
-Validates a node configuration, for each node that specifies this as its aggregator.
+Enbios reads two environmental variables:
 
-`aggregate_node_output(self, node: BasicTreeNode[ScenarioResultNodeData], scenario_name: Optional[str] = "") -> Optional[NodeOutput]`
+- CONFIG_FILE: In case an experiment file is created without a config object, nor without a filepath for the
+  configuration file, it will check for the existence of this variable and interpret is as the location of the
+  configuration file.
 
-Aggregate the outputs of the children of a node. This method should return an optional NodeOutput, if the aggregation
-was correct and there is some uniform output. This is in order to prevent errors higher up in the hierarchy. For
-example, the Sum aggregator, returns NodeOutput, if the outputs (and crucially their units) can be summed up. It returns
-None,
-if the units don't fit together.
-This function is already called during the initiation of an experiment as part of each scenario validation.
+- RUN_SCENARIOS: This variable is read as a json object (in this case as a list) and defines, which scenarios should be
+  run.
 
-`aggregate_node_result(self, node: BasicTreeNode[ScenarioResultNodeData])`
+The following [jupyter notebook](https://github.com/LIVENlab/enbios/blob/main/demos/environmental_variables.ipynb)
+demonstrates the usage.
 
-Aggregate the results of the children of a node.
+## Plotting results
 
-Static methods:
+Enbios allows creating plots directly from Experiment objects.
+For several plot types it allows to filter by scenarios, methods (and by levels of the hierarchy or even individual
+nodes).
 
-`def node_indicator() -> str`
 
-The indicator that can be used, to indicate that a node should use this aggregator (alternatively, the name, as given in
-name() can also be used).
+Some plots need to apply some scaling (like a normalization) to the data before it can be plotted.
+This normalization is done per method and normalizes over all scenarios (or a selected subset).
 
-`name() -> str`
+For example this result with several scenarios and methods:
 
-Get the name of the adapter.
+|  | scenario | GWP1000 | WCP | LandUse |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | scenario 1 | 0.424077 | 0.002763 | 0.051385 |
+| 1 | scenario 2 | 0.422291 | 0.002823 | 0.050667 |
+| 2 | scenario 3 | 0.460658 | 0.002933 | 0.055922 |
+| 3 | scenario 4 | 0.254918 | 0.001718 | 0.030420 |
 
-`get_config_schemas() -> dict`
+will be normalized like so:
+
+|  | scenario | GWP1000 | WCP | LandUse |
+| :--- | :--- | :--- | :--- | :--- |
+| 0 | scenario 1 | 0.822196 | 0.860085 | 0.822084 |
+| 1 | scenario 2 | 0.813515 | 0.909543 | 0.793935 |
+| 2 | scenario 3 | 1.000000 | 1.000000 | 1.000000 |
+| 3 | scenario 4 | 0.000000 | 0.000000 | 0.000000 |
+
+
+
+#### Simple barplot
+
+<img src=../demos/data/plots/bar_plot_3.png  width="700" alt=""/>
+
+
+#### Stacked barplot
+This type of plot, allows to select specific nodes, which will be stacked up for each scenario bar.
+
+<img src=../demos/data/plots/stacked_plot_3.png  width="700" alt=""/>
+
+#### Starplot
+
+{{enbios.base.plot_experiment.star_plot}}
+
+<img src=../demos/data/plots/star_plot_1.png  width="700" alt=""/>
+
+{{enbios.base.plot_experiment.single_star_plot}}
+
+{{enbios.base.plot_experiment.plot_heatmap}}
+
+{{enbios.base.plot_experiment.plot_sankey}}
+
+{{enbios.base.plot_experiment.one_axes_scatter_plot}}
+
+{{enbios.base.plot_experiment.plot_multivalue_results}}
 
 ## Full Experiment API
 

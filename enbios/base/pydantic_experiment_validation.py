@@ -2,10 +2,10 @@ import sys
 
 from pydantic import ValidationError
 
-from enbios.models.models import (
-    ExperimentData,
+from enbios.base.models import (
     ExperimentHierarchyNodeData,
     ExperimentScenarioData,
+    ExperimentData,
 )
 
 

@@ -1,0 +1,29 @@
+scenario,node_name,level,parent_name,results_GWP1000_unit,results_GWP1000_magnitude,results_WCP_unit,results_WCP_magnitude,results_LandUse_unit,results_LandUse_magnitude,output_0_unit,output_0_magnitude,output_0_label,bw_activity_code
+scenario 1,root,0,,kg CO2-Eq,0.4240771673773991,cubic meter,0.0027629275337720254,m2*a crop-Eq,0.05138489716625263,kilowatt_hour,14.0,,
+scenario 1,wind,1,root,kg CO2-Eq,0.1000419953679978,cubic meter,0.0011095632021646453,m2*a crop-Eq,0.005407371747826385,kilowatt_hour,7.0,,
+scenario 1,"electricity production, wind, 1-3MW turbine, onshore",2,wind,kg CO2-Eq,0.05430424350341782,cubic meter,0.0005454397503121846,m2*a crop-Eq,0.0042644791297500335,kilowatt_hour,4.0,,ed3da88fc23311ee183e9ffd376de89b
+scenario 1,"electricity production, wind, 1-3MW turbine, offshore",2,wind,kg CO2-Eq,0.04573775186457996,cubic meter,0.0005641234518524609,m2*a crop-Eq,0.0011428926180763518,kilowatt_hour,3.0,,6ebfe52dc3ef5b4d35bb603b03559023
+scenario 1,solar,1,root,kg CO2-Eq,0.3240351720094013,cubic meter,0.00165336433160738,m2*a crop-Eq,0.04597752541842624,kilowatt_hour,7.0,,
+scenario 1,"electricity production, solar tower power plant, 20 MW",2,solar,kg CO2-Eq,0.13008515069905038,cubic meter,0.0006344392971586705,m2*a crop-Eq,0.020823096141947432,kilowatt_hour,3.0,,f2700b2ffcb6b32143a6f95d9cca1721
+scenario 1,"electricity production, solar thermal parabolic trough, 50 MW",2,solar,kg CO2-Eq,0.1939500213103509,cubic meter,0.0010189250344487095,m2*a crop-Eq,0.02515442927647881,kilowatt_hour,4.0,,19040cdacdbf038e2f6ad59814f7a9ed
+scenario 2,root,0,,kg CO2-Eq,0.42229109177417345,cubic meter,0.0028230384669577216,m2*a crop-Eq,0.05066701074935067,kilowatt_hour,14.0,,
+scenario 2,wind,1,root,kg CO2-Eq,0.10338170819267103,cubic meter,0.0012129256282436029,m2*a crop-Eq,0.004037060591486544,kilowatt_hour,7.0,,
+scenario 2,"electricity production, wind, 1-3MW turbine, onshore",2,wind,kg CO2-Eq,0.02715212175170891,cubic meter,0.0002727198751560923,m2*a crop-Eq,0.0021322395648750167,kilowatt_hour,2.0,,ed3da88fc23311ee183e9ffd376de89b
+scenario 2,"electricity production, wind, 1-3MW turbine, offshore",2,wind,kg CO2-Eq,0.07622958644096213,cubic meter,0.0009402057530875106,m2*a crop-Eq,0.0019048210266115276,kilowatt_hour,5.0,,6ebfe52dc3ef5b4d35bb603b03559023
+scenario 2,solar,1,root,kg CO2-Eq,0.31890938358150245,cubic meter,0.0016101128387141185,m2*a crop-Eq,0.04662995015786413,kilowatt_hour,7.0,,
+scenario 2,"electricity production, solar tower power plant, 20 MW",2,solar,kg CO2-Eq,0.17344686759875083,cubic meter,0.0008459190628780795,m2*a crop-Eq,0.027764128184350645,kilowatt_hour,4.0,,f2700b2ffcb6b32143a6f95d9cca1721
+scenario 2,"electricity production, solar thermal parabolic trough, 50 MW",2,solar,kg CO2-Eq,0.1454625159827516,cubic meter,0.0007641937758360391,m2*a crop-Eq,0.01886582197351348,kilowatt_hour,3.0,,19040cdacdbf038e2f6ad59814f7a9ed
+scenario 3,root,0,,kg CO2-Eq,0.4606584682414465,cubic meter,0.002932980067845771,m2*a crop-Eq,0.05592222915752721,kilowatt_hour,14.0,,
+scenario 3,wind,1,root,kg CO2-Eq,0.08813579090444024,cubic meter,0.0010248844776257742,m2*a crop-Eq,0.0036560963957015815,kilowatt_hour,6.0,,
+scenario 3,"electricity production, wind, 1-3MW turbine, onshore",2,wind,kg CO2-Eq,0.02715212175170891,cubic meter,0.0002727198751560923,m2*a crop-Eq,0.0021322395648750167,kilowatt_hour,2.0,,ed3da88fc23311ee183e9ffd376de89b
+scenario 3,"electricity production, wind, 1-3MW turbine, offshore",2,wind,kg CO2-Eq,0.06098366915273132,cubic meter,0.0007521646024696819,m2*a crop-Eq,0.0015238568308265647,kilowatt_hour,4.0,,6ebfe52dc3ef5b4d35bb603b03559023
+scenario 3,solar,1,root,kg CO2-Eq,0.3725226773370063,cubic meter,0.0019080955902199969,m2*a crop-Eq,0.05226613276182563,kilowatt_hour,8.0,,
+scenario 3,"electricity production, solar tower power plant, 20 MW",2,solar,kg CO2-Eq,0.13008515069905038,cubic meter,0.0006344392971586705,m2*a crop-Eq,0.020823096141947432,kilowatt_hour,3.0,,f2700b2ffcb6b32143a6f95d9cca1721
+scenario 3,"electricity production, solar thermal parabolic trough, 50 MW",2,solar,kg CO2-Eq,0.24243752663795587,cubic meter,0.0012736562930613263,m2*a crop-Eq,0.0314430366198782,kilowatt_hour,5.0,,19040cdacdbf038e2f6ad59814f7a9ed
+scenario 4,root,0,,kg CO2-Eq,0.2549184616584822,cubic meter,0.0017175841626323532,m2*a crop-Eq,0.03041956649197497,kilowatt_hour,9.0,,
+scenario 4,wind,1,root,kg CO2-Eq,0.07122001720393131,cubic meter,0.0007851621139689587,m2*a crop-Eq,0.003960287761560243,kilowatt_hour,5.0,,
+scenario 4,"electricity production, wind, 1-3MW turbine, onshore",2,wind,kg CO2-Eq,0.040728182627565654,cubic meter,0.0004090798127341177,m2*a crop-Eq,0.0031983593461469605,kilowatt_hour,3.0,,ed3da88fc23311ee183e9ffd376de89b
+scenario 4,"electricity production, wind, 1-3MW turbine, offshore",2,wind,kg CO2-Eq,0.03049183457636566,cubic meter,0.00037608230123484097,m2*a crop-Eq,0.0007619284154132824,kilowatt_hour,2.0,,6ebfe52dc3ef5b4d35bb603b03559023
+scenario 4,solar,1,root,kg CO2-Eq,0.18369844445455086,cubic meter,0.0009324220486633945,m2*a crop-Eq,0.026459278730414728,kilowatt_hour,4.0,,
+scenario 4,"electricity production, solar tower power plant, 20 MW",2,solar,kg CO2-Eq,0.08672343379937542,cubic meter,0.00042295953143903973,m2*a crop-Eq,0.013882064092175322,kilowatt_hour,2.0,,f2700b2ffcb6b32143a6f95d9cca1721
+scenario 4,"electricity production, solar thermal parabolic trough, 50 MW",2,solar,kg CO2-Eq,0.09697501065517546,cubic meter,0.0005094625172243547,m2*a crop-Eq,0.012577214638239406,kilowatt_hour,2.0,,19040cdacdbf038e2f6ad59814f7a9ed

@@ -7,12 +7,12 @@ from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.adapters_aggregators.builtin import BUILTIN_AGGREGATORS
 from enbios.base.adapters_aggregators.loader import load_adapter, load_aggregator
 from enbios.base.scenario import Scenario
-from enbios.models.environment_model import Settings
-from enbios.models.models import (
+from enbios.base.models import (
     ExperimentConfig,
-    ExperimentScenarioData,
     AdapterModel,
     AggregationModel,
+    ExperimentScenarioData,
+    Settings,
 )
 
 if TYPE_CHECKING:
@@ -54,6 +54,7 @@ def validate_aggregators(
     aggregators = []
     for aggregator_def in experiment_aggregators:
         aggregator = load_aggregator(aggregator_def)
+        aggregator.validate_definition(aggregator_def)
         aggregator.validate_config(aggregator_def.config)
         aggregators.append(aggregator)
 

@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 
 [project]
 name = "enbios"
-version = "2.2.10"
+version = "2.2.11"
 description = "Enbios 2"
 authors = [
     { name = "Ramin Soleymani" },
@@ -31,7 +31,7 @@ classifiers = [
 
 readme = "README.md"
 license = { text = "BSD-3-Clause" }
-requires-python = ">=3.9,<3.12"
+requires-python = ">=3.9,<3.13"
 
 [project.urls]
 "Homepage" = "https://github.com/LIVENlab/enbios"

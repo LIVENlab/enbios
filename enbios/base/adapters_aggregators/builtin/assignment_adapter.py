@@ -13,7 +13,7 @@ from enbios.base.scenario import Scenario
 from enbios.base.unit_registry import ureg
 from enbios.generic.files import ReadPath, PathLike
 from enbios.generic.unit_util import unit_match
-from enbios.models.models import (
+from enbios.base.models import (
     AdapterModel,
     NodeOutput,
     EnbiosValidationException,

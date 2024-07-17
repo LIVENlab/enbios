@@ -6,7 +6,7 @@ from bw2data.backends import Activity
 from pydantic import BaseModel, ConfigDict, Field, model_validator, RootModel
 
 from enbios.generic.enbios2_logging import get_logger
-from enbios.models.models import NodeOutput
+from enbios.base.models import NodeOutput
 
 logger = get_logger(__name__)
 

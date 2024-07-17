@@ -13,8 +13,9 @@ class EnbiosNodeModule(ABC, Generic[T]):
     @abstractmethod
     def validate_definition(self, definition: T):
         """
-        This is the first validator to be called. Validates the whole adapter definition, which is the whole dictionary (parse as enbios.models.models.AdapterModel)
-        :param definition: the whole adapter definition (containing 'config' and 'methods')
+        This is the first validator to be called. Validates the whole adapter/aggregator definition, which is the whole
+        dictionary (parse as enbios.models.models.AdapterModel)
+        :param definition: the whole adapter/aggregator definition (containing 'config' and 'methods')
         """
         pass
 
@@ -22,9 +23,11 @@ class EnbiosNodeModule(ABC, Generic[T]):
     def validate_config(self, config: Optional[dict[str, Any]]):
         """
         Validate the config. The creator may store anything in the
-        adapter object through this method.
-        :param config: the configuration of the adapter, which might have its own BaseModel. For understanding the structure,
-        it makes sense to provide this model as a return value of "adapter" in the get_config_schemas() method.
+        adapter/aggregator object through this method.
+        :param config: the configuration of the adapter/aggregator, which might have its own BaseModel. For
+        understanding the structure, it makes sense to provide this model as a return value of "adapter/aggregator"
+        in the get_config_schemas()
+        method.
         """
         pass
 
@@ -47,7 +50,7 @@ class EnbiosNodeModule(ABC, Generic[T]):
     @abstractmethod
     def node_indicator() -> str:
         """
-        This string can be used in order to indicate that a node in the hierarchy should use this adapter.
+        This string can be used in order to indicate that a node in the hierarchy should use this adapter/aggregator.
         :return: node-indicator string
         """
         pass
@@ -56,10 +59,13 @@ class EnbiosNodeModule(ABC, Generic[T]):
     @abstractmethod
     def get_config_schemas() -> dict[str, dict[str, Any]]:
         """
-        Get the Jsonschema for the adapter. These can be derived, when there are pydantic based models for validation
-        (using the `model_json_schema` function). The structure of the return value should correspond to the three parts of validation,
-         the adapter-config, the activity-configs in the hierarchy and the methods.
-        :return: dictionary, where each key corresponds to one part of validation (proposed keys: `adapter`, `activty` and `method`.
+        Get the Jsonschema for the adapter/aggregator. These can be derived, when there are pydantic based models
+        for validation
+        (using the `model_json_schema` function). The structure of the return value should correspond to the three
+        parts of validation,
+         the adapter/aggregator-config, the node-configs in the hierarchy and the methods.
+        :return: dictionary, where each key corresponds to one part of validation (proposed keys: `adapter/aggregator`,
+        `activty` and `method`.
         """
         pass
 
@@ -67,15 +73,16 @@ class EnbiosNodeModule(ABC, Generic[T]):
     @abstractmethod
     def name() -> str:
         """
-        Name of the adapter (which can also used to indicate in the hierarchy that a node should use this adapter.
-        :return: string: name of the adapter
+        Name of the adapter/aggregator (which can also used to indicate in the hierarchy that a node should use this
+        adapter/aggregator.
+        :return: string: name of the adapter/aggregator
         """
         pass
 
     def get_logger(self) -> Logger:
         """
-        Logger of this adapter. Use this inside the adapter.
-        :return: Use this to make logs inside the adapter
+        Logger of this adapter/aggregator. Use this inside the adapter/aggregator.
+        :return: Use this to make logs inside the adapter/aggregator
         """
         return get_logger(f"({self.name()})")
 

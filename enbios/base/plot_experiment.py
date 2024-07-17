@@ -8,21 +8,21 @@ from matplotlib.figure import Figure
 from matplotlib.projections import PolarAxes
 from pandas import DataFrame
 
+from enbios import ScenarioResultNodeData
 from enbios.base.experiment import Experiment
 from enbios.base.result_select import ResultsSelector
 from enbios.generic.enbios2_logging import get_logger
 from enbios.generic.files import PathLike
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios import ScenarioResultNodeData
 
 logger = get_logger(__name__)
 
 
 def bar_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
 
@@ -51,13 +51,13 @@ def bar_plot(
 
 
 def stacked_bar_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    level: int = 1,
-    short_method_names: bool = True,
-    nodes: Optional[list[str]] = None,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        level: int = 1,
+        short_method_names: bool = True,
+        nodes: Optional[list[str]] = None,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
 
@@ -91,21 +91,40 @@ def stacked_bar_plot(
 
 
 def star_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    *,
-    fill: bool = True,
-    r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-    show_r_ticks: bool = True,
-    show_grid: bool = True,
-    col: int = 4,
-    row: Optional[int] = None,
-    show_labels: bool = True,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        *,
+        fill: bool = True,
+        r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+        show_r_ticks: bool = True,
+        show_grid: bool = True,
+        col: int = 4,
+        row: Optional[int] = None,
+        show_labels: bool = True,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
+    """
+    Create a star plot (radar chart) to visualize the results across multiple scenarios.
+    The results are normalized across scenarios before plotting, so the values are relative.
+    Each scenario is represented by a circle, with multiple axis for different angles, representing different methods.
+    It is important to note, that in some cases, some circles
+
+    :param experiment: experiment to plot
+    :param scenarios: scenarios to plot
+    :param methods: methods to plot
+    :param fill: if the circles should be filled
+    :param r_ticks: ticks for the radial axis
+    :param show_r_ticks: if the radial axis should be shown
+    :param show_grid: if the grid should be shown
+    :param row: How many rows the figure should have
+    :param col: How many columns the figure should have
+    :param show_labels: if the method labels should be shown
+    :param image_file: file to save the plot to
+    :return:
+    """
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
-    df = rs.normalized_df()
+    df = rs.normalized_df(False)
 
     if len(rs.methods) < 3:
         raise ValueError("Star-plots require at least 3 methods")
@@ -185,27 +204,27 @@ def star_plot(
 
 
 def single_star_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    *,
-    r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
-    show_r_ticks: bool = True,
-    show_grid: bool = True,
-    show_labels: bool = True,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        *,
+        r_ticks=(0.2, 0.4, 0.6, 0.8, 1.0),
+        show_r_ticks: bool = True,
+        show_grid: bool = True,
+        show_labels: bool = True,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     """
-    plots multiple scenarios into one star plot
-    :param experiment:
-    :param scenarios:
-    :param methods:
-    :param r_ticks:
-    :param show_r_ticks:
-    :param show_grid:
-    :param show_labels:
-    :param image_file:
-    :return:
+    plots multiple scenarios into a single star plot
+    :param experiment: experiment to plot
+    :param scenarios: scenarios to plot
+    :param methods: methods to plot
+    :param r_ticks: ticks for the radial axis
+    :param show_r_ticks: if the radial axis should be shown
+    :param show_grid: if the grid should be shown
+    :param show_labels: if the method labels should be shown
+    :param image_file: file to save the plot to
+    :return: A Figure object
     """
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df()
@@ -253,12 +272,12 @@ def single_star_plot(
 
 
 def plot_heatmap(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    methods: Optional[list[str]] = None,
-    special_df: Optional[DataFrame] = None,
-    image_file: Optional[PathLike] = None,
-    x_label_rotation: Optional[int] = 45,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        methods: Optional[list[str]] = None,
+        special_df: Optional[DataFrame] = None,
+        image_file: Optional[PathLike] = None,
+        x_label_rotation: Optional[int] = 45,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = special_df if special_df is not None else rs.normalized_df()
@@ -303,13 +322,13 @@ def plot_heatmap(
 
 
 def plot_sankey(
-    exp: Experiment,
-    scenario_name: str,
-    method_: str,
-    default_bar_color: Optional[str] = "blue",
-    color_map: Optional[dict[str, str]] = None,
-    *,
-    image_file: Optional[PathLike] = None,
+        exp: Experiment,
+        scenario_name: str,
+        method_: str,
+        default_bar_color: Optional[str] = "blue",
+        color_map: Optional[dict[str, str]] = None,
+        *,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     try:  # type: ignore
         import plotly.graph_objects as go
@@ -356,10 +375,10 @@ def plot_sankey(
 
 
 def one_axes_scatter_plot(
-    experiment: Union[Experiment, ResultsSelector],
-    selected_scenario: str,
-    methods: Optional[list[str]] = None,
-    image_file: Optional[PathLike] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        selected_scenario: str,
+        methods: Optional[list[str]] = None,
+        image_file: Optional[PathLike] = None,
 ) -> Figure:
     rs = ResultsSelector.get_result_selector(experiment, None, methods)
     df = rs.normalized_df()
@@ -392,13 +411,13 @@ def one_axes_scatter_plot(
 
 
 def plot_multivalue_results(
-    experiment: Union[Experiment, ResultsSelector],
-    scenarios: Optional[list[str]] = None,
-    level: int = 1,
-    methods: Optional[list[str]] = None,
-    nodes: Optional[list[str]] = None,
-    image_file: Optional[PathLike] = None,
-    err_method: Optional[Callable[[np.ndarray], float]] = None,
+        experiment: Union[Experiment, ResultsSelector],
+        scenarios: Optional[list[str]] = None,
+        level: int = 1,
+        methods: Optional[list[str]] = None,
+        nodes: Optional[list[str]] = None,
+        image_file: Optional[PathLike] = None,
+        err_method: Optional[Callable[[np.ndarray], float]] = None,
 ):
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
 

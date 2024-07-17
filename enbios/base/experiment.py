@@ -16,6 +16,15 @@ from enbios.base.adapters_aggregators.aggregator import EnbiosAggregator
 from enbios.base.adapters_aggregators.builtin import BUILTIN_ADAPTERS, BUILTIN_AGGREGATORS
 from enbios.base.adapters_aggregators.node_module import EnbiosNodeModule
 from enbios.base.experiment_io import resolve_input_files
+from enbios.base.models import (
+    ExperimentConfig,
+    NodeOutput,
+    ExperimentScenarioData,
+    ExperimentDataResolved,
+    TechTreeNodeData,
+    ScenarioResultNodeData,
+    Settings,
+)
 from enbios.base.pydantic_experiment_validation import validate_experiment_data
 from enbios.base.scenario import Scenario
 from enbios.base.tree_operations import validate_experiment_hierarchy
@@ -31,15 +40,6 @@ from enbios.bw2.MultiLCA_util import BaseStackedMultiLCA
 from enbios.generic.enbios2_logging import get_logger, EnbiosLogger
 from enbios.generic.files import PathLike, ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode
-from enbios.models.environment_model import Settings
-from enbios.models.models import (
-    ExperimentConfig,
-    ExperimentScenarioData,
-    NodeOutput,
-    ExperimentDataResolved,
-    TechTreeNodeData,
-    ScenarioResultNodeData,
-)
 
 logger = get_logger(__name__)
 
@@ -131,16 +131,6 @@ class Experiment:
             raise ValueError(f"Node with name '{name}' not found")
         return node
 
-    def get_structural_node(self, name: str) -> BasicTreeNode[TechTreeNodeData]:
-        """
-        Get a node by either its name as it is defined in the experiment data.
-        :param name: Name of the node (as defined in the experiment hierarchy)
-        :return: All node-data
-        """
-        node = self._structural_nodes.get(name, None)
-        if not node:
-            raise ValueError(f"Node with name '{name}' not found")
-        return node
 
     def get_node_module(
         self,
@@ -305,7 +295,7 @@ class Experiment:
         for scenario_name in scenario_names:
             scenario = self.get_scenario(scenario_name)
             temp_file_name = gettempdir() + f"/temp_scenario_{scenario.name}.csv"
-            scenario.results_to_csv(
+            scenario.result_to_csv(
                 temp_file_name,
                 level_names=level_names,
                 include_method_units=include_method_units,
@@ -336,7 +326,7 @@ class Experiment:
             writer.writeheader()
             writer.writerows(all_rows)
 
-    def result_to_dict(
+    def results_to_dict(
         self,
         scenarios: Optional[Union[str, list[str]]] = None,
         include_method_units: bool = True,
@@ -528,7 +518,7 @@ class Experiment:
                 "aggregators": { ... }
             }
             ```
-        :param include_all_builtin_configs:
+        :param include_all_builtin_configs: Include the jsonschema configs of all adapters and aggregegators
         :return: all configs
         """
         result = {

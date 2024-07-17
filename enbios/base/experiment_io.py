@@ -4,15 +4,15 @@ from typing import Union, Optional
 from frictionless import Schema
 from frictionless.fields import NumberField, StringField
 
-from enbios.base.tree_operations import csv2hierarchy
-from enbios.generic.files import ReadPath
-from enbios.generic.flatten_dict.flatten_dict import unflatten
-from enbios.models.models import (
-    ExperimentData,
+from enbios.base.models import (
     ExperimentHierarchyNodeData,
     ExperimentScenarioData,
+    ExperimentData,
     ExperimentDataResolved,
 )
+from enbios.base.tree_operations import csv2hierarchy
+from enbios.generic.files import ReadPath
+from enbios.generic.mermaid2hierarchy import convert_mermaid_file
 
 activities_schema = Schema(
     fields=[
@@ -50,15 +50,15 @@ methods_schema = Schema(
 )
 
 
-def unflatten_data(data: dict, structure_map: dict):
-    res = {}
-    for key, value in data.items():
-        if key in structure_map:
-            res[structure_map[key]] = value
-        else:
-            res[key] = value
-    print(res)
-    return unflatten(res, splitter="dot")
+# def unflatten_data(data: dict, structure_map: dict):
+#     res = {}
+#     for key, value in data.items():
+#         if key in structure_map:
+#             res[structure_map[key]] = value
+#         else:
+#             res[key] = value
+#     print(res)
+#     return unflatten(res, splitter="dot")
 
 
 def get_abs_path(
@@ -80,8 +80,12 @@ def resolve_input_files(raw_input: ExperimentData) -> ExperimentDataResolved:
             hierarchy_data = hierarchy_file.read_data()
         elif hierarchy_file.suffix == ".csv":
             hierarchy_data = csv2hierarchy(hierarchy_file)
+        elif hierarchy_file.suffix in [".mm", ".mermaid"]:
+            hierarchy_data = convert_mermaid_file(hierarchy_file)
         else:
-            raise Exception(f"Invalid hierarchy file: {raw_input.hierarchy}")
+            raise Exception(
+                f"Invalid hierarchy file: {raw_input.hierarchy}. Valid fileformats are .json, .csv, .mm (or .mermaid)."
+            )
 
         raw_input.hierarchy = ExperimentHierarchyNodeData(**hierarchy_data)
 

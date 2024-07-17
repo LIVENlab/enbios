@@ -1,7 +1,7 @@
 from pint import Quantity
 
 from enbios.base.unit_registry import ureg
-from enbios.models.models import NodeOutput
+from enbios.base.models import NodeOutput
 
 
 def compact_all_to(quantities: list[Quantity], use_min: bool = True) -> list[Quantity]:

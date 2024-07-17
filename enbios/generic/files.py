@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from csv import DictReader
 from pathlib import Path
 from typing import Generator, Union, Optional
@@ -74,11 +75,17 @@ class ReadPath(Path):
 
     _flavour = Path(".")._flavour  # type: ignore
 
-    def __new__(cls, *args, **kwargs):
-        instance = super().__new__(cls, *args, **kwargs)
-        if not instance.exists():
-            raise FileNotFoundError(f"File {instance} does not exist")
-        return instance
+    if sys.version_info >= (3, 12):
+        def __init__(self, *args):
+            super().__init__(*args)
+            if not os.path.exists(self):
+                raise FileNotFoundError(f"File {self} does not exist")
+    else:
+        def __new__(cls, *args, **kwargs):
+            instance = super().__new__(cls, *args, **kwargs)
+            if not os.path.exists(instance):
+                raise FileNotFoundError(f"File {instance} does not exist")
+            return instance
 
     def read_data(self, config: Optional[dict] = None):
         """

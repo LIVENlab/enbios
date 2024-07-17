@@ -114,6 +114,11 @@ class ResultsSelector:
         return self._base_df
 
     def normalized_df(self, normalize_with_all_scenarios: bool = True) -> DataFrame:
+        """
+        This function normalizes the dataframe.
+        :param normalize_with_all_scenarios:
+        :return:
+        """
         used_df = self.complete_df if normalize_with_all_scenarios else self.base_df
         columns = used_df.columns[1:]
         normalized_df = DataFrame()
