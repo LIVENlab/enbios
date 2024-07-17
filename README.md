@@ -41,10 +41,13 @@ the [SosteniPra](https://www.sostenipra.cat/) Research group, at [ICTA-UAB](http
 
 ## Installation
 
-We recommend you to run ENBIOS from a python IDE, such as Pycharm.
-But we also have a few Jupyter notebooks for you to use, see below.
+We recommend you to run ENBIOS from a python IDE, such as Pycharm. If you are an academic or a student, you can get a free
+license for Pycharm professional. In that case, you may also get a github student pack, which includes a free license for
+github copilot, which can help you write the code. But we also have a few Jupyter notebooks for you to use, see below.
 
-You first need to create an environment. From your terminal, try this:
+In any case you will need to install python first and then create an environment with the required packages. You can download it from [here](https://www.python.org/downloads/). we currently recommend python 3.9 to run ENBIOS.
+
+Once you have python installed, first need to create an environment. To do so, write this:
 
 * Windows  `python -m venv venv`
 * Linux   `python3.9 -m venv venv`
