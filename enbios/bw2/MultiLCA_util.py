@@ -1,54 +1,96 @@
 import logging
-from abc import ABC
 from typing import Optional, Callable, Any, Sequence
 
+import bw2data
 import numpy as np
-from bw2calc import LCA
-from bw2calc.multi_lca import InventoryMatrices
+from bw2calc import LCA, MultiLCA
+# from bw2calc.multi_lca import InventoryMatrices
 from bw2data import get_activity
 from bw2data.backends import Activity, ActivityDataset
+from matrix_utils import SparseMatrixDict
+from scipy import sparse
+from scipy.sparse import csr_matrix
 
 from enbios.bw2.bw_models import BWCalculationSetup
 from enbios.bw2.util import split_inventory
 
 
-class BaseStackedMultiLCA(ABC):
+def get_lca_method_matrices(calc_setup: BWCalculationSetup):
+    func_units = calc_setup.inv
+    methods = calc_setup.ia
+
+    all = {key: 1 for func_unit in func_units for key in func_unit}
+    lca = LCA(demand=all, method=methods[0], log_config=None)
+    lca.lci()
+    method_matrices = []
+    supply_arrays = []
+    results = np.zeros((len(func_units), len(methods)))
+    for m_idx, method in enumerate(methods):
+        lca.switch_method(method)
+        method_matrices.append(lca.characterization_matrix)
+
+    for row, func_unit in enumerate(func_units):
+        fu_spec, fu_demand = list(func_unit.items())[0]
+        if isinstance(fu_spec, int):
+            fu = {fu_spec: fu_demand}
+        elif isinstance(fu_spec, Activity):
+            fu = {fu[0].id: fu[1] for fu in list(func_unit.items())}
+        elif isinstance(fu_spec, tuple):
+            a = get_activity(fu_spec)
+            fu = {a.id: fu[1] for fu in list(func_unit.items())}
+        lca.lci(fu)
+        supply_arrays.append(lca.supply_array)
+
+        for col, cf_matrix in enumerate(method_matrices):
+            lca.characterization_matrix = cf_matrix
+            lca.lcia_calculation()
+            results[row, col] = lca.score
+
+
+class BaseStackedMultiLCA():
     def __init__(
-        self,
-        calc_setup: BWCalculationSetup,
-        results_structure: np.ndarray,
-        subset_labels: Optional[set[str]] = None,
-        activity_label_key: Optional[str] = None,
-        use_distributions: bool = False,
-        method_activity_func_maps: dict[
-            tuple[str, ...], dict[int, Callable[[float], float]]
-        ] = {},
+            self,
+            calc_setup: BWCalculationSetup,
+            results_structure: np.ndarray,
+            subset_labels: Optional[set[str]] = None,
+            activity_label_key: Optional[str] = None,
+            use_distributions: bool = False,
+            method_activity_func_maps: dict[
+                tuple[str, ...], dict[int, Callable[[float], float]]
+            ] = {},
     ):
-        self.func_units = calc_setup.inv
+
+        self.func_units = {f"e_{idx}": {act.id: demand for act, demand in acts.items()} for idx, acts in
+                           enumerate(calc_setup.inv)}
+        if len(self.func_units) == 1:
+            if "xxx" in self.func_units:
+                raise ValueError("'xxx' is RESERVED")
+            self.func_units["xxx"] = self.func_units["e_0"]
+        self.methods_config = {"impact_categories": calc_setup.ia}
+        data_objs = bw2data.get_multilca_data_objs(functional_units=self.func_units, method_config=self.methods_config)
+
         self.methods = calc_setup.ia
         self.has_nonlinear_functions: bool = method_activity_func_maps is not None
-        self.all = {key: 1 for func_unit in self.func_units for key in func_unit}
-        self.lca = LCA(
-            demand=self.all,
-            method=self.methods[0],
-            use_distributions=use_distributions,
-        )
+        self.all = {key: 1 for func_unit in calc_setup.inv for key in func_unit}
+
+        for method in self.methods_config["impact_categories"]:
+            bw2data.Method(method).process()
+
+        self.lca = MultiLCA(demands=self.func_units, method_config=self.methods_config, data_objs=data_objs, use_distributions=use_distributions)
+
         self.logger = logging.getLogger(__name__)
         self.results = results_structure
         self.lca.lci()
         self.non_linear_methods_flags: list[bool] = []
         self.method_matrices = []
-        self.supply_arrays: list = []
-        self.inventory = None
 
-        for method in self.methods:
-            self.lca.switch_method(method)
+        for m_idx, method in enumerate(self.methods):
             if self.has_nonlinear_functions and method in method_activity_func_maps:
                 method_characterization = method_activity_func_maps[method]
                 self.method_matrices.append(method_characterization)
                 self.non_linear_methods_flags.append(True)
             else:
-                self.method_matrices.append(self.lca.characterization_matrix)
+                self.method_matrices.append(None)
                 self.non_linear_methods_flags.append(False)
 
         if subset_labels:
@@ -63,59 +105,92 @@ class BaseStackedMultiLCA(ABC):
             self.main_loop()
 
     def main_loop(self):
-        for row, func_unit in enumerate(self.func_units):
-            self.prep_demand(row, func_unit)
-
-            for col, cf_matrix in enumerate(self.method_matrices):
-                # logger.debug(f"Method {col}/{len(self.method_matrices)}")
-                self.lca.characterization_matrix = cf_matrix
-                self.lcia_calculation(self.non_linear_methods_flags[col])
-                self.results[row, col] = self.lca.score
-
-        self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
+        self.lca.lci()
+        self.lca.lcia()
+        rows = list(self.func_units.keys())
+        if rows[-1] == "xxx":
+            rows.pop()
+        num_cols = len(self.methods)
+        num_rows = len(rows)
+        ci = 0
+        ri = 0
+        for f_m, res in self.lca.scores.items():
+            if f_m[1] == "xxx":
+                continue
+            self.results[ri, ci] = res
+            ci += 1
+            if ci == num_cols:
+                ri += 1
+                ci = 0
 
     def subset_mainloop(self):
-        for row, func_unit in enumerate(self.func_units):
-            self.prep_demand(row, func_unit)
-            for col, cf_matrix in enumerate(self.method_matrices):
-                self.lca.characterization_matrix = cf_matrix
+        self.lca.lci()
+        self.lca.lcia()
+        # self.lca.characterization_matrices @ self.lca.inventories
 
-                for idx, subset in enumerate(self.subset_labels):
-                    if subset not in self.subset_label_map:
-                        from enbios.bw2.brightway_experiment_adapter import (
-                            BrightwayAdapter,
-                        )
+        for idx, subset in enumerate(self.subset_labels):
+            if subset not in self.subset_label_map:
+                from enbios.bw2.brightway_experiment_adapter import (
+                    BrightwayAdapter,
+                )
 
-                        BrightwayAdapter.get_logger().error(
-                            f"Subset '{subset}' not found! Skipped. Results will be 0"
-                        )
-                        continue
-                    activity_ids = self.subset_label_map[subset]
-                    # todo, this is a bw_utils method split_inventory
-                    subset_characterized_inventory = self.lcia_calculation(
-                        self.non_linear_methods_flags[col],
-                        split_inventory(self.lca, activity_ids),
-                    )
-                    self.results[row, col, idx] = subset_characterized_inventory.sum()
-        self.inventory = InventoryMatrices(self.lca.biosphere_matrix, self.supply_arrays)
+                BrightwayAdapter.get_logger().error(
+                    f"Subset '{subset}' not found! Skipped. Results will be 0"
+                )
+                continue
 
-    def prep_demand(self, row: int, func_unit: dict[Activity, float]):
-        self.logger.debug(f"Demand {row}/{len(self.func_units)}")
-        fu_spec, fu_demand = list(func_unit.items())[0]
-        if isinstance(fu_spec, int):
-            fu = {fu_spec: fu_demand}
-        elif isinstance(fu_spec, Activity):
-            fu = {fu[0].id: fu[1] for fu in list(func_unit.items())}
-        elif isinstance(fu_spec, tuple):
-            a = get_activity(fu_spec)
-            fu = {a.id: fu[1] for fu in list(func_unit.items())}
-        else:
-            raise ValueError("Unknown functional unit type")
-        self.lca.lci(fu)
-        self.supply_arrays.append(self.lca.supply_array)
+            activity_ids = self.subset_label_map[subset]
+            for x_x, inv in self.lca.inventories.items():
+                ixes = [self.lca.dicts.activity[i] for i in activity_ids] #self.lca.dicts.activity
+                some_calc:SparseMatrixDict = self.lca.characterization_matrices @ inv[:, ixes]
+                for k,v in some_calc.items():
+                    print(k)
+                    v: csr_matrix = v
+                    # v.toarray()
+                    print(v.sum())
+                # print(some_calc)
+            pass
+
+        # for row, func_unit in enumerate(self.func_units):
+            # self.prep_demand(row, func_unit)
+            # for col, cf_matrix in enumerate(self.method_matrices):
+            #     self.lca.characterization_matrix = cf_matrix
+            #
+            #     for idx, subset in enumerate(self.subset_labels):
+            #         if subset not in self.subset_label_map:
+            #             from enbios.bw2.brightway_experiment_adapter import (
+            #                 BrightwayAdapter,
+            #             )
+            #
+            #             BrightwayAdapter.get_logger().error(
+            #                 f"Subset '{subset}' not found! Skipped. Results will be 0"
+            #             )
+            #             continue
+            #         activity_ids = self.subset_label_map[subset]
+            #         # todo, this is a bw_utils method split_inventory
+            #         subset_characterized_inventory = self.lcia_calculation(
+            #             self.non_linear_methods_flags[col],
+            #             split_inventory(self.lca, activity_ids),
+            #         )
+            #         self.results[row, col, idx] = subset_characterized_inventory.sum()
+
+    # def prep_demand(self, row: int, func_unit: dict[Activity, float]):
+    #     self.logger.debug(f"Demand {row}/{len(self.func_units)}")
+    #     fu_spec, fu_demand = list(func_unit.items())[0]
+    #     if isinstance(fu_spec, int):
+    #         fu = {fu_spec: fu_demand}
+    #     elif isinstance(fu_spec, Activity):
+    #         fu = {fu[0].id: fu[1] for fu in list(func_unit.items())}
+    #     elif isinstance(fu_spec, tuple):
+    #         a = get_activity(fu_spec)
+    #         fu = {a.id: fu[1] for fu in list(func_unit.items())}
+    #     else:
+    #         raise ValueError("Unknown functional unit type")
+    #     self.lca.lci(fu)
+    #     self.supply_arrays.append(self.lca.supply_array)
 
     def lcia_calculation(
-        self, non_linear: bool = False, inventory: Optional[Any] = None
+            self, non_linear: bool = False, inventory: Optional[Any] = None
     ) -> Any:
         """The actual LCIA calculation.
         Separated from ``lcia`` to be reusable in cases where the matrices are already built, e.g. ``redo_lcia`` and Monte Carlo classes.
@@ -141,7 +216,7 @@ class BaseStackedMultiLCA(ABC):
             self.lca.characterized_inventory = result
         else:
             self.lca.characterized_inventory = (
-                self.lca.characterization_matrix * inventory
+                    self.lca.characterization_matrix * inventory
             )
         return self.lca.characterized_inventory
 
@@ -151,7 +226,7 @@ class BaseStackedMultiLCA(ABC):
         # all other indices to last group
         div_tree: list[dict] = []
         for a in ActivityDataset.select(ActivityDataset).where(
-            ActivityDataset.type == "process"
+                ActivityDataset.type == "process"
         ):
             # if a.type == "process":
             sub: Sequence[str] = a.data.get(activity_label_key)

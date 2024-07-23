@@ -42,11 +42,13 @@ class SumAggregator(EnbiosAggregator):
                 ignore_short_multi_mag = False
                 if result.get(key) is None:
                     result[key] = ResultValue(
-                        magnitude=0, unit=value.unit, multi_magnitude=[]
+                         unit=value.unit, multi_magnitude=[]
                     )
                     ignore_short_multi_mag = True
                 node_agg_result = result[key]
                 if value.magnitude:
+                    if node_agg_result.magnitude is None:
+                        node_agg_result.magnitude = 0
                     node_agg_result.magnitude += value.magnitude
                 # multi_magnitude
                 max_len = max(

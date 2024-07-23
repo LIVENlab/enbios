@@ -1,9 +1,9 @@
 import re
 from csv import DictReader
 from pathlib import Path
-from typing import Any, TYPE_CHECKING, Callable, Optional, Iterator, cast
+from typing import Any, TYPE_CHECKING, Callable, Optional, cast
 
-from enbios import PathLike
+from enbios.generic.files import PathLike
 from enbios.generic.flatten_dict.flatten_dict import unflatten
 from enbios.base.models import (
     ExperimentHierarchyNodeData,
@@ -111,20 +111,20 @@ def csv2hierarchy(
     levels_regex: Optional[str] = "^level_\d+$",
 ) -> dict:
     tree: dict = {}
-    reader: Iterator[dict[str, str]] = DictReader(Path(csv_file).open())
+    reader = DictReader(Path(csv_file).open())
     current_node = tree
     _path: Optional[list[int]] = None
 
     all_node_names = set()
 
-    def create_mode(_row: dict, name: str):
+    def create_mode(_row: dict[str,Any], name: str):
         name = name.strip()
         if name in all_node_names:
             raise ValueError(f"Node '{name}' already exists")
         all_node_names.add(name)
-        node = {"name": name, "module": row["module"], "config": {}, "children": []}
+        node = {"name": name, "module": _row["module"], "config": {}, "children": []}
         all_node_names.add(name)
-        if not row["module"]:
+        if not _row["module"]:
             raise ValueError(f"Module is not specified for node '{name}'")
         config_cols = {
             col: val.strip()
@@ -149,6 +149,7 @@ def csv2hierarchy(
             level_cols = sorted([fn for fn in reader.fieldnames if levels_re.match(fn)])
 
     for row in reader:
+        row: dict
         row_added = False
         for depth, col in enumerate(level_cols):
             cell = row[col]

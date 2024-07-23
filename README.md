@@ -1,25 +1,35 @@
-# ENBIOS2
+# Enbios 2
 
-## What is ENBIOS 2
+## What is Enbios 2
 
-ENBIOS2 (Environmental and Bioeconomic System Analysis)  is a [python-based](https://pypi.org/project/enbios/)
-simulation tool for the assessment of environmental impacts and resource requirements of energy system
-pathways according to policy scenarios. These pathways are typically calculated by Energy System Optimization Models (
-ESOMs). Currently, ENBIOS is coupled with the
-[Calliope](https://www.callio.pe/) framework, and we are working to couple it with
-the [TIMES](https://iea-etsap.org/index.php/etsap-tools/model-generators/times) framework.
-
-ENBIOS2 is based on the integration of Life Cycle Assessment and the Multi-Scale Integrated Assessment of
+Enbios 2 (Environmental and Bioeconomic System Analysis)  is a [python-based](https://pypi.org/project/enbios/)
+tool for the assessment of environmental impacts and resource requirements of energy system pathways according to policy scenarios.
+It is based on the Multi-Scale Integrated Assessment of
 Socio-ecosystem framework (MuSIASEM) originally developed by C. Madrid-López
 ([2019](https://zenodo.org/records/10252544) and [2020](https://zenodo.org/records/4916338))
 
-ENBIOS2 is a ground up new computing implementation of the ENBIOS tool. You can see more information about
-this previous version below. Compared to the original version of enbios, this version is more flexible does not make
-its own LCA calculations, but uses [Brightway2](https://docs.brightway.dev/en/latest/) for that.
 
-In ENBIOS2 you will implement an experiment. To do this you will need to have at hand:
+Enbios 2 main benefits are it's strict type-validation and unit and flexibility for dendrogram processor calculations. The behaviour of the MuSIASEM hierarchy processors is not defined by fixed core implementation of
+Enbios, but through adapters and aggregators in external python modules, which can dynamically be added. An experiment can specify any number of scenarios. Each scenario can specify different outputs and configurations for the
+processor defined in the hierarchy.
 
-* a defined set of activities, that are typically the energy system technologies you would like to inlcude in the
+A builtin module allows to make Life cycle assessment calculations based on brightway extended with capabilities for regionalized assessments and arbitrary (non-linear) characterization methods.
+
+This repository contains an extended documentation, example notebooks, built in plotting capabilities and more
+than 180 tests.
+
+Enbios 2 is a ground up new computing implementation of the ENBIOS tool. You can see more information about
+this previous version below. Compared to the original version of enbios, this version is more flexible and runs full LCA calculations with [Brightway2](https://docs.brightway.dev/en/latest/).
+
+Basic elements of Enbios are
+
+<div style="display: flex">
+<img src="data/docs_assets/base_experiment_diagram.png" style="margin: auto; width: 400px" alt="">
+</div>
+
+In Enbios 2 you will implement an experiment. To do this you will need to have at hand:
+
+* a defined set of activities, that are typically the energy system technologies you would like to include in the
   assessment
 * access to a life cycle inventory database that can be imported in Brightway2 (such as Ecoinvent)
   or the skills and data to create yours
@@ -110,11 +120,8 @@ For each system function and structure (activity):
 ### Features
 
 - Integration of LCA and MuSIASEM evaluation methods
-- Library of impact assessment methods based on LCIA
-- New impact assessment methods developed for raw materials and circularity
-- Consideration of externalized environmental impacts
-- Takes data from the friendly-data package (other formats under development)
-- High level methods to quickly obtain/refresh analyses
+- Library of impact assessment methods based on LCIA (with brightway)
+
 
 ## Demos
 

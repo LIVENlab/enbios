@@ -1,5 +1,6 @@
 import math
 from collections import Counter
+from copy import copy, deepcopy
 from logging import getLogger
 from typing import Optional, Any, Sequence, Callable, Union
 
@@ -95,9 +96,7 @@ class BrightwayAdapter(EnbiosAdapter):
         self.config = BWAdapterConfig.model_validate({"bw_project": ""})
         self.activityMap: dict[str, BWActivityData] = {}
         self.methods: dict[str, ExperimentMethodPrepData] = {}
-        self.scenario_calc_setups: dict[
-            str, BWCalculationSetup
-        ] = {}  # scenario_alias to BWCalculationSetup
+
         self.raw_results: dict[str, list[ndarray]] = {}  # scenario_alias to results
         self.lca_objects: dict[
             str, list[BaseStackedMultiLCA]
@@ -115,7 +114,7 @@ class BrightwayAdapter(EnbiosAdapter):
 
     @staticmethod
     def assert_all_codes_unique(
-        raise_error: Optional[bool] = False, bw_project: Optional[str] = None
+            raise_error: Optional[bool] = False, bw_project: Optional[str] = None
     ):
         prev_bw_project = None
         if bw_project:
@@ -152,7 +151,7 @@ class BrightwayAdapter(EnbiosAdapter):
     def validate_methods(self, methods: Optional[dict[str, Any]]) -> list[str]:
         assert methods, "Methods must be defined for brightway adapter"
         # validation
-        BWMethodDefinition.model_validate(methods)
+        BWMethodDefinition.model_validate(deepcopy(methods))
 
         def validate_method(method_id: Sequence[str]) -> ExperimentMethodPrepData:
             # todo: should complain, if the same method is passed twice
@@ -175,9 +174,9 @@ class BrightwayAdapter(EnbiosAdapter):
         return list(self.methods.keys())
 
     def validate_node_output(
-        self,
-        node_name: str,
-        target_output: NodeOutput,
+            self,
+            node_name: str,
+            target_output: NodeOutput,
     ) -> float:
         """
         validate and convert to the bw-activity unit
@@ -187,10 +186,10 @@ class BrightwayAdapter(EnbiosAdapter):
         """
         try:
             target_quantity: Quantity = (
-                ureg.parse_expression(
-                    bw_unit_fix(target_output.unit), case_sensitive=False
-                )
-                * target_output.magnitude
+                    ureg.parse_expression(
+                        bw_unit_fix(target_output.unit), case_sensitive=False
+                    )
+                    * target_output.magnitude
             )
             bw_activity_unit = self.activityMap[node_name].bw_activity["unit"]
             return target_quantity.to(bw_unit_fix(bw_activity_unit)).magnitude
@@ -230,10 +229,10 @@ class BrightwayAdapter(EnbiosAdapter):
         #                              f"was not defined for the adapter: {m}")
 
     def validate_scenario_node(
-        self,
-        node_name: str,
-        scenario_name: str,
-        scenario_node_data: Any,
+            self,
+            node_name: str,
+            scenario_name: str,
+            scenario_node_data: Any,
     ):
         """
         validate and convert to the bw-activity unit
@@ -245,8 +244,8 @@ class BrightwayAdapter(EnbiosAdapter):
         target_output_: NodeOutput = NodeOutput.model_validate(scenario_node_data)
         try:
             target_quantity: Quantity = (
-                ureg.parse_expression(bw_unit_fix(target_output_.unit))
-                * target_output_.magnitude
+                    ureg.parse_expression(bw_unit_fix(target_output_.unit))
+                    * target_output_.magnitude
             )
             bw_activity_unit = self.get_node_output_unit(node_name)
             scaled_quantity: PlainQuantity = target_quantity.to(
@@ -278,7 +277,7 @@ class BrightwayAdapter(EnbiosAdapter):
         return self.methods[method_name].bw_method_unit
 
     def prepare_regionalization(
-        self, config: Optional[Union[RegionalizationConfig, dict]] = None
+            self, config: Optional[Union[RegionalizationConfig, dict]] = None
     ):
         if not config:
             config = self.config.simple_regionalization
@@ -302,8 +301,8 @@ class BrightwayAdapter(EnbiosAdapter):
                 # noinspection PyProtectedMember
                 with ActivityDataset._meta.database.atomic():
                     for a in activities_to_set[
-                        range_start * range_length : (range_start + 1) * range_length
-                    ]:
+                             range_start * range_length: (range_start + 1) * range_length
+                             ]:
                         a.data["enb_location"] = None
                         a.save()
 
@@ -326,7 +325,13 @@ class BrightwayAdapter(EnbiosAdapter):
                 a.data["enb_location"] = tuple(config.set_node_regions[a.code])
                 a.save()  # This updates each user in the database
 
-    def prepare_scenario(self, scenario: Scenario):
+    def prepare_scenario(self, scenario: Scenario) -> BWCalculationSetup:
+        """
+        Create the inventory for the scenario.
+        Result is stored in self.scenario_calc_setups
+        :param scenario:
+        :return:
+        """
         inventory: list[dict[Activity, float]] = []
         for act_alias, activity in self.activityMap.items():
             try:
@@ -349,15 +354,15 @@ class BrightwayAdapter(EnbiosAdapter):
         methods = [m.id for m in self.methods.values()]
         calculation_setup = BWCalculationSetup(scenario.name, inventory, methods)
         calculation_setup.register()
-        self.scenario_calc_setups[scenario.name] = calculation_setup
         if (
-            self.config.simple_regionalization.run_regionalization
-            and not self.all_regions_set
+                self.config.simple_regionalization.run_regionalization
+                and not self.all_regions_set
         ):
             self.prepare_regionalization(self.config.simple_regionalization)
+        return calculation_setup
 
     def run_scenario(self, scenario: Scenario) -> dict[str, dict[str, ResultValue]]:
-        self.prepare_scenario(scenario)
+        calculation_setup: BWCalculationSetup = self.prepare_scenario(scenario)
         use_distributions = self.config.use_k_bw_distributions > 1
         raw_results: list[ndarray] = []
         self.lca_objects[scenario.name] = []
@@ -373,19 +378,18 @@ class BrightwayAdapter(EnbiosAdapter):
                 self.get_logger().info(
                     f"Brightway adapter: Run distribution {i + 1}/{self.config.use_k_bw_distributions}"
                 )
-            calc_setup = self.scenario_calc_setups[scenario.name]
-            result_structure = np.zeros((len(calc_setup.inv), len(calc_setup.ia)))
+            result_structure = np.zeros((len(calculation_setup.inv), len(calculation_setup.ia)))
             subset_labels: Optional[set[str]] = None
             activity_label_key: Optional[str] = None
             if run_regionalization:
                 subset_labels = self.config.simple_regionalization.select_regions
                 result_structure = np.zeros(
-                    (len(calc_setup.inv), len(calc_setup.ia), len(subset_labels))
+                    (len(calculation_setup.inv), len(calculation_setup.ia), len(subset_labels))
                 )
                 activity_label_key = "enb_location"
 
             _lca = BaseStackedMultiLCA(
-                self.scenario_calc_setups[scenario.name],
+                calculation_setup,
                 result_structure,
                 subset_labels,
                 activity_label_key,
@@ -404,17 +408,17 @@ class BrightwayAdapter(EnbiosAdapter):
         )
 
     def _assign_results2nodes(
-        self,
-        raw_results: list[ndarray],
-        scenario: Scenario,
-        use_distributions: bool,
-        has_regionalization: bool,
+            self,
+            raw_results: list[ndarray],
+            scenario: Scenario,
+            use_distributions: bool,
+            has_regionalization: bool,
     ):
         result_data: dict[str, Any] = {}
         for act_idx, act_alias in enumerate(self.activityMap.keys()):
             if (
-                scenario.name not in self.activityMap[act_alias].scenario_outputs
-                and scenario.config.exclude_defaults
+                    scenario.name not in self.activityMap[act_alias].scenario_outputs
+                    and scenario.config.exclude_defaults
             ):
                 continue
             result_data[act_alias] = {}
@@ -423,7 +427,7 @@ class BrightwayAdapter(EnbiosAdapter):
                 method_name, method_data = method
                 if has_regionalization:
                     for region_idx, region in enumerate(
-                        self.config.simple_regionalization.select_regions
+                            self.config.simple_regionalization.select_regions
                     ):
                         method_result = ResultValue.model_validate(
                             {"unit": method_data.bw_method_unit}
@@ -468,7 +472,7 @@ class BrightwayAdapter(EnbiosAdapter):
         return method_activity2func_maps
 
     def prepare_nonlinear_method(
-        self, method_name: str, method_config: NonLinearMethodConfig
+            self, method_name: str, method_config: NonLinearMethodConfig
     ) -> dict[int, Callable[[float], float]]:
         result_func_map: dict[
             int, Callable[[float], float]
@@ -518,7 +522,7 @@ class BrightwayAdapter(EnbiosAdapter):
 
         class MyGenerateJsonSchema(GenerateJsonSchema):
             def handle_invalid_for_json_schema(
-                self, schema: core_schema.CoreSchema, error_info: str
+                    self, schema: core_schema.CoreSchema, error_info: str
             ) -> JsonSchemaValue:
                 if schema["type"] == "callable":
                     logger.warning("Ignoring callable during schema generation...")
@@ -535,7 +539,7 @@ class BrightwayAdapter(EnbiosAdapter):
         }
 
     def activities_keys_id_map(
-        self, keys: list[tuple[str, str]]
+            self, keys: list[tuple[str, str]]
     ) -> ReversibleRemappableDictionary:
         codes = [code for _, code in keys]
         biosphere_activities = list(

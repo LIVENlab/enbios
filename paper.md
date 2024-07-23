@@ -13,7 +13,7 @@ processor defined in the hierarchy.
 A builtin adapter allows to make Life cycle assessment calculations based on brightway extended with capabilities for regionalized assessments and arbitrary (non-linear) characterization methods.
 
 The linked repository contains an extended documentation, example notebooks, built in plotting capabilities and more
-than 170 tests.
+than 180 tests.
 
 Code repository: https://github.com/LIVENlab/enbios/
 

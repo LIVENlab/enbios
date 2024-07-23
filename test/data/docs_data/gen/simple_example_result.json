@@ -4,11 +4,11 @@
     "results": {
       "GWP1000": {
         "unit": "kg CO2-Eq",
-        "magnitude": 0.142615182893779
+        "magnitude": 0.1266899934692342
       },
       "FETP": {
         "unit": "kg 1,4-DCB-Eq",
-        "magnitude": 0.06303329465759974
+        "magnitude": 0.07895848408892303
       }
     },
     "output": [
@@ -24,11 +24,11 @@
         "results": {
           "GWP1000": {
             "unit": "kg CO2-Eq",
-            "magnitude": 0.04021441221464619
+            "magnitude": 0.07317538277630396
           },
           "FETP": {
             "unit": "kg 1,4-DCB-Eq",
-            "magnitude": 0.0566978988042604
+            "magnitude": 0.06943980012200446
           }
         },
         "output": [
@@ -44,11 +44,11 @@
             "results": {
               "GWP1000": {
                 "unit": "kg CO2-Eq",
-                "magnitude": 0.024970800870991273
+                "magnitude": 0.0249708008727712
               },
               "FETP": {
                 "unit": "kg 1,4-DCB-Eq",
-                "magnitude": 0.050272290729750875
+                "magnitude": 0.015243611343925961
               }
             },
             "output": [
@@ -65,11 +65,11 @@
             "results": {
               "GWP1000": {
                 "unit": "kg CO2-Eq",
-                "magnitude": 0.015243611343654916
+                "magnitude": 0.048204581903532766
               },
               "FETP": {
                 "unit": "kg 1,4-DCB-Eq",
-                "magnitude": 0.006425608074509521
+                "magnitude": 0.05419618877807849
               }
             },
             "output": [
@@ -88,11 +88,11 @@
         "results": {
           "GWP1000": {
             "unit": "kg CO2-Eq",
-            "magnitude": 0.10240077067913281
+            "magnitude": 0.05351461069293026
           },
           "FETP": {
             "unit": "kg 1,4-DCB-Eq",
-            "magnitude": 0.006335395853339337
+            "magnitude": 0.009518683966918571
           }
         },
         "output": [
@@ -108,11 +108,11 @@
             "results": {
               "GWP1000": {
                 "unit": "kg CO2-Eq",
-                "magnitude": 0.04820458190235993
+                "magnitude": 0.05027229073047196
               },
               "FETP": {
                 "unit": "kg 1,4-DCB-Eq",
-                "magnitude": 0.0032423199619428613
+                "magnitude": 0.006425608074904238
               }
             },
             "output": [
@@ -129,11 +129,11 @@
             "results": {
               "GWP1000": {
                 "unit": "kg CO2-Eq",
-                "magnitude": 0.05419618877677287
+                "magnitude": 0.0032423199624583023
               },
               "FETP": {
                 "unit": "kg 1,4-DCB-Eq",
-                "magnitude": 0.0030930758913964764
+                "magnitude": 0.003093075892014333
               }
             },
             "output": [
@@ -154,11 +154,11 @@
     "results": {
       "GWP1000": {
         "unit": "kg CO2-Eq",
-        "magnitude": 0.8758822044490706
+        "magnitude": 0.863033764547388
       },
       "FETP": {
         "unit": "kg 1,4-DCB-Eq",
-        "magnitude": 0.35255636749694047
+        "magnitude": 0.3654048074393865
       }
     },
     "output": [
@@ -174,11 +174,11 @@
         "results": {
           "GWP1000": {
             "unit": "kg CO2-Eq",
-            "magnitude": 0.1650684165695875
+            "magnitude": 0.5354614604648896
           },
           "FETP": {
             "unit": "kg 1,4-DCB-Eq",
-            "magnitude": 0.30805935245300914
+            "magnitude": 0.3404207440123963
           }
         },
         "output": [
@@ -194,11 +194,11 @@
             "results": {
               "GWP1000": {
                 "unit": "kg CO2-Eq",
-                "magnitude": 0.14982480522593258
+                "magnitude": 0.14982480523662747
               },
               "FETP": {
                 "unit": "kg 1,4-DCB-Eq",
-                "magnitude": 0.3016337443784996
+                "magnitude": 0.015243611343925961
               }
             },
             "output": [
@@ -215,11 +215,11 @@
             "results": {
               "GWP1000": {
                 "unit": "kg CO2-Eq",
-                "magnitude": 0.015243611343654916
+                "magnitude": 0.3856366552282621
               },
               "FETP": {
                 "unit": "kg 1,4-DCB-Eq",
-                "magnitude": 0.006425608074509521
+                "magnitude": 0.32517713266847037
               }
             },
             "output": [
@@ -238,11 +238,11 @@
         "results": {
           "GWP1000": {
             "unit": "kg CO2-Eq",
-            "magnitude": 0.7108137878794831
+            "magnitude": 0.32757230408249843
           },
           "FETP": {
             "unit": "kg 1,4-DCB-Eq",
-            "magnitude": 0.04449701504393135
+            "magnitude": 0.024984063426990236
           }
         },
         "output": [
@@ -258,11 +258,11 @@
             "results": {
               "GWP1000": {
                 "unit": "kg CO2-Eq",
-                "magnitude": 0.38563665521887946
+                "magnitude": 0.301633744382832
               },
               "FETP": {
                 "unit": "kg 1,4-DCB-Eq",
-                "magnitude": 0.02593855969554289
+                "magnitude": 0.006425608074904238
               }
             },
             "output": [
@@ -279,11 +279,11 @@
             "results": {
               "GWP1000": {
                 "unit": "kg CO2-Eq",
-                "magnitude": 0.3251771326606037
+                "magnitude": 0.02593855969966642
               },
               "FETP": {
                 "unit": "kg 1,4-DCB-Eq",
-                "magnitude": 0.018558455348388462
+                "magnitude": 0.018558455352085997
               }
             },
             "output": [

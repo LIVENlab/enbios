@@ -10,6 +10,7 @@ latest_file=$(ls -v | grep 'enbios-[0-9].' | tail -n 2)
 # Get the tar.gz of that file
 latest_tar_gz=$(ls -v | grep "$latest_file.*\.tar\.gz$" | tail -n 1)
 
+echo "$latest_file"
 # Get the absolute path of the latest tar.gz file
 absolute_path=$(realpath "$latest_tar_gz")
 
