@@ -111,13 +111,14 @@ class BaseStackedMultiLCA():
         if rows[-1] == "xxx":
             rows.pop()
         num_cols = len(self.methods)
-        num_rows = len(rows)
         ci = 0
         ri = 0
         for f_m, res in self.lca.scores.items():
             if f_m[1] == "xxx":
                 continue
             self.results[ri, ci] = res
+            if self.non_linear_methods_flags[ri]:
+                self.results[ri, ci] = self.method_matrices
             ci += 1
             if ci == num_cols:
                 ri += 1
@@ -126,7 +127,6 @@ class BaseStackedMultiLCA():
     def subset_mainloop(self):
         self.lca.lci()
         self.lca.lcia()
-        # self.lca.characterization_matrices @ self.lca.inventories
 
         for idx, subset in enumerate(self.subset_labels):
             if subset not in self.subset_label_map:
@@ -140,54 +140,22 @@ class BaseStackedMultiLCA():
                 continue
 
             activity_ids = self.subset_label_map[subset]
+            ri = 0
+            ci = 0
+            num_cols = len(self.methods)
             for x_x, inv in self.lca.inventories.items():
-                ixes = [self.lca.dicts.activity[i] for i in activity_ids] #self.lca.dicts.activity
+                if x_x == "xxx":
+                    continue
+                ixes = [self.lca.dicts.activity[i] for i in activity_ids]
                 some_calc:SparseMatrixDict = self.lca.characterization_matrices @ inv[:, ixes]
                 for k,v in some_calc.items():
-                    print(k)
-                    v: csr_matrix = v
-                    # v.toarray()
-                    print(v.sum())
-                # print(some_calc)
-            pass
-
-        # for row, func_unit in enumerate(self.func_units):
-            # self.prep_demand(row, func_unit)
-            # for col, cf_matrix in enumerate(self.method_matrices):
-            #     self.lca.characterization_matrix = cf_matrix
-            #
-            #     for idx, subset in enumerate(self.subset_labels):
-            #         if subset not in self.subset_label_map:
-            #             from enbios.bw2.brightway_experiment_adapter import (
-            #                 BrightwayAdapter,
-            #             )
-            #
-            #             BrightwayAdapter.get_logger().error(
-            #                 f"Subset '{subset}' not found! Skipped. Results will be 0"
-            #             )
-            #             continue
-            #         activity_ids = self.subset_label_map[subset]
-            #         # todo, this is a bw_utils method split_inventory
-            #         subset_characterized_inventory = self.lcia_calculation(
-            #             self.non_linear_methods_flags[col],
-            #             split_inventory(self.lca, activity_ids),
-            #         )
-            #         self.results[row, col, idx] = subset_characterized_inventory.sum()
-
-    # def prep_demand(self, row: int, func_unit: dict[Activity, float]):
-    #     self.logger.debug(f"Demand {row}/{len(self.func_units)}")
-    #     fu_spec, fu_demand = list(func_unit.items())[0]
-    #     if isinstance(fu_spec, int):
-    #         fu = {fu_spec: fu_demand}
-    #     elif isinstance(fu_spec, Activity):
-    #         fu = {fu[0].id: fu[1] for fu in list(func_unit.items())}
-    #     elif isinstance(fu_spec, tuple):
-    #         a = get_activity(fu_spec)
-    #         fu = {a.id: fu[1] for fu in list(func_unit.items())}
-    #     else:
-    #         raise ValueError("Unknown functional unit type")
-    #     self.lca.lci(fu)
-    #     self.supply_arrays.append(self.lca.supply_array)
+                    self.results[ri, ci, idx] = v.sum()
+                    if self.non_linear_methods_flags[ri]:
+                        self.results[ri, ci] = self.method_matrices
+                    ci += 1
+                    if ci == num_cols:
+                        ri += 1
+                        ci = 0
 
     def lcia_calculation(
             self, non_linear: bool = False, inventory: Optional[Any] = None

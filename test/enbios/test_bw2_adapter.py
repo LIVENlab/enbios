@@ -422,17 +422,7 @@ def test_nonlinear_methods3(set_bw_default_project,
 
 
 def test_regionlized_nonlinear_characterization(test_network_project_db_name: tuple[str, str], create_test_network):
-    # biosphere_cfs = bw2data.Method(default_method_tuple).load()
-    # nonlinear_cfs = {
-    #     tuple(key): lambda v, cf_=cf: v * (cf_ * 2)
-    #     for key, cf in biosphere_cfs
-    # }
-    # adapter_def = experiment_setup["scenario"]["adapters"][0]
-    # adapter_def["config"]["nonlinear_characterization"] = {"methods": {
-    #     default_bw_method_name: {
-    #         "functions": nonlinear_cfs,
-    #         "get_defaults_from_original": False
-    #     }}}
+
     project_name, db_name = test_network_project_db_name
     bw2data.projects.set_current(project_name)
     db = bw2data.Database(db_name)
@@ -467,9 +457,11 @@ def test_regionlized_nonlinear_characterization(test_network_project_db_name: tu
 
     experiment_data = json.load(
         (BASE_TEST_DATA_PATH / "individual_setups/bw_adapter_regionalized.json").open(encoding="utf-8"))
-    # exp = Experiment(experiment_data)
-    # res = exp.run()
-    # assert res["default scenario"]["results"]["ipcc.CAT"]["magnitude"] == pytest.approx(110, abs=1e-10)
+
+    exp = Experiment(experiment_data)
+    res = exp.run()
+    assert res["default scenario"]["results"]["ipcc.CAT"]["magnitude"] == pytest.approx(110, abs=1e-10)
+
 
     waste_method_id = ('IPCC', 'waste')
     waste_method = bw2data.Method(waste_method_id)
@@ -486,10 +478,10 @@ def test_regionlized_nonlinear_characterization(test_network_project_db_name: tu
     experiment_data["adapters"][0]["config"]["simple_regionalization"]["select_regions"] = ["CAT", "ES", "ARA", "EU"]
     exp = Experiment(experiment_data)
 
-    # res = exp.run()
-    # expected_results = {'waste.CAT': 24, 'waste.ES': 132, 'waste.ARA': 104, 'waste.EU': 148}
-    # for waste_loc, res in res["default scenario"]["results"].items():
-    #     assert expected_results[waste_loc] == pytest.approx(res["magnitude"], abs=1e-10)
+    res = exp.run()
+    expected_results = {'waste.CAT': 24, 'waste.ES': 132, 'waste.ARA': 104, 'waste.EU': 148}
+    for waste_loc, res in res["default scenario"]["results"].items():
+        assert expected_results[waste_loc] == pytest.approx(res["magnitude"], abs=1e-10)
 
     def custom_waste_cf(v: float) -> float:
         if v < 100:
@@ -508,14 +500,14 @@ def test_regionlized_nonlinear_characterization(test_network_project_db_name: tu
         }}}
     exp = Experiment(experiment_data)
     res = exp.run()
-    # cat: * 24*1, ES: 132 * 3, ARA: 104 * 1.5, EU: 148 * 3
-    """
-    {
-    'waste.CAT': {'unit': 'kg', 'magnitude': 24.0},
-    'waste.ES': {'unit': 'kg', 'magnitude': 184.0},
-    'waste.EU': {'unit': 'kg', 'magnitude': 200.0},
-    'waste.ARA': {'unit': 'kg', 'magnitude': 156.0}}
-    """
+    # # cat: * 24*1, ES: 132 * 3, ARA: 104 * 1.5, EU: 148 * 3
+    # """
+    # {
+    # 'waste.CAT': {'unit': 'kg', 'magnitude': 24.0},
+    # 'waste.ES': {'unit': 'kg', 'magnitude': 184.0},
+    # 'waste.EU': {'unit': 'kg', 'magnitude': 200.0},
+    # 'waste.ARA': {'unit': 'kg', 'magnitude': 156.0}}
+    # """
     expected_results = {'waste.CAT': 24, 'waste.ES': 396, 'waste.ARA': 156.0, 'waste.EU': 444}
     for waste_loc, res in res["default scenario"]["results"].items():
         assert expected_results[waste_loc] == pytest.approx(res["magnitude"], abs=1e-10)
