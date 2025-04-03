@@ -113,9 +113,10 @@ class BrightwayAdapter(EnbiosAdapter):
 
     def assert_all_codes_unique(self):
         all_activities = list(ActivityDataset.select())
-        assert len(all_activities) == len(
+        if len(all_activities) == len(
             set([a.code for a in all_activities])
-        ), "It is recommended that all activities have unique codes"
+        ):
+            logger.warning("It is recommended that all activities have unique codes")
 
     def validate_config(self, config: Optional[dict[str, Any]]):
         self.config = BWAdapterConfig.model_validate(config)
