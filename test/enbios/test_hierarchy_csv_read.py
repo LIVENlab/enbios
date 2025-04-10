@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from enbios import Experiment
+from enbios.base.experiment import Experiment
 from enbios.base.tree_operations import csv2hierarchy
 from enbios.const import BASE_TEST_DATA_PATH
 

@@ -5,10 +5,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from matplotlib.projections import PolarAxes
+from matplotlib.projections.polar import PolarAxes
+
 from pandas import DataFrame
 
-from enbios import ScenarioResultNodeData
+from enbios.base.models import ScenarioResultNodeData
 from enbios.base.experiment import Experiment
 from enbios.base.result_select import ResultsSelector
 from enbios.generic.enbios2_logging import get_logger
@@ -123,6 +124,7 @@ def star_plot(
     :param image_file: file to save the plot to
     :return:
     """
+
     rs = ResultsSelector.get_result_selector(experiment, scenarios, methods)
     df = rs.normalized_df(False)
 

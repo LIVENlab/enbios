@@ -15,7 +15,7 @@ try:
 except ImportError as err:
     getLogger("test-logger").error("Please copy test/enbios/test_project_fixture.py.example to "
                                    "test/enbios/test_project_fixture.py and fill in the values.")
-    sys.exit(1)
+    sys.exit()
 
 
 # This fixture scans a directory and returns all files in the directory.

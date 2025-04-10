@@ -6,7 +6,7 @@ from pint.facets.plain import PlainQuantity
 from pydantic import ConfigDict, BaseModel, Field, model_validator, field_validator
 from pydantic_settings import BaseSettings
 
-from enbios import PathLike
+from enbios.generic.files import PathLike
 
 StrictInputConfig = ConfigDict(extra="forbid", validate_assignment=True, strict=True)
 

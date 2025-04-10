@@ -7,7 +7,8 @@ from typing import Generator, cast
 import pytest
 from bw2data.backends import Activity
 
-from enbios import Experiment, ScenarioResultNodeData
+from enbios.base.experiment import Experiment
+from enbios.base.models import ScenarioResultNodeData
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.generic.files import ReadPath
 from enbios.generic.tree.basic_tree import BasicTreeNode

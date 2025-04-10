@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from enbios import Experiment
+from enbios.base.experiment import Experiment
 
 
 def test_fail_get_structural_node(basic_experiment):

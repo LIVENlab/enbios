@@ -5,7 +5,7 @@ from typing import Generator
 
 import pytest
 
-from enbios import Experiment
+from enbios.base.experiment import Experiment
 from enbios.const import BASE_TEST_DATA_PATH
 
 

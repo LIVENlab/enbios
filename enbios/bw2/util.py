@@ -12,7 +12,7 @@ from bw2io import SingleOutputEcospold2Importer
 from scipy.sparse import csr_matrix
 from tqdm import tqdm
 
-from enbios import PathLike
+from enbios.generic.files import PathLike
 from enbios.base.models import ExperimentHierarchyNodeData
 
 

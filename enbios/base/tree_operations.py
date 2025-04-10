@@ -3,7 +3,8 @@ from csv import DictReader
 from pathlib import Path
 from typing import Any, TYPE_CHECKING, Callable, Optional, Iterator, cast
 
-from enbios import PathLike
+from enbios.generic.files import PathLike
+
 from enbios.generic.flatten_dict.flatten_dict import unflatten
 from enbios.base.models import (
     ExperimentHierarchyNodeData,

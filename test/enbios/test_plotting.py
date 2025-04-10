@@ -4,7 +4,7 @@ from typing import Generator
 import pytest
 
 from demos.demo_experiment import get_demo_experiment
-from enbios import Experiment
+from enbios.base.experiment import Experiment
 from enbios.base.plot_experiment import bar_plot, stacked_bar_plot, star_plot, single_star_plot, plot_heatmap, \
     one_axes_scatter_plot
 from enbios.base.result_select import ResultsSelector

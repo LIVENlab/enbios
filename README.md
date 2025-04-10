@@ -68,6 +68,12 @@ Install enbios2 with
 * (linux)
   `python3 -m pip install enbios`
 
+### Installing from the repo
+
+after cloning the repo run
+
+`pip install -e`
+
 ## Fundamentals
 
 [Read fundamentals about setting up an enbios experiment](https://github.com/LIVENlab/enbios/blob/main/docs/Fundamentals.md)

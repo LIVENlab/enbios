@@ -10,8 +10,16 @@ from bw2calc import LCA
 from bw2data.backends import ActivityDataset
 from pint import UndefinedUnitError
 
-from bw_tools import mermaid_diagram
-from bw_tools.network_build import build_network
+has_bw_tools=True
+
+try:
+    from bw_tools import mermaid_diagram
+    from bw_tools.network_build import build_network
+except ImportError as err:
+    print("bw_tools not installed..")
+    has_bw_tools = False
+
+
 from enbios.base.experiment import Experiment
 from enbios.bw2.brightway_experiment_adapter import BrightwayAdapter
 from enbios.const import BASE_TEST_DATA_PATH
@@ -433,6 +441,9 @@ def test_regionlized_nonlinear_characterization(test_network_project_db_name: tu
     #         "functions": nonlinear_cfs,
     #         "get_defaults_from_original": False
     #     }}}
+    if not has_bw_tools:
+        print("Skipping test: test_regionlized_nonlinear_characterization (no bw_tools)")
+        return
     project_name, db_name = test_network_project_db_name
     bw2data.projects.set_current(project_name)
     db = bw2data.Database(db_name)
@@ -531,6 +542,11 @@ def random_test_project() -> str:
 
 
 def test_indendent_node_methods(random_test_project: str):
+    if not has_bw_tools:
+        print("skipping test:test_indendent_node_methods. no bw_tools")
+        return
+
+
     db = bw2data.Database("test-db")
     db.register()
     nw = """name,code,unit,type

@@ -2,7 +2,7 @@ import pickle
 from pathlib import Path
 from random import randint
 
-from enbios import Experiment
+from enbios.base.experiment import Experiment
 
 
 def create_experiment_config(num_scenarios) -> dict:
