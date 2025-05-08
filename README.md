@@ -72,7 +72,7 @@ Install enbios2 with
 
 after cloning the repo run
 
-`pip install -e`
+`pip install -e .`
 
 several dependencies can also be upgraded with.
 `pip install --upgrade pip, frictionless, jsonschema requests tqdm urllib3 zipp certifi idna`
