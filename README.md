@@ -74,6 +74,9 @@ after cloning the repo run
 
 `pip install -e`
 
+several dependencies can also be upgraded with.
+`pip install --upgrade pip, frictionless, jsonschema requests tqdm urllib3 zipp certifi idna`
+
 ## Fundamentals
 
 [Read fundamentals about setting up an enbios experiment](https://github.com/LIVENlab/enbios/blob/main/docs/Fundamentals.md)
