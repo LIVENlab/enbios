@@ -20,3 +20,4 @@
 /data/databases/*
 /data/logging.json
 /enbios.egg-info/
+.claude/
