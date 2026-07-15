@@ -4,6 +4,10 @@
 
 # ── IMMEDIATE (small, unblocked) ─────────────────────────────
 
+[ ] Review code inconsistencies introduced by the July 2024 merge (commit d6d928aa)
+    - Ramin's May 2024 commits were merged in bulk — verify consistency with earlier code
+    - Check enbios/base/, demos/, and test/ for any conflicts or unresolved issues
+
 [ ] Update pyproject.toml classifiers once PyPI PR #253 is merged
     - PR: https://github.com/pypa/trove-classifiers/pull/253
     - Add: Topic :: Scientific/Engineering :: Ecology
