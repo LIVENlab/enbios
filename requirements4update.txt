@@ -1,0 +1,31 @@
+# Packages to review when updating enbios for Python 3.14 compatibility
+# These packages have old pinned versions that likely lack pre-built wheels for Python 3.14
+# and require C/Rust compilation (which needs Visual Studio Build Tools on Windows).
+# Confirmed broken on Python 3.14 during install on 2026-07-15.
+
+# ── Confirmed broken ──────────────────────────────────────────
+contourpy==1.1.0        # C extension. Failed: requires vswhere.exe (VS Build Tools). Update to >=1.2.0
+
+# ── C extensions — likely to fail (old versions, no 3.14 wheels) ──
+numpy==1.26.4           # Core C extension. 3.14 wheels available from 2.0+. Update to >=2.0
+scipy==1.12.0           # C/Fortran extension. Update to >=1.14
+matplotlib==3.8.3       # Depends on contourpy. Update to >=3.9
+lxml==4.9.3             # C extension. Update to >=5.0
+pillow==10.2.0          # C extension. Update to >=10.3
+pydantic_core==2.16.3   # Rust extension. Update to >=2.20
+
+# ── Dev/pre-release pinned versions — may have compatibility issues ──
+brightway25==1.0.6      # Large package, builds from source. Check for 3.14-compatible release.
+bw2data>=4.0.dev19,<=4.0.dev33   # Dev version — check for stable release
+bw2calc>=2.0.dev13,<=2.0.dev16   # Dev version — check for stable release
+bw2io>=0.9.dev19,<=0.9.dev26     # Dev version — check for stable release
+
+# ── May also need updating (old pins, check compatibility) ──
+pydantic==2.6.4         # Depends on pydantic_core. Update together.
+stats-arrays==0.6.5     # Used by brightway. Check for 3.14 wheel.
+bw2analyzer==0.11.5     # Builds from source. Check for 3.14 wheel.
+
+# ── Action items ──────────────────────────────────────────────
+# 1. Update requires-python in pyproject.toml to include >=3.14 once packages are updated
+# 2. Replace pinned == versions with >= minimum compatible versions where possible
+# 3. Run: pip install -r requirements.txt on a clean 3.14 venv to verify after updates
