@@ -20,11 +20,11 @@ class ResultsSelector:
         methods: Optional[list[str]] = None,
     ):
         """
-        Initialize the object with experiment, scenarios, and methods.
+        Initialize the object with new_developments, scenarios, and methods.
 
         :param experiment: The Experiment object.
-        :param scenarios: A list of scenario names. If None, all scenario names from the experiment will be used.
-        :param methods: A list of method names. If None, all method names from the experiment will be used.
+        :param scenarios: A list of scenario names. If None, all scenario names from the new_developments will be used.
+        :param methods: A list of method names. If None, all method names from the new_developments will be used.
         """
         self.experiment = experiment
         self.scenarios: list[str]
@@ -32,7 +32,7 @@ class ResultsSelector:
         if scenarios is not None:
             for scenario in scenarios:
                 if scenario not in all_scenarios:
-                    raise ValueError(f"Scenario {scenario} not found in experiment")
+                    raise ValueError(f"Scenario {scenario} not found in new_developments")
             self.scenarios = scenarios
         else:
             self.scenarios = all_scenarios
@@ -46,7 +46,7 @@ class ResultsSelector:
             for idx, method in enumerate(methods):
                 method_name = method.split(".")[-1]
                 if method_name not in all_method_names:
-                    raise ValueError(f"Method {method_name} not found in experiment")
+                    raise ValueError(f"Method {method_name} not found in new_developments")
                 self.methods.append(method)
                 self.method_names.append(method_name)
         else:

@@ -85,7 +85,7 @@ class ExperimentHierarchyNodeData(BaseModel):
 
 class HierarchyStructuralNodeData(BaseModel):
     """
-    This is the dataclass for the activities in the experiment.
+    This is the dataclass for the activities in the new_developments.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -162,7 +162,7 @@ class ExperimentScenarioData(BaseModel):
 
 class ExperimentData(BaseModel):
     """
-    This class is used to store the data of an experiment.
+    This class is used to store the data of an new_developments.
     """
 
     model_config = StrictInputConfig
@@ -172,20 +172,20 @@ class ExperimentData(BaseModel):
         [], description="The aggregators to be used"
     )
     hierarchy: Union[ExperimentHierarchyNodeData, PathLike] = Field(
-        ..., description="The activity hierarchy to be used in the experiment"
+        ..., description="The activity hierarchy to be used in the new_developments"
     )
     scenarios: Optional[Union[list[ExperimentScenarioData], PathLike]] = Field(
-        None, description="The scenarios for this experiment"
+        None, description="The scenarios for this new_developments"
     )
     config: ExperimentConfig = Field(
         default_factory=ExperimentConfig,
-        description="The configuration of this experiment",
+        description="The configuration of this new_developments",
     )
 
 
 class ExperimentDataResolved(BaseModel):
     """
-    This class is used to store the data of an experiment.
+    This class is used to store the data of an new_developments.
     """
 
     model_config = StrictInputConfig
@@ -195,14 +195,14 @@ class ExperimentDataResolved(BaseModel):
         [], description="The aggregators to be used"
     )
     hierarchy: ExperimentHierarchyNodeData = Field(
-        ..., description="The activity hierarchy to be used in the experiment"
+        ..., description="The activity hierarchy to be used in the new_developments"
     )
     scenarios: Optional[list[ExperimentScenarioData]] = Field(
-        None, description="The scenarios for this experiment"
+        None, description="The scenarios for this new_developments"
     )
     config: ExperimentConfig = Field(
         default_factory=ExperimentConfig,
-        description="The configuration of this experiment",
+        description="The configuration of this new_developments",
     )
 
 

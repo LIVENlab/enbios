@@ -30,7 +30,7 @@ def get_output_in_unit(output: NodeOutput, target_unit: str) -> float:
     conversion_quant = (ureg.parse_expression(output.unit) * output.magnitude).to(
         target_unit
     )
-    # experiment to avoid something like 1ML converted to 1000000.00000001
+    # new_developments to avoid something like 1ML converted to 1000000.00000001
     if (
         ureg.parse_expression(output.unit) / ureg(target_unit)
     ).to_base_units().magnitude > 1e6:

@@ -1,22 +1,49 @@
+# ── Large, private data files (ecoinvent databases) ───────────────────
 /data/ecoinvent/
 /data/ecoinventJson/
-/test/enbios/test_project_fixture.py
-/venv/
-/.idea/
+/data/databases/*
+
+# ── Temporary data ────────────────────────────────────────────
 /data/temp/
+/data/logging.json
+
+# ── Test fixtures (machine-specific) ─────────────────────────
+/test/enbios/test_project_fixture.py
+
+# ── Virtual environments ──────────────────────────────────────
+/venv/
+/venv_build/
+.venv/
+
+
+# ── IDE settings ──────────────────────────────────────────────
+/.idea/
+
+# ── Build & distribution artifacts ───────────────────────────
+/dist/
 /dist/enbios2-0.1.0.tar.gz
 /dist/enbios2-0.1.0-py3-none-any.whl
-/projects/
 /enbios2.egg-info/
-/.pypirc
-/dist/
-/enbios/enbios2.egg-info/
-/venv_build/
-/enbios/experiment/gnn/features/edges.jsonl
-/enbios/experiment/gnn/features/names.jsonl
-/enbios/experiment/gnn/features/product.jsonl
-/enbios/experiment/gnn/base.py
-/enbios/experiment/class_static_me.py
-/data/databases/*
-/data/logging.json
 /enbios.egg-info/
+/enbios/enbios2.egg-info/
+
+# ── PyPI credentials ──────────────────────────────────────────
+/.pypirc
+
+# ── Experimental / unfinished code ───────────────────────────
+/projects/
+/new_developments/
+
+# ── Claude Code worktrees ─────────────────────────────────────
+/.claude/
+
+# ── Jupyter ───────────────────────────────────────────────────
+**/.ipynb_checkpoints/
+
+# ── Python cache ──────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Local environment secrets ─────────────────────────────────
+.env

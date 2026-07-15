@@ -10,7 +10,7 @@ from enbios.base.plot_experiment import (
 )
 
 base_plot_destination_path = Path("data/plots")
-# Open a pickled experiment object.
+# Open a pickled new_developments object.
 exp: Experiment = get_demo_experiment(num_scenarios=4)
 
 bar_plot(exp, image_file=base_plot_destination_path / "bar_plot_1.png")
@@ -26,7 +26,7 @@ bar_plot(
     exp, methods=["bw.GWP1000"], image_file=base_plot_destination_path / "bar_plot_3.png"
 )
 
-exp.results_to_csv(base_plot_destination_path / "experiment.csv", flat_hierarchy=True)
+exp.results_to_csv(base_plot_destination_path / "new_developments.csv", flat_hierarchy=True)
 
 stacked_bar_plot(exp, image_file=base_plot_destination_path / "stacked_plot_1.png")
 

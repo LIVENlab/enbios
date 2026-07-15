@@ -186,7 +186,7 @@ def test_scenario(experiment_scenario_setup: dict,
     expected_value2 = expected_value1.magnitude * 2000  # from 1KWh to 2MWh
     assert result["scenario2"]["results"][default_bw_method_name]["magnitude"] == pytest.approx(
         expected_value2, abs=1e-6)
-    #   todo test, complete experiment csv
+    #   todo test, complete new_developments csv
     experiment.results_to_csv(temp_csv_file)
     assert experiment.execution_time
 
@@ -290,7 +290,7 @@ def test_lca_distribution(experiment_setup,
     scenario_data = experiment_setup["scenario"]
     scenario_data["adapters"][0]["config"]["use_k_bw_distributions"] = 3
     experiment = Experiment(scenario_data)
-    # experiment.run()
+    # new_developments.run()
     scenario_data["hierarchy"]["children"].append(
         {
             "name": "single_activity_2",

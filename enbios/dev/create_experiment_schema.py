@@ -8,7 +8,7 @@ logger = get_logger(get_module_name(__file__))
 
 
 def create_experiment_schema():
-    schema_file_path = Path(__file__).parent.parent.parent / "data/schema/experiment.schema.gen.json"
+    schema_file_path = Path(__file__).parent.parent.parent / "data/schema/new_developments.schema.gen.json"
     schema_file_path.write_text(
         json.dumps(ExperimentData.model_json_schema(), indent=2, ensure_ascii=False),
         encoding="utf-8")

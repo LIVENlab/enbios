@@ -160,11 +160,11 @@ def get_demo_experiment(num_scenarios: int = 2) -> Experiment:
     brightway_experiment_adapter.logger.setLevel("INFO")
     try:
         if experiment_path.exists():
-            print("loading experiment from pickle file...")
+            print("loading new_developments from pickle file...")
             return pickle.load(experiment_path.open("rb"))
     except Exception as err:
         raise err
-    print("running experiment...")
+    print("running new_developments...")
     exp = create_experiment(num_scenarios)
     exp.run()
     experiment_path.parent.mkdir(parents=True, exist_ok=True)

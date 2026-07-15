@@ -1,0 +1,61 @@
+# ENBIOS Repository Improvement Tasks
+# Generated: 2026-07-15
+# ─────────────────────────────────────────────────────────────
+
+# ── IMMEDIATE (small, unblocked) ─────────────────────────────
+
+[ ] Update pyproject.toml classifiers once PyPI PR #253 is merged
+    - PR: https://github.com/pypa/trove-classifiers/pull/253
+    - Add: Topic :: Scientific/Engineering :: Ecology
+    - Add: Topic :: Scientific/Engineering :: Industrial Ecology
+    - Add: Topic :: Scientific/Engineering :: Life Cycle Assessment
+    - Add: Topic :: Scientific/Engineering :: Socio-Ecosystem Metabolism
+
+[ ] Update README.md to reference the new ENBIOS4TIMES_Workflow.ipynb notebook
+    - README currently mentions TIMES coupling as "being worked on"
+    - Add link to demos/ENBIOS4TIMES_Workflow.ipynb once it has content
+
+# ── DOCUMENTATION ─────────────────────────────────────────────
+
+[ ] Fix mkdocs.yml — add nav:, plugins:, and markdown_extensions: sections
+    - Current file only has site name and theme
+    - Pages exist in docs/ but are not referenced: Fundamentals.md, Experiment.md,
+      index.md, Validation.md, Adapters_Aggregators.md, mermaid_diagrams.md
+
+[ ] Fix create_docs.sh — currently calls Sphinx (sphinx-apidoc, sphinx-build)
+    - Project uses MkDocs, not Sphinx — script is broken leftover from old version
+    - Replace with: mkdocs build
+
+# ── TYPE HINTS ────────────────────────────────────────────────
+
+[ ] Create type stubs (.pyi files) for ENBIOS public API
+    - Recreate stubs/ folder with proper .pyi files mirroring enbios/ structure
+    - Focus on public API: main classes and functions in base/, bw2/, generic/
+    - Register stubs in pyproject.toml if needed
+
+# ── PYTHON 3.14 COMPATIBILITY ────────────────────────────────
+# (see requirements4update.txt for full details)
+
+[ ] Update enbios dependencies for Python 3.14 compatibility
+    - contourpy==1.1.0     → >=1.2.0  (confirmed broken, no wheel for 3.14)
+    - numpy==1.26.4        → >=2.0
+    - scipy==1.12.0        → >=1.14
+    - matplotlib==3.8.3    → >=3.9
+    - lxml==4.9.3          → >=5.0
+    - pillow==10.2.0       → >=10.3
+    - pydantic_core==2.16.3 → >=2.20
+    - brightway25, bw2data, bw2calc, bw2io → check for stable 3.14-compatible releases
+
+[ ] Once packages updated: change requires-python in pyproject.toml to include >=3.14
+    - Current: requires-python = ">=3.9,<3.13"
+    - Target:  requires-python = ">=3.9"
+
+# ── LOW PRIORITY ──────────────────────────────────────────────
+
+[ ] Review scripts/ folder — check which build/dev scripts are still valid
+    - build.sh, build_dist.sh, format.sh, fresh_install.sh, serve_docs.sh, test_build.sh
+    - Some may reference old package name (enbios2 → enbios)
+
+[ ] Consider adding CHANGELOG.md to track version history
+
+[ ] Consider adding CONTRIBUTING.md with instructions for contributors

@@ -54,7 +54,7 @@ class Scenario:
             #     structural_result_node = self.result_tree.find_subnode_by_name(node_name)
             # except StopIteration:
             #     raise ValueError(f"Node {node_name} not found in result tree")
-            # structural_node = self.experiment.get_structural_node(node.name)
+            # structural_node = self.new_developments.get_structural_node(node.name)
             # todo: should be dealt returned by the adapter...
             node.data.output = self.experiment.get_node_module(
                 node.name, Type[EnbiosAdapter]
@@ -111,7 +111,7 @@ class Scenario:
         #     raise ValueError(f"Scenario '{self.name}' has no methods")
         self.reset_execution_time()
         logger.info(f"Running scenario '{self.name}'")
-        # distributions_config = self.experiment.config.use_k_bw_distributions
+        # distributions_config = self.new_developments.config.use_k_bw_distributions
         # distribution_results = distributions_config > 1
         start_time = time.time()
 

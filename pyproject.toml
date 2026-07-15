@@ -4,16 +4,16 @@ requires = ["setuptools", "wheel"]
 [project]
 name = "enbios"
 version = "2.2.11"
-description = "Enbios 2"
+description = "ENBIOS2"
 authors = [
     { name = "Ramin Soleymani" },
+    { name = "Cristina Madrid-López" , email = "cristina.madrid@ciemat.es" },
 ]
 dynamic = ["dependencies"]
 
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python",
-    "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Operating System :: MacOS :: MacOS X",
     "Operating System :: Microsoft :: Windows",
@@ -24,15 +24,14 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering :: Information Analysis",
-    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Scientific/Engineering :: Visualization",
     "Typing :: Typed"
 ]
 
 readme = "README.md"
 license = { text = "BSD-3-Clause" }
-requires-python = ">=3.9,<3.13"
-
+requires-python = ">=3.9,<3.13"  # 3.14 not yet tested — see requirements4update.txt
 [project.urls]
 "Homepage" = "https://github.com/LIVENlab/enbios"
 "Bug Tracker" = "https://github.com/LIVENlab/enbios/issues"

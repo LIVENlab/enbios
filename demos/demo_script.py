@@ -67,7 +67,7 @@ simple_raw_data = {
     "hierarchy": hierarchy,
 }
 
-# create experiment object. This will validate the activities, their outputs, the methods and the scenarios.
+# create new_developments object. This will validate the activities, their outputs, the methods and the scenarios.
 simple_experiment: Experiment = Experiment(simple_raw_data)
 
 results = simple_experiment.run()

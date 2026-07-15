@@ -405,12 +405,12 @@ from enbios.base.experiment import Experiment
 config_file = "...some_config_path...json"
 exp = Experiment(config_file)
 exp.run()
-with open("experiment.pickle", "wb") as fout:
+with open("new_developments.pickle", "wb") as fout:
     pickle.dump(exp, fout)
 
 ## somewhere else (e.g. in another script)
 
-exp: Experiment = pickle.load(open("experiment.pickle", "rb"))
+exp: Experiment = pickle.load(open("new_developments.pickle", "rb"))
 ```
 
 This allows you to reopen the same experiment later, in order to

@@ -107,30 +107,30 @@ def test_env_config(tempfolder: Path):
 
 # def test_run_scenarios_env_setting():
 #     # Test case 1: run_scenarios is None
-#     experiment = Experiment(experiment_data)
-#     assert experiment.config.run_scenarios is None
+#     new_developments = Experiment(experiment_data)
+#     assert new_developments.config.run_scenarios is None
 #
 #     # Test case 2: run_scenarios is an empty list
 #     experiment_data = ExperimentData(run_scenarios=[])
-#     experiment = Experiment(experiment_data)
-#     assert experiment.config.run_scenarios == []
+#     new_developments = Experiment(experiment_data)
+#     assert new_developments.config.run_scenarios == []
 #
 #     # Test case 3: run_scenarios contains a scenario that does not exist
 #     experiment_data = ExperimentData(run_scenarios=["non_existent_scenario"])
 #     with pytest.raises(ValueError):
-#         experiment = Experiment(experiment_data)
+#         new_developments = Experiment(experiment_data)
 #
 #     # Test case 4: run_scenarios contains a scenario that exists
 #     experiment_data = ExperimentData(run_scenarios=["existing_scenario"])
-#     experiment = Experiment(experiment_data)
-#     assert "existing_scenario" in experiment.config.run_scenarios
+#     new_developments = Experiment(experiment_data)
+#     assert "existing_scenario" in new_developments.config.run_scenarios
 #
 # def test_run_scenarios_env_setting():
 #     # Test case 5: RUN_SCENARIOS environment variable is set
 #     os.environ["RUN_SCENARIOS"] = "env_scenario"
 #     experiment_data = ExperimentData(run_scenarios=["existing_scenario"])
-#     experiment = Experiment(experiment_data)
-#     assert experiment.config.run_scenarios == ["env_scenario"]
+#     new_developments = Experiment(experiment_data)
+#     assert new_developments.config.run_scenarios == ["env_scenario"]
 #     del os.environ["RUN_SCENARIOS"]
 
 def test_repr():

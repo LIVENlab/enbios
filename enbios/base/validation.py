@@ -25,7 +25,7 @@ def validate_adapters(
     experiment_adapters: list[AdapterModel],
 ) -> tuple[dict[str, EnbiosAdapter], list[str]]:
     """
-    Validate the adapters in this experiment data
+    Validate the adapters in this new_developments data
 
     :return: adapter-dict and method names
     """
@@ -47,7 +47,7 @@ def validate_aggregators(
     experiment_aggregators: list[AggregationModel],
 ) -> dict[str, EnbiosAggregator]:
     """
-    Validate the aggregators in this experiment data
+    Validate the aggregators in this new_developments data
 
     :return: a aggregator-name-Aggregator dict
     """
@@ -132,10 +132,10 @@ def validate_scenario(
     # fill up the missing activities with default values
     # todo bring something like this back...make the data come from the adapter
     # if not scenario_data.config.exclude_defaults:
-    # for node_name in experiment.structural_nodes_names:
+    # for node_name in new_developments.structural_nodes_names:
     #     if node_name not in scenario_data.nodes:
-    #         node = experiment.get_structural_node(node_name)
-    #         output = experiment.get_node_adapter(
+    #         node = new_developments.get_structural_node(node_name)
+    #         output = new_developments.get_node_adapter(
     #             node
     #         ).get_node_output(node_name, scenario_data.name)
     #         if not output:
@@ -161,13 +161,13 @@ def validate_run_scenario_setting(
         if experiment_config.run_scenarios:
             logger.info(
                 "Environment variable 'RUN_SCENARIOS' is set "
-                "and overwriting experiment config."
+                "and overwriting new_developments config."
             )
         experiment_config.run_scenarios = env_settings.RUN_SCENARIOS
     if experiment_config.run_scenarios:
         for scenario in experiment_config.run_scenarios:
             if scenario not in scenario_names:
                 raise ValueError(
-                    f"Scenario '{scenario}' not found in experiment scenarios. "
+                    f"Scenario '{scenario}' not found in new_developments scenarios. "
                     f"Scenarios are: {scenario_names}"
                 )

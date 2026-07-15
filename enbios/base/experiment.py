@@ -51,7 +51,7 @@ class Experiment:
 
     def __init__(self, data_input: Optional[Union[dict, str, Path]] = None):
         """
-        Initialize the experiment
+        Initialize the new_developments
         :param data_input: dictionary or filename to load the data from
         """
         self.env_settings = Settings()
@@ -138,7 +138,7 @@ class Experiment:
         module_type: Optional[T] = EnbiosNodeModule,
     ) -> T:
         """
-        Get the module of a node in the experiment hierarchy
+        Get the module of a node in the new_developments hierarchy
         """
         if isinstance(node, str):
             node = self.hierarchy_root.find_subnode_by_name(node)
@@ -229,7 +229,7 @@ class Experiment:
     @property
     def execution_time(self) -> str:
         """
-        Get the execution time of the experiment (or all its scenarios) in a readable format
+        Get the execution time of the new_developments (or all its scenarios) in a readable format
         :return: execution time in the format HH:MM:SS
         """
         if not math.isnan(self._execution_time):
@@ -358,7 +358,7 @@ class Experiment:
     @property
     def config(self) -> ExperimentConfig:
         """
-        get the config of the experiment
+        get the config of the new_developments
         :return:
         """
         return self.resolved_raw_data.config
@@ -404,10 +404,10 @@ class Experiment:
     ) -> Union[BasicTreeNode[ScenarioResultNodeData], dict]:
         """
         Run a scenario from a config dictionary. Scenario will be validated and run. An
-        :param scenario_config: The scenario config as a dictionary (as it would be defined in the experiment config)
+        :param scenario_config: The scenario config as a dictionary (as it would be defined in the new_developments config)
         :param result_as_dict: If True, the result will be returned as a dictionary. If False, the result will be
         returned as a BasicTreeNode.
-        :param append_scenario: If True, the scenario will be appended to the experiment. If False, the scenario will
+        :param append_scenario: If True, the scenario will be appended to the new_developments. If False, the scenario will
         not be appended.
         :return: The scenario result as a dictionary or a BasicTreeNode
         """
@@ -426,7 +426,7 @@ class Experiment:
 
     def info(self) -> str:
         """
-        Information about the experiment
+        Information about the new_developments
         :return: Generated information as a string
         """
         node_rows: list[str] = []

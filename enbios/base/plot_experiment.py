@@ -110,7 +110,7 @@ def star_plot(
     Each scenario is represented by a circle, with multiple axis for different angles, representing different methods.
     It is important to note, that in some cases, some circles
 
-    :param experiment: experiment to plot
+    :param experiment: new_developments to plot
     :param scenarios: scenarios to plot
     :param methods: methods to plot
     :param fill: if the circles should be filled
@@ -216,7 +216,7 @@ def single_star_plot(
 ) -> Figure:
     """
     plots multiple scenarios into a single star plot
-    :param experiment: experiment to plot
+    :param experiment: new_developments to plot
     :param scenarios: scenarios to plot
     :param methods: methods to plot
     :param r_ticks: ticks for the radial axis
