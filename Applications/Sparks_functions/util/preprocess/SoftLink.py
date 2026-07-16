@@ -3,10 +3,9 @@ import json
 import pandas as pd
 from pathlib import Path
 import pandera as pa
-import logging
 import ast
-from Sparks_functions.generic.basefile_schema import calliope_cleaning_schema, methods_schema, hierarchy_schema
-from Sparks_functions.generic.generic_dataclass import *
+from Applications.Sparks_functions.generic.basefile_schema import methods_schema, hierarchy_schema
+from Applications.Sparks_functions.generic.generic_dataclass import *
 
 
 logger = logging.getLogger("sparks")

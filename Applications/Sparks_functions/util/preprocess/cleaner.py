@@ -3,7 +3,7 @@
         -LexPascal
 """
 import pandas as pd
-from Sparks_functions.generic.generic_dataclass import *
+from Applications.Sparks_functions.generic.generic_dataclass import *
 from tqdm import tqdm
 from dataclasses import asdict
 from pandas.api.types import is_numeric_dtype
@@ -11,7 +11,7 @@ import re
 import logging
 import pandera.pandas as pa
 
-from Sparks_functions.generic.basefile_schema import schema
+from Applications.Sparks_functions.generic.basefile_schema import schema
 
 pd.options.mode.chained_assignment = None  #
 tqdm.pandas()
