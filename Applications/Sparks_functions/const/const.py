@@ -1,1 +1,1 @@
-bw_project = 'Hydrogen_SEEDS'
+bw_project = '[your BW project]'
