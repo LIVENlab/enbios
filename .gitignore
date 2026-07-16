@@ -1,7 +1,7 @@
 /data/ecoinvent/
 /data/ecoinventJson/
 /test/enbios/test_project_fixture.py
-/venv/
+.venv/
 /.idea/
 /data/temp/
 /dist/enbios2-0.1.0.tar.gz
@@ -20,5 +20,4 @@
 /data/databases/*
 /data/logging.json
 /enbios.egg-info/
-.claude/
 /Applications/ENBIOS_TIMES/TIMES_input_data_sample/
